@@ -28,3 +28,8 @@ yarn-error.log*
 .turbo
 
 docs/complience
+docs/frontend/editorial-philosophy.md
+docs/frontend/MIDTRANS_PRODUCTION.md
+docs/frontend/PRODUCTION_DATABASE_MIGRATIONS.md
+docs/frontend/ZOHO_DESK.md
+docs/PRODUCTION-VPS.md

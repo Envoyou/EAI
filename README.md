@@ -1,8 +1,8 @@
-# Envoyou AI Editorial System (EAI)
+# Envoyou AI (EAI)
 
-AI-powered editorial workspace for structured content creation, refinement, and publishing.
+AI-powered editorial workspace for structured content creation, refinement, and publishing articles.
 
-EAI (Envoyou AI Editorial Intelligence) helps teams transform raw ideas into publication-ready content through AI-assisted drafting, editorial workflows, SEO optimization, and controlled publishing pipelines.
+EAI (Envoyou AI Editorial Intelligence) helps teams editorials transform raw ideas into publication-ready content through AI-assisted drafting, editorial workflows, SEO optimization, and controlled publishing pipelines.
 
 ---
 
