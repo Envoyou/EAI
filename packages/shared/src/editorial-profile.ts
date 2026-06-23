@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { EditorialProfileConfigSchema } from './editorial-profile-schema.ts';
-import type { AllowedEditorialTerm } from '@/types';
+import { EditorialProfileConfigSchema } from './editorial-profile-schema';
+import type { AllowedEditorialTerm } from './types';
 
 export const CORE_GUARDRAILS_VERSION = '1.0.0';
 export const ENVOYOU_ORGANIZATION_ID = 'org_envoyou';

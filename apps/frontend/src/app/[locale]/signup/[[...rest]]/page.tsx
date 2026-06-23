@@ -2,7 +2,7 @@ import { SignUp } from '@clerk/nextjs';
 import { dark } from '@clerk/themes';
 
 import { AuthPageShell } from '@/components/AuthPageShell';
-import { getAllFeatureFlags } from '@/lib/feature-flags';
+import { getAllFeatureFlags } from '@eai/shared';
 
 export const dynamic = 'force-dynamic';
 

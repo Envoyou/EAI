@@ -84,9 +84,10 @@ export async function getMiddlewareFeatureFlags(
             ? { 'x-edge-config-vercel-env': process.env.VERCEL_ENV }
             : {}),
         },
-        cache: 'no-store',
+        // @ts-ignore cache is not in node's RequestInit type but exists in next.js
+        cache: 'no-store' as any,
         signal: controller.signal,
-      } as any
+      }
     );
     if (!response.ok) {
       console.error('Middleware Edge Config read failed:', response.status);

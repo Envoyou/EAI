@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import Groq from 'groq-sdk';
-import type { ResponseMode, Role } from '@/types';
+import type { ResponseMode, Role } from '@eai/shared';
 
 export type AiProvider = 'gemini' | 'groq';
 export type AnalysisSpeed = 'fast' | 'balanced' | 'deep';

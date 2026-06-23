@@ -5,7 +5,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["@sentry/nextjs", "import-in-the-middle", "require-in-the-middle"],
 };
 
 export default withSentryConfig(withNextIntl(nextConfig), {

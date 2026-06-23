@@ -8,7 +8,7 @@ import {
 } from '@/lib/cms-adapter';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { getWorkspaceState } from '@/lib/user-workspace';
-import { getAllFeatureFlags } from '@/lib/feature-flags';
+import { getAllFeatureFlags } from '@eai/shared';
 
 const router = Router();
 

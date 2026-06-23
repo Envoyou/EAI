@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 
 import { prisma } from '@/lib/db';
-import { isDisposableEmail, normalizeEmail } from '@/lib/email-utils';
+import { isDisposableEmail, normalizeEmail } from '@eai/shared';
 
 const TRIAL_CREDITS = 10;
 

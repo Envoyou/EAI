@@ -1,4 +1,4 @@
-import { ArticleMetadata } from '@/types';
+import { ArticleMetadata } from '@eai/shared';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Sparkles, X, Wand2, List, Link2 } from 'lucide-react';

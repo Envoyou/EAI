@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma, Prisma } from '@/lib/db';
 import { requireAuth } from '@/middleware/auth';
-import { FeedbackItemSchema } from '@/lib/schema';
+import { FeedbackItemSchema } from '@eai/shared';
 import { getWorkspaceState } from '@/lib/user-workspace';
 
 const router = Router();

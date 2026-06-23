@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AnalysisResult, EditorialProcessStage, VerificationStatus } from '@/types';
+import { AnalysisResult, EditorialProcessStage, VerificationStatus } from '@eai/shared';
 import {
   AlertCircle, CheckCircle2, AlertTriangle, FileSearch, Flag,
   ArrowRightCircle, Check, HelpCircle, Wand2, ShieldAlert, Copy,
@@ -9,7 +9,7 @@ import {
   Loader2, Trash2, Link, ExternalLink
 } from 'lucide-react';
 import { motion, Variants, AnimatePresence } from 'framer-motion';
-import { canAutoApplyFeedback } from '@/lib/editorial';
+import { canAutoApplyFeedback } from '@eai/shared';
 import { toast } from 'sonner';
 import EditorialProgress from '@/components/EditorialProgress';
 

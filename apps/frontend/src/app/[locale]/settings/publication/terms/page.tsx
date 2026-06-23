@@ -4,7 +4,7 @@ import React from 'react';
 import { usePublication } from '@/components/PublicationProvider';
 import { ArrayField } from '@/components/PublicationUI';
 import { SettingSection } from '@/components/SettingsUI';
-import type { AllowedEditorialTerm } from '@/types';
+import type { AllowedEditorialTerm } from '@eai/shared';
 
 export default function TermsSettingsPage() {
   const { form, updateField } = usePublication();

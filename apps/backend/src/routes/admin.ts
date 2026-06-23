@@ -13,9 +13,9 @@ import { getZohoDeskTicket, isZohoDeskEnabled } from '@/lib/zoho-desk';
 import {
   CORE_GUARDRAILS_VERSION,
   normalizeProfileConfig,
-} from '@/lib/editorial-profile';
+} from '@eai/shared';
 import { createEditorialProfileVersion } from '@/lib/editorial-profile-server';
-import { EditorialProfileConfigSchema } from '@/lib/editorial-profile-schema';
+import { EditorialProfileConfigSchema } from '@eai/shared';
 import { getWorkspaceState } from '@/lib/user-workspace';
 
 const router = Router();

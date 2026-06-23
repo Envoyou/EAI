@@ -6,14 +6,14 @@ import {
   FinalQualityGateSchema,
   type FinalQualityGateOutput,
   normalizeFinalQualityGateResponseCandidate,
-} from '@/lib/schema';
+} from '@eai/shared';
 import {
   applyDeterministicQualityChecks,
 } from '@/lib/final-quality';
-import { composeEditorialPrompt, type EditorialProfileSnapshot } from '@/lib/editorial-profile';
+import { composeEditorialPrompt, type EditorialProfileSnapshot } from '@eai/shared';
 import { getFinalQualityGatePrompt } from '@/lib/prompts';
-import { parseJsonResponse } from '@/lib/json-stream';
-import type { ArticleMetadata, FeedbackItem } from '@/types';
+import { parseJsonResponse } from '@eai/shared';
+import type { ArticleMetadata, FeedbackItem } from '@eai/shared';
 import {
   type AiProvider,
   type AnalysisSpeed,

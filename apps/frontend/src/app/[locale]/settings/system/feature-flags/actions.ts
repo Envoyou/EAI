@@ -2,7 +2,7 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
-import { isFeatureFlagKey } from '@/lib/feature-flags';
+import { isFeatureFlagKey } from '@eai/shared';
 
 type ToggleFeatureFlagResult =
   | {

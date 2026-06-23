@@ -1,4 +1,4 @@
-import type { FeedbackItem } from '../types/index';
+import type { FeedbackItem } from './types/index';
 
 export interface ApplyOperationResult {
   nextText: string;

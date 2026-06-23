@@ -2,6 +2,7 @@
   "name": "eai-monorepo",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "npm@11.14.1",
   "workspaces": [
     "apps/*",
     "packages/*"

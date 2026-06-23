@@ -1,4 +1,4 @@
-import { Role } from '@/types';
+import { Role } from '@eai/shared';
 import { PenTool, ShieldCheck, Search, Scale } from 'lucide-react';
 
 interface RoleToggleProps {

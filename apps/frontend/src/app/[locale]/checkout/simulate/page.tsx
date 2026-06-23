@@ -4,7 +4,7 @@
 import React, { Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Shield, QrCode, Building2, CheckCircle, XCircle, Copy, Loader2 } from 'lucide-react';
-import { BILLING_ENABLED } from '@/lib/features';
+import { BILLING_ENABLED } from '@eai/shared';
 
 function SimulatorContent() {
   if (!BILLING_ENABLED) {

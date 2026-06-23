@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ThinkingLevel } from '@google/genai';
 import { getDraftGeneratorPrompt, getOutlineGeneratorPrompt, PROMPT_VERSION } from '@/lib/prompts';
-import { ArticleMetadata } from '@/types';
+import { ArticleMetadata } from '@eai/shared';
 import { prisma } from '@/lib/db';
 import { verifyToken } from '@clerk/backend';
 import {
@@ -14,10 +14,10 @@ import {
 import {
   buildEditorialAuditContext,
   ENVOYOU_EDITORIAL_PROFILE,
-} from '@/lib/editorial-profile';
+} from '@eai/shared';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { getWorkspaceState } from '@/lib/user-workspace';
-import { getAllFeatureFlags } from '@/lib/feature-flags';
+import { getAllFeatureFlags } from '@eai/shared';
 
 const router = Router();
 

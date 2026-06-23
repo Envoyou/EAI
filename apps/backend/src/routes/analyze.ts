@@ -10,13 +10,13 @@ import {
   getIterativeRefinementPrompt,
   PROMPT_VERSION,
 } from '@/lib/prompts';
-import { Role, ArticleMetadata, ResponseMode, AnalyzeMode, FeedbackItem, VerificationStatus } from '@/types';
+import { Role, ArticleMetadata, ResponseMode, AnalyzeMode, FeedbackItem, VerificationStatus } from '@eai/shared';
 import {
   SeoMetadataSchema,
   FeedbackOutput,
   PolishDiagnosisOutput,
   FinalQualityGateOutput,
-} from '@/lib/schema';
+} from '@eai/shared';
 import { cleanupEscapedMarkdownArtifacts, convertAsciiTablesToMarkdown, stripVerificationMarkers } from '@/lib/final-quality';
 import { AiTelemetryCollector, AiTelemetrySnapshot } from '@/lib/ai-telemetry';
 import {
@@ -24,7 +24,7 @@ import {
   composeEditorialPrompt,
   EditorialAuditContext,
   ENVOYOU_EDITORIAL_PROFILE,
-} from '@/lib/editorial-profile';
+} from '@eai/shared';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { CmsAdapterError, listPublishedPostsForProfile } from '@/lib/cms-adapter';
 import { getWorkspaceState } from '@/lib/user-workspace';
@@ -45,7 +45,7 @@ import { runEditorialReviewStage } from '@/lib/ai/review-stage';
 import { runFinalQualityGateSafely } from '@/lib/ai/quality-gate-stage';
 import { runTargetedFixStage } from '@/lib/ai/targeted-fix-stage';
 import { runSeoStage } from '@/lib/ai/seo-stage';
-import { getAllFeatureFlags } from '@/lib/feature-flags';
+import { getAllFeatureFlags } from '@eai/shared';
 import { requireAuth } from '@/middleware/auth';
 import { createClerkClient, verifyToken } from '@clerk/backend';
 

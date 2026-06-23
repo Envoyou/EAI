@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Role } from '@/types';
+import type { Role } from './types';
 
 export const FEEDBACK_OUTPUT_PROMPT_SCHEMA = `
 {

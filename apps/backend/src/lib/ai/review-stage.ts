@@ -6,20 +6,20 @@ import {
   getFeedbackResponseJsonSchema,
   type FeedbackOutput,
   type PolishDiagnosisOutput,
-} from '@/lib/schema';
+} from '@eai/shared';
 import {
   extractCompleteObjectsFromJsonArray,
   extractJsonFromText,
   extractJsonNumberValue,
   extractJsonStringValue,
   parseJsonResponse,
-} from '@/lib/json-stream';
+} from '@eai/shared';
 import type {
   ArticleMetadata,
   FeedbackItem,
   ResponseMode,
   Role,
-} from '@/types';
+} from '@eai/shared';
 import {
   type AiProvider,
   extractGeminiText,

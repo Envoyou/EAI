@@ -35,11 +35,11 @@ import {
   DEFAULT_ONBOARDING_DATA,
   type OnboardingData,
   type OnboardingStep,
-} from '@/lib/onboarding-schema';
+} from '@eai/shared';
 import {
   PREDEFINED_CATEGORIES,
   PREDEFINED_ARTICLE_TYPES,
-} from '@/lib/editorial-profile';
+} from '@eai/shared';
 
 const STEPS: Array<{
   id: OnboardingStep;

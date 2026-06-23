@@ -1,4 +1,4 @@
-import { ArticleMetadata } from '@/types';
+import { ArticleMetadata } from '@eai/shared';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type EditorialStrictness = 'balanced' | 'strict';

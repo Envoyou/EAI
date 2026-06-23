@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 
-import { EditorialProfileConfig } from '@/lib/editorial-profile';
+import { EditorialProfileConfig } from '@eai/shared';
 import { useSettingsAction } from '@/components/SettingsActionProvider';
 
 export interface ProfileVersion {

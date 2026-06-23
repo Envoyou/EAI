@@ -1,7 +1,7 @@
 import { ThinkingLevel } from '@google/genai';
-import type { ArticleMetadata } from '@/types';
-import type { EditorialProfileSnapshot } from '@/lib/editorial-profile';
-import { composeEditorialPrompt } from '@/lib/editorial-profile';
+import type { ArticleMetadata } from '@eai/shared';
+import type { EditorialProfileSnapshot } from '@eai/shared';
+import { composeEditorialPrompt } from '@eai/shared';
 import { getTargetedFixPrompt } from '@/lib/prompts';
 import {
   type AiProvider,

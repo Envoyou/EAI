@@ -11,7 +11,7 @@ import HistorySidebar from '@/components/HistorySidebar';
 import PanelTabBar, { PanelTab } from '@/components/PanelTabBar';
 import StatusBar from '@/components/StatusBar';
 import ShortcutsModal from '@/components/ShortcutsModal';
-import { AnalysisResult, ArticleMetadata, EditorialProcessStage, EditorialReadiness, ResponseMode, FeedbackItem } from '@/types';
+import { AnalysisResult, ArticleMetadata, EditorialProcessStage, EditorialReadiness, ResponseMode, FeedbackItem } from '@eai/shared';
 import { Loader2, RotateCcw, Sparkles, Megaphone, Lock, Menu, Zap, Rocket } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { toast } from 'sonner';
@@ -22,7 +22,7 @@ import {
   canAutoApplyFeedback,
   findTargetMatch,
   replaceFirstTargetMatch,
-} from '@/lib/editorial';
+} from '@eai/shared';
 import {
   AppSettings,
   DEFAULT_APP_SETTINGS,
@@ -487,7 +487,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
             case 'summary': setAnalysis(prev => ({ ...prev, status: 'success', summary: event.data as string })); break;
             case 'feedback_item': setAnalysis(prev => {
               const currentFeedback = prev.feedback ? [...prev.feedback] : [];
-              const { item, index } = event.data as { item: import('@/types').FeedbackItem; index: number };
+              const { item, index } = event.data as { item: import('@eai/shared').FeedbackItem; index: number };
               currentFeedback[index] = item;
               return { ...prev, status: 'success', feedback: currentFeedback };
             }); break;
@@ -776,7 +776,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
             case 'changes': setAnalysis(prev => ({ ...prev, changes: event.data as string[] })); break;
             case 'feedback_item': setAnalysis(prev => {
               const currentFeedback = prev.feedback ? [...prev.feedback] : [];
-              const { item, index } = event.data as { item: import('@/types').FeedbackItem; index: number };
+              const { item, index } = event.data as { item: import('@eai/shared').FeedbackItem; index: number };
               currentFeedback[index] = item;
               return { ...prev, feedback: currentFeedback };
             }); break;

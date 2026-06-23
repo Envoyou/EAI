@@ -2,7 +2,7 @@
 
 import { CheckCircle2, AlertTriangle, ShieldAlert, Loader2, Keyboard } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { EditorialReadiness } from '@/types';
+import { EditorialReadiness } from '@eai/shared';
 import packageJson from '../../package.json';
 
 interface StatusBarProps {

@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/server.ts",
-    "build": "node --max-old-space-size=1024 ./node_modules/typescript/bin/tsc && npx tsc-alias",
+    "build": "npx tsc && npx tsc-alias",
     "start": "node dist/server.js",
     "postinstall": "prisma generate"
   },
   "dependencies": {
     "@clerk/backend": "^1.24.1",
+    "@eai/shared": "*",
     "@google/genai": "^2.6.0",
     "@neondatabase/serverless": "^1.1.0",
     "@prisma/adapter-neon": "^7.8.0",

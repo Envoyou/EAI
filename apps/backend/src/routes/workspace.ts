@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
-import { DEFAULT_ARTICLE_TYPES } from '@/lib/editorial-profile';
+import { DEFAULT_ARTICLE_TYPES } from '@eai/shared';
 import { resolveEditorialProfileForUser, createEditorialProfileVersion } from '@/lib/editorial-profile-server';
 import { getWorkspaceState } from '@/lib/user-workspace';
 

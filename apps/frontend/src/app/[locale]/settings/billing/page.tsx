@@ -7,7 +7,7 @@ import { ArrowRight, CalendarDays, Coins, CreditCard, Receipt, Zap } from 'lucid
 import { SettingSection } from '@/components/SettingsUI';
 import PricingCheckoutButton from '@/components/PricingCheckoutButton';
 import PaymentStatusBanner from '@/components/PaymentStatusBanner';
-import { getAllFeatureFlags } from '@/lib/feature-flags';
+import { getAllFeatureFlags } from '@eai/shared';
 import { getApiUrl } from '@/lib/api-url';
 
 export const dynamic = 'force-dynamic';

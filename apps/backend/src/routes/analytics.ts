@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { prisma } from '@/lib/db';
 import { requireAuth } from '@/middleware/auth';
 import { getWorkspaceState } from '@/lib/user-workspace';
-import { isOwnerUser } from '@/lib/owner-guard';
+import { isOwnerUser } from '@eai/shared';
 import crypto from 'node:crypto';
 import { Prisma } from '@prisma/client';
 

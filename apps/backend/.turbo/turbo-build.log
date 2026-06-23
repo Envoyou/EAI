@@ -1,0 +1,4 @@
+
+> backend@0.1.0 build
+> npx tsc && npx tsc-alias
+

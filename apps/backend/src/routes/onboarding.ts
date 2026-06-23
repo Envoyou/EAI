@@ -3,14 +3,14 @@ import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
 import { CREDENTIAL_KEY_VERSION, decryptCredentials, encryptCredentials } from '@/lib/credential-vault';
 import { createEaiRestAdapter } from '@/lib/cms-adapter';
-import { hashEditorialConfiguration } from '@/lib/editorial-profile';
+import { hashEditorialConfiguration } from '@eai/shared';
 import {
   buildSandboxEditorialProfile,
   DEFAULT_ONBOARDING_DATA,
   OnboardingDataSchema,
   OnboardingSaveSchema,
   CmsConnectionTestSchema,
-} from '@/lib/onboarding-schema';
+} from '@eai/shared';
 import { ensureCurrentUserRecord, getWorkspaceState } from '@/lib/user-workspace';
 import { createClerkClient } from '@clerk/backend';
 

@@ -1,6 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { getMiddlewareFeatureFlags } from '@/lib/feature-flags';
+import { getMiddlewareFeatureFlags } from '@eai/shared';
 import { getApiUrl } from '@/lib/api-url';
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';

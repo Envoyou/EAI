@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Check, Clock3, LoaderCircle } from 'lucide-react';
-import { EditorialProcessStage } from '@/types';
+import { EditorialProcessStage } from '@eai/shared';
 
 const PROCESS_STEPS: Array<{
   stage: EditorialProcessStage;

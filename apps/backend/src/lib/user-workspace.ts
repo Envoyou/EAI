@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 
 import { prisma } from '@/lib/db';
 import { ensureOrganizationTrialCredits } from '@/lib/trial-credits';
-import { normalizeProfileConfig } from './editorial-profile';
+import { normalizeProfileConfig } from '@eai/shared';
 
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 

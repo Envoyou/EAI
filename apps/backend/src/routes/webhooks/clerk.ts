@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Webhook } from 'svix';
 import { prisma } from '@/lib/db';
-import { normalizeEmail, isDisposableEmail } from '@/lib/email-utils';
+import { normalizeEmail, isDisposableEmail } from '@eai/shared';
 
 const router = Router();
 

@@ -6,7 +6,7 @@ import {
   ENVOYOU_PROFILE_ID,
   hashEditorialConfiguration,
   normalizeProfileConfig,
-} from '@/lib/editorial-profile';
+} from '@eai/shared';
 
 const toSnapshot = (
   organizationId: string,

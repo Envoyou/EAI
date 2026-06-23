@@ -1,5 +1,5 @@
-import type { FinalQualityGateOutput } from '@/lib/schema';
-import type { AllowedEditorialTerm } from '@/types';
+import type { FinalQualityGateOutput } from '@eai/shared';
+import type { AllowedEditorialTerm } from '@eai/shared';
 
 type QualityFeedbackItem = FinalQualityGateOutput['feedback'][number];
 

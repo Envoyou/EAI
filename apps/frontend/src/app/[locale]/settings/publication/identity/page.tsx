@@ -8,7 +8,7 @@ import { usePublication } from '@/components/PublicationProvider';
 import {
   PREDEFINED_CATEGORIES,
   PREDEFINED_ARTICLE_TYPES,
-} from '@/lib/editorial-profile';
+} from '@eai/shared';
 import {
   FieldLabel,
   ArrayField,

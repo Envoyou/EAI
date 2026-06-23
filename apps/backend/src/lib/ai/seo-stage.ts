@@ -1,10 +1,10 @@
 import { ThinkingLevel } from '@google/genai';
 import type { AiTelemetryCollector } from '@/lib/ai-telemetry';
-import type { EditorialProfileSnapshot } from '@/lib/editorial-profile';
-import type { ArticleMetadata } from '@/types';
-import { SeoMetadataResponseJsonSchema, type SeoMetadataOutput } from '@/lib/schema';
-import { buildFallbackSeoMetadata, normalizeSeoMetadata } from '@/lib/seo-metadata';
-import { parseJsonResponse } from '@/lib/json-stream';
+import type { EditorialProfileSnapshot } from '@eai/shared';
+import type { ArticleMetadata } from '@eai/shared';
+import { SeoMetadataResponseJsonSchema, type SeoMetadataOutput } from '@eai/shared';
+import { buildFallbackSeoMetadata, normalizeSeoMetadata } from '@eai/shared';
+import { parseJsonResponse } from '@eai/shared';
 import {
   type AiProvider,
   extractGeminiText,

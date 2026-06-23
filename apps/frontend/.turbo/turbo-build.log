@@ -1,0 +1,61 @@
+
+> frontend@0.37.0 build
+> next build
+
+▲ Next.js 16.2.6 (Turbopack)
+- Environments: .env.local, .env
+- Experiments (use with caution):
+  · clientTraceMetadata
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 6.0s
+✓ Completed runAfterProductionCompile in 543ms
+  Finished TypeScript in 4.8s    ✓ Finished TypeScript in 4.8s 
+  Collecting page data using 11 workers in 923ms    ✓ Collecting page data using 11 workers in 923ms 
+✓ Generating static pages using 11 workers (5/5) in 102ms
+  Finalizing page optimization in 10ms    ✓ Finalizing page optimization in 10ms 
+
+Route (app)
+┌ ○ /_not-found
+├ ƒ /[locale]
+├ ƒ /[locale]/checkout/simulate
+├ ƒ /[locale]/dashboard
+├ ƒ /[locale]/dashboard/overview
+├ ƒ /[locale]/dashboard/performance
+├ ƒ /[locale]/dashboard/productivity
+├ ƒ /[locale]/dashboard/trends
+├ ƒ /[locale]/dashboard/validation
+├ ƒ /[locale]/demo
+├ ƒ /[locale]/login/[[...rest]]
+├ ƒ /[locale]/maintenance
+├ ƒ /[locale]/onboarding
+├ ƒ /[locale]/pricing
+├ ƒ /[locale]/settings
+├ ƒ /[locale]/settings/account
+├ ƒ /[locale]/settings/billing
+├ ƒ /[locale]/settings/defaults
+├ ƒ /[locale]/settings/general
+├ ƒ /[locale]/settings/publication/history
+├ ƒ /[locale]/settings/publication/identity
+├ ƒ /[locale]/settings/publication/seo
+├ ƒ /[locale]/settings/publication/standards
+├ ƒ /[locale]/settings/publication/terms
+├ ƒ /[locale]/settings/system
+├ ƒ /[locale]/settings/system/feature-flags
+├ ƒ /[locale]/settings/system/telemetry
+├ ƒ /[locale]/settings/system/tenants
+├ ƒ /[locale]/settings/workflow
+├ ƒ /[locale]/settings/workspace
+├ ƒ /[locale]/signup/[[...rest]]
+├ ƒ /[locale]/support
+├ ƒ /[locale]/unavailable
+├ ƒ /[locale]/workspace
+├ ○ /apple-icon.png
+└ ○ /icon.svg
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

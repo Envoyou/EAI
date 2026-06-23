@@ -1,4 +1,4 @@
-import type { ArticleMetadata } from '@/types';
+import type { ArticleMetadata } from '@eai/shared';
 
 const INPUT_BOUNDARY_POLICY = `
 INPUT BOUNDARY:

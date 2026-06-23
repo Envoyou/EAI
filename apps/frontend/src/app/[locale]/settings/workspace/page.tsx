@@ -6,7 +6,7 @@ import { OrganizationSwitcher } from '@clerk/nextjs';
 import { SlidersHorizontal, Loader2, CreditCard } from 'lucide-react';
 import { useSettings } from '@/components/SettingsProvider';
 import { SettingSection, SettingRow } from '@/components/SettingsUI';
-import { PRICING_ENABLED } from '@/lib/features';
+import { PRICING_ENABLED } from '@eai/shared';
 
 export default function WorkspaceSettingsPage() {
   const { workspace, loadingWorkspace } = useSettings();

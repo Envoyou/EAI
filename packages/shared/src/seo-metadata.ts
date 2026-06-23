@@ -1,9 +1,9 @@
-import { SeoMetadataSchema, type SeoMetadataOutput } from './schema.ts';
+import { SeoMetadataSchema, type SeoMetadataOutput } from './schema';
 import {
   ENVOYOU_EDITORIAL_PROFILE,
   type EditorialProfileSnapshot,
-} from './editorial-profile.ts';
-import type { ArticleMetadata } from '../types/index.ts';
+} from './editorial-profile';
+import type { ArticleMetadata } from './types/index';
 
 const slugify = (value: string) =>
   value

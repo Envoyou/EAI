@@ -1,4 +1,4 @@
-import type { EditorialProfileSnapshot } from './editorial-profile';
+import type { EditorialProfileSnapshot } from '@eai/shared';
 import { prisma } from './db';
 import { decryptCredentials } from './credential-vault';
 

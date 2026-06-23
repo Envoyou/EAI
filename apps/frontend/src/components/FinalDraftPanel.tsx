@@ -11,8 +11,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
-import { buildParagraphDiff } from '@/lib/diff';
-import { ArticleMetadata, EditorialProcessStage, FeedbackItem } from '@/types';
+import { buildParagraphDiff } from '@eai/shared';
+import { ArticleMetadata, EditorialProcessStage, FeedbackItem } from '@eai/shared';
 import EditorialProgress from '@/components/EditorialProgress';
 
 interface FinalDraftPanelProps {
