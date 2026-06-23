@@ -1,10 +1,6 @@
 import type { Role, ArticleMetadata } from '@eai/shared';
-import type { EditorialProfileConfig } from '@eai/shared';
-import {
-  FEEDBACK_OUTPUT_PROMPT_SCHEMA,
-  POLISH_DIAGNOSIS_OUTPUT_PROMPT_SCHEMA,
-  SEO_METADATA_OUTPUT_PROMPT_SCHEMA,
-} from '@eai/shared';
+import type { EditorialProfileConfig } from '@eai/shared/server';
+import { FEEDBACK_OUTPUT_PROMPT_SCHEMA, POLISH_DIAGNOSIS_OUTPUT_PROMPT_SCHEMA, SEO_METADATA_OUTPUT_PROMPT_SCHEMA } from '@eai/shared';
 export const PROMPT_VERSION = '1.10.0';
 
 const DEFAULT_PROMPT_PROFILE: EditorialProfileConfig = {

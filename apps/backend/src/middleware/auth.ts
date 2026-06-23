@@ -3,6 +3,7 @@ import { verifyToken } from '@clerk/backend';
 
 // Extend Express Request type to include auth
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       auth?: {

@@ -31,15 +31,8 @@ import { EAILogo } from '@/components/EAILogo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  DEFAULT_ONBOARDING_DATA,
-  type OnboardingData,
-  type OnboardingStep,
-} from '@eai/shared';
-import {
-  PREDEFINED_CATEGORIES,
-  PREDEFINED_ARTICLE_TYPES,
-} from '@eai/shared';
+import { DEFAULT_ONBOARDING_DATA, type OnboardingData, type OnboardingStep } from '@eai/shared';
+import { PREDEFINED_CATEGORIES, PREDEFINED_ARTICLE_TYPES } from '@eai/shared/server';
 
 const STEPS: Array<{
   id: OnboardingStep;

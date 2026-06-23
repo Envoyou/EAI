@@ -11,7 +11,7 @@ export const redisConnection = new Redis(redisUrl, {
 export const AI_QUEUE_NAME = 'ai-processing-queue';
 
 export const aiQueue = new Queue(AI_QUEUE_NAME, {
-  connection: redisConnection as any,
+  connection: redisConnection as never,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -24,5 +24,5 @@ export const aiQueue = new Queue(AI_QUEUE_NAME, {
 });
 
 export const aiQueueEvents = new QueueEvents(AI_QUEUE_NAME, {
-  connection: redisConnection as any,
+  connection: redisConnection as never,
 });

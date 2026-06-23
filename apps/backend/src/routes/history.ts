@@ -215,7 +215,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
 
     const metadata =
       log.metadata && typeof log.metadata === 'object' && !Array.isArray(log.metadata)
-        ? (log.metadata as Record<string, any>)
+        ? (log.metadata as Record<string, unknown>)
         : {};
 
     const resolution = EditorialResolutionSchema.safeParse(req.body);
@@ -225,7 +225,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
       );
       const systemMetadata =
         metadata._system && typeof metadata._system === 'object' && !Array.isArray(metadata._system)
-          ? (metadata._system as Record<string, any>)
+          ? (metadata._system as Record<string, unknown>)
           : {};
       const readiness = unresolved.length === 0
         ? 'ready'

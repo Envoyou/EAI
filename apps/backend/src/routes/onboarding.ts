@@ -3,19 +3,10 @@ import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
 import { CREDENTIAL_KEY_VERSION, decryptCredentials, encryptCredentials } from '@/lib/credential-vault';
 import { createEaiRestAdapter } from '@/lib/cms-adapter';
-import { hashEditorialConfiguration } from '@eai/shared';
-import {
-  buildSandboxEditorialProfile,
-  DEFAULT_ONBOARDING_DATA,
-  OnboardingDataSchema,
-  OnboardingSaveSchema,
-  CmsConnectionTestSchema,
-} from '@eai/shared';
+import { hashEditorialConfiguration } from '@eai/shared/server';
+import { buildSandboxEditorialProfile, DEFAULT_ONBOARDING_DATA, OnboardingDataSchema, OnboardingSaveSchema, CmsConnectionTestSchema } from '@eai/shared';
 import { ensureCurrentUserRecord, getWorkspaceState } from '@/lib/user-workspace';
-import { createClerkClient } from '@clerk/backend';
-
 const router = Router();
-const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 const buildOnboardingDataFromWorkspace = (
   workspace: Awaited<ReturnType<typeof getWorkspaceState>>
@@ -91,9 +82,9 @@ router.get('/', requireAuth, async (req, res) => {
       data: activeDraft?.data || buildOnboardingDataFromWorkspace(workspace),
       hasStoredCredential: Boolean(activeDraft?.encryptedCredentials),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ONBOARDING_GET]', error);
-    return res.status(500).json({ error: error.message || 'Internal Server Error' });
+    return res.status(500).json({ error: error instanceof Error ? error.message : 'Internal Server Error' });
   }
 });
 
@@ -168,9 +159,9 @@ router.put('/', requireAuth, async (req, res) => {
     });
 
     return res.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ONBOARDING_PUT]', error);
-    return res.status(500).json({ error: error.message || 'Internal Server Error' });
+    return res.status(500).json({ error: error instanceof Error ? error.message : 'Internal Server Error' });
   }
 });
 
@@ -303,7 +294,7 @@ router.post('/', requireAuth, async (req, res) => {
           secret: credentials.secret || '',
         });
         await adapter.listPublishedPosts(1);
-      } catch (error: any) {
+      } catch (error: unknown) {
         return res.status(502).json({
           error: error instanceof Error ? `CMS verification failed during activation: ${error.message}` : 'CMS verification failed during activation.',
         });
@@ -386,8 +377,8 @@ router.post('/', requireAuth, async (req, res) => {
       });
 
       return res.json({ success: true, ...activated });
-    } catch (error: any) {
-      if (error.code === 'P2002') {
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') {
         return res.status(409).json({ error: 'Organization slug is already in use.' });
       }
       console.error('[ONBOARDING_ACTIVATE]', error);
@@ -442,8 +433,8 @@ router.post('/test-cms', requireAuth, async (req, res) => {
         adapterKey: adapter.key,
         samplePosts: posts,
       });
-    } catch (error: any) {
-      return res.status(502).json({ error: error.message || 'CMS connection failed.' });
+    } catch (error: unknown) {
+      return res.status(502).json({ error: error instanceof Error ? error.message : 'CMS connection failed.' });
     }
   } catch (error) {
     console.error('[ONBOARDING_TEST_CMS]', error);

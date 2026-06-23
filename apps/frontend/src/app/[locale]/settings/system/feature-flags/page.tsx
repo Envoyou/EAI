@@ -1,5 +1,5 @@
 import React from 'react';
-import { getAllFeatureFlags } from '@eai/shared';
+import { getAllFeatureFlags } from '@eai/shared/server';
 import { FeatureFlagsClient } from './FeatureFlagsClient';
 
 export const dynamic = 'force-dynamic';

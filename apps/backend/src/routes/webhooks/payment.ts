@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { prisma } from '@/lib/db';
 import { getPaymentGateway } from '@/lib/payment';
 import type { PaymentProvider } from '@/lib/payments/types';
@@ -19,7 +19,7 @@ const readWebhookOrderId = (value: unknown) => {
   return null;
 };
 
-router.post('/', async (req: any, res) => {
+router.post('/', async (req: Request & { rawBody?: Buffer }, res) => {
   try {
     const rawBody = req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(req.body);
     const payload = req.body;
@@ -47,7 +47,10 @@ router.post('/', async (req: any, res) => {
     const notification = await gateway.parseWebhook(
       new Request(fullUrl, {
         method: 'POST',
-        headers: req.headers as any,
+        headers: Object.entries(req.headers).reduce((acc, [key, value]) => {
+          if (value) acc[key] = Array.isArray(value) ? value.join(', ') : value;
+          return acc;
+        }, {} as Record<string, string>),
         body: rawBody,
       })
     );
@@ -76,7 +79,7 @@ router.post('/', async (req: any, res) => {
             ? 'Transaction already processed'
             : `Webhook received with status ${notification.status}`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Payment Webhook] Processing error:', error);
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     const status =

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { requireAuth } from '@/middleware/auth';
@@ -10,10 +10,7 @@ import {
   searchBillingOrganizations,
 } from '@/lib/admin-billing';
 import { getZohoDeskTicket, isZohoDeskEnabled } from '@/lib/zoho-desk';
-import {
-  CORE_GUARDRAILS_VERSION,
-  normalizeProfileConfig,
-} from '@eai/shared';
+import { CORE_GUARDRAILS_VERSION, normalizeProfileConfig } from '@eai/shared/server';
 import { createEditorialProfileVersion } from '@/lib/editorial-profile-server';
 import { EditorialProfileConfigSchema } from '@eai/shared';
 import { getWorkspaceState } from '@/lib/user-workspace';
@@ -39,7 +36,7 @@ const getActor = async (userId: string) => {
   return actor;
 };
 
-const getAdminContext = async (req: any) => {
+const getAdminContext = async (req: Request) => {
   const { userId, orgId, orgSlug, orgRole } = req.auth!;
   if (!userId) return { error: 'Unauthorized', status: 401 } as const;
 

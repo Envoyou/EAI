@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 
 import { prisma } from '@/lib/db';
-import { isOwnerUser } from '@eai/shared';
+import { isOwnerUser } from '@eai/shared/server';
 import {
   type BillingBalance,
   isSuperAdminRole,

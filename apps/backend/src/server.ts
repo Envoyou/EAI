@@ -51,7 +51,7 @@ app.use(
 // Express JSON parsing middleware with rawBody capture (critical for webhook verification)
 app.use(
   express.json({
-    verify: (req: any, res, buf) => {
+    verify: (req: express.Request & { rawBody?: Buffer }, res, buf) => {
       req.rawBody = buf;
     },
   })
@@ -82,9 +82,9 @@ app.use('/api/admin', adminRouter);
 app.use('/api/analytics', analyticsRouter);
 
 // Error Handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[SERVER ERROR]', err);
-  res.status(500).json({ error: err.message || 'Internal Server Error' });
+  res.status(500).json({ error: err instanceof Error ? err.message : 'Internal Server Error' });
 });
 
 // Start Server

@@ -187,7 +187,7 @@ export class MidtransPaymentGateway implements PaymentGateway {
           Authorization: `Basic ${authHeader}`,
         },
         cache: 'no-store',
-      } as any
+      } as RequestInit
     );
     const payload: unknown = await response.json().catch(() => null);
     if (!response.ok) {

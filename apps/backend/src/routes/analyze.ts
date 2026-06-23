@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { ThinkingLevel } from '@google/genai';
 import { randomUUID } from 'node:crypto';
 import { prisma, Prisma } from '@/lib/db';
@@ -11,20 +11,10 @@ import {
   PROMPT_VERSION,
 } from '@/lib/prompts';
 import { Role, ArticleMetadata, ResponseMode, AnalyzeMode, FeedbackItem, VerificationStatus } from '@eai/shared';
-import {
-  SeoMetadataSchema,
-  FeedbackOutput,
-  PolishDiagnosisOutput,
-  FinalQualityGateOutput,
-} from '@eai/shared';
+import { FeedbackOutput, PolishDiagnosisOutput, FinalQualityGateOutput } from '@eai/shared';
 import { cleanupEscapedMarkdownArtifacts, convertAsciiTablesToMarkdown, stripVerificationMarkers } from '@/lib/final-quality';
 import { AiTelemetryCollector, AiTelemetrySnapshot } from '@/lib/ai-telemetry';
-import {
-  buildEditorialAuditContext,
-  composeEditorialPrompt,
-  EditorialAuditContext,
-  ENVOYOU_EDITORIAL_PROFILE,
-} from '@eai/shared';
+import { buildEditorialAuditContext, composeEditorialPrompt, EditorialAuditContext, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { CmsAdapterError, listPublishedPostsForProfile } from '@/lib/cms-adapter';
 import { getWorkspaceState } from '@/lib/user-workspace';
@@ -45,15 +35,11 @@ import { runEditorialReviewStage } from '@/lib/ai/review-stage';
 import { runFinalQualityGateSafely } from '@/lib/ai/quality-gate-stage';
 import { runTargetedFixStage } from '@/lib/ai/targeted-fix-stage';
 import { runSeoStage } from '@/lib/ai/seo-stage';
-import { getAllFeatureFlags } from '@eai/shared';
-import { requireAuth } from '@/middleware/auth';
-import { createClerkClient, verifyToken } from '@clerk/backend';
+import { getAllFeatureFlags } from '@eai/shared/server';
+import { verifyToken } from '@clerk/backend';
 
 const router = Router();
 
-const clerk = createClerkClient({
-  secretKey: process.env.CLERK_SECRET_KEY
-});
 
 // Helper delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -830,7 +816,7 @@ async function createAnalysisLogAndDebitCredit(data: {
     const subBalance = transactions.find((t) => t.bucket === 'subscription')?._sum.amount ?? 0;
     const addonBalance = transactions.find((t) => t.bucket === 'addon')?._sum.amount ?? 0;
 
-    let chosenBucket: 'trial' | 'subscription' | 'addon' = 'addon';
+    let chosenBucket: 'trial' | 'subscription' | 'addon';
     if (trialBalance > 0) {
       chosenBucket = 'trial';
     } else if (activeSub && subBalance > 0) {
@@ -884,7 +870,7 @@ const parseCookies = (cookieHeader?: string) => {
 };
 
 // POST /api/analyze
-router.post('/', async (req: any, res) => {
+router.post('/', async (req: Request, res) => {
   // ── PRE-FLIGHT CHECKS (must happen before SSE headers are flushed) ──────────
 
   const featureFlags = await getAllFeatureFlags();
@@ -917,7 +903,7 @@ router.post('/', async (req: any, res) => {
     }
   }
 
-  let workspace: any = null;
+  let workspace: NonNullable<Awaited<ReturnType<typeof getWorkspaceState>>>;
   let editorialProfile = ENVOYOU_EDITORIAL_PROFILE;
 
   if (!userId) {
@@ -967,7 +953,7 @@ router.post('/', async (req: any, res) => {
         activePlan: 'free',
         subscriptionStatus: 'none',
       },
-    };
+    } as unknown as NonNullable<Awaited<ReturnType<typeof getWorkspaceState>>>;
   } else {
     const fetchedWorkspace = await getWorkspaceState(userId, {
       clerkOrganizationId: orgId,
@@ -1003,7 +989,7 @@ router.post('/', async (req: any, res) => {
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
-  const sendEvent = (type: string, data: any) => {
+  const sendEvent = (type: string, data: unknown) => {
     res.write(JSON.stringify({ type, data }) + '\n');
   };
 
@@ -1019,12 +1005,12 @@ router.post('/', async (req: any, res) => {
     promptConfigurationHash: editorialAudit.promptConfigurationHash ?? null,
   };
 
-  let textToLog = '';
-  let roleToLog: Role | 'unknown' | 'refine' = 'unknown';
+  let textToLog: string;
+  let roleToLog: Role | 'unknown' | 'refine';
   let metadataToLog: ArticleMetadata | undefined;
   let executedModelName = 'unknown-model';
   const usedModels: string[] = [];
-  let responseMode: ResponseMode = 'standard';
+  let responseMode: ResponseMode;
   const telemetry = new AiTelemetryCollector();
 
   try {
@@ -1388,14 +1374,14 @@ router.post('/', async (req: any, res) => {
 
       // Generate SEO metadata
       sendEvent('status', 'generating_seo');
-      let refineSeo: any = null;
+      let refineSeo: Record<string, unknown> | null = null;
 
       if (analysisSpeed !== 'fast') {
         const seoModelName = effectiveProvider === 'groq'
           ? GROQ_SEO_MODEL
           : getGeminiModelForRole('seo', analysisSpeed);
         usedModels.push(`${seoModelName}(seo)`);
-        refineSeo = await runSeoStage({
+        refineSeo = (await runSeoStage({
           provider: effectiveProvider,
           modelName: seoModelName,
           article: refinedText,
@@ -1407,7 +1393,7 @@ router.post('/', async (req: any, res) => {
             { includeTextSchema: effectiveProvider !== 'gemini' }
           )),
           telemetry,
-        });
+        })) as Record<string, unknown>;
         sendEvent('seo_metadata', refineSeo);
       }
 
@@ -1624,12 +1610,12 @@ router.post('/', async (req: any, res) => {
       }
 
       // Generate SEO metadata
-      let seo: any = null;
+      let seo: unknown = null;
       if (analysisSpeed !== 'fast') {
         sendEvent('status', 'generating_seo');
         const seoModelName = getGeminiModelForRole('seo', analysisSpeed);
         usedModels.push(`${seoModelName}(seo)`);
-        seo = await runSeoStage({
+        seo = (await runSeoStage({
           provider: 'gemini',
           modelName: seoModelName,
           article: polishedText || text,
@@ -1641,7 +1627,7 @@ router.post('/', async (req: any, res) => {
             { includeTextSchema: false }
           )),
           telemetry,
-        });
+        })) as Record<string, unknown>;
         sendEvent('seo_metadata', seo);
       }
 
@@ -1659,11 +1645,11 @@ router.post('/', async (req: any, res) => {
             organizationId: workspace.organizationId,
             role: roleToLog,
             content: text,
-            metadata: JSON.parse(JSON.stringify(buildStoredMetadata(metadataToLog, responseMode, finalPolishedDraftLog, sourceRef, seo ?? undefined, analysisSpeed, finalQualityGate, telemetry.snapshot(), editorialAudit))),
+            metadata: JSON.parse(JSON.stringify(buildStoredMetadata(metadataToLog, responseMode, finalPolishedDraftLog, sourceRef, (seo as Record<string, unknown>) ?? undefined, analysisSpeed, finalQualityGate, telemetry.snapshot(), editorialAudit))),
             promptVersion: PROMPT_VERSION,
             modelName: usedModels.length > 0 ? usedModels.join(' + ') : executedModelName,
-            score: isPolishMode ? undefined : (validatedData as any).score,
-            verdict: isPolishMode ? (finalQualityGate?.readiness ?? 'needs_review') : (validatedData as any).verdict,
+            score: isPolishMode ? undefined : (validatedData as Record<string, unknown>).score as number | undefined,
+            verdict: isPolishMode ? (finalQualityGate?.readiness ?? 'needs_review') : (validatedData as Record<string, unknown>).verdict as string,
             summary: isPolishMode ? (finalQualityGate?.summary ?? validatedData.summary) : validatedData.summary,
             feedback: isPolishMode ? (finalQualityGate?.feedback ?? validatedData.feedback) : validatedData.feedback,
             flags: isPolishMode ? (finalQualityGate?.flags ?? validatedData.flags) : validatedData.flags,
@@ -1720,7 +1706,7 @@ router.post('/', async (req: any, res) => {
             if (!editorialProfile.config.internalLinkBaseUrl) {
               publishedPosts = [];
             }
-          } catch (fetchError) {
+          } catch (_fetchError) {
             console.warn('[Internal Linking] Catalog unavailable on Groq path.');
           }
         }
@@ -1847,12 +1833,12 @@ router.post('/', async (req: any, res) => {
       }
 
       // Generate SEO metadata
-      let seo: any = null;
+      let seo: unknown = null;
       if (analysisSpeed !== 'fast') {
         sendEvent('status', 'generating_seo');
         const seoModelName = GROQ_SEO_MODEL;
         usedModels.push(`${seoModelName}(seo)`);
-        seo = await runSeoStage({
+        seo = (await runSeoStage({
           provider: 'groq',
           modelName: seoModelName,
           article: polishedText || text,
@@ -1864,7 +1850,7 @@ router.post('/', async (req: any, res) => {
             { includeTextSchema: true }
           )),
           telemetry,
-        });
+        })) as Record<string, unknown>;
         sendEvent('seo_metadata', seo);
       }
 
@@ -1882,11 +1868,11 @@ router.post('/', async (req: any, res) => {
             organizationId: workspace.organizationId,
             role: roleToLog,
             content: text,
-            metadata: JSON.parse(JSON.stringify(buildStoredMetadata(metadataToLog, responseMode, finalPolishedDraftLog, sourceRef, seo ?? undefined, analysisSpeed, finalQualityGate, telemetry.snapshot(), editorialAudit))),
+            metadata: JSON.parse(JSON.stringify(buildStoredMetadata(metadataToLog, responseMode, finalPolishedDraftLog, sourceRef, (seo as Record<string, unknown>) ?? undefined, analysisSpeed, finalQualityGate, telemetry.snapshot(), editorialAudit))),
             promptVersion: PROMPT_VERSION,
             modelName: usedModels.length > 0 ? usedModels.join(' + ') : executedModelName,
-            score: isPolishMode ? undefined : (validatedData as any).score,
-            verdict: isPolishMode ? (finalQualityGate?.readiness ?? 'needs_review') : (validatedData as any).verdict,
+            score: isPolishMode ? undefined : (validatedData as Record<string, unknown>).score as number | undefined,
+            verdict: isPolishMode ? (finalQualityGate?.readiness ?? 'needs_review') : (validatedData as Record<string, unknown>).verdict as string,
             summary: isPolishMode ? (finalQualityGate?.summary ?? validatedData.summary) : validatedData.summary,
             feedback: isPolishMode ? (finalQualityGate?.feedback ?? validatedData.feedback) : validatedData.feedback,
             flags: isPolishMode ? (finalQualityGate?.flags ?? validatedData.flags) : validatedData.flags,
@@ -1903,9 +1889,9 @@ router.post('/', async (req: any, res) => {
 
       sendEvent('complete', { analysisLogId: savedLogId, sourceRef });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ANALYZE_POST_ERROR]', error);
-    sendEvent('error', error.message || 'An unexpected error occurred during analysis.');
+    sendEvent('error', error instanceof Error ? error.message : 'An unexpected error occurred during analysis.');
   } finally {
     res.end();
   }

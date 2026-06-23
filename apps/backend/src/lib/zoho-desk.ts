@@ -119,7 +119,7 @@ const getAccessToken = async () => {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
     cache: 'no-store',
-  } as any);
+  } as RequestInit);
   const payload: unknown = await response.json();
   const oauthError =
     payload && typeof payload === 'object' && 'error' in payload
@@ -157,7 +157,7 @@ const fetchZoho = async (
     },
     body: init.body ? JSON.stringify(init.body) : undefined,
     cache: 'no-store',
-  } as any);
+  } as RequestInit);
   const responseText = await response.text();
   const payload: unknown = responseText ? JSON.parse(responseText) : null;
   if (response.status === 204 || (!responseText && response.ok)) return null;

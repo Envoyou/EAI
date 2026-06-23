@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
 
 import { SystemStatePage } from '@/components/SystemStatePage';
-import { isOwnerUser } from '@eai/shared';
+import { isOwnerUser } from '@eai/shared/server';
 
 export const metadata: Metadata = {
   title: 'Scheduled Maintenance | EAI',

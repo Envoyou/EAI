@@ -5,10 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePublication } from '@/components/PublicationProvider';
-import {
-  PREDEFINED_CATEGORIES,
-  PREDEFINED_ARTICLE_TYPES,
-} from '@eai/shared';
+import { PREDEFINED_CATEGORIES, PREDEFINED_ARTICLE_TYPES } from '@eai/shared/server';
 import {
   FieldLabel,
   ArrayField,

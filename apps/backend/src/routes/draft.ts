@@ -11,13 +11,10 @@ import {
   GROQ_MODEL,
   groq,
 } from '@/lib/ai/provider-runtime';
-import {
-  buildEditorialAuditContext,
-  ENVOYOU_EDITORIAL_PROFILE,
-} from '@eai/shared';
+import { buildEditorialAuditContext, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { getWorkspaceState } from '@/lib/user-workspace';
-import { getAllFeatureFlags } from '@eai/shared';
+import { getAllFeatureFlags } from '@eai/shared/server';
 
 const router = Router();
 
@@ -42,25 +39,25 @@ router.post('/', async (req, res) => {
     });
   }
 
-  let authPayload: any = null;
+  let authPayload: Record<string, unknown> | null = null;
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     try {
       const token = authHeader.split(' ')[1];
       authPayload = await verifyToken(token, {
         secretKey: process.env.CLERK_SECRET_KEY,
-      });
+      }) as Record<string, unknown>;
     } catch (err) {
       console.warn('Failed to verify Clerk token in /api/draft:', err);
     }
   }
 
-  const userId = authPayload?.sub;
-  const orgId = authPayload?.org_id || null;
-  const orgSlug = authPayload?.org_slug || null;
-  const orgRole = authPayload?.org_role || null;
+  const userId = authPayload?.sub as string | undefined;
+  const orgId = (authPayload?.org_id as string | undefined) || null;
+  const orgSlug = (authPayload?.org_slug as string | undefined) || null;
+  const orgRole = (authPayload?.org_role as string | undefined) || null;
 
-  let workspace: any = null;
+  let workspace: Record<string, unknown>;
   let editorialProfile = ENVOYOU_EDITORIAL_PROFILE;
 
   if (!userId) {
@@ -119,13 +116,13 @@ router.post('/', async (req, res) => {
     workspace = fetchedWorkspace;
 
     try {
-      editorialProfile = await resolveEditorialProfileForUser(userId, workspace.organizationId);
+      editorialProfile = await resolveEditorialProfileForUser(userId, workspace.organizationId as string | null);
     } catch (profileError) {
       console.warn('[Editorial Profile] Falling back to Envoyou default:', profileError);
     }
   }
 
-  const workspaceOrganizationId = workspace.organizationId;
+  const workspaceOrganizationId = workspace.organizationId as string | null;
   const editorialAudit = buildEditorialAuditContext(editorialProfile, PROMPT_VERSION);
   const editorialLogFields = {
     editorialProfileVersionId: editorialAudit.editorialProfileVersionId,

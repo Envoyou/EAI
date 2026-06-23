@@ -6,6 +6,7 @@ const singleLineString = (label: string, max: number) =>
     .min(1, `${label} is required.`)
     .max(max)
     .refine(
+      // eslint-disable-next-line no-control-regex
       (value) => !/[\r\n\u0000-\u001F\u007F]/.test(value),
       `${label} must be a single line without control characters.`
     );
@@ -16,6 +17,7 @@ const multiLineString = (label: string, max: number) =>
     .min(1, `${label} is required.`)
     .max(max)
     .refine(
+      // eslint-disable-next-line no-control-regex
       (value) => !/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F]/.test(value),
       `${label} must not contain invalid control characters.`
     );

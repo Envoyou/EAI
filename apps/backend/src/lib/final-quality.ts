@@ -534,7 +534,7 @@ const normalizeFeedbackText = (value?: string) =>
     .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/gi, '$1')
     .replace(VERIFICATION_ANNOTATION_PATTERN, '')
     .replace(URL_PATTERN, '')
-    .replace(/[*_`#>\[\]()]/g, ' ')
+    .replace(/[*_`#>[\]()]/g, ' ')
     .replace(/[^\p{L}\p{N}%$€£¥]+/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()

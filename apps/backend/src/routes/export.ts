@@ -8,7 +8,7 @@ import {
 } from '@/lib/cms-adapter';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { getWorkspaceState } from '@/lib/user-workspace';
-import { getAllFeatureFlags } from '@eai/shared';
+import { getAllFeatureFlags } from '@eai/shared/server';
 
 const router = Router();
 
@@ -73,11 +73,11 @@ router.post('/', requireAuth, async (req, res) => {
 
     const storedMetadata =
       logEntry.metadata && typeof logEntry.metadata === 'object'
-        ? (logEntry.metadata as Record<string, any>)
+        ? (logEntry.metadata as Record<string, unknown>)
         : {};
     const systemMetadata =
       storedMetadata._system && typeof storedMetadata._system === 'object'
-        ? (storedMetadata._system as Record<string, any>)
+        ? (storedMetadata._system as Record<string, unknown>)
         : {};
     if (
       systemMetadata.analysisSpeed === 'fast' ||
@@ -125,7 +125,7 @@ router.post('/', requireAuth, async (req, res) => {
     // Persist to database atomically
     try {
       if (logEntry) {
-        const metadata = logEntry.metadata && typeof logEntry.metadata === 'object' ? logEntry.metadata as Record<string, any> : {};
+        const metadata = logEntry.metadata && typeof logEntry.metadata === 'object' ? logEntry.metadata as Record<string, unknown> : {};
         
         if (isSuccess) {
           metadata.exportStatus = {

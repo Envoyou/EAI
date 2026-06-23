@@ -108,7 +108,7 @@ sudo chown -R $USER:$USER /var/log/eai-backend
 ```bash
 cd /var/www/eai-backend/current
 # Clone dengan SSH
-git clone git@github.com:Envoyou/eai-backend.git .
+git clone git@github.com:Envoyou/EAI.git .
 ```
 
 ### C. Konfigurasi Environment Produksi (`.env.production`)
@@ -144,7 +144,7 @@ nano /var/www/eai-backend/shared/.env.production
 
 ### D. Buat Symlink Environment
 ```bash
-ln -s /var/www/eai-backend/shared/.env.production /var/www/eai-backend/current/.env
+ln -s /var/www/eai-backend/shared/.env.production /var/www/eai-backend/current/apps/backend/.env
 ```
 
 ---
@@ -155,15 +155,17 @@ Jalankan instalasi dependensi, sinkronisasi skema database, dan lakukan kompilas
 ```bash
 cd /var/www/eai-backend/current
 
-# Install dependencies
+# Install dependencies (di root direktori monorepo)
 npm install
 
-# Generate Prisma Client lokal
+# Masuk ke folder backend untuk generate Prisma Client
+cd apps/backend
 npx prisma generate
+cd ../..
 
-# Compile TypeScript ke Javascript (dist/)
+# Compile TypeScript ke Javascript menggunakan Turbo
 # (Gunakan limit memori tsc jika VPS berkapasitas RAM 1GB / kecil)
-NODE_OPTIONS="--max-old-space-size=1536" npm run build
+NODE_OPTIONS="--max-old-space-size=1536" npx turbo run build --filter=backend
 ```
 
 > [!NOTE]
@@ -176,7 +178,7 @@ NODE_OPTIONS="--max-old-space-size=1536" npm run build
 Kami menggunakan file `ecosystem.config.cjs` untuk memastikan kestabilan running, handling logging, dan auto-restart.
 
 ```bash
-cd /var/www/eai-backend/current
+cd /var/www/eai-backend/current/apps/backend
 
 # Jalankan backend dengan PM2 config
 pm2 startOrReload ecosystem.config.cjs --update-env
@@ -355,10 +357,10 @@ sudo certbot --nginx -d api-eai.envoyou.com
 
 ## 9. Skrip Deploy Sekali Klik
 
-Setiap kali Anda push update terbaru ke branch `main` repositori `eai-backend` di GitHub, Anda hanya perlu menjalankan:
+Setiap kali Anda push update terbaru ke branch `main` repositori `EAI` di GitHub, Anda hanya perlu menjalankan:
 ```bash
 cd /var/www/eai-backend/current
-./deploy.sh
+./apps/backend/deploy.sh
 ```
 
 ---

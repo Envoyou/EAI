@@ -1,16 +1,10 @@
 import { ThinkingLevel } from '@google/genai';
 import type { AiTelemetryCollector } from '@/lib/ai-telemetry';
-import {
-  FinalQualityGateResponseJsonSchema,
-  FinalQualityGateResponseSchema,
-  FinalQualityGateSchema,
-  type FinalQualityGateOutput,
-  normalizeFinalQualityGateResponseCandidate,
-} from '@eai/shared';
+import { FinalQualityGateResponseJsonSchema, FinalQualityGateResponseSchema, FinalQualityGateSchema, type FinalQualityGateOutput, normalizeFinalQualityGateResponseCandidate } from '@eai/shared';
 import {
   applyDeterministicQualityChecks,
 } from '@/lib/final-quality';
-import { composeEditorialPrompt, type EditorialProfileSnapshot } from '@eai/shared';
+import { composeEditorialPrompt, type EditorialProfileSnapshot } from '@eai/shared/server';
 import { getFinalQualityGatePrompt } from '@/lib/prompts';
 import { parseJsonResponse } from '@eai/shared';
 import type { ArticleMetadata, FeedbackItem } from '@eai/shared';

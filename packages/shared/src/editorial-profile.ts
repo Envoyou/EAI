@@ -196,6 +196,7 @@ export const normalizeProfileConfig = (value: unknown): EditorialProfileConfig |
   const tagCountMax = clampInteger(source.seoRules.tagCountMax, 5, tagCountMin, 5);
   const normalizeSingleLine = (input: string, max: number) =>
     input
+      // eslint-disable-next-line no-control-regex
       .replace(/[\r\n\u0000-\u001F\u007F]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()

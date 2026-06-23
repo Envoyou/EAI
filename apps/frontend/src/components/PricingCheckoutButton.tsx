@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Loader2, ArrowRight, Check, X } from 'lucide-react';
-import type { CheckoutDisclosure } from '@/lib/payment';
+import type { CheckoutDisclosure } from '@eai/shared';
 
 interface PricingCheckoutButtonProps {
   planId: string;

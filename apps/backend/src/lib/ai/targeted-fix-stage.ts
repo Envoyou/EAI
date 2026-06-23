@@ -1,7 +1,7 @@
 import { ThinkingLevel } from '@google/genai';
 import type { ArticleMetadata } from '@eai/shared';
-import type { EditorialProfileSnapshot } from '@eai/shared';
-import { composeEditorialPrompt } from '@eai/shared';
+import type { EditorialProfileSnapshot } from '@eai/shared/server';
+import { composeEditorialPrompt } from '@eai/shared/server';
 import { getTargetedFixPrompt } from '@/lib/prompts';
 import {
   type AiProvider,
@@ -51,7 +51,7 @@ export const runTargetedFixStage = async ({
     task: 'Based on the preceding article context, return only a concise replacement for targetText that resolves the feedback and follows editorInstruction.',
   });
 
-  let replacementText = '';
+  let replacementText: string;
   let modelName: string;
 
   if (provider === 'groq') {

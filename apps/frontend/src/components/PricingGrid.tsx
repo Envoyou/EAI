@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Check } from 'lucide-react';
 import PricingCheckoutButton from './PricingCheckoutButton';
-import type { CheckoutDisclosure } from '@/lib/payment';
+import type { CheckoutDisclosure } from '@eai/shared';
 
 interface PricingGridProps {
   workspace: { plan?: { activePlan?: string } } | null;

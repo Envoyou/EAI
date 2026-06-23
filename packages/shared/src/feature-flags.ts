@@ -84,8 +84,9 @@ export async function getMiddlewareFeatureFlags(
             ? { 'x-edge-config-vercel-env': process.env.VERCEL_ENV }
             : {}),
         },
-        // @ts-ignore cache is not in node's RequestInit type but exists in next.js
-        cache: 'no-store' as any,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - cache is not in node's RequestInit type but exists in next.js
+        cache: 'no-store',
         signal: controller.signal,
       }
     );

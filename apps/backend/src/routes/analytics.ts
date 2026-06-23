@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { prisma } from '@/lib/db';
 import { requireAuth } from '@/middleware/auth';
 import { getWorkspaceState } from '@/lib/user-workspace';
-import { isOwnerUser } from '@eai/shared';
+import { isOwnerUser } from '@eai/shared/server';
 import crypto from 'node:crypto';
 import { Prisma } from '@prisma/client';
 
@@ -39,9 +39,9 @@ const finiteNumber = (value: unknown) =>
 
 const router = Router();
 
-const getMetadataRecord = (metadata: unknown): Record<string, any> =>
+const getMetadataRecord = (metadata: unknown): Record<string, unknown> =>
   metadata && typeof metadata === 'object'
-    ? (metadata as Record<string, any>)
+    ? (metadata as Record<string, unknown>)
     : {};
 
 function getDateRanges(range: string, start?: string | null, end?: string | null) {

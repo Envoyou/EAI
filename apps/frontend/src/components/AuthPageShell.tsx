@@ -97,8 +97,8 @@ export function AuthPageShell({
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(13,135,207,0.08),transparent_55%)]" />
 
         {/* logo */}
-        <div className="relative flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04] hover:translate-y-[-2px] transition-all duration-300">
+        <div className="relative flex items-center gap-2">
+          <div className="flex h-10 w-10 items-center justify-center hover:translate-y-[-2px] transition-all duration-300">
             <EAILogo className="h-7 w-7 text-primary-400" />
           </div>
           <span className="text-2xl font-semibold tracking-tight text-white">EAI</span>
@@ -167,7 +167,7 @@ export function AuthPageShell({
         {/* top bar */}
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 lg:hidden">
-            <EAILogo className="h-7 w-7 text-primary-400" />
+            <EAILogo className="h-6 w-6 text-primary-400" />
             <span className="text-base font-semibold tracking-tight text-white">EAI</span>
           </div>
 

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { z } from 'zod';
 import { createZohoDeskTicket, isZohoDeskEnabled } from '@/lib/zoho-desk';
 
@@ -25,9 +25,9 @@ const WINDOW_MS = 15 * 60 * 1000;
 const MAX_REQUESTS = 5;
 const attempts = new Map<string, number[]>();
 
-const getClientIp = (req: any) =>
-  req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-  req.headers['x-real-ip'] ||
+const getClientIp = (req: Request) =>
+  (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ||
+  req.socket.remoteAddress ||
   req.ip ||
   'unknown';
 

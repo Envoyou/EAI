@@ -1,12 +1,21 @@
 # Changelog
 
-> **⚠️ Technical Debt Notice:** Saat ini proyek masih menggunakan arsitektur repositori terpisah (*frontend* dan *backend*). Terdapat "hutang teknis" berupa kewajiban untuk selalu menyinkronkan file-file kembar (seperti tipe data, skema Zod, dan *helpers* di `src/lib/`) secara manual di kedua repositori setiap ada perubahan. Catatan ini berlaku hingga proyek dimigrasikan ke arsitektur Monorepo.
-
 Semua perubahan penting pada proyek **Envoyou AI Editorial System** akan didokumentasikan di berkas ini.
 
 Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/id/1.0.0/) dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.0.0] - 2026-06-23
+
+### Added
+- **Monorepo Architecture (TurboRepo)**: Menggabungkan repositori `frontend` dan `backend` menjadi satu monorepo tunggal untuk menyederhanakan siklus rilis dan CI/CD.
+- **Shared Package (`@eai/shared`)**: Memindahkan semua tipe data, skema Zod, *helper functions*, utilitas stream JSON, dan _constant_ konfigurasi yang duplikat menjadi satu _single source of truth_ di `packages/shared`. Ini secara resmi melunasi _Technical Debt_ dari sinkronisasi sinkronisasi data antar repositori.
+- **Server vs Client Export Isolation**: Ekspor di `@eai/shared` dipisah dengan jalur `"./server"` untuk logika spesifik _backend/edge_ yang tidak kompatibel dengan antarmuka klien _browser_ seperti Webpack.
+
+### Fixed
+- **Blank Signup UI Bug**: Memperbaiki intervensi _bundler_ Webpack di sisi _frontend_ di mana ia mencoba memaketkan dependensi `node:crypto` dan tipe _Edge Config_ saat proses autentikasi (Sign-up/Sign-in) akibat _barrel export_ dari `packages/shared`.
+- **Clerk v6 Fallback Loop**: Mengkonfigurasi `fallbackRedirectUrl` pada komponen SSO (Daftar & Masuk) Clerk untuk menghindari perilaku siklus _redirect_ tak terhingga atau penahanan rendering (*stuck loading*) untuk akun yang sudah dikenali sistem.
 
 ## [0.37.0] - 2026-06-23
 

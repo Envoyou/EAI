@@ -1,25 +1,8 @@
 import { ThinkingLevel } from '@google/genai';
 import type { AiTelemetryCollector } from '@/lib/ai-telemetry';
-import {
-  FeedbackOutputSchema,
-  PolishDiagnosisSchema,
-  getFeedbackResponseJsonSchema,
-  type FeedbackOutput,
-  type PolishDiagnosisOutput,
-} from '@eai/shared';
-import {
-  extractCompleteObjectsFromJsonArray,
-  extractJsonFromText,
-  extractJsonNumberValue,
-  extractJsonStringValue,
-  parseJsonResponse,
-} from '@eai/shared';
-import type {
-  ArticleMetadata,
-  FeedbackItem,
-  ResponseMode,
-  Role,
-} from '@eai/shared';
+import { FeedbackOutputSchema, PolishDiagnosisSchema, getFeedbackResponseJsonSchema, type FeedbackOutput, type PolishDiagnosisOutput } from '@eai/shared';
+import { extractCompleteObjectsFromJsonArray, extractJsonFromText, extractJsonNumberValue, extractJsonStringValue, parseJsonResponse } from '@eai/shared';
+import type { ArticleMetadata, FeedbackItem, ResponseMode, Role } from '@eai/shared';
 import {
   type AiProvider,
   extractGeminiText,

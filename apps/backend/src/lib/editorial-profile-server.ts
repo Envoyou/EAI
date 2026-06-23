@@ -1,12 +1,5 @@
 import { prisma } from '@/lib/db';
-import {
-  EditorialProfileConfig,
-  EditorialProfileSnapshot,
-  ENVOYOU_EDITORIAL_PROFILE,
-  ENVOYOU_PROFILE_ID,
-  hashEditorialConfiguration,
-  normalizeProfileConfig,
-} from '@eai/shared';
+import { EditorialProfileConfig, EditorialProfileSnapshot, ENVOYOU_EDITORIAL_PROFILE, ENVOYOU_PROFILE_ID, hashEditorialConfiguration, normalizeProfileConfig } from '@eai/shared/server';
 
 const toSnapshot = (
   organizationId: string,

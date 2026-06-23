@@ -1,6 +1,6 @@
 import { ThinkingLevel } from '@google/genai';
 import type { AiTelemetryCollector } from '@/lib/ai-telemetry';
-import type { EditorialProfileSnapshot } from '@eai/shared';
+import type { EditorialProfileSnapshot } from '@eai/shared/server';
 import type { ArticleMetadata } from '@eai/shared';
 import { SeoMetadataResponseJsonSchema, type SeoMetadataOutput } from '@eai/shared';
 import { buildFallbackSeoMetadata, normalizeSeoMetadata } from '@eai/shared';

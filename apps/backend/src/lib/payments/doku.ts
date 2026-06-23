@@ -180,7 +180,7 @@ export class DokuPaymentGateway implements PaymentGateway {
       },
       body,
       cache: 'no-store',
-    } as any);
+    } as RequestInit);
     const payload: unknown = await response.json().catch(() => null);
     const root = isRecord(payload) ? payload : null;
     const responseData = root ? readRecord(root, 'response') : null;
@@ -239,7 +239,7 @@ export class DokuPaymentGateway implements PaymentGateway {
         ...createSignedHeaders(requestTarget),
       },
       cache: 'no-store',
-    } as any);
+    } as RequestInit);
     if (response.status === 404) return null;
 
     const payload: unknown = await response.json().catch(() => null);

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
-import { DEFAULT_ARTICLE_TYPES } from '@eai/shared';
+import { DEFAULT_ARTICLE_TYPES } from '@eai/shared/server';
 import { resolveEditorialProfileForUser, createEditorialProfileVersion } from '@/lib/editorial-profile-server';
 import { getWorkspaceState } from '@/lib/user-workspace';
 
@@ -17,9 +17,9 @@ router.get('/state', requireAuth, async (req, res) => {
       clerkOrganizationRole: orgRole,
     });
     return res.json(state);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[WORKSPACE_STATE_GET]', error);
-    return res.status(500).json({ error: error.message || 'Internal Server Error' });
+    return res.status(500).json({ error: error instanceof Error ? error.message : 'Internal Server Error' });
   }
 });
 

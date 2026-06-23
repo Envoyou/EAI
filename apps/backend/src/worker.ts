@@ -25,6 +25,7 @@ const aiWorker = new Worker(
     throw new Error(`Unknown job type: ${job.name}`);
   },
   {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     connection: redisConnection as any,
     concurrency: 1, // Limit concurrency to 1 due to 512MB RAM constraints
   }

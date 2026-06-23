@@ -2,12 +2,12 @@ import React from 'react';
 import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import { getWorkspaceState, toClerkOrganizationContext } from '@/lib/user-workspace';
-import { getPlanCheckoutDisclosure, PLANS, type CheckoutDisclosure } from '@/lib/payment';
+import { getPlanCheckoutDisclosure, PLANS, type CheckoutDisclosure } from '@eai/shared';
 import { ArrowRight, CalendarDays, Coins, CreditCard, Receipt, Zap } from 'lucide-react';
 import { SettingSection } from '@/components/SettingsUI';
 import PricingCheckoutButton from '@/components/PricingCheckoutButton';
 import PaymentStatusBanner from '@/components/PaymentStatusBanner';
-import { getAllFeatureFlags } from '@eai/shared';
+import { getAllFeatureFlags } from '@eai/shared/server';
 import { getApiUrl } from '@/lib/api-url';
 
 export const dynamic = 'force-dynamic';

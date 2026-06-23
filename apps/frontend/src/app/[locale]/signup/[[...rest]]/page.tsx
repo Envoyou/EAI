@@ -2,7 +2,7 @@ import { SignUp } from '@clerk/nextjs';
 import { dark } from '@clerk/themes';
 
 import { AuthPageShell } from '@/components/AuthPageShell';
-import { getAllFeatureFlags } from '@eai/shared';
+import { getAllFeatureFlags } from '@eai/shared/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +17,8 @@ export default async function AppSignUpPage() {
       signupEnabled={featureFlags.signup_enabled}
     >
       <SignUp
+        fallbackRedirectUrl="/workspace"
+        signInFallbackRedirectUrl="/workspace"
         appearance={{
           baseTheme: dark,
           variables: {

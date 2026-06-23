@@ -1,11 +1,13 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { Webhook } from 'svix';
 import { prisma } from '@/lib/db';
 import { normalizeEmail, isDisposableEmail } from '@eai/shared';
 
 const router = Router();
 
-router.post('/', async (req: any, res) => {
+import type { WebhookEvent } from '@clerk/backend';
+
+router.post('/', async (req: Request & { rawBody?: Buffer }, res) => {
   const SIGNING_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
   if (!SIGNING_SECRET) {
@@ -29,7 +31,7 @@ router.post('/', async (req: any, res) => {
   // Create a new Svix instance with your secret.
   const wh = new Webhook(SIGNING_SECRET);
 
-  let evt: any;
+  let evt: WebhookEvent;
 
   // Verify the payload with the headers
   try {
@@ -37,7 +39,7 @@ router.post('/', async (req: any, res) => {
       'svix-id': svix_id,
       'svix-timestamp': svix_timestamp,
       'svix-signature': svix_signature,
-    });
+    }) as WebhookEvent;
   } catch (err) {
     console.error('Error verifying webhook:', err);
     return res.status(400).send('Error occurred during verification');

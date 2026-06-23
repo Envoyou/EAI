@@ -1,12 +1,13 @@
 {
   "name": "backend",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/server.ts",
     "build": "npx tsc && npx tsc-alias",
     "start": "node dist/server.js",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "lint": "eslint \"src/**/*.ts\""
   },
   "dependencies": {
     "@clerk/backend": "^1.24.1",
@@ -27,14 +28,17 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.17.9",
     "@types/ws": "^8.5.13",
+    "eslint": "^10.5.0",
     "prisma": "^7.8.0",
     "ts-node-dev": "^2.0.0",
     "tsc-alias": "^1.8.17",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.62.0"
   }
 }

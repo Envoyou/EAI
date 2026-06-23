@@ -16,13 +16,7 @@ import { Loader2, RotateCcw, Sparkles, Megaphone, Lock, Menu, Zap, Rocket } from
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  applyAllFeedbackOperations,
-  applyFeedbackOperation,
-  canAutoApplyFeedback,
-  findTargetMatch,
-  replaceFirstTargetMatch,
-} from '@eai/shared';
+import { applyAllFeedbackOperations, applyFeedbackOperation, canAutoApplyFeedback, findTargetMatch, replaceFirstTargetMatch } from '@eai/shared';
 import {
   AppSettings,
   DEFAULT_APP_SETTINGS,

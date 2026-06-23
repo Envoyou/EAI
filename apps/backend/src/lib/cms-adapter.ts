@@ -1,4 +1,4 @@
-import type { EditorialProfileSnapshot } from '@eai/shared';
+import type { EditorialProfileSnapshot } from '@eai/shared/server';
 import { prisma } from './db';
 import { decryptCredentials } from './credential-vault';
 
@@ -131,7 +131,7 @@ export const createEaiRestAdapter = ({
         );
       }
 
-      const result = await response.json() as any;
+      const result = await response.json() as { success?: boolean; data?: unknown };
       if (!result?.success || !Array.isArray(result.data)) {
         throw new CmsAdapterError(
           'CMS catalog returned an invalid response.',
@@ -176,7 +176,7 @@ export const createEaiRestAdapter = ({
         },
         15000
       );
-      const result = await response.json().catch(() => null) as any;
+      const result = await response.json().catch(() => null) as { success?: boolean; error?: string; postId?: string; editUrl?: string; created?: boolean } | null;
       if (!response.ok || !result?.success) {
         const message = result?.error || `CMS export failed with status ${response.status}.`;
         const statusCode =

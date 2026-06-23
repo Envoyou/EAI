@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '@/middleware/auth';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { createCheckoutSession, getPlanAmountIdr, PLANS } from '@/lib/payment';
-import { getAllFeatureFlags } from '@eai/shared';
+import { getAllFeatureFlags } from '@eai/shared/server';
 import { createClerkClient } from '@clerk/backend';
 
 const router = Router();

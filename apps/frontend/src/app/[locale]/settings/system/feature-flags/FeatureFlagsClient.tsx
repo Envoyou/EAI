@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { toggleFeatureFlag } from './actions';
 import { Power, Settings, Globe, AlertTriangle, type LucideIcon } from 'lucide-react';
 import { SettingSection } from '@/components/SettingsUI';
-import type { FeatureFlagKey } from '@eai/shared';
+import type { FeatureFlagKey } from '@eai/shared/server';
 
 interface FeatureFlagsClientProps {
   initialFlags: Record<FeatureFlagKey, boolean>;
