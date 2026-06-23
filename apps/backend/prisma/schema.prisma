@@ -1,0 +1,298 @@
+datasource db {
+  provider  = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id // Clerk user ID (e.g., user_...)
+  email     String   @unique
+  name      String?
+  imageUrl  String?
+  role      String   @default("editor") // editor, admin
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs      AnalysisLog[]
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  onboardingDraft OnboardingDraft?
+
+  trialUsed      Boolean             @default(false)
+  subscription   Subscription?
+  transactions   CreditTransaction[]
+  usages         CreditUsage[]
+  paymentOrders  PaymentOrder[]
+
+  @@index([organizationId])
+}
+
+model AnalysisLog {
+  id            String   @id @default(cuid())
+
+  role          String
+  content       String   @db.Text
+  metadata      Json?
+
+  promptVersion String
+  modelName     String
+
+  score         Int?
+  verdict       String?
+  summary       String?
+  feedback      Json?
+  flags         Json?
+
+  status        AnalysisStatus @default(success)
+  editorStatus  String         @default("draft")
+  errorMessage  String?        @db.Text
+
+  createdAt     DateTime @default(now())
+
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  creditUsage   CreditUsage?
+
+  editorialProfileVersionId String?
+  editorialProfileVersion   EditorialProfileVersion? @relation(fields: [editorialProfileVersionId], references: [id], onDelete: SetNull)
+  editorialProfileKey       String?
+  editorialProfileVersionNo Int?
+  coreGuardrailsVersion     String?
+  promptConfigurationHash   String?
+
+  @@index([createdAt])
+  @@index([role])
+  @@index([status])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([editorialProfileVersionId])
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  clerkOrganizationId String? @unique
+  createdByUserId String?
+  slug      String   @unique
+  name      String
+  publicationName String?
+  domain    String?
+  isActive  Boolean  @default(true)
+  onboardingStatus OnboardingStatus @default(completed)
+  activatedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users    User[]
+  logs     AnalysisLog[]
+  profiles EditorialProfile[]
+  cmsConnections CmsConnection[]
+
+  subscription   Subscription?
+  transactions   CreditTransaction[]
+  usages         CreditUsage[]
+  paymentOrders  PaymentOrder[]
+
+  @@index([createdByUserId])
+}
+
+model OnboardingDraft {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  organizationId String?
+  step      String   @default("organization")
+  data      Json
+  encryptedCredentials String? @db.Text
+  credentialKeyVersion String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model CmsConnection {
+  id                   String   @id @default(cuid())
+  organizationId       String
+  adapterKey           String
+  name                 String
+  baseUrl              String
+  encryptedCredentials String?  @db.Text
+  credentialKeyVersion String?
+  status               CmsConnectionStatus @default(pending)
+  isActive             Boolean  @default(true)
+  lastVerifiedAt       DateTime?
+  lastError            String?  @db.Text
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, adapterKey])
+  @@index([organizationId, isActive])
+}
+
+model EditorialProfile {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  name           String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  versions     EditorialProfileVersion[]
+
+  @@unique([organizationId, key])
+  @@index([organizationId, isActive])
+}
+
+model EditorialProfileVersion {
+  id         String   @id @default(cuid())
+  profileId  String
+  version    Int
+  config     Json
+  configHash String
+  createdAt  DateTime @default(now())
+
+  profile EditorialProfile @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  logs    AnalysisLog[]
+
+  @@unique([profileId, version])
+  @@unique([profileId, configHash])
+  @@index([profileId, createdAt])
+}
+
+enum AnalysisStatus {
+  success
+  error
+}
+
+enum OnboardingStatus {
+  pending
+  completed
+}
+
+enum CmsConnectionStatus {
+  pending
+  verified
+  failed
+}
+
+enum CreditBucket {
+  trial
+  subscription
+  addon
+}
+
+enum CreditTransactionType {
+  trial
+  monthly_allocation
+  yearly_monthly_allocation
+  addon_purchase
+  article_refine
+  refund
+  cycle_reset
+  manual_adjustment
+}
+
+model Subscription {
+  id                 String        @id
+  userId             String?       @unique
+  organizationId     String?       @unique
+  plan               String        
+  status             String        
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model PaymentOrder {
+  id             String   @id
+  provider       String   @default("midtrans")
+  userId         String?
+  organizationId String?
+  planId         String
+  amountIdr      Int
+  status         String   @default("pending")
+  transactionId  String?
+  paymentType    String?
+  paidAt         DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([organizationId, status])
+  @@index([provider, status])
+  @@index([createdAt])
+}
+
+model CreditTransaction {
+  id              String                @id @default(cuid())
+  userId          String?
+  organizationId  String?
+
+  type            CreditTransactionType
+  bucket          CreditBucket
+  amount          Int
+
+  subscriptionId  String?
+  analysisLogId   String?
+  idempotencyKey  String?               @unique
+
+  description     String?
+  adjustmentReason String?
+  adjustmentGroupKey String?
+  ticketReference String?
+  externalTicketId String?
+  externalTicketUrl String?
+  performedByUserId String?
+  performedByEmail String?
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  expiresAt       DateTime?
+
+  createdAt       DateTime              @default(now())
+
+  user            User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization    Organization?         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, bucket])
+  @@index([organizationId, bucket])
+  @@index([adjustmentGroupKey])
+  @@index([performedByUserId, createdAt])
+  @@index([periodStart, periodEnd])
+}
+
+model CreditUsage {
+  id              String        @id @default(cuid())
+  userId          String?
+  organizationId  String?
+  analysisLogId   String?       @unique
+  creditsConsumed Int           @default(1)
+  costEstimate    Float         @default(0.0)
+  createdAt       DateTime      @default(now())
+
+  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  analysisLog     AnalysisLog?  @relation(fields: [analysisLogId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([createdAt])
+}

@@ -1,0 +1,93 @@
+{
+  "AuthPageShell": {
+    "slides": {
+      "0": {
+        "eyebrow": "Publication-Ready Content",
+        "title": "From Idea to Publication, in One Workspace.",
+        "description": "Research topics, generate structured drafts, refine content, optimize SEO, and export publication-ready articles from a single editorial workspace.",
+        "highlights": {
+          "0": {
+            "title": "Research & draft instantly",
+            "description": "Real-time research and structured outlines replace the blank page."
+          },
+          "1": {
+            "title": "Stay on brand, automatically",
+            "description": "Every draft aligns to your editorial profile and audience."
+          },
+          "2": {
+            "title": "Verified before it ships",
+            "description": "Entities, claims, and sources fact-checked in real time."
+          },
+          "3": {
+            "title": "Publish in one click",
+            "description": "Push polished content and SEO metadata straight to your CMS."
+          }
+        }
+      },
+      "1": {
+        "eyebrow": "Intelligent Workflow",
+        "title": "AI Agents That Understand Your Process.",
+        "description": "Let specialized AI handle the heavy lifting while you focus on creative direction, strategy, and final polish.",
+        "highlights": {
+          "0": {
+            "title": "Context-Aware Research",
+            "description": "Pulls facts and context from trusted sources instantly."
+          },
+          "1": {
+            "title": "Automated Structuring",
+            "description": "Generates outlines based on best-performing formats."
+          },
+          "2": {
+            "title": "Style Alignment",
+            "description": "Applies your unique voice, tone, and brand guidelines."
+          },
+          "3": {
+            "title": "SEO Optimization",
+            "description": "Suggests keywords, meta tags, and internal links organically."
+          }
+        }
+      },
+      "2": {
+        "eyebrow": "Scale Your Content",
+        "title": "High-Volume Output Without Quality Drop.",
+        "description": "Maintain consistency and factual accuracy even when producing hundreds of articles per month.",
+        "highlights": {
+          "0": {
+            "title": "Batch Generation",
+            "description": "Create multiple pieces from a single creative brief."
+          },
+          "1": {
+            "title": "Centralized Knowledge",
+            "description": "AI learns from your past content and brand memory."
+          },
+          "2": {
+            "title": "Plagiarism & Fact-Check",
+            "description": "Built-in safeguards for every single generated draft."
+          },
+          "3": {
+            "title": "Multi-Platform Export",
+            "description": "Format for blog, social media, or newsletter instantly."
+          }
+        }
+      }
+    },
+    "secureFooter": "Secure editorial platform",
+    "support": "Support",
+    "changelog": "Changelog",
+    "pricing": "Pricing",
+    "newHere": "New here?",
+    "haveAccount": "Have an account?",
+    "signup": "Sign up",
+    "login": "Log in",
+    "welcomeBack": "Welcome back",
+    "loginDesc": "Log in to continue to your editorial workspace.",
+    "createAccount": "Create your account",
+    "signupDesc": "Start writing, refining, and publishing in minutes.",
+    "tryDemo": "Want to look around first?",
+    "demoLink": "Try demo mode — no login required",
+    "termsText1": "By continuing you agree to our",
+    "termsText2": "and",
+    "termsLink": "Terms",
+    "privacyLink": "Privacy Notice"
+  }
+}

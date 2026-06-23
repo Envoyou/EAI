@@ -1,0 +1,17 @@
+User-agent: *
+# Allow indexing of public-facing pages (useful for payment gateways & SEO)
+Allow: /login
+Allow: /signup
+Allow: /support
+Allow: /legal/
+
+# Disallow indexing of private dashboard, workspace, and system paths
+Disallow: /dashboard/
+Disallow: /workspace/
+Disallow: /settings/
+Disallow: /api/
+Disallow: /onboarding/
+Disallow: /pricing
+Disallow: /maintenance
+Disallow: /unavailable
+Disallow: /_next/

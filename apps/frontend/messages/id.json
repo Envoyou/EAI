@@ -1,0 +1,93 @@
+{
+  "AuthPageShell": {
+    "slides": {
+      "0": {
+        "eyebrow": "Konten Siap Terbit",
+        "title": "Dari Ide hingga Publikasi, dalam Satu Workspace.",
+        "description": "Riset topik, buat draf terstruktur, sempurnakan konten, optimasi SEO, dan ekspor artikel siap terbit dari satu ruang redaksi.",
+        "highlights": {
+          "0": {
+            "title": "Riset & draf instan",
+            "description": "Riset real-time dan kerangka terstruktur menggantikan halaman kosong."
+          },
+          "1": {
+            "title": "Sesuai brand, otomatis",
+            "description": "Setiap draf disesuaikan dengan profil redaksional dan audiens Anda."
+          },
+          "2": {
+            "title": "Terverifikasi sebelum rilis",
+            "description": "Entitas, klaim, dan sumber diperiksa faktanya secara real-time."
+          },
+          "3": {
+            "title": "Publikasi sekali klik",
+            "description": "Kirim konten yang sudah dipoles beserta metadata SEO langsung ke CMS Anda."
+          }
+        }
+      },
+      "1": {
+        "eyebrow": "Alur Kerja Cerdas",
+        "title": "Agen AI yang Memahami Proses Anda.",
+        "description": "Biarkan AI khusus menangani pekerjaan berat sementara Anda fokus pada arahan kreatif, strategi, dan sentuhan akhir.",
+        "highlights": {
+          "0": {
+            "title": "Riset Berkonteks",
+            "description": "Menarik fakta dan konteks dari sumber terpercaya secara instan."
+          },
+          "1": {
+            "title": "Penataan Otomatis",
+            "description": "Menghasilkan kerangka berdasarkan format dengan performa terbaik."
+          },
+          "2": {
+            "title": "Penyelarasan Gaya",
+            "description": "Menerapkan panduan suara, nada, dan merek unik Anda."
+          },
+          "3": {
+            "title": "Optimasi SEO",
+            "description": "Menyarankan kata kunci, tag meta, dan tautan internal secara organik."
+          }
+        }
+      },
+      "2": {
+        "eyebrow": "Skalakan Konten Anda",
+        "title": "Output Tinggi Tanpa Penurunan Kualitas.",
+        "description": "Pertahankan konsistensi dan akurasi faktual bahkan saat memproduksi ratusan artikel per bulan.",
+        "highlights": {
+          "0": {
+            "title": "Pembuatan Massal",
+            "description": "Buat beberapa artikel dari satu arahan kreatif (brief)."
+          },
+          "1": {
+            "title": "Pengetahuan Terpusat",
+            "description": "AI belajar dari konten masa lalu dan memori merek Anda."
+          },
+          "2": {
+            "title": "Pemeriksaan Plagiasi & Fakta",
+            "description": "Sistem pengaman bawaan untuk setiap draf yang dihasilkan."
+          },
+          "3": {
+            "title": "Ekspor Multi-Platform",
+            "description": "Format untuk blog, media sosial, atau buletin secara instan."
+          }
+        }
+      }
+    },
+    "secureFooter": "Platform redaksi aman",
+    "support": "Dukungan",
+    "changelog": "Catatan Rilis",
+    "pricing": "Harga",
+    "newHere": "Pengguna baru?",
+    "haveAccount": "Sudah punya akun?",
+    "signup": "Daftar",
+    "login": "Masuk",
+    "welcomeBack": "Selamat datang kembali",
+    "loginDesc": "Masuk untuk melanjutkan ke ruang redaksi Anda.",
+    "createAccount": "Buat akun Anda",
+    "signupDesc": "Mulai menulis, menyempurnakan, dan mempublikasikan dalam hitungan menit.",
+    "tryDemo": "Ingin melihat-lihat dulu?",
+    "demoLink": "Coba mode demo — tanpa login",
+    "termsText1": "Dengan melanjutkan, Anda menyetujui",
+    "termsText2": "dan",
+    "termsLink": "Ketentuan",
+    "privacyLink": "Pemberitahuan Privasi"
+  }
+}
