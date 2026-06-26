@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/server.ts",
-    "build": "npx tsc && npx tsc-alias",
+    "build": "tsup",
     "start": "node dist/server.js",
     "postinstall": "prisma generate",
     "lint": "eslint \"src/**/*.ts\""
@@ -29,6 +29,7 @@
     "ioredis": "^5.11.1",
     "svix": "^1.95.1",
     "tsc-alias": "^1.8.17",
+    "tsup": "^8.5.1",
     "typescript": "^5.7.2",
     "ws": "^8.21.0",
     "zod": "^4.4.3"
