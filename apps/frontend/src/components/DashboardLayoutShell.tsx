@@ -29,7 +29,7 @@ export function DashboardLayoutShell({ children, isSuperAdmin }: { children: Rea
     handleDownloadCSV,
   } = useDashboard();
 
-  if (pathname.startsWith('/dashboard/validation')) {
+  if (pathname.includes('/dashboard/validation')) {
     return <>{children}</>;
   }
 

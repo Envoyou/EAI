@@ -3,7 +3,30 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "BLOG_IMPORT_SHARED_SECRET",
+        "BLOG_BACKEND_API_URL",
+        "LEGAL_SUPPORT_EMAIL",
+        "LEGAL_CONTACT_EMAIL",
+        "LEGAL_PRIVACY_EMAIL",
+        "LEGAL_GOVERNING_LAW",
+        "LEGAL_OPERATOR_NAME",
+        "LEGAL_REGISTERED_ADDRESS",
+        "ZOHO_ACCOUNTS_URL",
+        "EDGE_CONFIG",
+        "EDGE_CONFIG_ID",
+        "OWNER_USER_IDS",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "SENTRY_AUTH_TOKEN",
+        "SENTRY_VERCEL_LOG_DRAIN_URL",
+        "SENTRY_OTLP_TRACES_URL",
+        "SENTRY_PUBLIC_KEY",
+        "CLERK_SECRET_KEY",
+        "DASHBOARD_PASSWORD",
+        "DASHBOARD_AUTH_SECRET"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]

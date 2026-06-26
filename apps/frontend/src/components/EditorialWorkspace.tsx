@@ -1199,6 +1199,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
               width: sidebarOpen ? 'var(--sidebar-panel-width)' : '56px',
               borderRight: 'none',
               overflow: 'hidden',
+              overflowX: 'hidden',
               transition: 'width 240ms cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           >
