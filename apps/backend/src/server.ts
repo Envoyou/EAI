@@ -18,6 +18,7 @@ import scrapeRouter from './routes/scrape';
 import supportRouter from './routes/support';
 import adminRouter from './routes/admin';
 import analyticsRouter from './routes/analytics';
+import strategistRouter from './routes/strategist';
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -80,6 +81,7 @@ app.use('/api/scrape', scrapeRouter);
 app.use('/api/support', supportRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/strategist', strategistRouter);
 
 // Error Handler
 app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {

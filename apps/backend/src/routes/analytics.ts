@@ -519,11 +519,8 @@ router.get('/validation', requireAuth, async (req, res) => {
 
     const isDemo = req.query.demo === 'true';
 
-    // Fetch all logs to calculate metrics
+    // Fetch all logs to calculate metrics globally across all tenants
     const logs = await prisma.analysisLog.findMany({
-      where: {
-        organizationId: workspace.organizationId,
-      },
       orderBy: { createdAt: 'asc' }
     });
 

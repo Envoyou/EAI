@@ -1,14 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
-import { Plus, FileText, Loader2, Search, Trash2, LayoutDashboard, Settings, Moon, Sun } from 'lucide-react';
+import { Plus, FileText, Loader2, Search, Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
-import { EAILogo } from '@/components/EAILogo';
-import Link from 'next/link';
-import { useTheme } from 'next-themes';
-import { useUser, UserButton } from '@clerk/nextjs';
-import { storeThemePreference } from '@/lib/preferences';
-import { useRouter } from 'next/navigation';
+import { AppSidebarShell } from '@/components/AppSidebarShell';
+import { SidebarItem } from '@/components/ui/sidebar-item';
 
 export interface HistoryItem {
   id: string;
@@ -57,13 +53,7 @@ export default function HistorySidebar({
   sidebarOpen = true,
   onToggleSidebar,
   isDemoMode = false,
-
 }: HistorySidebarProps) {
-  const router = useRouter();
-  const { resolvedTheme, setTheme } = useTheme();
-  const { user, isLoaded } = useUser();
-  const isDark = resolvedTheme === 'dark';
-  
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -180,12 +170,6 @@ export default function HistorySidebar({
     }
   };
 
-  const toggleTheme = () => {
-    const newTheme = isDark ? 'light' : 'dark';
-    setTheme(newTheme);
-    storeThemePreference(newTheme);
-  };
-
   const handleSearchClick = () => {
     if (!sidebarOpen && onToggleSidebar) {
       onToggleSidebar();
@@ -195,84 +179,18 @@ export default function HistorySidebar({
     }
   };
 
-  const openSettings = () => {
-    toast.error('Settings are available after signing in.', {
-      action: {
-        label: 'Sign In',
-        onClick: () => router.push('/login'),
-      },
-    });
-  };
 
   const filters = ['All', 'ready', 'needs_review', 'blocked'];
 
 
 
-  const dashboardLink = isDemoMode ? (
-    <button
-      onClick={() => toast.error('Dashboard is locked in Demo Mode')}
-      className={`flex items-center transition-colors border-none bg-transparent cursor-pointer opacity-50 text-[var(--muted-foreground)] hover:text-[var(--foreground)] ${
-        sidebarOpen 
-          ? 'gap-3 px-2.5 py-2 rounded-md hover:bg-[var(--surface-2)] w-full' 
-          : 'justify-center w-9 h-9 rounded-full hover:bg-[var(--surface-2)] mx-auto'
-      }`}
-    >
-      <LayoutDashboard className="w-[18px] h-[18px] shrink-0" />
-      <span className={`text-[13px] font-medium whitespace-nowrap transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
-        Dashboard
-      </span>
-    </button>
-  ) : (
-    <Link
-      href="/dashboard"
-      className={`flex items-center transition-colors text-[var(--muted-foreground)] hover:text-[var(--foreground)] no-underline ${
-        sidebarOpen 
-          ? 'gap-3 px-2.5 py-2 rounded-md hover:bg-[var(--surface-2)] w-full' 
-          : 'justify-center w-9 h-9 rounded-full hover:bg-[var(--surface-2)] mx-auto'
-      }`}
-    >
-      <LayoutDashboard className="w-[18px] h-[18px] shrink-0" />
-      <span className={`text-[13px] font-medium whitespace-nowrap transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
-        Dashboard
-      </span>
-    </Link>
-  );
-
-  const settingsLink = isDemoMode ? (
-    <button
-      onClick={openSettings}
-      className={`flex items-center transition-colors border-none bg-transparent cursor-pointer opacity-50 text-[var(--muted-foreground)] hover:text-[var(--foreground)] ${
-        sidebarOpen 
-          ? 'gap-3 px-2.5 py-2 rounded-md hover:bg-[var(--surface-2)] w-full' 
-          : 'justify-center w-9 h-9 rounded-full hover:bg-[var(--surface-2)] mx-auto'
-      }`}
-    >
-      <Settings className="w-[18px] h-[18px] shrink-0" />
-      <span className={`text-[13px] font-medium whitespace-nowrap transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
-        Settings
-      </span>
-    </button>
-  ) : (
-    <Link
-      href="/settings"
-      className={`flex items-center transition-colors text-[var(--muted-foreground)] hover:text-[var(--foreground)] no-underline ${
-        sidebarOpen 
-          ? 'gap-3 px-2.5 py-2 rounded-md hover:bg-[var(--surface-2)] w-full' 
-          : 'justify-center w-9 h-9 rounded-full hover:bg-[var(--surface-2)] mx-auto'
-      }`}
-    >
-      <Settings className="w-[18px] h-[18px] shrink-0" />
-      <span className={`text-[13px] font-medium whitespace-nowrap transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
-        Settings
-      </span>
-    </Link>
-  );
-
   return (
     <TooltipProvider delay={300}>
-      <div
-        className="w-full h-full flex flex-col relative overflow-hidden transition-all duration-240"
-        style={{ background: sidebarOpen ? 'var(--sidebar)' : 'var(--background)' }}
+      <AppSidebarShell
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={onToggleSidebar || (() => {})}
+        currentPage="editor"
+        isDemoMode={isDemoMode}
       >
         {/* Delete Confirmation Overlay */}
         {itemToDelete && (
@@ -312,105 +230,63 @@ export default function HistorySidebar({
           </div>
         )}
 
-        {/* TOP SECTION */}
-        <div className="shrink-0 flex flex-col px-3 py-3 gap-1">
-          {/* Brand Header */}
-          <Tooltip disabled={sidebarOpen}>
-            <TooltipTrigger render={
-                <button
-                  onClick={onToggleSidebar}
-                  className={`flex items-center transition-colors border-none bg-transparent cursor-pointer overflow-hidden ${
-                    sidebarOpen 
-                      ? 'gap-2.5 px-2 py-2 mb-2 rounded-md hover:bg-[var(--surface-2)] text-left w-full' 
-                      : 'justify-center w-9 h-9 mb-2 rounded-full hover:bg-[var(--surface-2)] mx-auto'
-                  }`}
-                  aria-label="Toggle sidebar"
-                >
-                <EAILogo className="w-6 h-6 shrink-0" />
-                <div className={`flex flex-col justify-center min-w-0 transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
-                  <span className="block text-[15px] font-bold tracking-tight text-[var(--foreground)] leading-none truncate">EAI</span>
-                  <span className="block text-[9.5px] text-[var(--muted-foreground)] mt-1 font-medium tracking-wide uppercase truncate">Editorial Intelligence</span>
-                </div>
-              </button>
-            } />
-            <TooltipContent side="right" className="text-xs">Expand sidebar</TooltipContent>
-          </Tooltip>
+        {/* New Draft */}
+        <SidebarItem
+          icon={Plus}
+          label="New Draft"
+          sidebarOpen={sidebarOpen}
+          onClick={onNew}
+          className="mt-1"
+        />
 
-          {/* Dashboard Link */}
-          <Tooltip disabled={sidebarOpen}>
-            <TooltipTrigger render={dashboardLink} />
-            <TooltipContent side="right" className="text-xs">Dashboard</TooltipContent>
-          </Tooltip>
+        {/* Search */}
+        <Tooltip disabled={sidebarOpen}>
+          <TooltipTrigger render={
+            <div 
+              className={`relative flex items-center mt-1 rounded-full transition-all duration-200 overflow-hidden ${!sidebarOpen ? 'hover:bg-[var(--surface-2)] cursor-pointer w-9 h-9 mx-auto' : 'bg-[var(--input)] h-8 w-full'}`}
+              onClick={handleSearchClick}
+            >
+              <div className={`flex items-center justify-center shrink-0 ${!sidebarOpen ? 'w-full h-full' : 'w-8 h-full pl-1'}`}>
+                <Search className="w-3.5 h-3.5 text-[var(--muted-foreground)] pointer-events-none" />
+              </div>
+              {sidebarOpen && (
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  name="draft-search"
+                  autoComplete="off"
+                  aria-label="Search drafts"
+                  placeholder="Search drafts…"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="flex-1 bg-transparent border-none outline-none text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] h-full min-w-0 pr-3"
+                />
+              )}
+            </div>
+          } />
+          <TooltipContent side="right" className="text-xs">Search drafts</TooltipContent>
+        </Tooltip>
 
-          {/* New Draft */}
-          <Tooltip disabled={sidebarOpen}>
-            <TooltipTrigger render={
+        {/* Filters (Only visible when expanded) */}
+        <div className={`flex w-full mt-2 bg-[var(--surface-2)] rounded-full p-1 transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
+          {filters.map(f => {
+            const active = activeFilter === f;
+            return (
               <button
-                onClick={onNew}
-                className={`flex items-center transition-colors border-none bg-transparent cursor-pointer text-[var(--foreground)] mt-1 ${
-                  sidebarOpen 
-                    ? 'gap-3 px-2.5 py-2 rounded-md hover:bg-[var(--surface-2)] w-full' 
-                    : 'justify-center w-9 h-9 rounded-full hover:bg-[var(--surface-2)] mx-auto'
+                key={f}
+                onClick={() => setActiveFilter(f)}
+                className={`min-w-0 flex-1 px-2 py-1.5 text-[10px] capitalize rounded-full transition-all border-none cursor-pointer ${
+                  active ? 'bg-[var(--card)] text-[var(--foreground)] font-semibold shadow-sm' : 'bg-transparent text-[var(--muted-foreground)] hover:bg-[var(--surface-3)] hover:text-[var(--foreground)]'
                 }`}
               >
-                <Plus className="w-[18px] h-[18px] shrink-0" />
-                <span className={`text-[13px] font-medium whitespace-nowrap transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
-                  New Draft
-                </span>
+                  {f === 'needs_review' ? 'Needs Review' : f.charAt(0).toUpperCase() + f.slice(1)}
               </button>
-            } />
-            <TooltipContent side="right" className="text-xs">New Draft</TooltipContent>
-          </Tooltip>
-
-          {/* Search */}
-          <Tooltip disabled={sidebarOpen}>
-            <TooltipTrigger render={
-              <div 
-                className={`relative flex items-center mt-1 rounded-full transition-all duration-200 overflow-hidden ${!sidebarOpen ? 'hover:bg-[var(--surface-2)] cursor-pointer w-9 h-9 mx-auto' : 'bg-[var(--input)] h-8 w-full'}`}
-                onClick={handleSearchClick}
-              >
-                <div className={`flex items-center justify-center shrink-0 ${!sidebarOpen ? 'w-full h-full' : 'w-8 h-full pl-1'}`}>
-                  <Search className="w-3.5 h-3.5 text-[var(--muted-foreground)] pointer-events-none" />
-                </div>
-                {sidebarOpen && (
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    name="draft-search"
-                    autoComplete="off"
-                    aria-label="Search drafts"
-                    placeholder="Search drafts…"
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    className="flex-1 bg-transparent border-none outline-none text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] h-full min-w-0 pr-3"
-                  />
-                )}
-              </div>
-            } />
-            <TooltipContent side="right" className="text-xs">Search drafts</TooltipContent>
-          </Tooltip>
-
-          {/* Filters (Only visible when expanded) */}
-          <div className={`flex w-full mt-2 bg-[var(--surface-2)] rounded-full p-1 transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
-            {filters.map(f => {
-              const active = activeFilter === f;
-              return (
-                <button
-                  key={f}
-                  onClick={() => setActiveFilter(f)}
-                  className={`min-w-0 flex-1 px-2 py-1.5 text-[10px] capitalize rounded-full transition-all border-none cursor-pointer ${
-                    active ? 'bg-[var(--card)] text-[var(--foreground)] font-semibold shadow-sm' : 'bg-transparent text-[var(--muted-foreground)] hover:bg-[var(--surface-3)] hover:text-[var(--foreground)]'
-                  }`}
-                >
-                    {f === 'needs_review' ? 'Needs Review' : f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              );
-            })}
-          </div>
+            );
+          })}
         </div>
 
         {/* LIST SECTION (Only visible when expanded) */}
-        <ScrollArea className={`flex-1 min-h-0 transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
+        <ScrollArea className={`flex-1 min-h-0 transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'} mt-2`}>
           {loading ? (
             <div className="p-4 space-y-2">
               {[1, 2, 3, 4].map(i => (
@@ -477,7 +353,7 @@ export default function HistorySidebar({
                             ) : (
                               <Tooltip>
                                 <TooltipTrigger render={
-              <span
+                                  <span
                                     className={`block text-[13px] truncate flex-1 min-w-0 ${
                                       isActive ? 'font-medium text-[var(--foreground)]' : 'text-[var(--foreground)]'
                                     }`}
@@ -489,7 +365,7 @@ export default function HistorySidebar({
                                   >
                                     {displayTitle}
                                   </span>
-            } />
+                                } />
                                 <TooltipContent side="top" className="text-xs">
                                   Double-click to edit title
                                 </TooltipContent>
@@ -503,7 +379,7 @@ export default function HistorySidebar({
 
                         <button
                           onClick={e => { e.stopPropagation(); setItemToDelete(item.id); }}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-md transition-[opacity,background-color,color] border-none cursor-pointer bg-transparent opacity-0 group-hover:opacity-100 hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full transition-[opacity,background-color,color] border-none cursor-pointer bg-transparent opacity-0 group-hover:opacity-100 hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                           aria-label="Delete draft"
                           title="Delete draft"
                         >
@@ -520,7 +396,7 @@ export default function HistorySidebar({
                   <button
                     onClick={() => fetchHistory(nextCursor, true)}
                     disabled={loadingMore}
-                    className="ui-btn ui-btn-surface ui-btn-sm w-full"
+                    className="ui-btn ui-btn-surface ui-btn-sm w-full rounded-full"
                   >
                     {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
                     {loadingMore ? 'Loading…' : 'Load More'}
@@ -530,98 +406,7 @@ export default function HistorySidebar({
             </div>
           )}
         </ScrollArea>
-
-        {!sidebarOpen && <div className="flex-1" />}
-
-        {/* BOTTOM SECTION */}
-        <div className="shrink-0 flex flex-col px-3 py-3 gap-1 border-t border-[var(--sidebar-border)]">
-          {/* Settings */}
-          <Tooltip disabled={sidebarOpen}>
-            <TooltipTrigger render={settingsLink} />
-            <TooltipContent side="right" className="text-xs">Settings</TooltipContent>
-          </Tooltip>
-
-          {/* Theme Toggle */}
-          <Tooltip disabled={sidebarOpen}>
-            <TooltipTrigger render={
-              <button
-                onClick={toggleTheme}
-                className={`flex items-center transition-colors border-none bg-transparent cursor-pointer text-[var(--muted-foreground)] hover:text-[var(--foreground)] ${
-                  sidebarOpen 
-                    ? 'gap-3 px-2.5 py-2 rounded-md hover:bg-[var(--surface-2)] w-full' 
-                    : 'justify-center w-9 h-9 rounded-full hover:bg-[var(--surface-2)] mx-auto'
-                }`}
-              >
-                {isDark ? <Sun className="w-[18px] h-[18px] shrink-0" /> : <Moon className="w-[18px] h-[18px] shrink-0" />}
-                <span className={`text-[13px] font-medium whitespace-nowrap transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
-                  {isDark ? 'Light Mode' : 'Dark Mode'}
-                </span>
-              </button>
-            } />
-            <TooltipContent side="right" className="text-xs">{isDark ? 'Light Mode' : 'Dark Mode'}</TooltipContent>
-          </Tooltip>
-{/* User Profile */}
-          <div 
-            className={`flex items-center mt-1 min-h-[44px] transition-colors ${
-              sidebarOpen ? 'gap-3 px-2.5 py-2 w-full rounded-md' : 'justify-center w-9 h-9 mx-auto rounded-full'
-            } ${!user && isLoaded ? 'cursor-pointer hover:bg-[var(--surface-2)]' : ''}`}
-            onClick={() => {
-              if (isLoaded && !user) router.push('/login');
-            }}
-          >
-            {isLoaded ? (
-              <div className="shrink-0 flex items-center justify-center -ml-0.5">
-                {user ? (
-                  <UserButton 
-                    userProfileMode="navigation"
-                    userProfileUrl="/settings/account"
-                    appearance={{
-                      elements: {
-                        userButtonAvatarBox: "w-[26px] h-[26px]"
-                      }
-                    }} 
-                  />
-                ) : (
-                  <div className="w-[26px] h-[26px] rounded-full bg-[var(--surface-3)] flex items-center justify-center text-[10px] font-semibold text-[var(--foreground)]">
-                    US
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="w-[26px] h-[26px] rounded-full bg-[var(--surface-2)] animate-pulse shrink-0 -ml-0.5" />
-            )}
-            
-            <div className={`flex flex-col min-w-0 transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
-              {user ? (
-                <div 
-                  className="flex flex-col justify-center min-w-0 flex-1 cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const trigger = document.querySelector('.cl-userButtonTrigger') as HTMLButtonElement | null;
-                    if (trigger) trigger.click();
-                  }}
-                >
-                  <span className="text-[13px] font-semibold text-[var(--foreground)] truncate leading-tight">
-                    {user.firstName} {user.lastName}
-                  </span>
-                  <span className="text-[10px] text-[var(--muted-foreground)] truncate mt-0.5">
-                    {user.primaryEmailAddress?.emailAddress}
-                  </span>
-                </div>
-              ) : (
-                <div className="flex flex-col justify-center min-w-0 flex-1">
-                  <span className="text-[13px] font-semibold text-[var(--foreground)] truncate leading-tight">
-                    Sign in
-                  </span>
-                  <span className="text-[10px] text-[var(--muted-foreground)] truncate leading-tight mt-0.5">
-                    Click here to login
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      </AppSidebarShell>
     </TooltipProvider>
   );
 }

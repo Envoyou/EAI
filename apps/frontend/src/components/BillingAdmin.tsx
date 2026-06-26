@@ -575,6 +575,54 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
             </div>
           )}
         </section>
+
+        {selected && selected.transactions && selected.transactions.length > 0 && (
+          <section className="mt-8 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-5 shadow-sm">
+            <h3 className="text-lg font-bold">Ledger History</h3>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)] mb-4">
+              Recent 50 credit activities for this organization.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                    <th className="pb-3 pr-4 font-semibold">Date</th>
+                    <th className="pb-3 px-4 font-semibold">Bucket</th>
+                    <th className="pb-3 px-4 font-semibold text-right">Amount</th>
+                    <th className="pb-3 pl-4 font-semibold">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {selected.transactions.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-[var(--surface-2)]">
+                      <td className="py-3 pr-4 whitespace-nowrap tabular-nums text-[var(--muted-foreground)] text-xs">
+                        {formatDate(tx.createdAt)}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className="ui-badge ui-badge-surface capitalize text-[10px]">
+                          {tx.bucket}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap text-right font-mono font-bold">
+                        <span className={tx.amount > 0 ? 'text-emerald-500' : 'text-rose-500'}>
+                          {tx.amount > 0 ? '+' : ''}{tx.amount}
+                        </span>
+                      </td>
+                      <td className="py-3 pl-4">
+                        <span className="font-medium text-[var(--foreground)]">{tx.description || tx.adjustmentReason || tx.type}</span>
+                        {tx.performedByEmail && (
+                          <span className="block text-[10px] text-[var(--muted-foreground)]">
+                            by {tx.performedByEmail}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
       </main>
 
       {pending && selected && (

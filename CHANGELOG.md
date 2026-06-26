@@ -6,6 +6,18 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **EAI Research Copilot (New Feature)**: Launched an interactive AI "Thinking Partner" for content strategists. Built on the Gemini Interactions API, it features a dynamic chat interface with auto-resizing inputs, real-time Google Search Grounding, streaming Markdown rendering, and Perplexity-style inline citations. The Copilot assists users from initial data analysis to drafting content blueprints.
+- **Envoyou Token Billing Tracker**: Added a token usage logging mechanism (`interaction.usage.total_tokens`) at the end of the Copilot Fast Mode stream inside `strategist.ts`. This tracks API consumption for future integration with the internal user credit/coin deduction system.
+
+### Changed
+- **Separation of Fast & Deep Chat Modes**: Overhauled the Copilot backend API to properly differentiate between query depths. "Fast" mode now strips out expensive tools (`url_context`, `code_execution`) and strictly limits Google Search to a single iteration for instant, cost-effective responses.
+- **Deep Research Spending Cap Protection**: Applied strict prompt limitations on the `deep-research-preview-04-2026` background agent (max 5 search queries). This prevents indefinite looping that exhausts the Google Cloud project spending limit (`RateLimitError: 429`).
+
+### Fixed
+- **TypeScript `InteractionSSEEvent` discrimination**: Resolved an IDE type error caused by an invalid `event.step` and `event.delta` property lookup on discriminated unions.
+- **ESLint `no-explicit-any`**: Fixed build failing Linter errors in `strategist.ts` by defining proper interfaces for the interaction usage object instead of typecasting to `any`.
+
 ## [1.0.0] - 2026-06-23
 
 ### Added

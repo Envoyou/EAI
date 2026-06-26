@@ -101,6 +101,11 @@ export const ensureOrganizationTrialCredits = async (
             description: 'Initial workspace trial credit allocation',
           },
         });
+        
+        await tx.user.update({
+          where: { id: userId },
+          data: { trialUsed: true },
+        });
         return;
       }
 
@@ -135,3 +140,55 @@ export const ensureOrganizationTrialCredits = async (
     throw error;
   }
 };
+
+export const ensurePersonalTrialCredits = async (userId: string) => {
+  const personalTrialKey = `trial:personal:${userId}`;
+  const existingAllocation = await prisma.creditTransaction.findUnique({
+    where: { idempotencyKey: personalTrialKey },
+    select: { id: true },
+  });
+  if (existingAllocation) return;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`
+      );
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { email: true, trialUsed: true },
+      });
+      if (!user) return;
+
+      if (user.trialUsed) return;
+
+      const shouldDenyTrial =
+        isDisposableEmail(user.email) ||
+        (await hasClaimedTrialWithEquivalentEmail(userId, user.email, tx));
+
+      if (!shouldDenyTrial) {
+        await tx.creditTransaction.create({
+          data: {
+            userId,
+            type: 'trial',
+            bucket: 'trial',
+            amount: TRIAL_CREDITS,
+            idempotencyKey: personalTrialKey,
+            description: 'Initial personal trial credit allocation',
+          },
+        });
+      }
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { trialUsed: true },
+      });
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return;
+    }
+    throw error;
+  }
+};
+

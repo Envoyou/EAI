@@ -1,45 +1,54 @@
 'use client';
 
 import React from 'react';
-import { UserProfile } from '@clerk/nextjs';
+import { useClerk, useOrganization } from '@clerk/nextjs';
+import { SettingSection, SettingRow } from '@/components/SettingsUI';
 
 export default function AccountSettingsPage() {
+  const { openUserProfile, openOrganizationProfile, openCreateOrganization } = useClerk();
+  const { organization } = useOrganization();
+
   return (
     <>
       <div className="settings-page-intro mb-8">
-        <span>Account</span>
-        <h2 className="text-balance">Manage your personal profile and security.</h2>
+        <span>Preferences</span>
+        <h2 className="text-balance">Manage your account and organization.</h2>
         <p className="text-pretty">
-          Update your email, password, and security settings. These preferences apply to your personal account globally.
+          Update your profile, security settings, or manage your organization and team members.
         </p>
       </div>
 
-      <div className="w-full pb-10">
-        <UserProfile 
-          routing="hash"
-          appearance={{
-            elements: {
-              rootBox: "w-full",
-              card: "shadow-none border border-[var(--border)] bg-[var(--surface-1)] w-full max-w-full rounded-xl",
-              navbar: "hidden md:flex",
-              navbarButton: "text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
-              headerTitle: "text-[var(--foreground)]",
-              headerSubtitle: "text-[var(--muted-foreground)]",
-              profileSectionTitleText: "text-[var(--foreground)] font-semibold",
-              profileSectionContent: "text-[var(--foreground)]",
-              profileSectionPrimaryButton: "text-[var(--foreground)] hover:bg-[var(--surface-2)]",
-              badge: "bg-[var(--surface-2)] text-[var(--foreground)]",
-              dividerRow: "border-[var(--border)]",
-              formButtonPrimary: "bg-[var(--foreground)] text-[var(--background)] hover:bg-[var(--foreground)]/90",
-              formFieldInput: "bg-[var(--surface-2)] border-[var(--border)] text-[var(--foreground)]",
-              formFieldLabel: "text-[var(--foreground)]",
-              breadcrumbs: "text-[var(--muted-foreground)]",
-              breadcrumbsItem: "text-[var(--foreground)]",
-              breadcrumbsItemDivider: "text-[var(--muted-foreground)]",
-            }
-          }}
-        />
-      </div>
+      <SettingSection id="preferences" title="Preferences" description="Your personal and team accounts.">
+        <SettingRow
+          title="User"
+          description="Manage your login credentials, security settings, or delete your account."
+        >
+          <button
+            onClick={() => openUserProfile()}
+            className="ui-btn ui-btn-surface ui-btn-sm font-medium"
+          >
+            Manage
+          </button>
+        </SettingRow>
+
+        <SettingRow
+          title="Organization"
+          description="Manage your organization settings and members."
+        >
+          <button
+            onClick={() => {
+              if (organization) {
+                openOrganizationProfile();
+              } else {
+                openCreateOrganization();
+              }
+            }}
+            className="ui-btn ui-btn-surface ui-btn-sm font-medium"
+          >
+            {organization ? 'Manage' : 'Create'}
+          </button>
+        </SettingRow>
+      </SettingSection>
     </>
   );
 }

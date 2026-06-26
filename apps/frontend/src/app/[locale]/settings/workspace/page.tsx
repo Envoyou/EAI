@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { OrganizationSwitcher } from '@clerk/nextjs';
 import { SlidersHorizontal, Loader2, CreditCard } from 'lucide-react';
 import { useSettings } from '@/components/SettingsProvider';
 import { SettingSection, SettingRow } from '@/components/SettingsUI';
@@ -26,26 +25,7 @@ export default function WorkspaceSettingsPage() {
         title="Workspace"
         description="Organization access, publication standards, and plan information."
       >
-        <SettingRow
-          title="Active workspace"
-          description="Switch the organization whose drafts and publication settings you are using."
-        >
-          <OrganizationSwitcher
-            hidePersonal
-            afterSelectOrganizationUrl="/settings"
-            afterCreateOrganizationUrl="/onboarding"
-            afterLeaveOrganizationUrl="/onboarding"
-            appearance={{
-              elements: {
-                rootBox: 'w-full',
-                organizationSwitcherTrigger:
-                  'w-full min-h-9 justify-between rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--foreground)] shadow-none',
-                organizationPreviewTextContainer: 'min-w-0 text-left',
-                organizationPreviewMainIdentifier: 'truncate text-sm font-semibold text-[var(--foreground)]',
-              },
-            }}
-          />
-        </SettingRow>
+
 
         <SettingRow
           title="Publication settings"

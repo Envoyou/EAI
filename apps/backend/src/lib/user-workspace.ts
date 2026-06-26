@@ -2,7 +2,7 @@ import { createClerkClient } from '@clerk/backend';
 import { Prisma } from '@prisma/client';
 
 import { prisma } from '@/lib/db';
-import { ensureOrganizationTrialCredits } from '@/lib/trial-credits';
+import { ensureOrganizationTrialCredits, ensurePersonalTrialCredits } from '@/lib/trial-credits';
 import { normalizeProfileConfig } from '@eai/shared/server';
 
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
@@ -35,7 +35,10 @@ export const ensureCurrentUserRecord = async (userId: string) => {
   const existing = await prisma.user.findUnique({
     where: { id: userId },
   });
-  if (existing) return existing;
+  if (existing) {
+    await ensurePersonalTrialCredits(userId);
+    return existing;
+  }
 
   const clerkUser = await clerk.users.getUser(userId);
   const email = clerkUser?.emailAddresses[0]?.emailAddress;
@@ -54,7 +57,7 @@ export const ensureCurrentUserRecord = async (userId: string) => {
     });
   }
 
-  return prisma.user.create({
+  const userRecord = await prisma.user.create({
     data: {
       id: userId,
       email,
@@ -62,6 +65,9 @@ export const ensureCurrentUserRecord = async (userId: string) => {
       imageUrl: clerkUser.imageUrl || null,
     },
   });
+
+  await ensurePersonalTrialCredits(userId);
+  return userRecord;
 };
 
 const buildUniqueOrganizationSlug = async (preferredSlug: string, clerkOrganizationId: string) => {

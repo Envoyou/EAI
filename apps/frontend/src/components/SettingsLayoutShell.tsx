@@ -15,6 +15,7 @@ import {
   CreditCard,
   ShieldAlert,
   Settings,
+  Users,
 } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 
@@ -30,7 +31,7 @@ type SettingsLayoutShellProps = {
 
 const SECTIONS = [
   { id: 'general_heading', label: 'My Preferences', heading: true },
-  { id: 'account', href: '/settings/account', label: 'Account', icon: CircleUserRound },
+  { id: 'account', href: '/settings/account', label: 'Preferences', icon: CircleUserRound },
   { id: 'general', href: '/settings/general', label: 'General', icon: Settings },
   { id: 'workflow', href: '/settings/workflow', label: 'Workflow', icon: Workflow },
   { id: 'defaults', href: '/settings/defaults', label: 'Article Defaults', icon: FileText },
@@ -41,6 +42,7 @@ const SECTIONS = [
   { id: 'publication', href: '/settings/publication/identity', label: 'Publication Standards', icon: FileText, requireAdmin: true },
 
   { id: 'system', label: 'EAI System', heading: true, requireSuperAdmin: true },
+  { id: 'system/users', href: '/settings/system/users', label: 'User Directory', icon: Users, requireSuperAdmin: true },
   { id: 'system/tenants', href: '/settings/system/tenants', label: 'Tenants', icon: Server, requireSuperAdmin: true },
   { id: 'system/telemetry', href: '/settings/system/telemetry', label: 'Telemetry', icon: Activity, requireSuperAdmin: true },
   { id: 'system/feature-flags', href: '/settings/system/feature-flags', label: 'Feature Flags', icon: ShieldAlert, requireSuperAdmin: true },

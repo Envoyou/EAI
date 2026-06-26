@@ -143,7 +143,46 @@ router.post('/billing', requireAuth, async (req, res) => {
     return res.status(isExpected ? 409 : 500).json({ error: message });
   }
 });
+// GET /api/admin/users
+router.get('/users', requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.auth!;
+    const actor = await getActor(userId);
+    if (!actor) {
+      return res.status(403).json({ error: 'Owner or super-admin access required' });
+    }
 
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+        trialUsed: true,
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          }
+        },
+        onboardingDraft: {
+          select: {
+            step: true,
+          }
+        }
+      }
+    });
+
+    return res.json({ users });
+  } catch (error) {
+    console.error('[ADMIN_USERS_GET]', error);
+    return res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
 // GET /api/admin/billing/ticket
 router.get('/billing/ticket', requireAuth, async (req, res) => {
   try {
