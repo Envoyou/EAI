@@ -101,7 +101,7 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
 
   return (
     <SettingSection id="edge-flags" title="Edge Configuration" description="Manage global system features without redeploying the application.">
-      <div className="mt-4 rounded-xl border border-slate-200/60 dark:border-slate-800/60 bg-white/50 dark:bg-slate-900/50 shadow-sm divide-y divide-slate-200/60 dark:divide-slate-800/60 overflow-hidden">
+      <div className="mt-4 surface-card surface-card-md divide-y divide-[var(--border)] overflow-hidden">
         
         {(Object.entries(flags) as [FeatureFlagKey, boolean][]).map(([key, value]) => {
           const details = getFlagDetails(key);
@@ -109,9 +109,9 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
           const isProcessing = isPending && processingKey === key;
 
           return (
-            <div key={key} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
+            <div key={key} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4 transition-colors hover:bg-[var(--surface-2)]">
               <div className="flex gap-4">
-                <div className={`flex shrink-0 h-10 w-10 items-center justify-center rounded-xl ${value ? 'bg-primary/10 text-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                <div className={`flex shrink-0 h-10 w-10 items-center justify-center rounded-xl ${value ? 'bg-primary/10 text-primary' : 'bg-[var(--surface-2)] text-muted-foreground'}`}>
                   <Icon className="h-5 w-5" />
                 </div>
                 <div>
@@ -128,7 +128,7 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
                   disabled={isProcessing}
                   className={`
                     relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed
-                    ${value ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'}
+                    ${value ? 'bg-primary' : 'bg-[var(--surface-3)]'}
                   `}
                   role="switch"
                   aria-checked={value}

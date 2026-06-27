@@ -25,9 +25,9 @@ export function SidebarItem({
   className = '',
   variant = 'default',
 }: SidebarItemProps) {
-  const baseClasses = `flex items-center transition-colors no-underline border-none cursor-pointer ${
+  const baseClasses = `flex items-center transition-all duration-300 no-underline border-none cursor-pointer overflow-hidden ${
     sidebarOpen
-      ? 'gap-3 px-2.5 py-2 rounded-full w-full'
+      ? 'px-2.5 py-2 rounded-full w-full'
       : 'justify-center w-9 h-9 rounded-full mx-auto'
   }`;
 
@@ -45,8 +45,8 @@ export function SidebarItem({
     <>
       <Icon className="w-[18px] h-[18px] shrink-0" />
       <span
-        className={`text-[13px] whitespace-nowrap transition-opacity duration-200 ${
-          sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'
+        className={`text-[13px] whitespace-nowrap overflow-hidden transition-all duration-300 ${
+          sidebarOpen ? 'opacity-100 max-w-[200px] ml-3' : 'opacity-0 max-w-0 ml-0'
         }`}
       >
         {label}

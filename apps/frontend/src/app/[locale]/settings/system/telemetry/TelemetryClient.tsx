@@ -46,7 +46,7 @@ export function TelemetryClient({ hasDsn }: { hasDsn: boolean }) {
 
   return (
     <SettingSection id="sentry-telemetry" title="Sentry Integration" description="Monitor application performance and track exceptions in real-time.">
-      <div className="mt-4 rounded-xl border border-slate-200/60 dark:border-slate-800/60 bg-white/50 dark:bg-slate-900/50 p-6 shadow-sm overflow-hidden space-y-6">
+      <div className="mt-4 surface-card surface-card-md p-6 overflow-hidden space-y-6">
         
         <div className="flex items-start gap-4">
           <div className={`p-3 rounded-xl ${hasDsn ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>

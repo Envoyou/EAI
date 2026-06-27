@@ -22,7 +22,7 @@ export default function TrendsPage() {
       <div className="settings-page-section-body py-6 space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Trend Chart */}
-          <div className="lg:col-span-2 bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl p-6 shadow-sm min-w-0">
+          <div className="lg:col-span-2 surface-card p-6 min-w-0">
             <h3 className="text-sm font-semibold mb-6 flex items-center gap-2 text-foreground">
               <Activity className="w-5 h-5 text-primary" /> Daily Ready Rate
             </h3>
@@ -42,7 +42,7 @@ export default function TrendsPage() {
           </div>
 
           {/* Readiness Pie Chart */}
-          <div className="bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl p-6 shadow-sm flex flex-col justify-between min-w-0">
+          <div className="surface-card p-6 flex flex-col justify-between min-w-0">
             <div>
               <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-foreground">
                 <CheckCircle className="w-5 h-5 text-primary" /> Readiness Breakdown
@@ -97,7 +97,7 @@ export default function TrendsPage() {
           </div>
 
           {/* Top Flags Bar Chart */}
-          <div className="lg:col-span-3 bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl p-6 shadow-sm min-w-0">
+          <div className="lg:col-span-3 surface-card p-6 min-w-0">
             <h3 className="text-sm font-semibold mb-6 flex items-center gap-2 text-foreground">
               <AlertTriangle className="w-5 h-5 text-primary" /> Top Flags
             </h3>

@@ -85,17 +85,17 @@ export default async function BillingSettingsPage() {
         </div>
 
         {workspace && (
-          <div className="bg-white dark:bg-slate-900/50 p-4 rounded-2xl flex items-center gap-4 shadow-sm min-w-[240px]">
-            <div className="p-3 bg-primary/10 text-primary rounded-xl">
+          <div className="surface-card p-4 flex items-center gap-4 min-w-[240px]">
+            <div className="p-3 bg-primary text-primary-foreground rounded-xl">
               <Coins className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Active Credit Balance</p>
+              <p className="text-[10px] uppercase font-bold tracking-wider text-balance">Active Credit Balance</p>
               <h3 className="text-xl font-extrabold tracking-tight mt-0.5 text-foreground">
                 {workspace.plan.creditsRemaining.toLocaleString()} Credits
               </h3>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Active Plan: <span className="font-semibold capitalize text-primary">{workspace.plan.activePlan.replace('org:', '').replace('_yearly', '')}</span>
+                Active Plan: <span className="font-semibold capitalize text-primary-foreground">{workspace.plan.activePlan.replace('org:', '').replace('_yearly', '')}</span>
               </p>
             </div>
           </div>
@@ -107,7 +107,7 @@ export default async function BillingSettingsPage() {
         title="Current Plan"
         description="Review the plan currently attached to this workspace."
       >
-        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center rounded-xl bg-white/50 p-5 shadow-sm dark:bg-slate-900/50">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center surface-card surface-card-md p-5">
           <div className="flex min-w-0 items-start gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <CreditCard className="h-5 w-5" />
@@ -138,9 +138,9 @@ export default async function BillingSettingsPage() {
       </SettingSection>
 
       <SettingSection id="addons" title="Additional Credits" description="Get extra credits whenever you need them. Unused credits never expire.">
-        <div className="mt-4 bg-white dark:bg-slate-900/40 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="mt-4 surface-card p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="space-y-3 max-w-xl">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-semibold rounded-full uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary text-primary-foreground text-[10px] font-semibold rounded-full uppercase tracking-wider">
               <Zap className="w-3 h-3" /> Instant Top-up
             </span>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">
@@ -151,14 +151,14 @@ export default async function BillingSettingsPage() {
             </p>
           </div>
 
-          <div className="bg-slate-50 dark:bg-slate-950/40 p-6 rounded-2xl w-full md:w-72 text-center space-y-4 shrink-0">
+          <div className="bg-[var(--surface-2)] p-6 rounded-2xl w-full md:w-72 text-center space-y-4 shrink-0">
             <div className="space-y-0.5">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Additional Credits</h3>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Additional Credits</h3>
               <h4 className="text-2xl font-bold text-foreground mt-1">50 Credits</h4>
               <h5 className="text-xl font-bold text-primary mt-0.5">
                 {formatUsd(addonDisclosure.priceUsd)}
               </h5>
-              <p className="text-[10px] font-medium text-slate-400 mt-1">Unused credits never expire</p>
+              <p className="text-[10px] font-medium text-muted-foreground mt-1">Unused credits never expire</p>
             </div>
 
             <PricingCheckoutButton
@@ -173,9 +173,9 @@ export default async function BillingSettingsPage() {
       </SettingSection>
 
       <SettingSection id="payments" title="Recent Payments" description="Latest checkout activity for this workspace.">
-        <div className="mt-4 overflow-hidden rounded-xl bg-white/50 shadow-sm dark:bg-slate-900/50">
+        <div className="mt-4 overflow-hidden surface-card surface-card-md">
           {recentPayments.length > 0 ? (
-            <div className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
+            <div className="divide-y divide-[var(--border)]">
               {recentPayments.map((payment) => {
                 const planName = PLANS[payment.planId]?.name ?? payment.planId;
                 const paymentDate = payment.paidAt ?? payment.createdAt;

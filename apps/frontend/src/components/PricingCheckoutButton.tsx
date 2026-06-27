@@ -82,18 +82,18 @@ export default function PricingCheckoutButton({
 
   const getButtonStyles = () => {
     if (!billingEnabled) {
-      return 'bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400 font-semibold border border-slate-200 dark:border-slate-800 cursor-not-allowed';
+      return 'bg-[var(--surface-2)] text-muted-foreground font-semibold border border-[var(--border)] cursor-not-allowed';
     }
     if (current) {
-      return 'bg-transparent text-slate-500 dark:text-slate-400 font-semibold border border-slate-200 dark:border-slate-800 cursor-default';
+      return 'bg-transparent text-muted-foreground font-semibold border border-[var(--border)] cursor-default';
     }
     if (variant === 'primary') {
-      return 'bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/10';
+      return 'bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/10';
     }
     if (variant === 'addon') {
-      return 'bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/5 dark:hover:bg-primary/10 dark:text-primary-300 font-semibold border border-primary/20';
+      return 'bg-primary/10 hover:bg-primary/20 text-primary font-semibold border border-primary/20';
     }
-    return 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold border border-slate-200 dark:border-slate-800';
+    return 'bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-foreground font-semibold border border-[var(--border)]';
   };
 
   const formatUsd = (value: number) =>
@@ -156,14 +156,14 @@ export default function PricingCheckoutButton({
             role="dialog"
             aria-modal="true"
             aria-labelledby={`checkout-title-${planId}`}
-            className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+            className="w-full max-w-md surface-card surface-card-xl p-6 text-left shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-primary">
                   Before checkout
                 </p>
-                <h2 id={`checkout-title-${planId}`} className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
+                <h2 id={`checkout-title-${planId}`} className="mt-1 text-xl font-bold text-foreground">
                   Confirm your prepaid purchase
                 </h2>
               </div>
@@ -172,32 +172,32 @@ export default function PricingCheckoutButton({
                 onClick={() => setConfirming(false)}
                 disabled={loading}
                 aria-label="Close checkout confirmation"
-                className="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                className="rounded-full p-1.5 text-muted-foreground transition hover:bg-[var(--surface-2)] hover:text-foreground disabled:opacity-50"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <ul className="mt-5 space-y-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            <ul className="mt-5 space-y-3 text-sm leading-6 text-muted-foreground">
               <li className="flex items-center justify-between gap-4">
                 <span>Product</span>
-                <strong className="text-right text-slate-900 dark:text-white">{disclosure.planName}</strong>
+                <strong className="text-right text-foreground">{disclosure.planName}</strong>
               </li>
               <li className="flex items-center justify-between gap-4">
                 <span>Listed price</span>
-                <strong className="text-right text-slate-900 dark:text-white">{formatUsd(disclosure.priceUsd)}</strong>
+                <strong className="text-right text-foreground">{formatUsd(disclosure.priceUsd)}</strong>
               </li>
-              <li className="flex items-center justify-between gap-4 border-t border-slate-200 pt-3 dark:border-slate-800">
+              <li className="flex items-center justify-between gap-4 border-t border-[var(--border)] pt-3">
                 <span>Final checkout amount</span>
                 <strong className="text-right text-base text-primary">{formatIdr(disclosure.amountIdr)}</strong>
               </li>
               <li className="flex items-center justify-between gap-4">
                 <span>Editorial Credits</span>
-                <strong className="text-right text-slate-900 dark:text-white">{disclosure.creditsGranted}</strong>
+                <strong className="text-right text-foreground">{disclosure.creditsGranted}</strong>
               </li>
             </ul>
 
-            <div className="mt-5 space-y-2 rounded-2xl bg-slate-50 p-4 text-xs leading-5 text-slate-500 dark:bg-slate-950/60 dark:text-slate-400">
+            <div className="mt-5 space-y-2 rounded-2xl bg-[var(--surface-2)] p-4 text-xs leading-5 text-muted-foreground">
               <p>{disclosure.billingLabel}</p>
               <p>{disclosure.creditValidity}</p>
               <p>{disclosure.renewalLabel}</p>
@@ -208,7 +208,7 @@ export default function PricingCheckoutButton({
               </p>
             </div>
 
-            <p className="mt-5 text-xs leading-5 text-slate-500">
+            <p className="mt-5 text-xs leading-5 text-muted-foreground">
               By continuing, you agree to the{' '}
               <Link href="https://envoyou.com/terms" target="_blank" className="font-semibold text-primary hover:underline">
                 Terms of Service
@@ -229,7 +229,7 @@ export default function PricingCheckoutButton({
                 type="button"
                 onClick={() => setConfirming(false)}
                 disabled={loading}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="ui-btn ui-btn-outline"
               >
                 Cancel
               </button>
@@ -237,7 +237,7 @@ export default function PricingCheckoutButton({
                 type="button"
                 onClick={createCheckout}
                 disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition hover:bg-primary/90 disabled:opacity-70"
+                className="ui-btn ui-btn-primary"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Continue to payment

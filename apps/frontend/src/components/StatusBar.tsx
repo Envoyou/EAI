@@ -50,7 +50,7 @@ export default function StatusBar({
     <div className="ide-statusbar" aria-label="Workspace status">
       {/* Left: App info */}
       <Tooltip>
-        <TooltipTrigger className="status-app-version ide-statusbar-item cursor-help select-none bg-slate-100/50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 font-semibold">
+        <TooltipTrigger className="status-app-version ide-statusbar-item cursor-help select-none bg-[var(--surface-2)] text-muted-foreground font-semibold">
           EAI {appVersion}
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
@@ -58,7 +58,7 @@ export default function StatusBar({
         </TooltipContent>
       </Tooltip>
 
-      <span className="status-active-tab ide-statusbar-item bg-slate-100/50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 font-semibold" style={{ textTransform: 'capitalize' }}>
+      <span className="status-active-tab ide-statusbar-item bg-[var(--surface-2)] text-muted-foreground font-semibold" style={{ textTransform: 'capitalize' }}>
         {activeTab === 'draft' ? 'Article Draft' : activeTab === 'analysis' ? 'Analysis' : 'Refined Draft'}
       </span>
 

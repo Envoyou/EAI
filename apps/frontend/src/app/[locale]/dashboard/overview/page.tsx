@@ -17,8 +17,8 @@ export default function OverviewPage() {
       </div>
       <div className="settings-page-section-body py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl p-6 shadow-sm flex items-center gap-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
-            <div className="p-3 bg-primary-50 dark:bg-primary-950/30 rounded-xl text-primary-600 dark:text-primary-400">
+          <div className="surface-card surface-card-hover p-6 flex items-center gap-4">
+            <div className="p-3 bg-primary-50 dark:bg-primary rounded-xl text-primary-600 dark:text-primary-foreground">
               <FileText className="w-6 h-6" />
             </div>
             <div>
@@ -41,8 +41,8 @@ export default function OverviewPage() {
             </div>
           </div>
           
-          <div className="bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl p-6 shadow-sm flex items-center gap-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
-            <div className="p-3 bg-primary-50 dark:bg-primary-950/30 rounded-xl text-primary-600 dark:text-primary-400">
+          <div className="surface-card surface-card-hover p-6 flex items-center gap-4">
+            <div className="p-3 bg-primary-50 dark:bg-primary rounded-xl text-primary-600 dark:text-primary-foreground">
               <Activity className="w-6 h-6" />
             </div>
             <div>
@@ -65,8 +65,8 @@ export default function OverviewPage() {
             </div>
           </div>
 
-          <div className="bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl p-6 shadow-sm flex items-center gap-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
-            <div className="p-3 bg-primary-50 dark:bg-primary-950/30 rounded-xl text-primary-600 dark:text-primary-400">
+          <div className="surface-card surface-card-hover p-6 flex items-center gap-4">
+            <div className="p-3 bg-primary-50 dark:bg-primary rounded-xl text-primary-600 dark:text-primary-foreground">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>

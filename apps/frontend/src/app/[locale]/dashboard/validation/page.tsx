@@ -199,7 +199,7 @@ export default function ValidationDashboardPage() {
       actions={
         <div className="flex items-center gap-2">
           {/* Demo Mode Toggle */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 shadow-sm transition-all">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] shadow-sm transition-all">
             <span className="text-[10px] font-semibold text-muted-foreground">Demo</span>
             <button
               onClick={toggleDemoMode}
@@ -220,7 +220,7 @@ export default function ValidationDashboardPage() {
           {/* Download CSV Button */}
           <button
             onClick={handleDownloadCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 rounded-full text-xs font-semibold transition-all shadow-sm cursor-pointer text-foreground"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-sm cursor-pointer text-foreground"
             aria-label="Download Report as CSV"
           >
             <Download className="w-3.5 h-3.5" />
@@ -229,14 +229,14 @@ export default function ValidationDashboardPage() {
 
           <Link
             href="/settings/billing"
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 rounded-full text-xs font-semibold transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-sm"
           >
             <WalletCards className="w-3.5 h-3.5" />
             <span>Billing Admin</span>
           </Link>
           <Link
             href="/dashboard"
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 rounded-full text-xs font-semibold transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-sm"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Dashboard</span>
@@ -315,9 +315,9 @@ export default function ValidationDashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Product Usage Card */}
-          <div id="usage" className="scroll-mt-6 bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-3xl p-6 shadow-sm flex flex-col justify-between transition-all duration-300 hover:shadow-md">
+          <div id="usage" className="scroll-mt-6 surface-card surface-card-xl surface-card-hover p-6 flex flex-col justify-between">
             <div>
-              <h3 className="text-lg font-bold font-serif mb-5 text-foreground flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/70 pb-3">
+              <h3 className="text-lg font-bold font-serif mb-5 text-foreground flex items-center gap-2 border-b border-[var(--border)] pb-3">
                 <FileText className="w-5 h-5 text-primary" /> Product Usage
               </h3>
               <div className="space-y-6">
@@ -340,7 +340,7 @@ export default function ValidationDashboardPage() {
                           Target: {formatMetricValue(metric.target, metric)}
                         </span>
                       </div>
-                      <div className="h-2 w-full bg-slate-100 dark:bg-slate-950/80 rounded-full overflow-hidden">
+                      <div className="h-2 w-full bg-[var(--surface-2)] rounded-full overflow-hidden">
                         <div 
                           className={`h-full rounded-full transition-all duration-500 ${
                             status.label === 'Met' ? 'bg-emerald-500' : status.label === 'Developing' ? 'bg-amber-500' : 'bg-rose-500'
@@ -356,9 +356,9 @@ export default function ValidationDashboardPage() {
           </div>
 
           {/* Output Quality Card */}
-          <div id="quality" className="scroll-mt-6 bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-3xl p-6 shadow-sm flex flex-col justify-between transition-all duration-300 hover:shadow-md">
+          <div id="quality" className="scroll-mt-6 surface-card surface-card-xl surface-card-hover p-6 flex flex-col justify-between">
             <div>
-              <h3 className="text-lg font-bold font-serif mb-5 text-foreground flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/70 pb-3">
+              <h3 className="text-lg font-bold font-serif mb-5 text-foreground flex items-center gap-2 border-b border-[var(--border)] pb-3">
                 <CheckCircle className="w-5 h-5 text-emerald-500" /> Output Quality
               </h3>
               <div className="space-y-6">
@@ -381,7 +381,7 @@ export default function ValidationDashboardPage() {
                           Target: {formatMetricValue(metric.target, metric)}
                         </span>
                       </div>
-                      <div className="h-2 w-full bg-slate-100 dark:bg-slate-950/80 rounded-full overflow-hidden">
+                      <div className="h-2 w-full bg-[var(--surface-2)] rounded-full overflow-hidden">
                         <div 
                           className={`h-full rounded-full transition-all duration-500 ${
                             status.label === 'Met' ? 'bg-emerald-500' : status.label === 'Developing' ? 'bg-amber-500' : 'bg-rose-500'
@@ -397,9 +397,9 @@ export default function ValidationDashboardPage() {
           </div>
 
           {/* Efficiency Gain Card */}
-          <div id="efficiency" className="scroll-mt-6 bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-3xl p-6 shadow-sm flex flex-col justify-between transition-all duration-300 hover:shadow-md">
+          <div id="efficiency" className="scroll-mt-6 surface-card surface-card-xl surface-card-hover p-6 flex flex-col justify-between">
             <div>
-              <h3 className="text-lg font-bold font-serif mb-5 text-foreground flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/70 pb-3">
+              <h3 className="text-lg font-bold font-serif mb-5 text-foreground flex items-center gap-2 border-b border-[var(--border)] pb-3">
                 <Activity className="w-5 h-5 text-indigo-500" /> Efficiency Gain
               </h3>
               <div className="space-y-6">
@@ -429,7 +429,7 @@ export default function ValidationDashboardPage() {
                           Target: {formatMetricValue(metric.target, metric)}
                         </span>
                       </div>
-                      <div className="h-2 w-full bg-slate-100 dark:bg-slate-950/80 rounded-full overflow-hidden">
+                      <div className="h-2 w-full bg-[var(--surface-2)] rounded-full overflow-hidden">
                         <div 
                           className={`h-full rounded-full transition-all duration-500 ${
                             status.label === 'Met' ? 'bg-emerald-500' : status.label === 'Developing' ? 'bg-amber-500' : 'bg-rose-500'
@@ -445,9 +445,9 @@ export default function ValidationDashboardPage() {
           </div>
 
           {/* Commercial Readiness Card */}
-          <div id="commercial" className="scroll-mt-6 bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-3xl p-6 shadow-sm flex flex-col justify-between transition-all duration-300 hover:shadow-md">
+          <div id="commercial" className="scroll-mt-6 surface-card surface-card-xl surface-card-hover p-6 flex flex-col justify-between">
             <div>
-              <h3 className="text-lg font-bold font-serif mb-5 text-foreground flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/70 pb-3">
+              <h3 className="text-lg font-bold font-serif mb-5 text-foreground flex items-center gap-2 border-b border-[var(--border)] pb-3">
                 <AlertTriangle className="w-5 h-5 text-amber-500" /> Commercial Readiness
               </h3>
               <div className="space-y-6">
@@ -470,7 +470,7 @@ export default function ValidationDashboardPage() {
                           Target: {formatMetricValue(metric.target, metric)}
                         </span>
                       </div>
-                      <div className="h-2 w-full bg-slate-100 dark:bg-slate-950/80 rounded-full overflow-hidden">
+                      <div className="h-2 w-full bg-[var(--surface-2)] rounded-full overflow-hidden">
                         <div 
                           className={`h-full rounded-full transition-all duration-500 ${
                             status.label === 'Met' ? 'bg-emerald-500' : status.label === 'Developing' ? 'bg-amber-500' : 'bg-rose-500'

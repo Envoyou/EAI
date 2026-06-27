@@ -29,7 +29,7 @@ export default function PerformancePage() {
         : 'bg-slate-400 dark:bg-slate-600';
 
     return (
-      <div className="bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:shadow-md">
+      <div className="surface-card surface-card-hover p-5">
         <div className="flex justify-between items-center text-xs">
           <span className="font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colorClass}`}>
@@ -37,7 +37,7 @@ export default function PerformancePage() {
           </span>
         </div>
         <div className="text-2xl font-bold mt-2 text-foreground">{value}%</div>
-        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-950/80 rounded-full mt-3 overflow-hidden">
+        <div className="h-1.5 w-full bg-[var(--surface-2)] rounded-full mt-3 overflow-hidden">
           <div className={`h-full rounded-full transition-all duration-500 ${barColorClass}`} style={{ width: `${value}%` }} />
         </div>
       </div>
@@ -46,7 +46,7 @@ export default function PerformancePage() {
 
   const renderCountCard = (label: string, value: string | number) => {
     return (
-      <div className="bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:shadow-md">
+      <div className="surface-card surface-card-hover p-5">
         <div className="flex justify-between items-center text-xs">
           <span className="font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
         </div>

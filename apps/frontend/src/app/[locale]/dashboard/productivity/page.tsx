@@ -18,7 +18,7 @@ export default function ProductivityPage() {
       <div className="settings-page-section-body py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Editor Performance Table */}
-          <div className="lg:col-span-2 bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl p-6 shadow-sm min-w-0 flex flex-col">
+          <div className="lg:col-span-2 surface-card p-6 min-w-0 flex flex-col">
             <h3 className="text-sm font-semibold mb-6 flex items-center gap-2 text-foreground">
               <Users className="w-5 h-5 text-primary" /> Editor Productivity &amp; Coaching
             </h3>
@@ -93,7 +93,7 @@ export default function ProductivityPage() {
           </div>
 
           {/* Category Distribution */}
-          <div className="bg-white/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl p-6 shadow-sm flex flex-col min-w-0">
+          <div className="surface-card p-6 flex flex-col min-w-0">
             <h3 className="text-sm font-semibold mb-6 flex items-center gap-2 text-foreground">
               <Layers className="w-5 h-5 text-primary" /> Category Distribution
             </h3>
@@ -106,7 +106,7 @@ export default function ProductivityPage() {
                       <span className="text-foreground truncate max-w-[70%]">{cat.name}</span>
                       <span className="text-muted-foreground">{cat.count} ({percentage}%)</span>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-950/80 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full bg-[var(--surface-2)] rounded-full overflow-hidden">
                       <div className="h-full bg-primary-500 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }} />
                     </div>
                   </div>

@@ -70,17 +70,17 @@ export function AppSidebarShell({
             render={
               <button
                 onClick={onToggleSidebar}
-                className={`flex items-center transition-colors border-none bg-transparent cursor-pointer overflow-hidden ${
+                className={`flex items-center transition-all duration-300 border-none bg-transparent cursor-pointer overflow-hidden ${
                   sidebarOpen
-                    ? 'gap-2.5 px-2 py-2 mb-2 rounded-full hover:bg-[var(--surface-2)] text-left w-full'
+                    ? 'px-2 py-2 mb-2 rounded-full hover:bg-[var(--surface-2)] text-left w-full'
                     : 'justify-center w-9 h-9 mb-2 rounded-full hover:bg-[var(--surface-2)] mx-auto'
                 }`}
                 aria-label="Toggle sidebar"
               >
                 <EAILogo className="w-6 h-6 shrink-0" />
                 <div
-                  className={`flex flex-col justify-center min-w-0 transition-opacity duration-200 ${
-                    sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'
+                  className={`flex flex-col justify-center min-w-0 overflow-hidden transition-all duration-300 ${
+                    sidebarOpen ? 'opacity-100 max-w-[200px] ml-2.5' : 'opacity-0 max-w-0 ml-0'
                   }`}
                 >
                   <span className="block text-[15px] font-bold tracking-tight text-[var(--foreground)] leading-none truncate">
@@ -143,9 +143,9 @@ export function AppSidebarShell({
 
         {/* User Profile */}
         <div
-          className={`flex items-center mt-1 min-h-[44px] transition-colors ${
+          className={`flex items-center mt-1 min-h-[44px] transition-all duration-300 overflow-hidden ${
             sidebarOpen
-              ? 'gap-3 px-2.5 py-2 w-full rounded-full'
+              ? 'px-2.5 py-2 w-full rounded-full'
               : 'justify-center w-9 h-9 mx-auto rounded-full'
           } ${!user && isLoaded ? 'cursor-pointer hover:bg-[var(--surface-2)]' : ''}`}
           onClick={() => {
@@ -173,8 +173,8 @@ export function AppSidebarShell({
           )}
 
           <div
-            className={`flex flex-col min-w-0 transition-opacity duration-200 ${
-              sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'
+            className={`flex flex-col min-w-0 overflow-hidden transition-all duration-300 ${
+              sidebarOpen ? 'opacity-100 max-w-[200px] ml-3' : 'opacity-0 max-w-0 ml-0'
             }`}
           >
             {isLoaded ? (

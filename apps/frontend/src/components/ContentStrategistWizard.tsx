@@ -161,7 +161,6 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
           const fakeDomains = data.plan.sources.map((url: string) => ({ url, domain: 'Source' }));
           setCollectedSources(prev => [...prev, ...fakeDomains]);
         }
-        setChatInput('Proceed to Editor');
       }  
       appendMessage({
         role: 'assistant',
@@ -374,8 +373,8 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
 
           <div className="p-4 bg-[var(--background)] pb-6 z-10 relative">
             <div className="max-w-4xl mx-auto">
-              {/* Research Mode Toggle */}
-              <div className="flex justify-center mb-3">
+              {/* Actions & Research Mode Toggle */}
+              <div className="flex justify-center mb-3 gap-3">
                 <div className="bg-[var(--surface-2)] p-1 rounded-full inline-flex items-center">
                     <button onClick={() => setResearchMode('fast')} className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 ${researchMode === 'fast' ? 'bg-[var(--foreground)] text-[var(--background)] shadow-sm' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}>
                       <Rocket className="w-3.5 h-3.5" /> Fast Research
@@ -384,6 +383,21 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                       <Search className="w-3.5 h-3.5" /> Deep Research
                     </button>
                 </div>
+                {messages.length >= 2 && !currentPlan && (
+                  <button 
+                    onClick={() => {
+                      const newMsg: ChatMessage = { id: generateId(), role: 'user', type: 'text', content: "Generate the final blueprint based on our discussion." };
+                      const updatedMessages = [...messages, newMsg];
+                      setMessages(updatedMessages);
+                      generatePlan("Generate the final blueprint based on our discussion.", updatedMessages);
+                    }}
+                    disabled={isTyping}
+                    className="bg-[var(--primary)] text-[var(--background)] px-4 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 shadow-sm hover:opacity-90 disabled:opacity-50"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Generate Blueprint
+                  </button>
+                )}
               </div>
 
               <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className={`w-full max-w-xl mx-auto relative flex flex-col bg-[var(--surface-2)] rounded-3xl p-1 transition-all shadow-sm ${isExpanded ? 'min-h-[100px]' : ''}`}>
@@ -492,9 +506,76 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
             </div>
           </div>
         </div>
+        {/* Blueprint Panel */}
+        {currentPlan && (
+          <div className="w-full lg:w-96 border-l border-[var(--border)] flex absolute lg:relative inset-y-0 right-0 flex-col animate-in slide-in-from-right duration-300 bg-[var(--background)] z-50 lg:z-10 shadow-2xl lg:shadow-none">
+            <div className="p-4 flex items-center justify-between shrink-0 border-b border-[var(--border)]">
+              <h3 className="font-semibold text-[14px] flex items-center gap-2 text-[var(--foreground)]">
+                <FileText className="w-4 h-4" />
+                Draft Blueprint
+              </h3>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              <div>
+                <span className="text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider mb-2 block">Angle / Topic</span>
+                <p className="text-[14px] text-[var(--foreground)] font-medium leading-relaxed">{currentPlan.angle}</p>
+              </div>
+
+              <div>
+                <span className="text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider mb-2 block">Target Audience</span>
+                <p className="text-[13px] text-[var(--foreground)] leading-relaxed">{currentPlan.audience}</p>
+              </div>
+
+              {currentPlan.seoIntent && (
+                <div>
+                  <span className="text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider mb-2 block">SEO Intent</span>
+                  <div className="inline-block px-2.5 py-1 bg-[var(--surface-2)] text-[var(--foreground)] rounded-md text-[12px] font-medium border border-[var(--border)]">
+                    {currentPlan.seoIntent}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <span className="text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider mb-3 block">Outline Structure</span>
+                <div className="space-y-2">
+                  {currentPlan.outline.split('\n').filter((line: string) => line.trim()).map((line: string, i: number) => (
+                    <div key={i} className="flex gap-3 items-start p-3 bg-[var(--surface-1)] border border-[var(--border)] rounded-lg">
+                      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-[var(--foreground)] text-[var(--background)] text-[10px] font-bold shrink-0 mt-0.5">
+                        {i + 1}
+                      </div>
+                      <span className="text-[13px] text-[var(--foreground)] leading-relaxed">{line.replace(/^-\s*/, '')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-[var(--border)] bg-[var(--surface-1)] shrink-0 flex flex-col gap-2">
+              <button
+                onClick={() => onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft)}
+                className="w-full py-2.5 bg-[var(--foreground)] text-[var(--background)] font-medium text-[14px] rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                <Rocket className="w-4 h-4" />
+                Proceed to Editor
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentPlan(null);
+                  const newMsg: ChatMessage = { id: generateId(), role: 'user', type: 'text', content: "I want to revise the blueprint with different data. Please forget the previous draft idea." };
+                  setMessages(prev => [...prev, newMsg]);
+                  generatePlan("Revise the blueprint with new instructions.", [...messages, newMsg]);
+                }}
+                className="w-full py-2.5 bg-transparent text-[var(--foreground)] border border-[var(--border)] font-medium text-[13px] rounded-lg hover:bg-[var(--surface-2)] transition-colors"
+              >
+                Revise Blueprint
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Sources Panel */}
-        {collectedSources.length > 0 && (
+        {collectedSources.length > 0 && !currentPlan && (
           <div className="w-80 border-l border-[var(--border)] hidden lg:flex flex-col animate-in slide-in-from-right duration-300">
             <div className="p-4 flex items-center justify-between shrink-0">
               <h3 className="font-semibold text-[13px] flex items-center gap-2">
@@ -533,7 +614,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
         )}
         
         {/* Deep Research Small Card / NotebookLM Studio Style */}
-        {deepResearchReport && !collectedSources.length && (
+        {deepResearchReport && !collectedSources.length && !currentPlan && (
           <div className="w-80 border-l border-[var(--border)] hidden lg:flex flex-col animate-in slide-in-from-right duration-300 bg-[var(--surface-1)]">
             <div className="p-4">
               <h3 className="font-semibold text-[13px] flex items-center gap-2 mb-4">

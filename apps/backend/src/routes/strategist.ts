@@ -4,7 +4,19 @@ import { gemini } from '@/lib/ai/provider-runtime';
 const router = Router();
 
 // Configure the model to use for the Content Strategist Wizard
-const MODEL = 'gemini-3.5-flash';
+const MODEL = process.env.GEMINI_COPILOT_MODEL || 'gemini-3.5-flash';
+const RESEARCH_MODEL = process.env.GEMINI_RESEARCH_MODEL || 'gemini-3.1-pro-preview';
+
+const STRATEGIST_SYSTEM_PROMPT = `You are a Data-Driven Content Researcher & Strategic Editorial Analyst for the user's brand/tenant. 
+Your primary task is to help the user analyze research data, generate ideas, and turn them into concrete, measurable, and executable content strategy decisions.
+You are NOT an article writer. You are a content researcher, trend analyst, and editorial roadmap director.
+If the user provides blog analysis data, you must determine:
+1. What topic to write next
+2. Which content pillars to expand
+3. Which pillars to improve
+4. Emerging reader trends
+5. Risks of declining interest before it happens
+Always be strategic, analytical, and highly structured in your advice.`;
 
 
 /**
@@ -24,7 +36,7 @@ router.post('/analyze-data', async (req, res) => {
     const interaction = await gemini.interactions.create({
       model: MODEL,
       input: inputPrompt,
-      system_instruction: "You are an expert Data-Driven Content Strategist. Your goal is to analyze the user's data and act as a Thinking Partner to help them decide what to write next. Keep your responses concise, insightful, and engaging. DO NOT output Markdown formatting for this initial greeting.",
+      system_instruction: STRATEGIST_SYSTEM_PROMPT + "\nKeep your responses concise, insightful, and engaging. DO NOT output Markdown formatting for this initial greeting.",
     });
 
     res.json({ reply: interaction.output_text });
@@ -51,7 +63,7 @@ router.post('/greet', async (req, res) => {
     const interaction = await gemini.interactions.create({
       model: MODEL,
       input: "Greet the user to EAI Research Copilot. Introduce yourself as a Thinking Partner. Be concise, friendly, and offer to analyze their blog data, research trends, or brainstorm content.",
-      system_instruction: "You are an expert Data-Driven Content Strategist. Always provide 3-4 dynamic, clickable suggestion options.",
+      system_instruction: STRATEGIST_SYSTEM_PROMPT + "\nAlways provide 3-4 dynamic, clickable suggestion options.",
       response_format: { type: "text", mime_type: "application/json", schema: chatSchema }
     });
 
@@ -89,8 +101,9 @@ router.post('/chat', async (req, res) => {
 
     if (mode === 'deep') {
       const interaction = await gemini.interactions.create({
-        model: "gemini-3.1-pro-preview",
+        model: RESEARCH_MODEL,
         input: contextPrompt + "\n\n[CRITICAL INSTRUCTION: YOU ARE IN DEEP RESEARCH MODE. Use Google Search thoroughly to gather facts, synthesize a comprehensive report, and ensure all claims are backed by credible sources.]",
+        system_instruction: STRATEGIST_SYSTEM_PROMPT,
         tools: [{ type: "google_search" }],
         background: true
       });
@@ -110,7 +123,7 @@ router.post('/chat', async (req, res) => {
       tools: [
         { type: "google_search" }
       ],
-      system_instruction: "CRITICAL: You are in FAST MODE. DO NOT perform more than 1 search iteration. You are an expert Data-Driven Content Strategist. For substantive queries, you MUST use Google Search. Be concise. At the VERY END of your response, provide exactly 3 suggestions for the user's next message, formatted exactly as: \n\n[SUGGESTIONS: Suggestion 1 | Suggestion 2 | Suggestion 3]",
+      system_instruction: STRATEGIST_SYSTEM_PROMPT + "\nCRITICAL: You are in FAST MODE. DO NOT perform more than 1 search iteration. For substantive queries, you MUST use Google Search. Be concise. At the VERY END of your response, provide exactly 3 suggestions for the user's next message, formatted exactly as: \n\n[SUGGESTIONS: Suggestion 1 | Suggestion 2 | Suggestion 3]",
       stream: true
     });
 
@@ -240,12 +253,24 @@ router.get('/chat/status/:id', async (req, res) => {
  */
 router.post('/generate-plan', async (req, res) => {
   try {
-    const { recommendation } = req.body;
+    const { recommendation, history } = req.body;
+
+    let chatHistory = "";
+    if (history && Array.isArray(history)) {
+      chatHistory = history.map((m: any) => `${m.role}: ${m.content}`).join('\n');
+    }
 
     const prompt = `
-      You are a Master Content Strategist. The user has selected the following recommendation to draft:
+      ${STRATEGIST_SYSTEM_PROMPT}
+
+      The user wants to generate a final blueprint based on the following context:
       "${recommendation}"
       
+      Here is the preceding discussion history which contains the agreed-upon topic, audience, and outline:
+      <history>
+      ${chatHistory}
+      </history>
+
       CRITICAL REQUIREMENT: You MUST use Google Search to find highly credible, real-world sources, data points, and factual references related to this topic. 
       The resulting "sources" array inside the plan MUST contain valid, real URLs to credible publications, reports, or data sources.
       The "draft" MUST include factual claims backed by the sources you found. 
@@ -254,50 +279,45 @@ router.post('/generate-plan', async (req, res) => {
       Write a brief, conversational summary in the 'reply' field explaining the blueprint to the user.
       Provide exactly two suggestions in the 'suggestions' array: "Proceed to Editor" and "Revise Blueprint".
       Output the detailed blueprint in the 'plan' object.
-    `;
 
-    const planSchema = {
-      type: "object",
-      properties: {
-        reply: { type: "string" },
-        suggestions: { type: "array", items: { type: "string" } },
-        plan: {
-          type: "object",
-          properties: {
-            angle: { type: "string" },
-            audience: { type: "string" },
-            hook: { type: "string" },
-            outline: { type: "string" },
-            seoIntent: { type: "string" },
-            sources: { 
-              type: "array", 
-              items: { type: "string" },
-              description: "Array of valid, real URLs to highly credible sources and data points found via Google Search that back up the claims."
-            },
-            draft: { type: "string" }
-          },
-          required: ["angle", "audience", "hook", "outline", "seoIntent", "sources", "draft"]
+      CRITICAL: You MUST output a raw, valid JSON object matching this schema exactly. DO NOT wrap it in markdown code blocks like \`\`\`json.
+      Schema:
+      {
+        "reply": "string",
+        "suggestions": ["Proceed to Editor", "Revise Blueprint"],
+        "plan": {
+          "angle": "string",
+          "audience": "string",
+          "hook": "string",
+          "outline": "string",
+          "seoIntent": "string",
+          "sources": ["url1", "url2"],
+          "draft": "string"
         }
-      },
-      required: ["reply", "suggestions", "plan"]
-    };
+      }
+    `;
 
     const interaction = await gemini.interactions.create({
       model: MODEL,
       input: prompt,
-      tools: [{ type: "google_search" }],
-      response_format: {
-        type: "text",
-        mime_type: "application/json",
-        schema: planSchema
-      }
+      tools: [{ type: "google_search" }]
     });
     
     if (!interaction.output_text) {
         throw new Error("No output from model");
     }
 
-    const data = JSON.parse(interaction.output_text);
+    let rawOutput = interaction.output_text;
+    
+    // Extract JSON object using regex in case the AI includes conversational text outside the block
+    const jsonMatch = rawOutput.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      rawOutput = jsonMatch[0];
+    } else {
+      rawOutput = rawOutput.replace(/```json/g, '').replace(/```/g, '').trim();
+    }
+
+    const data = JSON.parse(rawOutput);
     res.json(data);
   } catch (error) {
     console.error('Error in generate-plan:', error);
