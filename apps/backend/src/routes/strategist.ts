@@ -257,7 +257,7 @@ router.post('/generate-plan', async (req, res) => {
 
     let chatHistory = "";
     if (history && Array.isArray(history)) {
-      chatHistory = history.map((m: any) => `${m.role}: ${m.content}`).join('\n');
+      chatHistory = history.map((m: { role: string; content: string }) => `${m.role}: ${m.content}`).join('\n');
     }
 
     const prompt = `
