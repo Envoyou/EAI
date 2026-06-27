@@ -6,16 +6,24 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-06-23
-
 ### Added
+- **EAI Research Copilot (Fitur Baru)**: Meluncurkan AI "Thinking Partner" interaktif untuk *content strategists*. Dibangun menggunakan Gemini Interactions API, fitur ini memiliki antarmuka chat dinamis dengan input yang dapat menyesuaikan ukuran secara otomatis, *Grounding* Google Search secara *real-time*, render Markdown secara *streaming*, dan sitasi sebaris ala Perplexity. Copilot ini membantu pengguna dari analisis data awal hingga menyusun draf cetak biru (*blueprints*) konten.
+- **Envoyou Token Billing Tracker**: Menambahkan mekanisme pencatatan penggunaan token (`interaction.usage.total_tokens`) di akhir *stream* Copilot mode *Fast* pada `strategist.ts`. Hal ini melacak konsumsi API untuk integrasi di masa mendatang dengan sistem pengurangan koin/kredit pengguna internal.
 - **Monorepo Architecture (TurboRepo)**: Menggabungkan repositori `frontend` dan `backend` menjadi satu monorepo tunggal untuk menyederhanakan siklus rilis dan CI/CD.
-- **Shared Package (`@eai/shared`)**: Memindahkan semua tipe data, skema Zod, *helper functions*, utilitas stream JSON, dan _constant_ konfigurasi yang duplikat menjadi satu _single source of truth_ di `packages/shared`. Ini secara resmi melunasi _Technical Debt_ dari sinkronisasi sinkronisasi data antar repositori.
-- **Server vs Client Export Isolation**: Ekspor di `@eai/shared` dipisah dengan jalur `"./server"` untuk logika spesifik _backend/edge_ yang tidak kompatibel dengan antarmuka klien _browser_ seperti Webpack.
+- **Shared Package (`@eai/shared`)**: Memindahkan semua tipe data, skema Zod, *helper functions*, utilitas stream JSON, dan *constant* konfigurasi yang duplikat menjadi satu *single source of truth* di `packages/shared`. Ini secara resmi melunasi *Technical Debt* dari sinkronisasi data antar repositori.
+- **Server vs Client Export Isolation**: Ekspor di `@eai/shared` dipisah dengan jalur `"./server"` untuk logika spesifik *backend/edge* yang tidak kompatibel dengan antarmuka klien *browser* seperti Webpack.
+
+### Changed
+- **Separation of Fast & Deep Chat Modes**: Merombak API backend Copilot untuk membedakan kedalaman kueri dengan benar. Mode "Fast" kini menghapus alat yang mahal (`url_context`, `code_execution`) dan secara ketat membatasi Google Search hanya pada satu iterasi demi mendapatkan respons instan yang lebih hemat biaya.
+- **Deep Research Spending Cap Protection**: Menerapkan pembatasan *prompt* yang ketat pada *background agent* `deep-research-preview-04-2026` (maksimal 5 kueri pencarian). Ini mencegah *looping* tak terhingga yang dapat menguras batas pengeluaran proyek Google Cloud (`RateLimitError: 429`).
+- **Dark Mode Palette Refinement**: Merombak palet warna *Dark Mode* untuk menggunakan estetika monokrom netral berkontras tinggi berbasis `#121211`. Mengganti warna bawaan *slate* dan biru *brand* pada `PricingCheckoutButton`, `StatusBar`, dan *sidebar* dengan variabel dari sistem desain (*design system*) asli untuk tampilan yang lebih padu.
+- **Sidebar Animation**: Melakukan *refactoring* pada transisi tata letak `AppSidebarShell` untuk menyelesaikan masalah ikon yang terguncang (*jittering*) saat ditutup (*collapse*). Menggunakan interpolasi `max-width` alih-alih `display: none` secara instan agar proses melipat menjadi halus.
 
 ### Fixed
-- **Blank Signup UI Bug**: Memperbaiki intervensi _bundler_ Webpack di sisi _frontend_ di mana ia mencoba memaketkan dependensi `node:crypto` dan tipe _Edge Config_ saat proses autentikasi (Sign-up/Sign-in) akibat _barrel export_ dari `packages/shared`.
-- **Clerk v6 Fallback Loop**: Mengkonfigurasi `fallbackRedirectUrl` pada komponen SSO (Daftar & Masuk) Clerk untuk menghindari perilaku siklus _redirect_ tak terhingga atau penahanan rendering (*stuck loading*) untuk akun yang sudah dikenali sistem.
+- **TypeScript `InteractionSSEEvent` discrimination**: Menyelesaikan *error* tipe data IDE yang disebabkan oleh pencarian properti `event.step` dan `event.delta` yang tidak valid pada *discriminated unions*.
+- **ESLint `no-explicit-any`**: Memperbaiki masalah *error* Linter saat *build* pada `strategist.ts` dengan mendefinisikan antarmuka yang tepat (`{ role: string; content: string }`) untuk *map* riwayat interaksi, menggantikan *typecast* ke `any`.
+- **Blank Signup UI Bug**: Memperbaiki intervensi *bundler* Webpack di sisi *frontend* di mana ia mencoba memaketkan dependensi `node:crypto` dan tipe *Edge Config* saat proses autentikasi (Sign-up/Sign-in) akibat *barrel export* dari `packages/shared`.
+- **Clerk v6 Fallback Loop**: Mengkonfigurasi `fallbackRedirectUrl` pada komponen SSO (Daftar & Masuk) Clerk untuk menghindari perilaku siklus *redirect* tak terhingga atau penahanan rendering (*stuck loading*) untuk akun yang sudah dikenali sistem.
 
 ## [0.37.0] - 2026-06-23
 

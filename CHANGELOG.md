@@ -9,23 +9,19 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ### Added
 - **EAI Research Copilot (New Feature)**: Launched an interactive AI "Thinking Partner" for content strategists. Built on the Gemini Interactions API, it features a dynamic chat interface with auto-resizing inputs, real-time Google Search Grounding, streaming Markdown rendering, and Perplexity-style inline citations. The Copilot assists users from initial data analysis to drafting content blueprints.
 - **Envoyou Token Billing Tracker**: Added a token usage logging mechanism (`interaction.usage.total_tokens`) at the end of the Copilot Fast Mode stream inside `strategist.ts`. This tracks API consumption for future integration with the internal user credit/coin deduction system.
-
-### Changed
-- **Separation of Fast & Deep Chat Modes**: Overhauled the Copilot backend API to properly differentiate between query depths. "Fast" mode now strips out expensive tools (`url_context`, `code_execution`) and strictly limits Google Search to a single iteration for instant, cost-effective responses.
-- **Deep Research Spending Cap Protection**: Applied strict prompt limitations on the `deep-research-preview-04-2026` background agent (max 5 search queries). This prevents indefinite looping that exhausts the Google Cloud project spending limit (`RateLimitError: 429`).
-
-### Fixed
-- **TypeScript `InteractionSSEEvent` discrimination**: Resolved an IDE type error caused by an invalid `event.step` and `event.delta` property lookup on discriminated unions.
-- **ESLint `no-explicit-any`**: Fixed build failing Linter errors in `strategist.ts` by defining proper interfaces for the interaction usage object instead of typecasting to `any`.
-
-## [1.0.0] - 2026-06-23
-
-### Added
 - **Monorepo Architecture (TurboRepo)**: Merged `frontend` and `backend` repositories into a single monorepo to simplify release cycles and CI/CD.
 - **Shared Package (`@eai/shared`)**: Moved all duplicate data types, Zod schemas, helper functions, JSON stream utilities, and configuration constants into a single source of truth under `packages/shared`. This officially pays off the Technical Debt of synchronizing data between repositories.
 - **Server vs Client Export Isolation**: Exports in `@eai/shared` are separated with a `"./server"` path for backend/edge-specific logic that is incompatible with browser client interfaces like Webpack.
 
+### Changed
+- **Separation of Fast & Deep Chat Modes**: Overhauled the Copilot backend API to properly differentiate between query depths. "Fast" mode now strips out expensive tools (`url_context`, `code_execution`) and strictly limits Google Search to a single iteration for instant, cost-effective responses.
+- **Deep Research Spending Cap Protection**: Applied strict prompt limitations on the `deep-research-preview-04-2026` background agent (max 5 search queries). This prevents indefinite looping that exhausts the Google Cloud project spending limit (`RateLimitError: 429`).
+- **Dark Mode Palette Refinement**: Overhauled the Dark Mode color palette to use a neutral, high-contrast monochrome aesthetic based on `#121211`. Replaced hardcoded slate and blue brand colors in `PricingCheckoutButton`, `StatusBar`, and sidebar with native design system variables for a cohesive look.
+- **Sidebar Animation**: Refactored the `AppSidebarShell` layout transitions to resolve icon jittering during collapse. Used `max-width` interpolation instead of immediate `display: none` for smooth folding.
+
 ### Fixed
+- **TypeScript `InteractionSSEEvent` discrimination**: Resolved an IDE type error caused by an invalid `event.step` and `event.delta` property lookup on discriminated unions.
+- **ESLint `no-explicit-any`**: Fixed build failing Linter errors in `strategist.ts` by defining proper interfaces (`{ role: string; content: string }`) for the interaction history map instead of typecasting to `any`.
 - **Blank Signup UI Bug**: Fixed Webpack bundler interference on the frontend where it attempted to package the `node:crypto` dependency and Edge Config types during authentication (Sign-up/Sign-in) due to a barrel export in `packages/shared`.
 - **Clerk v6 Fallback Loop**: Configured `fallbackRedirectUrl` on Clerk SSO components (Sign Up & Sign In) to avoid infinite redirect loops or stuck loading states for accounts already recognized by the system.
 
