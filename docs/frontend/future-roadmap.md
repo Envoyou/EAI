@@ -2,7 +2,7 @@
 
 Dokumen ini mencatat fitur yang sudah tersedia, fitur yang baru diterapkan sebagian, dan pengembangan yang masih direncanakan untuk Envoyou AI Editorial System (EAI).
 
-Terakhir diperbarui: 15 Juni 2026.
+Terakhir diperbarui: 29 Juni 2026.
 
 Status:
 
@@ -93,6 +93,41 @@ Fase ini mengembangkan AI Drafting Assistant menjadi workspace berbasis sumber d
     *   **Persistensi Catatan Riset**: Mengalihkan penyimpanan catatan dari *session storage* lokal ke database permanen (PostgreSQL/Prisma) agar catatan pengguna tidak hilang dan dapat diakses lintas perangkat secara stabil.
     *   **Integrasi Ledger Pelacakan Kredit**: Menghubungkan log telemetry token Gemini yang dicatat saat ini (`console.log`) ke database pemotongan kredit internal pengguna untuk penagihan koin otomatis.
     *   **Penyempurnaan Parser Rekomendasi/Saran**: Menstabilkan penanganan saran Copilot agar format parser `[SUGGESTIONS:]` lebih tangguh (*fault-tolerant*) terhadap variasi luaran model.
+6.  **Modularisasi AI Provider untuk Strategist — `generate-draft-from-notes`**:
+
+    Saat ini seluruh endpoint di `apps/backend/src/routes/strategist/index.ts` secara *hard-coded* menggunakan Gemini melalui konstanta `GEMINI_COPILOT_MODEL`. Ini berbeda dengan `analyze.ts` dan `quick-draft.ts` yang sudah mendukung tiga provider (Gemini, OpenRouter, Groq) melalui `resolveActiveAiProvider()`. Rencana ini membawa sebagian endpoint Strategist ke sistem provider yang sama.
+
+    **Decision framework untuk mengevaluasi modularisasi setiap endpoint:**
+
+    Sebelum memutuskan endpoint mana yang layak dimodularisasi, tiga pertanyaan harus dijawab secara bersamaan:
+
+    1.  **Entry point risk** — apakah endpoint ini adalah titik masuk langsung yang kena user (greeting, onboarding wizard)? Entry point yang gagal silent akan membingungkan user tanpa error yang jelas.
+    2.  **Test coverage** — apakah ada test suite yang memvalidasi JSON schema dan response structure untuk setiap provider? Tanpa ini, regresi antar-provider tidak terdeteksi.
+    3.  **Value proposition** — seberapa besar penghematan cost atau fleksibilitas yang diperoleh? Endpoint dengan output token minimal menawarkan hampir nol cost saving dari multi-provider.
+
+    Ketiga kriteria ini harus dievaluasi secara bersamaan. Satu endpoint yang memenuhi kriteria 1 dan 2 tapi gagal di kriteria 3 tidak layak diprioritaskan.
+
+    **Lingkup dan keputusan per endpoint:**
+
+    | Endpoint | Keputusan | Kriteria yang menentukan |
+    |---|---|---|
+    | `/generate-draft-from-notes` | **Migrasikan — sprint berikutnya** | Lolos semua: bukan entry point fragile, output terpanjang (cost saving terbesar), zero Gemini-specific dependency |
+    | `/analyze-data` | **Defer** | Gagal kriteria 1 (entry point Wizard) dan 3 (output token minimal). Kandidat setelah ada test suite dan permintaan bisnis konkret dari tenant |
+    | `/greet` | **Defer** | Gagal ketiga kriteria: entry point pertama Copilot, belum ada JSON schema validation test, value proposition hampir nol |
+    | `/generate-plan` | **Tetap Gemini, wajib fallback** | Bergantung pada Google Search untuk sumber real. Tanpa grounding, blueprint berisi klaim tak terverifikasi yang akan gagal di Fact-Checking — bukan degradasi halus. Jika provider aktif bukan Gemini, endpoint harus *route* ke Gemini regardless |
+    | `/chat` fast mode | **Tetap Gemini (kandidat roadmap masa depan)** | Citations adalah trust signal utama — output tanpa citation pills adalah produk yang berbeda secara fundamental. Potensi jadi "degraded but cheaper tier" dengan UI eksplisit, tapi bukan sprint ini |
+    | `/chat` deep mode | **Tetap Gemini** | `background: true` + `tools: google_search` adalah Gemini Interactions API eksklusif; tidak ada ekuivalen di OpenRouter/Groq |
+    | `/chat/status/:id` | **Tetap Gemini** | `gemini.interactions.get()` tidak ada padanannya di provider lain |
+
+    **Syarat untuk membuka kembali defer pada `/greet` dan `/analyze-data`:**
+
+    Kedua endpoint baru layak dimodularisasi jika **dua kondisi berikut terpenuhi secara bersamaan**: (1) ada test suite yang cover JSON schema validation dan response structure per provider, dan (2) ada permintaan bisnis konkret — misalnya tenant spesifik yang meminta provider tertentu untuk onboarding flow mereka. Tanpa salah satu dari keduanya, modularisasi adalah complexity tanpa payoff.
+
+    **Keputusan teknis yang sudah ditetapkan:**
+
+    *   Gunakan env var baru `OPENROUTER_COPILOT_MODEL` (bukan berbagi `OPENROUTER_MODEL` yang dipakai pipeline editorial). Model optimal untuk chat copilot (fast, cheap, good instruction following) berbeda dari model optimal untuk pipeline editorial (quality, reasoning). Env var terpisah memungkinkan tuning independen dan lebih jelas untuk debugging di production.
+    *   Jika `/chat` fast mode suatu saat dimodularisasi, harus dengan UI eksplisit — bukan silent fallback. Minimal: indikator capability seperti tooltip *"Research mode not available"* di samping Fast Mode toggle. User tidak perlu tahu nama provider, tapi perlu tahu capability apa yang aktif.
+    *   Endpoint `/chat` dan turunannya didokumentasikan sebagai **Gemini-only by design**, bukan technical debt.
 
 
 ## Fase 5: Legal dan compliance untuk paid SaaS
