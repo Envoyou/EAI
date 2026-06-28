@@ -62,6 +62,24 @@ async function softAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+function truncateAtParagraphBoundary(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  const snippet = text.slice(0, maxChars);
+  const lastParagraph = snippet.lastIndexOf('\n\n');
+  if (lastParagraph > maxChars * 0.6) {
+    return text.slice(0, lastParagraph) + '\n\n...[truncated for context]';
+  }
+  const lastLine = snippet.lastIndexOf('\n');
+  if (lastLine > maxChars * 0.7) {
+    return text.slice(0, lastLine) + '\n...[truncated for context]';
+  }
+  const lastWord = snippet.lastIndexOf(' ');
+  if (lastWord > maxChars * 0.8) {
+    return text.slice(0, lastWord) + '...[truncated for context]';
+  }
+  return snippet + '...[truncated for context]';
+}
+
 // Configure the model to use for the Content Strategist Wizard
 const MODEL = process.env.GEMINI_COPILOT_MODEL || 'gemini-3.5-flash';
 const RESEARCH_MODEL = process.env.GEMINI_RESEARCH_MODEL || 'gemini-3.1-pro-preview';
@@ -183,8 +201,8 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
       : rawHistory;
 
     const history = windowedHistory.map((m: { role: string, content: string }) => {
-      const text = m.role === 'assistant' && m.content.length > ASSISTANT_MSG_MAX_CHARS
-        ? m.content.slice(0, ASSISTANT_MSG_MAX_CHARS) + '\n...[truncated for context]'
+      const text = m.role === 'assistant'
+        ? truncateAtParagraphBoundary(m.content, ASSISTANT_MSG_MAX_CHARS)
         : m.content;
       return { role: m.role, content: [{ type: 'text', text }] };
     });
@@ -220,11 +238,11 @@ Your task: answer the user's question with ONE focused, actionable insight.
 </instructions>
 
 <constraints>
-1. Be 2–4 sentences max (≈80–120 words).
+1. Length constraint: Be 2–4 paragraphs for research requests (e.g., "riset tren X untuk artikel"), and 2–4 sentences for simple factual queries (e.g., "apa itu X").
 2. Ground all your factual claims. The system will automatically append citations, so do NOT manually type URLs in your response.
 3. End with exactly 3 short, clickable follow-up suggestions in this format:
 [SUGGESTIONS: Suggestion 1 | Suggestion 2 | Suggestion 3]
-4. DO NOT write long lists, summaries, or multiple sections.
+4. DO NOT write long lists, summaries, or multiple sections unless requested as part of a research request.
 5. DO NOT repeat previous answers.
 6. DO NOT output markdown headings.
 7. If the user asks for a broad topic, pick the most important angle and respond concisely.
@@ -559,18 +577,36 @@ router.post('/generate-draft-from-notes', async (req, res) => {
       return `NOTE ${i + 1}:\n${cleanContent}\n${sourcesText}`;
     }).join('\n\n---\n\n');
 
-    const basePrompt = `
-<role>
-You are a professional article writer.
+    const systemInstruction = `
+You are an expert editorial writer. Your role is to synthesize raw research notes into a cohesive first draft of an article.
+You must strictly follow the editorial brand guidelines and rules.
 You are a strictly grounded assistant limited to the information provided in the RAW RESEARCH NOTES.
 In your answers, rely ONLY on the facts that are directly mentioned in that context. You must not access or utilize your own knowledge or common sense to answer. Treat the provided context as the absolute limit of truth.
-</role>
 
+WRITING CONSTRAINTS:
+1. Target length: approximately 600–800 words (around 4–6 paragraphs).
+2. Synthesize the notes into a flowing narrative, not a bullet-point summary.
+3. Maintain the requested tone, Target Audience, and Writing Instructions from the ARTICLE METADATA.
+4. Do NOT output bullet points unless strictly necessary for a list.
+5. Do NOT include any meta-commentary (e.g., "Here is your draft") or headings like "Draft:". Just output the draft content directly.
+6. Output language: Follow the specific target language requested in the ARTICLE METADATA, or default to the language of the research notes.
+
+CRITICAL CITATION RULES:
+- Use a Hybrid Citation Style (Verbal Attribution + Contextual Hyperlinking).
+- First mention of a source: Introduce the source naturally in the sentence and hyperlink the source name (e.g., "Menurut [studi terbaru dari Apple](url), apel berwarna merah.").
+- Subsequent mentions: Do not repeat the source name. Simply hyperlink the relevant keyword or data point contextually (e.g., "Warna ini [disebabkan oleh antosianin](url).").
+- Do NOT place bare links or titles at the end of a sentence. Integrate the markdown links seamlessly into the narrative text.
+- Use ONLY the source URLs provided in the raw research notes. Do NOT invent URLs.
+- Do NOT wrap the markdown link in any extra parentheses or brackets outside of the standard markdown syntax.
+`.trim();
+
+    const basePrompt = `
 <context>
 [ARTICLE METADATA]
 Category: ${metadata?.category || 'General'}
 Type: ${metadata?.type || 'Article'}
 Target Audience: ${metadata?.targetAudience || 'General Audience'}
+Output Language: ${metadata?.outputLanguage || 'Follow the language of the research notes.'}
 Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and engaging tone.'}
 [/ARTICLE METADATA]
 
@@ -582,23 +618,6 @@ ${notesText}
 <task>
 Write a cohesive, engaging initial draft for an article using ONLY the raw research notes as your factual basis.
 </task>
-
-<constraints>
-1. Target length: approximately 600–800 words (around 4–6 paragraphs).
-2. Synthesize the notes into a flowing narrative, not a bullet-point summary.
-3. Maintain the requested tone, Target Audience, and Writing Instructions from the ARTICLE METADATA.
-4. Do NOT output bullet points unless strictly necessary for a list.
-5. Do NOT include any meta-commentary (e.g., "Here is your draft") or headings like "Draft:". Just output the draft content directly.
-
-CRITICAL CITATION RULES:
-- Use a Hybrid Citation Style (Verbal Attribution + Contextual Hyperlinking).
-- First mention of a source: Introduce the source naturally in the sentence and hyperlink the source name (e.g., "Menurut [studi terbaru dari Apple](url), apel berwarna merah.").
-- Subsequent mentions: Do not repeat the source name. Simply hyperlink the relevant keyword or data point contextually (e.g., "Warna ini [disebabkan oleh antosianin](url).").
-- Do NOT place bare links or titles at the end of a sentence. Integrate the markdown links seamlessly into the narrative text.
-- Use ONLY the source URLs provided in the raw research notes. Do NOT invent URLs.
-- Do NOT wrap the markdown link in any extra parentheses or brackets outside of the standard markdown syntax.
-6. Output language: ${metadata?.outputLanguage || 'Follow the language of the research notes.'}
-</constraints>
 
 <example>
 EXAMPLE OF CORRECT HYBRID CITATION:
@@ -616,7 +635,7 @@ Your draft MUST output:
     const stream = await gemini.interactions.create({
       model: MODEL,
       input: prompt,
-      system_instruction: "You are an expert editorial writer. Synthesize research notes into a cohesive first draft.",
+      system_instruction: systemInstruction,
       stream: true,
       generation_config: {
         max_output_tokens: 4000,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp, Upload, Link as LinkIcon, Search, X, FileText, Rocket, ExternalLink, Newspaper, Loader2, List, Bookmark, Check, Edit3, Target } from 'lucide-react';
 import { toast } from 'sonner';
@@ -119,7 +119,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     if (typeof window === 'undefined') return [];
     try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch { return []; }
   });
-  const savedNoteIds = new Set(savedNotes.map(n => n.id));
+  const savedNoteIds = useMemo(() => new Set(savedNotes.map(n => n.id)), [savedNotes]); // eslint-disable-line react-hooks/preserve-manual-memoization
 
   // Quick Draft attach-menu modal state
   const [quickDraftMode, setQuickDraftMode] = useState<'topic' | 'outline' | 'reference' | 'press_release' | null>(null);

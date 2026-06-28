@@ -89,6 +89,11 @@ Fase ini mengembangkan AI Drafting Assistant menjadi workspace berbasis sumber d
 4.  ~~**Integrasi deep research agent**~~ (Diimplementasikan melalui Gemini Interactions API):
     *   Menyematkan agen pencarian asinkron berbasis alat Google Search Grounding di dalam mode interaktif Copilot.
     *   Saat di mode *Deep*, Copilot secara independen mencari informasi terbaru di web, memverifikasi klaim, dan mensintesis hasilnya untuk dikumpulkan ke dalam *Research Notes*.
+5.  **Pengembangan & Optimasi EAI Chat & Draft (Rencana Rilis Mendatang)**:
+    *   **Persistensi Catatan Riset**: Mengalihkan penyimpanan catatan dari *session storage* lokal ke database permanen (PostgreSQL/Prisma) agar catatan pengguna tidak hilang dan dapat diakses lintas perangkat secara stabil.
+    *   **Integrasi Ledger Pelacakan Kredit**: Menghubungkan log telemetry token Gemini yang dicatat saat ini (`console.log`) ke database pemotongan kredit internal pengguna untuk penagihan koin otomatis.
+    *   **Penyempurnaan Parser Rekomendasi/Saran**: Menstabilkan penanganan saran Copilot agar format parser `[SUGGESTIONS:]` lebih tangguh (*fault-tolerant*) terhadap variasi luaran model.
+
 
 ## Fase 5: Legal dan compliance untuk paid SaaS
 

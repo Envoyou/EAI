@@ -31,6 +31,9 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Editor Layout Animations**: Refactored the Editorial Workspace layout to use fluid `framer-motion` width animations for the Research Notes Studio and Feedback panels. When side panels are hidden, the main text editor gracefully centers itself using a dynamic `max-width` transition, creating an elegant distraction-free writing mode.
 - **Relative Path Routing**: Replaced absolute API URLs with relative paths in the Research Copilot UI to route fetches via Next.js proxy middleware, ensuring seamless session token injection.
 - **Deep Research Polling Timeout**: Refactored the frontend status checker polling loop to strictly time out after 180 checks (30 minutes) to prevent memory leaks and infinite background loops.
+- **Prompt Caching Refactor**: Refactored the `generate-draft-from-notes` prompt layout to place stable persona, groundedness, and citation rules into the `system_instruction` parameter to enable optimal Gemini API caching.
+- **Dynamic Fast Mode Length Tiering**: Updated the Fast Mode constraints to support 2-4 paragraphs for research requests and 2-4 sentences for factual queries.
+- **Clean Paragraph History Truncation**: Configured assistant messages in the chat history to truncate at the closest paragraph or line boundary near the character limit instead of a hard slice.
 
 ### Fixed
 - **TypeScript `InteractionSSEEvent` discrimination**: Resolved an IDE type error caused by an invalid `event.step` and `event.delta` property lookup on discriminated unions.

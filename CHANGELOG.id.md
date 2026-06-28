@@ -31,6 +31,9 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Editor Layout Animations**: Melakukan *refactoring tata letak Editorial Workspace untuk menggunakan animasi lebar yang mulus dari `framer-motion` pada panel Research Notes Studio dan Feedback. Saat panel samping disembunyikan, editor teks utama secara anggun memfokuskan posisinya ke tengah layar menggunakan transisi `max-width` dinamis, menciptakan mode penulisan bebas gangguan yang elegan.
 - **Routing Relative Path**: Mengganti URL API absolut dengan path relatif pada Research Copilot UI untuk melewatkan fetch melalui middleware proxy Next.js, memastikan injeksi token sesi berjalan otomatis.
 - **Timeout Polling Deep Research**: Menambahkan logika timeout pada loop status check Deep Research di sisi frontend setelah mencapai batas maksimal 180 kali poll (30 menit) guna menghindari kebocoran memori atau loop latar belakang yang tak terbatas.
+- **Refaktor Caching Prompt**: Merestrukturisasi tata letak prompt `generate-draft-from-notes` dengan memindahkan persona tetap, kepatuhan fakta, dan aturan sitasi ke parameter `system_instruction` untuk optimasi caching Gemini API.
+- **Batasan Panjang Mode Fast Berjenjang**: Memperbarui batasan panjang di Mode Fast agar mendukung 2-4 paragraf untuk kueri riset panjang dan tetap 2-4 kalimat untuk kueri faktual pendek.
+- **Pemotongan Riwayat Bersih Batas Paragraf**: Mengkonfigurasi pesan asisten pada riwayat obrolan agar dipotong secara bersih pada batas paragraf (`\n\n`) atau baris terdekat sebelum batas karakter maksimal.
 
 ### Fixed
 - **TypeScript `InteractionSSEEvent` discrimination**: Menyelesaikan *error* tipe data IDE yang disebabkan oleh pencarian properti `event.step` and `event.delta` yang tidak valid pada *discriminated unions*.
