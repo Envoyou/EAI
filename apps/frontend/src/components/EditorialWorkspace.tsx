@@ -172,7 +172,6 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   const [sourceDraft, setSourceDraft] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
-  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const [processStage, setProcessStage] = useState<EditorialProcessStage>('reviewing');
   const [processStartedAt, setProcessStartedAt] = useState<number | null>(null);
   const [appSettings, setAppSettings] = useState<AppSettings>(DEFAULT_APP_SETTINGS);
@@ -194,7 +193,9 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   const [hoveredFeedbackIndex, setHoveredFeedbackIndex] = useState<number | null>(null);
   const [activeFeedbackIndex, setActiveFeedbackIndex] = useState<number | null>(null);
   const [showFeedbackSidebar, setShowFeedbackSidebar] = useState(true);
-  const [selectedProvider, setSelectedProvider] = useState<'gemini' | 'groq'>('gemini');
+  const [showNotesSidebar, setShowNotesSidebar] = useState(true);
+  const [hasNotes, setHasNotes] = useState(false);
+
   const [analysisSpeed, setAnalysisSpeed] = useState<'fast' | 'publish'>('publish');
   const [isTargetedFixing, setIsTargetedFixing] = useState<number | null>(null);
 
@@ -301,7 +302,6 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       const savedSourceDraft = localStorage.getItem('eai-source-draft');
       const savedActiveTab = localStorage.getItem('eai-active-tab');
       const savedShowSidebar = localStorage.getItem('eai-show-feedback-sidebar');
-      const savedProvider = localStorage.getItem('eai-provider');
       const savedSpeed = localStorage.getItem('eai-analysis-speed');
       const savedDemoCount = localStorage.getItem('eai-demo-refine-count');
 
@@ -319,7 +319,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       if (savedSourceDraft !== null) setSourceDraft(savedSourceDraft);
       if (savedActiveTab !== null) setActiveTab(savedActiveTab as PanelTab);
       if (savedShowSidebar !== null) setShowFeedbackSidebar(savedShowSidebar === 'true');
-      if (savedProvider === 'gemini' || savedProvider === 'groq') setSelectedProvider(savedProvider);
+
       if (savedSpeed === 'fast' || savedSpeed === 'publish') setAnalysisSpeed(savedSpeed);
       if (savedDemoCount !== null) setDemoRefineCount(parseInt(savedDemoCount, 10) || 0);
 
@@ -373,10 +373,10 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   useEffect(() => {
     if (isLoaded && typeof window !== 'undefined') {
       localStorage.setItem('eai-show-feedback-sidebar', String(showFeedbackSidebar));
-      localStorage.setItem('eai-provider', selectedProvider);
+
       localStorage.setItem('eai-analysis-speed', analysisSpeed);
     }
-  }, [showFeedbackSidebar, selectedProvider, analysisSpeed, isLoaded]);
+  }, [showFeedbackSidebar, analysisSpeed, isLoaded]);
 
 
   useEffect(() => {
@@ -439,7 +439,6 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
           text: textToAnalyze,
           role: 'polish',
           metadata: requestMetadata,
-          provider: selectedProvider,
           analysisSpeed: analysisSpeed === 'publish' ? 'deep' : 'fast',
         }),
       });
@@ -558,116 +557,6 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     }
   };
 
-  /* ── Generate Draft ── */
-  const handleGenerateDraft = async (
-    topic: string,
-    outline: string,
-    referenceText: string,
-    draftMode: string
-  ) => {
-    if (!topic.trim() || isGeneratingDraft || isStreaming || isRefining) return;
-
-    if (isDemoMode && demoRefineCount >= 2) {
-      toast.error('Create a free account to continue.', {
-        description: 'Get 10 free Editorial Credits.',
-        action: {
-          label: 'Sign Up',
-          onClick: () => router.push('/signup'),
-        },
-        duration: 8000,
-      });
-      return;
-    }
-
-    setIsGeneratingDraft(true);
-    setDraft('');
-    setSourceDraft('');
-    setAnalysis({ status: 'loading', readiness: undefined, changes: [], summary: '', polishedDraft: '', feedback: [], flags: [] });
-    setActiveTab('draft');
-
-    try {
-      const response = await fetch('/api/draft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic,
-          outline,
-          referenceText,
-          metadata: {
-            ...metadata,
-            outputLanguage: appSettings.outputLanguage,
-          },
-          provider: selectedProvider,
-          draftMode,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          await getApiErrorMessage(
-            response,
-            response.status === 403 || response.status === 429
-              ? 'Demo limit reached.'
-              : `Failed to generate draft (${response.status}).`
-          )
-        );
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('Response body reader not available');
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          let event: { type: string; data: unknown };
-          try {
-            event = JSON.parse(line);
-          } catch {
-            continue;
-          }
-
-          if (event.type === 'draft_chunk') {
-            setDraft((prev) => prev + (event.data as string));
-          } else if (event.type === 'complete') {
-            const { analysisLogId } = event.data as { analysisLogId?: string };
-            if (analysisLogId) {
-              setActiveHistoryId(analysisLogId);
-            }
-          } else if (event.type === 'error') {
-            throw new Error(event.data as string);
-          }
-        }
-      }
-
-      toast.success('Draft generated!', {
-        description: 'You can now edit the draft or click Refine Draft to polish.',
-      });
-      setAnalysis({ status: 'idle' });
-      setRefreshTrigger((prev) => prev + 1);
-
-      if (isDemoMode) {
-        const nextCount = demoRefineCount + 1;
-        setDemoRefineCount(nextCount);
-        localStorage.setItem('eai-demo-refine-count', nextCount.toString());
-      }
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Draft generation failed';
-      toast.error('Draft Generation Failed', { description: msg });
-      setAnalysis({ status: 'error', errorMessage: msg });
-    } finally {
-      setIsGeneratingDraft(false);
-    }
-  };
-
   /* ── Re-analyze ── */
   const handleReanalyze = () => {
     if (analysis.polishedDraft) {
@@ -713,7 +602,6 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
           userInstruction: instruction,
           previousFeedback: analysis.feedback,
           metadata: requestMetadata,
-          provider: selectedProvider,
           analysisSpeed: analysisSpeed === 'publish' ? 'deep' : 'fast',
         }),
       });
@@ -1077,7 +965,6 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
           targetText: item.targetText,
           feedbackMessage: item.message || 'Address this editorial issue',
           instruction: instruction,
-          provider: selectedProvider,
           analysisSpeed: analysisSpeed === 'publish' ? 'deep' : 'fast',
         }),
       });
@@ -1196,7 +1083,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
               transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
               transition: 'transform 240ms cubic-bezier(0.4, 0, 0.2, 1)',
             } : {
-              width: sidebarOpen ? 'var(--sidebar-panel-width)' : '56px',
+              width: sidebarOpen ? 'var(--sidebar-panel-width)' : '0px',
               borderRight: 'none',
               overflow: 'hidden',
               overflowX: 'hidden',
@@ -1461,6 +1348,11 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
             isLoading={analysis.status === 'loading'}
             showFeedbackSidebar={showFeedbackSidebar}
             onToggleFeedbackSidebar={() => setShowFeedbackSidebar(p => !p)}
+            showHistorySidebar={sidebarOpen}
+            onToggleHistorySidebar={() => setSidebarOpen(p => !p)}
+            showNotesSidebar={showNotesSidebar}
+            onToggleNotesSidebar={() => setShowNotesSidebar(p => !p)}
+            hasNotes={hasNotes}
           />
 
           {/* Workspace */}
@@ -1479,7 +1371,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="h-full max-w-5xl mx-auto w-full p-3 md:px-6 md:py-5 absolute inset-0"
+                  className="h-full w-full p-3 md:px-6 md:py-5 absolute inset-0"
                 >
                   <Editor
                     value={draft}
@@ -1494,8 +1386,8 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
                     isPersonal={editorialOptions.isPersonal}
                     onAddNewMetadataOption={handleAddNewCategoryOrType}
                     charLimit={editorialOptions.maxTextLength}
-                    onGenerateDraft={handleGenerateDraft}
-                    isGeneratingDraft={isGeneratingDraft}
+                    showNotesSidebar={showNotesSidebar}
+                    onHasNotesChange={setHasNotes}
                   />
                 </motion.div>
               )}

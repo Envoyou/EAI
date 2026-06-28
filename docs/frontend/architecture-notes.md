@@ -6,27 +6,27 @@ Dokumen ini mendokumentasikan keputusan teknis, arsitektur data, alur integrasi 
 
 ## 1. Ikhtisar Sistem (System Overview)
 
-Aplikasi ini menggunakan framework **Next.js (App Router)** yang menggabungkan rendering sisi klien (*client-side rendering*) untuk antarmuka editor interaktif dan rendering sisi server (*server-side API routes*) untuk mengamankan kunci API, memproses orkestrasi AI multi-tahap, serta berinteraksi dengan database.
+Aplikasi ini menggunakan arsitektur **Monorepo (Turborepo)** yang memisahkan sisi klien (*frontend*) dan sisi server (*backend*). **Frontend (Next.js App Router)** menangani antarmuka interaktif dan meneruskan (*proxy*) permintaan API ke **Backend (Express.js pada VPS)** yang bertugas mengamankan kunci API, memproses orkestrasi AI multi-tahap, serta berinteraksi dengan database.
 
 ```text
 ┌────────────────────────────────────────────────────────┐
-│                      Web Browser                       │
+│              Frontend (Next.js / Vercel)               │
 │  [Login] -> [UI Editor & Form] -> [Feedback / Export] │
+│      └─> src/proxy.ts (Auth Gate & API Rewrite)        │
 └───────────┬────────────────────────────────────────────┘
-            │ (signed session cookie + POST /api/analyze)
+            │ (Authorization: Bearer <Clerk_JWT>)
             ▼
 ┌────────────────────────────────────────────────────────┐
-│                   Next.js API Route                    │
-│   - Auth Gate via proxy + signed cookie                │
-│   - Validasi Input (Zod)                               │
-│   - Orkestrasi Prompt & Metadata                       │
-│   - Review -> Rewrite -> Quality Gate -> SEO Pack      │
+│             Backend (Express.js / VPS PM2)             │
+│   - Middleware Auth (@clerk/backend)                   │
+│   - Orkestrasi Prompt & AI Provider Resolver           │
+│   - Streaming SSE (Review, Rewrite, Q-Gate, SEO)       │
 └───────────┬───────────────────────────┬────────────────┘
             │                           │
             ▼ (Validate & Normalize)    ▼ (Prisma Client)
 ┌───────────────────────┐   ┌────────────────────────────┐
-│      Gemini API       │   │     PostgreSQL Database    │
-│ (Primary AI Engine)   │   │     (Neon Serverless)      │
+│ Gemini/OpenRouter API │   │     PostgreSQL Database    │
+│ (Unified AI Engine)   │   │     (Neon Serverless)      │
 └───────────────────────┘   └────────────────────────────┘
 ```
 
@@ -46,21 +46,20 @@ Mulai v0.16.0, aplikasi tidak lagi hanya memproteksi dashboard analytics. Rute e
 
 ## 3. Integrasi AI & Prompt Orchestration
 
-`src/app/api/analyze/route.ts` menangani autentikasi, validasi request, orkestrasi SSE, dan persistence. Detail provider serta stage AI dipisahkan ke `src/lib/ai/`:
+Rute `/api/analyze` di *backend* menangani autentikasi, validasi *request*, orkestrasi SSE, dan persistensi. Detail *provider* serta tahap (stage) AI dipisahkan ke `apps/backend/src/lib/ai/`:
 
-*   `provider-runtime.ts`: client Gemini, model routing, sampling config, dan token budget.
-*   `prompt-context.ts`: input-boundary policy dan structured user content.
-*   `review-stage.ts`: review streaming, retry `standard`/`compact`/`manual_fallback`, incremental JSON parsing, telemetry, dan schema validation lintas provider.
-*   `quality-gate-stage.ts`: Final Quality Gate, retry/fallback, serta deterministic source-fidelity checks.
-*   `seo-stage.ts`: structured SEO generation dan fallback metadata lintas provider.
-*   `targeted-fix-stage.ts`: perbaikan teks tertarget dengan prompt tenant-aware dan pemisahan system/user content.
+*   `provider-runtime.ts` / `ai-provider-resolver.ts`: Menangani resolusi model secara dinamis (Gemini, Groq, atau OpenRouter) berdasarkan variabel lingkungan `ACTIVE_AI_PROVIDER`.
+*   `prompt-context.ts`: Kebijakan *input-boundary* dan konten terstruktur dari pengguna.
+*   `review-stage.ts`: *Review streaming*, mekanisme *retry* parsial, *incremental JSON parsing*, dan validasi skema lintas *provider*.
+*   `quality-gate-stage.ts`: *Final Quality Gate*, pemeriksaan deterministik pada *source-fidelity*.
+*   `seo-stage.ts`: Menghasilkan SEO terstruktur.
+*   `targeted-fix-stage.ts`: Perbaikan teks tertarget dengan *prompt tenant-aware*.
 
-*   **Pilihan Model**:
-    1. `gemini-3.1-flash-lite` untuk jalur cepat, review editorial ringan, dan SEO metadata.
-    2. `gemini-3.5-flash` untuk review kompleks, fact-checking, rewrite/polish, refinement, dan final quality gate.
-    3. Gemini adalah provider tunggal; provider lain seperti Groq telah dinonaktifkan.
-*   **Thinking Configuration**: Model Gemini 3.x menggunakan `thinkingLevel`. Review, rewrite, refinement, SEO, targeted fix, dan Final Quality Gate memakai `MINIMAL` agar token reasoning tidak memotong output terstruktur.
-*   **Orkestrasi Prompt**: Prompt dibangun secara dinamis di `src/lib/prompts.ts` dengan fokus utama pada satu flow `polish`.
+*   **Pilihan Model (Unified API)**:
+    1. Gemini (Primer): via SDK `@google/genai` (misal `gemini-2.5-flash`).
+    2. OpenRouter (Universal): Untuk integrasi multi-model (Anthropic, OpenAI, Llama) yang dikonfigurasi lewat `OPENROUTER_MODEL`.
+*   **Thinking Configuration**: Berbagai model reasoning kini diatur melalui `ai-provider-resolver.ts` yang memastikan struktur output tetap terjaga meskipun model memiliki mode penalaran (thinking).
+*   **Orkestrasi Prompt**: Prompt dibangun secara dinamis dengan bantuan *utility* dari `@eai/shared/server`.
 *   **Four-Stage Pipeline**:
     1.  **Review Stage**: menghasilkan skor, verdict, ringkasan, flags, dan catatan editorial singkat.
     2.  **Rewrite Stage**: menulis ulang draft final per chunk untuk mengurangi risiko truncation.
@@ -104,9 +103,9 @@ Smart internal linking menyaring kandidat berdasarkan istilah substantif, kualit
 
 ---
 
-## 4. Validasi Data dengan Zod
+## 4. Validasi Data dengan Zod (Shared Package)
 
-Untuk menjaga konsistensi data sebelum ditampilkan ke pengguna dan disimpan ke database, sistem menggunakan library **Zod** (`src/lib/schema.ts`). Respons review, SEO metadata, dan hasil pengolahan API divalidasi atau dinormalisasi sebelum dipakai.
+Untuk menjaga konsistensi data antara Frontend dan Backend, seluruh skema validasi **Zod** dipusatkan di paket berbagi (*shared package*) pada `packages/shared/src/schema.ts`. Respons review, SEO metadata, dan hasil pengolahan API divalidasi atau dinormalisasi menggunakan paket `@eai/shared` ini.
 
 ```typescript
 export const FeedbackOutputSchema = z.object({
@@ -134,10 +133,10 @@ Flow Polish juga memakai `FinalQualityGateSchema` untuk memvalidasi readiness, s
 
 Sistem menggunakan **Prisma ORM** dengan database PostgreSQL yang di-host secara serverless di **Neon**.
 
-### Masalah Koneksi Serverless (Neon Connection Pooling)
-Karena Next.js API Routes berjalan di atas arsitektur serverless (fungsi stateless yang sering hidup-mati), koneksi database tradisional dapat dengan cepat penuh. Proyek ini mengatasi hal ini dengan konfigurasi koneksi ganda di `.env`:
-1.  **`DATABASE_URL`**: Menggunakan adapter pooling Neon (`pgbouncer=true` dan runtime driver `@neondatabase/serverless`). Ini digunakan oleh runtime Next.js untuk menangani ribuan request secara efisien tanpa menghabiskan slot koneksi database.
-2.  **`DIRECT_URL`**: Menyediakan koneksi langsung bypass pooling. Ini digunakan secara khusus oleh Prisma CLI untuk melakukan migrasi skema database (`prisma db push` atau `prisma migrate`) tanpa kendala timeout dari pgbouncer.
+### Masalah Koneksi Database (Neon Connection Pooling)
+Meskipun arsitektur aplikasi kini menggunakan server Express yang berjalan terus-menerus (PM2 pada VPS), pengelolaan koneksi database (Connection Pooling) tetap vital untuk skalabilitas. Sistem menangani ini dengan konfigurasi koneksi ganda di `.env`:
+1.  **`DATABASE_URL`**: Menggunakan adapter pooling Neon (`pgbouncer=true` dan runtime driver `@neondatabase/serverless`). Ini digunakan oleh runtime server Node.js untuk menangani ribuan request secara efisien.
+2.  **`DIRECT_URL`**: Menyediakan koneksi langsung bypass pooling. Ini digunakan secara khusus oleh Prisma CLI untuk melakukan migrasi skema database (`prisma migrate deploy`) tanpa kendala timeout dari pgbouncer.
 
 ### Skema Tabel Audit Log (`AnalysisLog`)
 Setiap kali analisis draf dijalankan, sistem akan menyimpan log ke tabel `AnalysisLog` di `prisma/schema.prisma`. 

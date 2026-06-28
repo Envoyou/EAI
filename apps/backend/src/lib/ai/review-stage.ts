@@ -6,12 +6,16 @@ import type { ArticleMetadata, FeedbackItem, ResponseMode, Role } from '@eai/sha
 import {
   type AiProvider,
   extractGeminiText,
+  extractOpenRouterText,
+  extractOpenRouterUsage,
   gemini,
   getGeminiFinishReason,
   getGeminiReviewOutputLimit,
   getGeminiSamplingConfig,
   getGroqReviewOutputLimit,
+  getOpenRouterReviewOutputLimit,
   groq,
+  openrouter,
 } from './provider-runtime';
 import {
   buildCompactReviewInstruction,
@@ -189,6 +193,7 @@ export const runEditorialReviewStage = async ({
     let truncated = false;
     let geminiUsage: Parameters<AiTelemetryCollector['recordGemini']>[0]['usage'];
     let groqUsage: Parameters<AiTelemetryCollector['recordGroq']>[0]['usage'];
+    let openRouterUsage: Parameters<AiTelemetryCollector['recordOpenRouter']>[0]['usage'];
 
     if (provider === 'gemini') {
       let lastChunk: unknown = null;
@@ -225,6 +230,32 @@ export const runEditorialReviewStage = async ({
       geminiUsage = (lastChunk as {
         usageMetadata?: Parameters<AiTelemetryCollector['recordGemini']>[0]['usage'];
       } | null)?.usageMetadata;
+    } else if (provider === 'openrouter') {
+      const stream = await openrouter.chat.completions.create({
+        model: modelName,
+        messages: [
+          { role: 'system', content: prompt },
+          { role: 'user', content: contents },
+        ],
+        stream: true,
+        max_tokens: getOpenRouterReviewOutputLimit(mode),
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
+      });
+
+      for await (const chunk of stream) {
+        openRouterUsage = extractOpenRouterUsage(chunk) ?? openRouterUsage;
+        rawBuffer += extractOpenRouterText(chunk);
+        if (chunk.choices[0]?.finish_reason === 'length') truncated = true;
+        emitIncrementalReview({
+          rawBuffer,
+          isPolishMode,
+          draftText,
+          sendEvent,
+          sanitizeFeedback,
+          emitted,
+        });
+      }
     } else {
       const stream = await groq.chat.completions.create({
         model: modelName,
@@ -271,6 +302,15 @@ export const runEditorialReviewStage = async ({
         attempt: attempt + 1,
         status,
       });
+    } else if (provider === 'openrouter') {
+      telemetry.recordOpenRouter({
+        stage: 'review',
+        model: modelName,
+        usage: openRouterUsage,
+        durationMs: Date.now() - startedAt,
+        attempt: attempt + 1,
+        status,
+      });
     } else {
       telemetry.recordGroq({
         stage: 'review',
@@ -293,7 +333,7 @@ export const runEditorialReviewStage = async ({
         continue;
       }
 
-      const providerName = provider === 'gemini' ? 'Gemini' : 'Groq';
+      const providerName = provider === 'gemini' ? 'Gemini' : provider === 'openrouter' ? 'OpenRouter' : 'Groq';
       throw new TruncatedModelResponseError(
         `${providerName} response reached output token limit before completing valid JSON.`
       );

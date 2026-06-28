@@ -44,3 +44,5 @@ test-*.js
 interaction_output.json
 AGENTS.md
 user_worflow_eai.md
+test_*.ts
+test-*.ts

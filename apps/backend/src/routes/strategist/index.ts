@@ -1,11 +1,18 @@
 import { Router } from 'express';
 import { gemini } from '@/lib/ai/provider-runtime';
+import { getWorkspaceState } from '@/lib/user-workspace';
+import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
+import { composeEditorialPrompt, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 
 const router = Router();
 
 // Configure the model to use for the Content Strategist Wizard
 const MODEL = process.env.GEMINI_COPILOT_MODEL || 'gemini-3.5-flash';
 const RESEARCH_MODEL = process.env.GEMINI_RESEARCH_MODEL || 'gemini-3.1-pro-preview';
+
+// Fast-mode output control: higher limit for structured research material
+const FAST_MODE_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_COPILOT_FAST_MAX_TOKENS) || 2048;
+const FAST_MODE_TEMPERATURE = Number(process.env.GEMINI_COPILOT_FAST_TEMPERATURE) || 0.35;
 
 const STRATEGIST_SYSTEM_PROMPT = `You are a Data-Driven Content Researcher & Strategic Editorial Analyst for the user's brand/tenant. 
 Your primary task is to help the user analyze research data, generate ideas, and turn them into concrete, measurable, and executable content strategy decisions.
@@ -92,10 +99,22 @@ router.post('/chat', async (req, res) => {
     res.setHeader('Connection', 'keep-alive');
 
     const chatInput = messages[messages.length - 1].content;
-    const history = messages.slice(0, -1).map((m: { role: string, content: string }) => ({
-      role: m.role,
-      content: [{ type: 'text', text: m.content }]
-    }));
+
+    // Truncate history to last 6 messages to prevent context bloat.
+    // Long assistant research outputs are further capped to avoid token spikes.
+    const CHAT_HISTORY_WINDOW = 6;
+    const ASSISTANT_MSG_MAX_CHARS = 1500;
+    const rawHistory = messages.slice(0, -1);
+    const windowedHistory = rawHistory.length > CHAT_HISTORY_WINDOW
+      ? rawHistory.slice(-CHAT_HISTORY_WINDOW)
+      : rawHistory;
+
+    const history = windowedHistory.map((m: { role: string, content: string }) => {
+      const text = m.role === 'assistant' && m.content.length > ASSISTANT_MSG_MAX_CHARS
+        ? m.content.slice(0, ASSISTANT_MSG_MAX_CHARS) + '\n...[truncated for context]'
+        : m.content;
+      return { role: m.role, content: [{ type: 'text', text }] };
+    });
 
     const contextPrompt = history.map((m: { role: string, content: { text: string }[] }) => `${m.role}: ${m.content[0].text}`).join('\n') + `\nuser: ${chatInput}\nassistant:`;
 
@@ -117,14 +136,43 @@ router.post('/chat', async (req, res) => {
     }
 
     // FAST MODE
+    const FAST_MODE_INSTRUCTION = `
+CRITICAL: You are in FAST MODE — a Pre-Editor research assistant.
+Your output is RAW RESEARCH MATERIAL, not a final article. The user needs structured insights to decide their article angle, audience, and outline.
+
+FORMAT (use this exact structure, no deviation):
+**Executive Summary:** 2–3 sentences capturing the core insight.
+
+**Topics / Angles Worth Developing:**
+5–7 bullet points. Each: 1–2 sentences + 1 inline citation.
+
+**Trends or Emerging Risks:**
+3–4 bullet points capturing momentum shifts or risks.
+
+**Strategic Recommendations:**
+3–4 bullet points — actionable editorial decisions the user can make now.
+
+RULES:
+- Perform at most ONE Google Search iteration.
+- Write substance, not filler. No introductory paragraphs, no closing summaries.
+- Each bullet must add NEW information, not repeat previous points.
+- Cite inline using [n](url) format for all factual claims.
+- At the VERY END, provide exactly 3 short, clickable next-step suggestions:
+[SUGGESTIONS: Suggestion 1 | Suggestion 2 | Suggestion 3]
+`;
+
     const stream = await gemini.interactions.create({
       model: MODEL,
       input: contextPrompt,
       tools: [
         { type: "google_search" }
       ],
-      system_instruction: STRATEGIST_SYSTEM_PROMPT + "\nCRITICAL: You are in FAST MODE. DO NOT perform more than 1 search iteration. For substantive queries, you MUST use Google Search. Be concise. At the VERY END of your response, provide exactly 3 suggestions for the user's next message, formatted exactly as: \n\n[SUGGESTIONS: Suggestion 1 | Suggestion 2 | Suggestion 3]",
-      stream: true
+      system_instruction: STRATEGIST_SYSTEM_PROMPT + FAST_MODE_INSTRUCTION,
+      stream: true,
+      generation_config: {
+        max_output_tokens: FAST_MODE_MAX_OUTPUT_TOKENS,
+        temperature: FAST_MODE_TEMPERATURE,
+      },
     });
 
     let finalOutputText = "";
@@ -194,22 +242,19 @@ router.post('/chat', async (req, res) => {
                     // Perplexity style inline numbered pill
                     const citationStr = ` [${sourceIndex}](${annotation.url})`;
                     
-                    // Convert UTF-8 byte offset to UTF-16 character index
-                    const byteOffset = annotation.end_index || 0;
-                    const encoder = new TextEncoder();
-                    const bytes = encoder.encode(finalOutputText);
-                    const safeByteOffset = Math.min(byteOffset, bytes.length);
-                    const decoder = new TextDecoder('utf-8', { fatal: false });
-                    const utf16Index = decoder.decode(bytes.slice(0, safeByteOffset)).length;
-                    
-                    finalOutputText = finalOutputText.slice(0, utf16Index) + citationStr + finalOutputText.slice(utf16Index);
+                    // Interactions API returns UTF-16 character index directly — no conversion needed
+                    const charIndex = Math.min(annotation.end_index || 0, finalOutputText.length);
+                    finalOutputText = finalOutputText.slice(0, charIndex) + citationStr + finalOutputText.slice(charIndex);
                 }
             }
             
             // (Markdown appending removed in favor of premium frontend favicon UI)
+
+            // Output is sent as-is — structured prompt keeps length bounded without lossy summarization
+            const outputToSend = finalOutputText;
             
-            if (finalOutputText) {
-                res.write(`data: ${JSON.stringify({ type: "replace_text", text: finalOutputText })}\n\n`);
+            if (outputToSend) {
+                res.write(`data: ${JSON.stringify({ type: "replace_text", text: outputToSend })}\n\n`);
             }
             if (uniqueSourcesData.length > 0) {
                 res.write(`data: ${JSON.stringify({ type: "sources", sources: uniqueSourcesData })}\n\n`);
@@ -257,7 +302,17 @@ router.post('/generate-plan', async (req, res) => {
 
     let chatHistory = "";
     if (history && Array.isArray(history)) {
-      chatHistory = history.map((m: { role: string; content: string }) => `${m.role}: ${m.content}`).join('\n');
+      // Truncate to last 8 messages to avoid bloating the blueprint prompt
+      const HISTORY_WINDOW = 8;
+      const trimmed = history.length > HISTORY_WINDOW
+        ? history.slice(-HISTORY_WINDOW)
+        : history;
+      const truncationNote = history.length > HISTORY_WINDOW
+        ? `[Note: showing last ${HISTORY_WINDOW} of ${history.length} messages]\n`
+        : '';
+      chatHistory = truncationNote + trimmed
+        .map((m: { role: string; content: string }) => `${m.role}: ${m.content}`)
+        .join('\n');
     }
 
     const prompt = `
@@ -322,6 +377,131 @@ router.post('/generate-plan', async (req, res) => {
   } catch (error) {
     console.error('Error in generate-plan:', error);
     res.status(500).json({ error: 'Failed to generate plan' });
+  }
+});
+
+/**
+ * 5. Generate Draft from Notes
+ */
+router.post('/generate-draft-from-notes', async (req, res) => {
+  try {
+    let userId: string | null = null;
+    let orgId: string | null = null;
+    let orgSlug: string | null = null;
+    let orgRole: string | null = null;
+
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        if (token) {
+          const { verifyToken } = await import('@clerk/backend');
+          const payload = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
+          userId = payload.sub;
+          orgId = (payload.org_id as string) || null;
+          orgSlug = (payload.org_slug as string) || null;
+          orgRole = (payload.org_role as string) || null;
+        }
+      } catch (authError) {
+        console.warn('[Generate Draft Auth] Token verification failed:', authError);
+      }
+    }
+
+    const { notes, metadata } = req.body;
+    
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    if (!notes || notes.length === 0) {
+      res.write(`data: ${JSON.stringify({ type: "error", message: "No notes provided" })}\n\n`);
+      res.end();
+      return;
+    }
+
+    let workspace = null;
+    if (userId) {
+      workspace = await getWorkspaceState(userId, {
+        clerkOrganizationId: orgId,
+        clerkOrganizationSlug: orgSlug,
+        clerkOrganizationRole: orgRole,
+      });
+    }
+    
+    let profile = ENVOYOU_EDITORIAL_PROFILE;
+    try {
+      if (userId) {
+        profile = await resolveEditorialProfileForUser(userId, workspace?.organizationId);
+      }
+    } catch (profileError) {
+      console.warn('[Editorial Profile] Profile resolution failed, falling back to Envoyou v1:', profileError);
+    }
+
+    const notesText = notes.map((n: { content: string; sources?: { url: string; domain?: string }[] }, i: number) => {
+      const sourcesText = n.sources && n.sources.length > 0 
+        ? `Sources: ${n.sources.map(s => s.url).join(', ')}`
+        : '';
+      return `NOTE ${i + 1}:\n${n.content}\n${sourcesText}`;
+    }).join('\n\n---\n\n');
+
+    const basePrompt = `
+CRITICAL INSTRUCTION: You are a professional article writer.
+Your task is to write a cohesive, engaging initial draft for an article using ONLY the following raw research notes as your factual basis.
+
+[RAW RESEARCH NOTES]
+${notesText}
+[/RAW RESEARCH NOTES]
+
+[ARTICLE METADATA]
+Category: ${metadata?.category || 'General'}
+Type: ${metadata?.type || 'Article'}
+Target Audience: ${metadata?.targetAudience || 'General Audience'}
+Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and engaging tone.'}
+[/ARTICLE METADATA]
+
+RULES:
+- Do NOT output bullet points unless strictly necessary for a list. Write flowing paragraphs.
+- Synthesize the raw notes into a unified narrative.
+- Maintain the requested tone and target audience.
+- Do NOT include any meta-commentary (e.g., "Here is your draft"). Just output the draft content directly.
+- Include inline markdown citations to the provided sources where factual claims are made (e.g., [1](url)).
+`;
+
+    const prompt = composeEditorialPrompt(basePrompt, profile);
+
+    const stream = await gemini.interactions.create({
+      model: MODEL,
+      input: prompt,
+      system_instruction: "You are an expert editorial writer. Synthesize research notes into a cohesive first draft.",
+      stream: true,
+      generation_config: {
+        max_output_tokens: 4000,
+        temperature: 0.6,
+      },
+    });
+
+    for await (const event of stream) {
+      if (event.event_type === "step.delta" && event.delta?.type === "text" && event.delta.text) {
+        res.write(`data: ${JSON.stringify({ type: "text", chunk: event.delta.text })}\n\n`);
+      } else if (event.event_type === "interaction.completed") {
+        const eventWithInteraction = event as { interaction?: { usage?: { total_tokens?: number } } };
+        const usage = eventWithInteraction.interaction?.usage;
+        if (usage) {
+          console.log(`\n[ENVOYOU INTERNAL BILLING] Generate Draft from Notes Complete. Total Tokens: ${usage.total_tokens || 0}`);
+        }
+        res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
+      }
+    }
+    
+    res.end();
+  } catch (error) {
+    console.error('Error generating draft from notes:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to generate draft' });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: "error", message: "Stream failed" })}\n\n`);
+      res.end();
+    }
   }
 });
 

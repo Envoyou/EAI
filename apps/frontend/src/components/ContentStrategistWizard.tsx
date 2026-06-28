@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUp, Upload, Link as LinkIcon, Search, X, FileText, Rocket, ExternalLink } from 'lucide-react';
+import { ArrowUp, Upload, Link as LinkIcon, Search, X, FileText, Rocket, ExternalLink, Newspaper, Loader2, List, Bookmark, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '@/lib/api-url';
 import ReactMarkdown from 'react-markdown';
@@ -31,6 +31,13 @@ export type PreEditorPlan = {
   draft: string;
 };
 
+export type ResearchNote = {
+  id: string;
+  content: string;
+  sources: { url: string; domain: string }[];
+  savedAt: string; // ISO timestamp
+};
+
 export type ChatMessageType = 'text' | 'welcome' | 'recommendations' | 'plan';
 
 export type ChatMessage = {
@@ -46,7 +53,7 @@ export type ChatMessage = {
 };
 
 interface ContentStrategistWizardProps {
-  onComplete: (topic: string, outline: string, draft: string) => void;
+  onComplete: (topic: string, outline: string, draft: string, notes: ResearchNote[]) => void;
   onCancel: () => void;
 }
 
@@ -72,6 +79,24 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
   const [activeDeepResearchId, setActiveDeepResearchId] = useState<string | null>(null);
   const [deepResearchReport, setDeepResearchReport] = useState<string | null>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
+
+  // Research Notes — NotebookLM approach
+  const SESSION_KEY = 'eai_research_notes';
+  const MAX_NOTES = 10;
+  const [savedNotes, setSavedNotes] = useState<ResearchNote[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch { return []; }
+  });
+  const savedNoteIds = new Set(savedNotes.map(n => n.id));
+
+  // Quick Draft attach-menu modal state
+  const [quickDraftMode, setQuickDraftMode] = useState<'topic' | 'outline' | 'reference' | 'press_release' | null>(null);
+  const [quickDraftTopic, setQuickDraftTopic] = useState('');
+  const [quickDraftOutline, setQuickDraftOutline] = useState('');
+  const [quickDraftReference, setQuickDraftReference] = useState('');
+  const [quickDraftOutput, setQuickDraftOutput] = useState('');
+  const [isGeneratingQuickDraft, setIsGeneratingQuickDraft] = useState(false);
+  const [quickDraftError, setQuickDraftError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeDeepResearchId) return;
@@ -121,9 +146,163 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     }
   }, [isTyping]);
 
+  // Sync research notes to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(savedNotes));
+  }, [savedNotes, SESSION_KEY]);
+
 
   const appendMessage = (msg: Omit<ChatMessage, 'id'>) => {
     setMessages(prev => [...prev, { ...msg, id: generateId() }]);
+  };
+
+  const openQuickDraft = (mode: 'topic' | 'outline' | 'reference' | 'press_release') => {
+    setQuickDraftMode(mode);
+    setQuickDraftTopic('');
+    setQuickDraftOutline('');
+    setQuickDraftReference('');
+    setQuickDraftOutput('');
+    setQuickDraftError(null);
+    setIsGeneratingQuickDraft(false);
+    setShowAttachMenu(false);
+  };
+
+  const closeQuickDraft = () => {
+    setQuickDraftMode(null);
+    setQuickDraftTopic('');
+    setQuickDraftOutline('');
+    setQuickDraftReference('');
+    setQuickDraftOutput('');
+    setQuickDraftError(null);
+    setIsGeneratingQuickDraft(false);
+  };
+
+  const saveNote = (msg: ChatMessage) => {
+    if (savedNoteIds.has(msg.id)) return;
+    if (msg.content.length < 50) {
+      toast.info('Konten terlalu pendek untuk disimpan sebagai catatan.');
+      return;
+    }
+    if (savedNotes.length >= MAX_NOTES) {
+      toast.warning('Maksimal 10 catatan. Hapus beberapa di panel kanan untuk menambah baru.');
+      return;
+    }
+    const note: ResearchNote = {
+      id: msg.id,
+      content: msg.content,
+      sources: msg.payload?.sources || [],
+      savedAt: new Date().toISOString(),
+    };
+    setSavedNotes(prev => [...prev, note]);
+    toast.success('\u2705 Catatan disimpan');
+  };
+
+  const submitQuickDraft = async () => {
+    if (!quickDraftTopic.trim() || isGeneratingQuickDraft || !quickDraftMode) return;
+
+    setIsGeneratingQuickDraft(true);
+    setQuickDraftOutput('');
+    setQuickDraftError(null);
+
+    const isOutlineMode = quickDraftMode === 'outline';
+    const body: Record<string, unknown> = {
+      topic: quickDraftTopic,
+      mode: isOutlineMode ? 'outline' : 'draft',
+      draftMode: isOutlineMode ? 'topic' : quickDraftMode,
+      provider: 'gemini',
+    };
+
+    if (!isOutlineMode && quickDraftOutline.trim()) {
+      body.outline = quickDraftOutline;
+    }
+    if ((quickDraftMode === 'reference' || quickDraftMode === 'press_release') && quickDraftReference.trim()) {
+      body.referenceText = quickDraftReference;
+    }
+
+    try {
+      const res = await fetch(`${getApiUrl()}/api/strategist/quick-draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const result = await res.json().catch(() => null);
+        throw new Error(result?.error || `Quick draft failed (${res.status})`);
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('Response reader not available');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let output = '';
+      let analysisLogId: string | undefined;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event: { type: string; data: unknown };
+          try {
+            event = JSON.parse(line);
+          } catch {
+            continue;
+          }
+          if (event.type === 'draft_chunk') {
+            output += event.data as string;
+            setQuickDraftOutput(output);
+          } else if (event.type === 'error') {
+            throw new Error(event.data as string);
+          } else if (event.type === 'complete') {
+            const data = event.data as { analysisLogId?: string };
+            analysisLogId = data?.analysisLogId;
+          }
+        }
+      }
+
+      // Surface the result as a chat message and populate the blueprint panel
+      appendMessage({
+        role: 'user',
+        type: 'text',
+        content: `Quick draft request (${quickDraftMode.replace('_', ' ')}): ${quickDraftTopic}`,
+      });
+
+      appendMessage({
+        role: 'assistant',
+        type: 'text',
+        content: isOutlineMode
+          ? `Here is a structured outline for **${quickDraftTopic}**:\n\n${output}`
+          : `Here is a rough draft for **${quickDraftTopic}**:\n\n${output}`,
+      });
+
+      setCurrentPlan({
+        angle: quickDraftTopic,
+        audience: '',
+        hook: '',
+        outline: isOutlineMode ? output : quickDraftOutline,
+        seoIntent: '',
+        sources: [],
+        draft: output,
+      });
+
+      if (analysisLogId) {
+        console.log('[quick-draft] saved log:', analysisLogId);
+      }
+
+      closeQuickDraft();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Quick draft failed';
+      setQuickDraftError(message);
+      toast.error(message);
+    } finally {
+      setIsGeneratingQuickDraft(false);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -181,7 +360,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     if (!textToSend.trim()) return;
 
     if (textToSend === 'Proceed to Editor' && currentPlan) {
-      onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft);
+      onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, savedNotes);
       return;
     }
 
@@ -204,7 +383,10 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     const updatedMessages = [...messages, newMsg];
     setMessages(updatedMessages);
 
-    if (messageText.toLowerCase().startsWith('draft')) {
+    // Detect draft-generation intent in Indonesian and English.
+    // Triggers generatePlan instead of Fast Mode chat.
+    const DRAFT_INTENT_PATTERN = /\b(buat(kan)?|tulis(kan)?|generate|write|create|bikin)\b.{0,30}\bdraft\b|\bdraft\b.{0,20}\bartikel\b/i;
+    if (DRAFT_INTENT_PATTERN.test(messageText) || messageText.toLowerCase().startsWith('draft')) {
       generatePlan(messageText, updatedMessages);
       return;
     }
@@ -357,6 +539,23 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                                   ))}
                                 </div>
                               )}
+                              {/* Save to Notes button — visible after streaming, min 50 chars */}
+                              {!isTyping && msg.content.length >= 50 && (
+                                <div className="mt-3">
+                                  {savedNoteIds.has(msg.id) ? (
+                                    <span className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: 'var(--success, #22c55e)' }}>
+                                      <Check className="w-3 h-3" /> Tersimpan
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={() => saveNote(msg)}
+                                      className="flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border border-[var(--border)] rounded-full px-3 py-1.5 hover:bg-[var(--surface-2)] transition-all"
+                                    >
+                                      <Bookmark className="w-3 h-3" /> Simpan ke Catatan
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </>
                           ) : (
                             <p>{msg.content}</p>
@@ -412,7 +611,8 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                       
                       <AnimatePresence>
                         {showAttachMenu && (
-                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 mb-2 w-48 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden py-1 z-50">
+                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 mb-2 w-56 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden py-1 z-50">
+                            <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Analyze</div>
                             <button type="button" onClick={() => { fileInputRef.current?.click(); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
                                 <Upload className="w-4 h-4" /> Upload CSV
                             </button>
@@ -421,6 +621,20 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                             </button>
                             <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Here are my manual metrics:\n- Page views: \n- Bounce rate: '); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
                                 <FileText className="w-4 h-4" /> Manual Metrics
+                            </button>
+                            <div className="my-1 border-t border-[var(--border)]" />
+                            <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Quick Draft</div>
+                            <button type="button" onClick={() => openQuickDraft('topic')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                <FileText className="w-4 h-4" /> Topic
+                            </button>
+                            <button type="button" onClick={() => openQuickDraft('outline')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                <List className="w-4 h-4" /> Outline
+                            </button>
+                            <button type="button" onClick={() => openQuickDraft('reference')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                <LinkIcon className="w-4 h-4" /> Reference
+                            </button>
+                            <button type="button" onClick={() => openQuickDraft('press_release')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                <Newspaper className="w-4 h-4" /> Press Release
                             </button>
                           </motion.div>
                         )}
@@ -474,7 +688,8 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                       
                       <AnimatePresence>
                         {showAttachMenu && (
-                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 mb-2 w-48 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden py-1 z-50">
+                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 mb-2 w-56 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden py-1 z-50">
+                            <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Analyze</div>
                             <button type="button" onClick={() => { fileInputRef.current?.click(); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
                                 <Upload className="w-4 h-4" /> Upload CSV
                             </button>
@@ -483,6 +698,20 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                             </button>
                             <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Here are my manual metrics:\n- Page views: \n- Bounce rate: '); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
                                 <FileText className="w-4 h-4" /> Manual Metrics
+                            </button>
+                            <div className="my-1 border-t border-[var(--border)]" />
+                            <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Quick Draft</div>
+                            <button type="button" onClick={() => openQuickDraft('topic')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                <FileText className="w-4 h-4" /> Topic
+                            </button>
+                            <button type="button" onClick={() => openQuickDraft('outline')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                <List className="w-4 h-4" /> Outline
+                            </button>
+                            <button type="button" onClick={() => openQuickDraft('reference')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                <LinkIcon className="w-4 h-4" /> Reference
+                            </button>
+                            <button type="button" onClick={() => openQuickDraft('press_release')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                <Newspaper className="w-4 h-4" /> Press Release
                             </button>
                           </motion.div>
                         )}
@@ -514,6 +743,11 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                 <FileText className="w-4 h-4" />
                 Draft Blueprint
               </h3>
+              {savedNotes.length > 0 && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: 'var(--primary-muted, rgba(var(--primary-rgb,59,130,246),.12))', color: 'var(--primary)' }}>
+                  📋 {savedNotes.length} Catatan
+                </span>
+              )}
             </div>
             
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
@@ -553,7 +787,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
 
             <div className="p-4 border-t border-[var(--border)] bg-[var(--surface-1)] shrink-0 flex flex-col gap-2">
               <button
-                onClick={() => onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft)}
+                onClick={() => onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, savedNotes)}
                 className="w-full py-2.5 bg-[var(--foreground)] text-[var(--background)] font-medium text-[14px] rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
               >
                 <Rocket className="w-4 h-4" />
@@ -684,6 +918,136 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                     {deepResearchReport}
                   </ReactMarkdown>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick Draft Modal */}
+      <AnimatePresence>
+        {quickDraftMode && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-[var(--background)] w-full max-w-2xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border)]"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--surface-1)] shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-[var(--primary)]/10 text-[var(--primary)] rounded-lg">
+                    {quickDraftMode === 'topic' && <FileText className="w-5 h-5" />}
+                    {quickDraftMode === 'outline' && <List className="w-5 h-5" />}
+                    {quickDraftMode === 'reference' && <LinkIcon className="w-5 h-5" />}
+                    {quickDraftMode === 'press_release' && <Newspaper className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold capitalize">{quickDraftMode.replace('_', ' ')} Quick Draft</h2>
+                    <p className="text-sm text-[var(--muted-foreground)]">Generate a starting point for your article.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeQuickDraft}
+                  disabled={isGeneratingQuickDraft}
+                  className="p-2 bg-[var(--surface-2)] hover:bg-[var(--surface-3)] rounded-full text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-1.5">Topic / Core Idea</label>
+                  <textarea
+                    value={quickDraftTopic}
+                    onChange={e => setQuickDraftTopic(e.target.value)}
+                    placeholder="What should the article be about?"
+                    rows={2}
+                    disabled={isGeneratingQuickDraft}
+                    className="w-full bg-transparent border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 resize-none"
+                  />
+                </div>
+
+                {quickDraftMode === 'outline' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-1.5">Existing Points (optional)</label>
+                    <textarea
+                      value={quickDraftOutline}
+                      onChange={e => setQuickDraftOutline(e.target.value)}
+                      placeholder="Add any points you want included, one per line..."
+                      rows={4}
+                      disabled={isGeneratingQuickDraft}
+                      className="w-full bg-transparent border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 resize-none"
+                    />
+                  </div>
+                )}
+
+                {(quickDraftMode === 'reference' || quickDraftMode === 'press_release') && (
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-1.5">
+                      {quickDraftMode === 'press_release' ? 'Source / Announcement Notes' : 'Reference Material'}
+                    </label>
+                    <textarea
+                      value={quickDraftReference}
+                      onChange={e => setQuickDraftReference(e.target.value)}
+                      placeholder={quickDraftMode === 'press_release' ? "Paste the announcement, facts, or key quotes..." : "Paste reference text or notes..."}
+                      rows={5}
+                      disabled={isGeneratingQuickDraft}
+                      className="w-full bg-transparent border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 resize-none"
+                    />
+                  </div>
+                )}
+
+                {quickDraftMode === 'topic' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-1.5">Angle or Sub-points (optional)</label>
+                    <textarea
+                      value={quickDraftOutline}
+                      onChange={e => setQuickDraftOutline(e.target.value)}
+                      placeholder="Optional angle, sub-topics, or takeaways..."
+                      rows={3}
+                      disabled={isGeneratingQuickDraft}
+                      className="w-full bg-transparent border border-[var(--border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 resize-none"
+                    />
+                  </div>
+                )}
+
+                {quickDraftOutput && (
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-1.5">Preview Output</label>
+                    <div className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm bg-[var(--surface-1)] max-h-60 overflow-y-auto whitespace-pre-wrap">
+                      {quickDraftOutput}
+                    </div>
+                  </div>
+                )}
+
+                {quickDraftError && (
+                  <p className="text-sm text-[var(--error)]">{quickDraftError}</p>
+                )}
+              </div>
+
+              <div className="p-4 border-t border-[var(--border)] bg-[var(--surface-1)] shrink-0 flex justify-end gap-2">
+                <button
+                  onClick={closeQuickDraft}
+                  disabled={isGeneratingQuickDraft}
+                  className="px-4 py-2 text-sm font-medium rounded-lg border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitQuickDraft}
+                  disabled={!quickDraftTopic.trim() || isGeneratingQuickDraft}
+                  className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--foreground)] text-[var(--background)] hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isGeneratingQuickDraft && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isGeneratingQuickDraft ? 'Generating…' : 'Generate'}
+                </button>
               </div>
             </motion.div>
           </motion.div>

@@ -20,12 +20,15 @@ import { CmsAdapterError, listPublishedPostsForProfile } from '@/lib/cms-adapter
 import { getWorkspaceState } from '@/lib/user-workspace';
 import {
   extractGeminiText,
+  extractOpenRouterText,
   gemini,
   getGeminiModelForRole,
   getGeminiSamplingConfig,
+  getOpenRouterModelForRole,
   GROQ_MODEL,
   GROQ_SEO_MODEL,
   groq,
+  openrouter,
 } from '@/lib/ai/provider-runtime';
 import {
   buildEditorialUserContent,
@@ -44,13 +47,15 @@ const router = Router();
 // Helper delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+type SendEvent = (type: string, data: unknown) => void;
+
 type StructuredFeedbackItem = FeedbackOutput['feedback'][number];
 type ReviewOutput = FeedbackOutput | PolishDiagnosisOutput;
 type SourceProvenanceLevel = 'none' | 'weak' | 'moderate' | 'strong';
 type DraftRiskProfile = 'general' | 'low_stakes_consumer';
 
 const MAX_SUMMARY_LENGTH = 280;
-const ACTIVE_PROVIDER = process.env.ACTIVE_AI_PROVIDER || 'gemini';
+import { resolveActiveAiProvider } from '@/lib/ai-provider-resolver';
 
 const buildStoredMetadata = (
   metadata: ArticleMetadata | undefined,
@@ -745,6 +750,63 @@ const splitDraftIntoRewriteChunks = (text: string) => {
   return chunks;
 };
 
+type OpenAiCompatibleChunk = {
+  choices: Array<{
+    delta?: { content?: string | null };
+    finish_reason?: string | null;
+  }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    prompt_tokens_details?: { cached_tokens?: number } | null;
+    completion_tokens_details?: { reasoning_tokens?: number } | null;
+  } | null;
+  x_groq?: {
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+      prompt_tokens_details?: { cached_tokens?: number } | null;
+      completion_tokens_details?: { reasoning_tokens?: number } | null;
+    } | null;
+  };
+};
+
+type OpenAiCompatibleClient = {
+  chat: {
+    completions: {
+      create: (params: Record<string, unknown>) => Promise<AsyncIterable<OpenAiCompatibleChunk>>;
+    };
+  };
+};
+
+const streamOpenAiCompatibleRewrite = async (
+  client: OpenAiCompatibleClient,
+  modelName: string,
+  messages: Array<{ role: string; content: string }>,
+  maxTokens: number,
+  temperature: number,
+  sendEvent: SendEvent
+): Promise<{ text: string; usage: OpenAiCompatibleChunk['usage'] }> => {
+  const stream = await client.chat.completions.create({
+    model: modelName,
+    messages,
+    stream: true,
+    max_tokens: maxTokens,
+    temperature,
+  });
+  let usage: OpenAiCompatibleChunk['usage'];
+  let text = '';
+  for await (const chunk of stream) {
+    usage = chunk.usage ?? chunk.x_groq?.usage ?? usage;
+    const partText = chunk.choices[0]?.delta?.content ?? '';
+    text += partText;
+    sendEvent('draft_chunk', partText);
+  }
+  return { text, usage };
+};
+
 async function createAnalysisLogAndDebitCredit(data: {
   userId: string;
   organizationId: string | null;
@@ -1033,7 +1095,7 @@ router.post('/', async (req: Request, res) => {
       mode?: AnalyzeMode;
       userInstruction?: string;
       previousFeedback?: FeedbackItem[];
-      provider?: 'gemini' | 'groq';
+      provider?: 'gemini' | 'groq' | 'openrouter';
       analysisSpeed?: 'fast' | 'balanced' | 'deep';
       targetText?: string;
       feedbackMessage?: string;
@@ -1043,7 +1105,11 @@ router.post('/', async (req: Request, res) => {
     const analysisSpeed = userId ? (requestedAnalysisSpeed ?? 'deep') : 'fast';
     const looksLikeTargetedFix = Boolean(targetText?.trim() && (feedbackMessage?.trim() || instruction?.trim()));
     const effectiveMode: AnalyzeMode = mode ?? (looksLikeTargetedFix ? 'fix_targeted' : 'analyze');
-    const effectiveProvider: 'gemini' | 'groq' = bodyProvider || (ACTIVE_PROVIDER === 'gemini' ? 'gemini' : 'groq');
+    const resolvedAiProvider = userId 
+      ? await resolveActiveAiProvider(userId, workspace?.organizationId)
+      : (process.env.ACTIVE_AI_PROVIDER || 'gemini') as 'gemini' | 'groq' | 'openrouter';
+
+    const effectiveProvider: 'gemini' | 'groq' | 'openrouter' = bodyProvider || resolvedAiProvider;
 
     textToLog = text || '';
     roleToLog = effectiveMode === 'refine' ? 'refine' : (role || 'unknown');
@@ -1070,8 +1136,9 @@ router.post('/', async (req: Request, res) => {
       try {
         const missingGeminiKey = !process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'empty' || process.env.GEMINI_API_KEY === 'your-api-key-here';
         const missingGroqKey = !process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === 'empty' || process.env.GROQ_API_KEY === 'your-groq-api-key';
+        const missingOpenRouterKey = !process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'empty' || process.env.OPENROUTER_API_KEY === 'your-openrouter-api-key';
 
-        if ((effectiveProvider === 'gemini' && missingGeminiKey) || (effectiveProvider === 'groq' && missingGroqKey)) {
+        if ((effectiveProvider === 'gemini' && missingGeminiKey) || (effectiveProvider === 'groq' && missingGroqKey) || (effectiveProvider === 'openrouter' && missingOpenRouterKey)) {
           replacementText = targetText.trim();
         } else {
           const targetedResult = await runTargetedFixStage({
@@ -1131,9 +1198,11 @@ router.post('/', async (req: Request, res) => {
         );
 
     // DEV MOCK CHECK
+    const missingOpenRouterKey = !process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'empty' || process.env.OPENROUTER_API_KEY === 'your-openrouter-api-key';
     if (
       (effectiveProvider === 'gemini' && (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'empty' || process.env.GEMINI_API_KEY === 'your-api-key-here')) ||
-      (effectiveProvider === 'groq' && (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === 'empty' || process.env.GROQ_API_KEY === 'your-groq-api-key'))
+      (effectiveProvider === 'groq' && (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === 'empty' || process.env.GROQ_API_KEY === 'your-groq-api-key')) ||
+      (effectiveProvider === 'openrouter' && missingOpenRouterKey)
     ) {
       console.warn(`No API Key found for provider ${effectiveProvider}, using mock data stream.`);
       
@@ -1303,6 +1372,45 @@ router.post('/', async (req: Request, res) => {
           usage: refineUsage,
           durationMs: Date.now() - startedAt,
         });
+      } else if (effectiveProvider === 'openrouter') {
+        const refineModelName = getOpenRouterModelForRole('editor', analysisSpeed);
+        usedModels.push(`${refineModelName}(refine)`);
+        const startedAt = Date.now();
+        let refineUsage: Parameters<AiTelemetryCollector['recordOpenRouter']>[0]['usage'];
+        const refineStream = await openrouter.chat.completions.create({
+          model: refineModelName,
+          messages: [
+            { role: 'system', content: refinePrompt },
+            {
+              role: 'user',
+              content: buildEditorialUserContent({
+                metadata,
+                data: {
+                  editorInstruction: userInstruction,
+                  previousFeedback: normalizedPreviousFeedback.slice(0, 5),
+                  article: lockedRefineInput,
+                },
+                task: 'Refine the article according to editorInstruction. Use previousFeedback as operational constraints and output only the final article.',
+              }),
+            },
+          ],
+          stream: true,
+          max_tokens: getRewriteOutputTokens(text, true),
+          temperature: 0.35,
+        });
+
+        for await (const chunk of refineStream) {
+          refineUsage = (chunk as OpenAiCompatibleChunk).usage ?? refineUsage;
+          const partText = extractOpenRouterText(chunk);
+          refinedText += partText;
+          sendEvent('draft_chunk', partText);
+        }
+        telemetry.recordOpenRouter({
+          stage: 'refine',
+          model: refineModelName,
+          usage: refineUsage,
+          durationMs: Date.now() - startedAt,
+        });
       } else {
         const refineModelName = analysisSpeed === 'fast' ? 'gemini-3.1-flash-lite' : 'gemini-3.5-flash';
         usedModels.push(`${refineModelName}(refine)`);
@@ -1379,7 +1487,9 @@ router.post('/', async (req: Request, res) => {
       if (analysisSpeed !== 'fast') {
         const seoModelName = effectiveProvider === 'groq'
           ? GROQ_SEO_MODEL
-          : getGeminiModelForRole('seo', analysisSpeed);
+          : effectiveProvider === 'openrouter'
+            ? getOpenRouterModelForRole('seo', analysisSpeed)
+            : getGeminiModelForRole('seo', analysisSpeed);
         usedModels.push(`${seoModelName}(seo)`);
         refineSeo = (await runSeoStage({
           provider: effectiveProvider,
@@ -1666,18 +1776,42 @@ router.post('/', async (req: Request, res) => {
 
       sendEvent('complete', { analysisLogId: savedLogId, sourceRef });
     } else {
-      // ── Groq API Mode ──────────────────────────────────────────
-      executedModelName = GROQ_MODEL;
+      // ── OpenAI-compatible Provider Mode (Groq / OpenRouter) ──────────────────
+      const isOpenRouter = effectiveProvider === 'openrouter';
+      const providerName = isOpenRouter ? 'openrouter' : 'groq';
+      const client = (isOpenRouter ? openrouter : groq) as unknown as OpenAiCompatibleClient;
+      executedModelName = isOpenRouter
+        ? getOpenRouterModelForRole(role!, analysisSpeed)
+        : GROQ_MODEL;
       const reviewModelName = executedModelName;
+      const rewriteModelName = isOpenRouter
+        ? getOpenRouterModelForRole('rewrite' as Role, analysisSpeed)
+        : GROQ_MODEL;
+      const seoModelName = isOpenRouter
+        ? getOpenRouterModelForRole('seo', analysisSpeed)
+        : GROQ_SEO_MODEL;
       usedModels.push(`${reviewModelName}(review)`);
       const reviewPrompt = isPolishMode
         ? composePrompt(getPolishReviewPrompt(metadata, editorialProfile.config, {
             includeTextSchema: true,
           }))
         : systemPrompt;
-      
+
+      const recordOpenAiCompatibleTelemetry = (input: {
+        stage: string;
+        model: string;
+        usage: OpenAiCompatibleChunk['usage'];
+        durationMs: number;
+      }) => {
+        if (isOpenRouter) {
+          telemetry.recordOpenRouter(input);
+        } else {
+          telemetry.recordGroq(input);
+        }
+      };
+
       const reviewResult = await runEditorialReviewStage({
-        provider: 'groq',
+        provider: providerName,
         modelName: reviewModelName,
         role: role!,
         metadata,
@@ -1707,7 +1841,7 @@ router.post('/', async (req: Request, res) => {
               publishedPosts = [];
             }
           } catch (_fetchError) {
-            console.warn('[Internal Linking] Catalog unavailable on Groq path.');
+            console.warn(`[Internal Linking] Catalog unavailable on ${providerName} path.`);
           }
         }
 
@@ -1742,17 +1876,15 @@ router.post('/', async (req: Request, res) => {
           getPolishedDraftPrompt(metadata, !isSingleChunk, publishedPosts, editorialProfile.config)
         );
 
-        const rewriteModelName = GROQ_MODEL;
         usedModels.push(`${rewriteModelName}(rewrite)`);
 
         for (let i = 0; i < chunks.length; i++) {
           const chunkText = chunks[i];
           const startedAt = Date.now();
-          let rewriteUsage: Parameters<AiTelemetryCollector['recordGroq']>[0]['usage'];
-
-          const groqRewriteStream = await groq.chat.completions.create({
-            model: GROQ_MODEL,
-            messages: [
+          const chunkResult = await streamOpenAiCompatibleRewrite(
+            client,
+            rewriteModelName,
+            [
               { role: 'system', content: rewriteSystemInstruction },
               {
                 role: 'user',
@@ -1777,21 +1909,15 @@ router.post('/', async (req: Request, res) => {
                 }),
               },
             ],
-            stream: true,
-            max_tokens: getRewriteOutputTokens(chunkText, isSingleChunk),
-            temperature: 0.35,
-          });
-
-          for await (const chunk of groqRewriteStream) {
-            rewriteUsage = chunk.x_groq?.usage ?? rewriteUsage;
-            const partText = chunk.choices[0]?.delta?.content ?? '';
-            polishedText += partText;
-            sendEvent('draft_chunk', partText);
-          }
-          telemetry.recordGroq({
+            getRewriteOutputTokens(chunkText, isSingleChunk),
+            0.35,
+            sendEvent
+          );
+          polishedText += chunkResult.text;
+          recordOpenAiCompatibleTelemetry({
             stage: `rewrite_chunk_${i}`,
-            model: GROQ_MODEL,
-            usage: rewriteUsage,
+            model: rewriteModelName,
+            usage: chunkResult.usage,
             durationMs: Date.now() - startedAt,
           });
         }
@@ -1804,7 +1930,7 @@ router.post('/', async (req: Request, res) => {
         sendEvent('status', 'quality_gate');
 
         const qualityGateResponse = await runFinalQualityGateSafely({
-          provider: 'groq',
+          provider: providerName,
           originalDraft: text,
           finalDraft: preparePublicationDraft(lockedPolishedText),
           metadata,
@@ -1836,10 +1962,9 @@ router.post('/', async (req: Request, res) => {
       let seo: unknown = null;
       if (analysisSpeed !== 'fast') {
         sendEvent('status', 'generating_seo');
-        const seoModelName = GROQ_SEO_MODEL;
         usedModels.push(`${seoModelName}(seo)`);
         seo = (await runSeoStage({
-          provider: 'groq',
+          provider: providerName,
           modelName: seoModelName,
           article: polishedText || text,
           metadata,
@@ -1883,7 +2008,7 @@ router.post('/', async (req: Request, res) => {
           });
           savedLogId = savedLog.id;
         } catch (dbError) {
-          console.error('[Groq] Failed to save success log to database:', dbError);
+          console.error(`[${isOpenRouter ? 'OpenRouter' : 'Groq'}] Failed to save success log to database:`, dbError);
         }
       }
 

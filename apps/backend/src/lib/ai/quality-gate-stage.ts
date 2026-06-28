@@ -12,10 +12,14 @@ import {
   type AiProvider,
   type AnalysisSpeed,
   extractGeminiText,
+  extractOpenRouterText,
+  extractOpenRouterUsage,
   gemini,
   getGeminiSamplingConfig,
+  getOpenRouterModelForRole,
   GROQ_MODEL,
   groq,
+  openrouter,
 } from './provider-runtime';
 import {
   buildEditorialUserContent,
@@ -118,6 +122,34 @@ const runFinalQualityGate = async ({
       attempt,
     });
     parsed = parseJsonResponse(extractGeminiText(response));
+  } else if (provider === 'openrouter') {
+    modelName = getOpenRouterModelForRole('editor', analysisSpeed);
+    const startedAt = Date.now();
+    const response = await openrouter.chat.completions.create({
+      model: modelName,
+      messages: [
+        {
+          role: 'system',
+          content: withInputBoundaryPolicy(composeEditorialPrompt(
+            getFinalQualityGatePrompt(metadata, editorialProfile.config),
+            editorialProfile
+          )),
+        },
+        { role: 'user', content: contents },
+      ],
+      stream: false,
+      max_tokens: 1800,
+      temperature: 0.15,
+      response_format: { type: 'json_object' },
+    });
+    telemetry.recordOpenRouter({
+      stage: 'quality_gate',
+      model: modelName,
+      usage: extractOpenRouterUsage(response),
+      durationMs: Date.now() - startedAt,
+      attempt,
+    });
+    parsed = parseJsonResponse(extractOpenRouterText(response));
   } else {
     modelName = GROQ_MODEL;
     const startedAt = Date.now();

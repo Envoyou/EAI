@@ -9,6 +9,8 @@ EAI (Envoyou AI Editorial Intelligence) helps teams editorials transform raw ide
 ## Features
 
 * ✍️ AI-assisted editorial workflow
+* 🧠 EAI Research Copilot (Interactive AI Assistant)
+* 📚 Research Notes Studio (Managed Fact Sources)
 * 🔍 Structured fact-checking pipeline
 * 📖 Brand guideline enforcement
 * 🚀 SEO optimization
@@ -19,7 +21,7 @@ EAI (Envoyou AI Editorial Intelligence) helps teams editorials transform raw ide
 
 ## Tech Stack
 
-* **Frontend** → Next.js 14 (App Router)
+* **Frontend** → Next.js 16 (App Router)
 * **Backend** → Node.js + Express
 * **Database** → Prisma ORM
 * **Queue** → BullMQ

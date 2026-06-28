@@ -8,9 +8,12 @@ import { parseJsonResponse } from '@eai/shared';
 import {
   type AiProvider,
   extractGeminiText,
+  extractOpenRouterText,
+  extractOpenRouterUsage,
   gemini,
   getGeminiSamplingConfig,
   groq,
+  openrouter,
 } from './provider-runtime';
 import { buildEditorialUserContent } from './prompt-context';
 
@@ -60,6 +63,40 @@ export const runSeoStage = async ({
     try {
       return normalizeSeoMetadata(
         parseJsonResponse(response.choices[0]?.message?.content?.trim() ?? ''),
+        article,
+        metadata,
+        editorialProfile
+      );
+    } catch {
+      return buildFallbackSeoMetadata(article, metadata, editorialProfile);
+    }
+  }
+
+  if (provider === 'openrouter') {
+    const response = await openrouter.chat.completions.create({
+      model: modelName,
+      messages: [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: contents },
+      ],
+      stream: false,
+      max_tokens: 400,
+      temperature: 0.2,
+      response_format: { type: 'json_object' },
+    });
+    telemetry.recordOpenRouter({
+      stage: 'seo',
+      model: modelName,
+      usage: extractOpenRouterUsage(response),
+      durationMs: Date.now() - startedAt,
+    });
+
+    const raw = extractOpenRouterText(response).trim();
+    if (!raw) return buildFallbackSeoMetadata(article, metadata, editorialProfile);
+
+    try {
+      return normalizeSeoMetadata(
+        parseJsonResponse(raw),
         article,
         metadata,
         editorialProfile

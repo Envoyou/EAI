@@ -13,12 +13,12 @@ import paymentWebhookRouter from './routes/webhooks/payment';
 import checkoutRouter from './routes/checkout';
 import paymentsRouter from './routes/payments';
 import onboardingRouter from './routes/onboarding';
-import draftRouter from './routes/draft';
 import scrapeRouter from './routes/scrape';
 import supportRouter from './routes/support';
 import adminRouter from './routes/admin';
 import analyticsRouter from './routes/analytics';
 import strategistRouter from './routes/strategist';
+import strategistQuickDraftRouter from './routes/strategist/quick-draft';
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -76,12 +76,12 @@ app.use('/api/webhooks/payment', paymentWebhookRouter);
 app.use('/api/checkout', checkoutRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/onboarding', onboardingRouter);
-app.use('/api/draft', draftRouter);
 app.use('/api/scrape', scrapeRouter);
 app.use('/api/support', supportRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/strategist', strategistRouter);
+app.use('/api/strategist/quick-draft', strategistQuickDraftRouter);
 
 // Error Handler
 app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {

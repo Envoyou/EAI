@@ -1,4 +1,4 @@
-type AiProvider = 'gemini' | 'groq';
+type AiProvider = 'gemini' | 'groq' | 'openrouter';
 
 type TokenUsage = {
   inputTokens: number;
@@ -51,6 +51,8 @@ type GroqUsage = {
   } | null;
 };
 
+type OpenRouterUsage = GroqUsage;
+
 type ModelPrice = {
   inputUsdPerMillion: number;
   outputUsdPerMillion: number;
@@ -81,6 +83,26 @@ const DEFAULT_MODEL_PRICES: Record<string, ModelPrice> = {
     inputUsdPerMillion: 0.05,
     outputUsdPerMillion: 0.08,
   },
+  'openai/gpt-4.1-mini': {
+    inputUsdPerMillion: 0.40,
+    outputUsdPerMillion: 1.60,
+  },
+  'openai/gpt-4.1': {
+    inputUsdPerMillion: 2.00,
+    outputUsdPerMillion: 8.00,
+  },
+  'anthropic/claude-3.5-sonnet': {
+    inputUsdPerMillion: 3.00,
+    outputUsdPerMillion: 15.00,
+  },
+  'anthropic/claude-3.5-haiku': {
+    inputUsdPerMillion: 0.80,
+    outputUsdPerMillion: 4.00,
+  },
+  'google/gemini-2.5-flash-preview': {
+    inputUsdPerMillion: 0.15,
+    outputUsdPerMillion: 0.60,
+  },
 };
 
 const asNonNegativeNumber = (value: unknown) =>
@@ -102,18 +124,26 @@ const getModelPrices = () => {
 
   try {
     const parsed = JSON.parse(configured) as Record<string, Partial<ModelPrice>>;
-    return Object.fromEntries(
-      Object.entries(DEFAULT_MODEL_PRICES).map(([model, fallback]) => {
-        const override = parsed[model];
-        return [model, {
-          inputUsdPerMillion: asNonNegativeNumber(override?.inputUsdPerMillion) || fallback.inputUsdPerMillion,
-          outputUsdPerMillion: asNonNegativeNumber(override?.outputUsdPerMillion) || fallback.outputUsdPerMillion,
-          cachedInputUsdPerMillion:
-            asNonNegativeNumber(override?.cachedInputUsdPerMillion) ||
-            fallback.cachedInputUsdPerMillion,
-        }];
-      })
-    );
+    const merged: Record<string, ModelPrice> = { ...DEFAULT_MODEL_PRICES };
+
+    for (const [model, override] of Object.entries(parsed)) {
+      const fallback = merged[model];
+      merged[model] = {
+        inputUsdPerMillion:
+          asNonNegativeNumber(override?.inputUsdPerMillion) ||
+          fallback?.inputUsdPerMillion ||
+          0,
+        outputUsdPerMillion:
+          asNonNegativeNumber(override?.outputUsdPerMillion) ||
+          fallback?.outputUsdPerMillion ||
+          0,
+        cachedInputUsdPerMillion:
+          asNonNegativeNumber(override?.cachedInputUsdPerMillion) ||
+          fallback?.cachedInputUsdPerMillion,
+      };
+    }
+
+    return merged;
   } catch (error) {
     console.warn('[AI Telemetry] Invalid AI_MODEL_PRICING_JSON, using defaults:', error);
     return DEFAULT_MODEL_PRICES;
@@ -205,6 +235,21 @@ export class AiTelemetryCollector {
     this.record({
       ...input,
       provider: 'groq',
+      usage: normalizeGroqUsage(input.usage),
+    });
+  }
+
+  recordOpenRouter(input: {
+    stage: string;
+    model: string;
+    usage?: OpenRouterUsage | null;
+    durationMs: number;
+    attempt?: number;
+    status?: 'success' | 'error';
+  }) {
+    this.record({
+      ...input,
+      provider: 'openrouter',
       usage: normalizeGroqUsage(input.usage),
     });
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { FileEdit, FileDiff, PanelRight } from 'lucide-react';
+import { FileEdit, FileDiff, PanelRight, PanelLeft } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export type PanelTab = 'draft' | 'refined';
@@ -14,6 +14,11 @@ interface PanelTabBarProps {
   isLoading: boolean;
   showFeedbackSidebar?: boolean;
   onToggleFeedbackSidebar?: () => void;
+  showHistorySidebar?: boolean;
+  onToggleHistorySidebar?: () => void;
+  showNotesSidebar?: boolean;
+  onToggleNotesSidebar?: () => void;
+  hasNotes?: boolean;
 }
 
 const TABS: { key: PanelTab; label: string; icon: React.ReactNode; description: string }[] = [
@@ -38,9 +43,41 @@ export default function PanelTabBar({
   isLoading,
   showFeedbackSidebar = true,
   onToggleFeedbackSidebar,
+  showHistorySidebar = true,
+  onToggleHistorySidebar,
+  showNotesSidebar = true,
+  onToggleNotesSidebar,
+  hasNotes = false,
 }: PanelTabBarProps) {
   return (
     <div className="ide-tabbar" role="tablist" aria-label="Editor Panels">
+      {/* Left Sidebar Toggle Button */}
+      {onToggleHistorySidebar && (
+        <div className="flex items-center px-2 mr-1 border-r border-[var(--border)]">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  onClick={onToggleHistorySidebar}
+                  className={`
+                    w-7.5 h-7.5 flex items-center justify-center rounded-md transition-colors text-xs border border-transparent cursor-pointer
+                    ${showHistorySidebar 
+                      ? 'bg-[var(--surface-2)] text-[var(--foreground)]' 
+                      : 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'}
+                  `}
+                  aria-label={showHistorySidebar ? 'Hide History Panel' : 'Show History Panel'}
+                >
+                  <PanelLeft className="w-4 h-4" />
+                </button>
+              }
+            />
+            <TooltipContent side="bottom" className="text-xs">
+              {showHistorySidebar ? 'Hide History' : 'Show History'}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
+
       {TABS.map((tab) => {
         const isActive = activeTab === tab.key;
         const isDisabled = tab.key !== 'draft' && !hasResult && !isLoading;
@@ -108,7 +145,7 @@ export default function PanelTabBar({
       {/* Right spacer / breadcrumb area */}
       <div className="flex-1" />
 
-      {/* Sidebar Toggle Button */}
+      {/* Right Sidebar Toggle Button for Feedback */}
       {activeTab === 'refined' && hasResult && onToggleFeedbackSidebar && (
         <div className="pr-3 flex items-center">
           <Tooltip>
@@ -130,6 +167,33 @@ export default function PanelTabBar({
             />
             <TooltipContent side="bottom" className="text-xs">
               {showFeedbackSidebar ? 'Hide Feedback' : 'Show Feedback'}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
+
+      {/* Right Sidebar Toggle Button for Notes Studio */}
+      {activeTab === 'draft' && hasNotes && onToggleNotesSidebar && (
+        <div className="pr-3 flex items-center">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  onClick={onToggleNotesSidebar}
+                  className={`
+                    w-7.5 h-7.5 flex items-center justify-center rounded-md transition-colors text-xs border border-transparent cursor-pointer
+                    ${showNotesSidebar 
+                      ? 'bg-primary-100/70 dark:bg-primary-950/45 text-[var(--primary)]' 
+                      : 'bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}
+                  `}
+                  aria-label={showNotesSidebar ? 'Hide Notes Studio' : 'Show Notes Studio'}
+                >
+                  <PanelRight className="w-4 h-4" />
+                </button>
+              }
+            />
+            <TooltipContent side="bottom" className="text-xs">
+              {showNotesSidebar ? 'Hide Notes' : 'Show Notes'}
             </TooltipContent>
           </Tooltip>
         </div>

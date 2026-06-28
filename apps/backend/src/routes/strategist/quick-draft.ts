@@ -6,10 +6,13 @@ import { prisma } from '@/lib/db';
 import { verifyToken } from '@clerk/backend';
 import {
   extractGeminiText,
+  extractOpenRouterText,
   gemini,
   getGeminiSamplingConfig,
+  getOpenRouterModelForRole,
   GROQ_MODEL,
   groq,
+  openrouter,
 } from '@/lib/ai/provider-runtime';
 import { buildEditorialAuditContext, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
@@ -29,6 +32,7 @@ const parseCookies = (cookieHeader: string | undefined): Record<string, string> 
   }, {} as Record<string, string>);
 };
 
+// POST /api/strategist/quick-draft
 router.post('/', async (req, res) => {
   const featureFlags = await getAllFeatureFlags();
   if (featureFlags.maintenance_mode || !featureFlags.ai_processing_enabled) {
@@ -48,7 +52,7 @@ router.post('/', async (req, res) => {
         secretKey: process.env.CLERK_SECRET_KEY,
       }) as Record<string, unknown>;
     } catch (err) {
-      console.warn('Failed to verify Clerk token in /api/draft:', err);
+      console.warn('Failed to verify Clerk token in /api/strategist/quick-draft:', err);
     }
   }
 
@@ -154,7 +158,7 @@ router.post('/', async (req, res) => {
       outline?: string;
       referenceText?: string;
       metadata?: ArticleMetadata;
-      provider?: 'gemini' | 'groq';
+      provider?: 'gemini' | 'groq' | 'openrouter';
       draftMode?: 'topic' | 'outline' | 'reference' | 'press_release';
       mode?: 'draft' | 'outline';
     };
@@ -171,10 +175,11 @@ router.post('/', async (req, res) => {
 
     const isGeminiMock = provider === 'gemini' && (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'empty');
     const isGroqMock = provider === 'groq' && (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === 'empty');
+    const isOpenRouterMock = provider === 'openrouter' && (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'empty');
 
-    if (isGeminiMock || isGroqMock) {
+    if (isGeminiMock || isGroqMock || isOpenRouterMock) {
       sendEvent('status', 'generating');
-      
+
       let mockContent = '';
       if (mode === 'outline') {
         mockContent = `## Introduction to ${topic}\n`;
@@ -190,7 +195,7 @@ router.post('/', async (req, res) => {
       } else {
         let mockDraft = `## introduction to ${topic}\n\n`;
         mockDraft += `This is a mock draft generated for the topic: **${topic}**. In development mode, EAI streams this placeholder text to simulate the drafting process. EAI Drafting Assistant generates a structured draft based on user inputs.\n\n`;
-        
+
         if (outline) {
           mockDraft += `## key outlines\n\n`;
           const lines = outline.split('\n');
@@ -209,7 +214,7 @@ router.post('/', async (req, res) => {
 
         mockDraft += `## conclusion\n\n`;
         mockDraft += `This represents the end of the mock draft. You can now edit this text in the editor, customize it, and then click **Refine Draft** to start the staged AI editorial polishing, keyword checking, and final quality gate audit.\n`;
-        
+
         mockContent = mockDraft;
       }
 
@@ -257,12 +262,7 @@ router.post('/', async (req, res) => {
     sendEvent('status', 'generating');
     const userPrompt = mode === 'outline'
       ? `Generate a structured outline for this topic:\nTOPIC: ${topic}`
-      : `Generate a structured rough draft based on this topic:
-TOPIC: ${topic}
-
-${outline ? `OUTLINE / KEY POINTS:\n${outline}` : ''}
-${referenceText ? `REFERENCE MATERIAL / SOURCE NOTES:\n${referenceText}` : ''}
-`;
+      : `Generate a structured rough draft based on this topic:\nTOPIC: ${topic}\n\n${outline ? `OUTLINE / KEY POINTS:\n${outline}` : ''}\n${referenceText ? `REFERENCE MATERIAL / SOURCE NOTES:\n${referenceText}` : ''}\n`;
 
     let draftText = '';
     let modelName = 'unknown-model';
@@ -282,6 +282,23 @@ ${referenceText ? `REFERENCE MATERIAL / SOURCE NOTES:\n${referenceText}` : ''}
 
       for await (const chunk of draftStream) {
         const partText = extractGeminiText(chunk);
+        draftText += partText;
+        sendEvent('draft_chunk', partText);
+      }
+    } else if (provider === 'openrouter') {
+      modelName = getOpenRouterModelForRole('author', 'balanced');
+      const openRouterStream = await openrouter.chat.completions.create({
+        model: modelName,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        stream: true,
+        temperature: 0.45,
+      });
+
+      for await (const chunk of openRouterStream) {
+        const partText = extractOpenRouterText(chunk);
         draftText += partText;
         sendEvent('draft_chunk', partText);
       }
@@ -337,7 +354,7 @@ ${referenceText ? `REFERENCE MATERIAL / SOURCE NOTES:\n${referenceText}` : ''}
     sendEvent('complete', { analysisLogId: savedLogId });
     res.end();
   } catch (error) {
-    console.error('Draft generation error:', error);
+    console.error('Quick draft generation error:', error);
     sendEvent('error', error instanceof Error ? error.message : String(error));
     res.end();
   }

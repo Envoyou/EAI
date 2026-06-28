@@ -7,10 +7,13 @@ import {
   type AiProvider,
   type AnalysisSpeed,
   extractGeminiText,
+  extractOpenRouterText,
   gemini,
   getGeminiSamplingConfig,
+  getOpenRouterModelForRole,
   GROQ_MODEL,
   groq,
+  openrouter,
 } from './provider-runtime';
 import {
   buildEditorialUserContent,
@@ -66,6 +69,18 @@ export const runTargetedFixStage = async ({
       temperature: 0.2,
     });
     replacementText = response.choices[0]?.message?.content?.trim() || '';
+  } else if (provider === 'openrouter') {
+    modelName = getOpenRouterModelForRole('editor', analysisSpeed);
+    const response = await openrouter.chat.completions.create({
+      model: modelName,
+      messages: [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: contents },
+      ],
+      max_tokens: 800,
+      temperature: 0.2,
+    });
+    replacementText = extractOpenRouterText(response).trim();
   } else {
     modelName = analysisSpeed === 'fast'
       ? 'gemini-3.1-flash-lite'

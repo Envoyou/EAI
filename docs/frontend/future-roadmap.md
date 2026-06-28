@@ -74,21 +74,18 @@ Fase ini mendukung standar editorial tenant dan kolaborasi tim dalam skala lebih
 
 Fase ini mengembangkan AI Drafting Assistant menjadi workspace berbasis sumber dan riset agen.
 
-1.  **Workspace sumber terkelola** (Sebagian diimplementasikan pada v0.26.0):
-    *   AI Draft sudah menerima catatan sumber dan dapat mengimpor teks dari URL eksternal.
-    *   Menggantikan kolom masukan referensi statis dengan dasbor pengelolaan sumber daya (*Source Manager*).
-    *   Mendukung berbagai jenis sumber daya: unggah berkas PDF/dokumen, catatan teks, tautan URL eksternal, dan transkrip otomatis dari video YouTube.
-    *   Semua teks sumber akan diekstraksi secara bersih dan disajikan di panel samping kiri sebagai dasar referensi penulisan.
-2.  **Chatbot interaktif berbasis sumber**:
-    *   Menyediakan panel obrolan (Chat Assistant) di mana penulis dapat berdiskusi secara interaktif dengan AI mengenai sumber daya yang diunggah.
-    *   Penulis dapat meminta rangkuman lintas dokumen, pencarian data spesifik, perbandingan sudut pandang, hingga pembuatan draf artikel secara bertahap (per sub-bab).
-    *   AI wajib menyertakan sitasi berupa tautan/indeks ke sumber daya dokumen yang valid guna menghindari halusinasi data.
-3.  ~~**Penyusunan draf kasar langsung ke editor**~~ (Diimplementasikan pada v0.26.0):
-    *   AI Drafting Assistant membuat outline dan draf kasar secara streaming langsung di editor utama.
-    *   Mode topic, outline, references, dan press release tersedia sebagai jalur pembuatan draf.
-4.  **Integrasi deep research agent**:
-    *   Menyematkan agen pencarian asinkron berbasis Google Deep Research / Web Search APIs.
-    *   Ketika penulis menanyakan klaim baru atau meminta fakta tambahan yang tidak ada di dokumen sumber, agen riset akan mencari informasi terbaru secara mandiri di web, memverifikasi klaim, dan menambahkan rangkumannya sebagai dokumen sumber baru secara otomatis.
+1.  ~~**Workspace sumber terkelola**~~ (Diimplementasikan sebagai Research Notes Studio):
+    *   Menggantikan kolom masukan referensi statis dengan *Research Notes Studio* di panel samping.
+    *   Output dari Copilot dapat disimpan secara dinamis sebagai Catatan Riset (*Research Notes*) ke dalam *session storage*.
+    *   Semua catatan sumber disajikan di panel samping sebagai dasar referensi penulisan untuk di-sintesis oleh AI Draft Generator.
+2.  ~~**Chatbot interaktif berbasis sumber**~~ (Diimplementasikan sebagai EAI Research Copilot):
+    *   Menyediakan panel obrolan terdedikasi (Copilot) di mana penulis dapat berdiskusi, menganalisis data, dan menyusun *blueprint* artikel.
+    *   AI memberikan respons dinamis dengan dukungan sitasi gaya Perplexity untuk akurasi data.
+3.  ~~**Penyusunan draf kasar langsung ke editor**~~ (Diimplementasikan pada v0.26.0 & terbaru):
+    *   AI Drafting Assistant dan *endpoint* `generate-draft-from-notes` membuat draf secara *streaming* langsung di editor utama dari sumber/catatan riset yang dipilih.
+4.  ~~**Integrasi deep research agent**~~ (Diimplementasikan melalui Gemini Interactions API):
+    *   Menyematkan agen pencarian asinkron berbasis alat Google Search Grounding di dalam mode interaktif Copilot.
+    *   Saat di mode *Deep*, Copilot secara independen mencari informasi terbaru di web, memverifikasi klaim, dan mensintesis hasilnya untuk dikumpulkan ke dalam *Research Notes*.
 
 ## Fase 5: Legal dan compliance untuk paid SaaS
 
