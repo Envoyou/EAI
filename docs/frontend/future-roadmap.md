@@ -32,6 +32,9 @@ Fase ini meningkatkan stabilitas sistem dan membantu tim memantau kualitas serta
     *   Add/deduct credit dicatat sebagai ledger `manual_adjustment` pada organization aktif dengan idempotency key dan konfirmasi eksplisit.
     *   Audit menyimpan pelaku, waktu, target organization, jumlah, alasan, dan referensi tiket tanpa mengubah saldo secara langsung.
     *   Referensi support dapat diverifikasi secara read-only ke Zoho Desk dan disimpan bersama external ticket ID serta URL audit.
+6.  **Admin UI AI Provider (Pengaturan Model AI)**:
+    *   Membangun halaman Admin UI di sisi frontend (`/settings/system/ai-config`) untuk memungkinkan administrator non-teknis mengganti *AI Provider* dan *Model* secara instan (Gemini, Groq, OpenRouter) tanpa perlu mengakses server VPS.
+    *   Memanfaatkan kolom `aiProviderOverride` yang sudah ada di database untuk memberikan kemampuan konfigurasi model spesifik per-penyewa (*Organization*).
 
 ## Fase 2: Ekspansi fitur dan peran
 
