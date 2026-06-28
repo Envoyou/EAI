@@ -19,6 +19,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Monorepo Architecture (TurboRepo)**: Merged `frontend` and `backend` repositories into a single monorepo to simplify release cycles and CI/CD.
 - **Shared Package (`@eai/shared`)**: Moved all duplicate data types, Zod schemas, helper functions, JSON stream utilities, and configuration constants into a single source of truth under `packages/shared`. This officially pays off the Technical Debt of synchronizing data between repositories.
 - **Server vs Client Export Isolation**: Exports in `@eai/shared` are separated with a `"./server"` path for backend/edge-specific logic that is incompatible with browser client interfaces like Webpack.
+- **Copilot Soft Auth & Rate Limiting**: Added Clerk token verification (soft auth) and custom in-memory rate limiting (20 req/min for chat, 10 req/min for plan) on strategist routes to safeguard backend endpoints.
 
 ### Changed
 - **Separation of Fast & Deep Chat Modes**: Overhauled the Copilot backend API to properly differentiate between query depths. "Fast" mode now strips out expensive tools (`url_context`, `code_execution`) and strictly limits Google Search to a single iteration for instant, cost-effective responses.
@@ -26,6 +27,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Dark Mode Palette Refinement**: Overhauled the Dark Mode color palette to use a neutral, high-contrast monochrome aesthetic based on `#121211`. Replaced hardcoded slate and blue brand colors in `PricingCheckoutButton`, `StatusBar`, and sidebar with native design system variables for a cohesive look.
 - **Sidebar Animation**: Refactored the `AppSidebarShell` layout transitions to resolve icon jittering during collapse. Used `max-width` interpolation instead of immediate `display: none` for smooth folding.
 - **Editor Layout Animations**: Refactored the Editorial Workspace layout to use fluid `framer-motion` width animations for the Research Notes Studio and Feedback panels. When side panels are hidden, the main text editor gracefully centers itself using a dynamic `max-width` transition, creating an elegant distraction-free writing mode.
+- **Relative Path Routing**: Replaced absolute API URLs with relative paths in the Research Copilot UI to route fetches via Next.js proxy middleware, ensuring seamless session token injection.
 
 ### Fixed
 - **TypeScript `InteractionSSEEvent` discrimination**: Resolved an IDE type error caused by an invalid `event.step` and `event.delta` property lookup on discriminated unions.
@@ -34,6 +36,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **ESLint `no-explicit-any`**: Fixed build failing Linter errors in `strategist.ts` by defining proper interfaces (`{ role: string; content: string }`) for the interaction history map instead of typecasting to `any`.
 - **Blank Signup UI Bug**: Fixed Webpack bundler interference on the frontend where it attempted to package the `node:crypto` dependency and Edge Config types during authentication (Sign-up/Sign-in) due to a barrel export in `packages/shared`.
 - **Clerk v6 Fallback Loop**: Configured `fallbackRedirectUrl` on Clerk SSO components (Sign Up & Sign In) to avoid infinite redirect loops or stuck loading states for accounts already recognized by the system.
+- **Note Citation Stripping**: Stripped inline citation links (`\s*\[\d+\]\([^)]+\)`) from research note contents prior to generating drafts, resolving the dual-truth problem where the model was confused by duplicated source references.
+- **Blueprint Domain Extraction**: Fixed domain hostname parsing from blueprint sources URLs instead of mapping all domains to a hardcoded `'Source'` string.
 
 ## [0.37.0] - 2026-06-23
 

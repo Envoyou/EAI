@@ -1,11 +1,66 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { gemini } from '@/lib/ai/provider-runtime';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { composeEditorialPrompt, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { parseJsonResponse } from '@eai/shared';
+import { verifyToken } from '@clerk/backend';
 
 const router = Router();
+
+interface RateLimitBucket {
+  count: number;
+  resetTime: number;
+}
+
+const rateLimitStore = new Map<string, RateLimitBucket>();
+
+function rateLimiter(options: { windowMs: number; max: number; message: string }) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const xffHeader = req.headers['x-forwarded-for'];
+    const xff = Array.isArray(xffHeader) ? xffHeader[0] : xffHeader;
+    const key = req.auth?.userId || req.ip || xff || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    let bucket = rateLimitStore.get(key);
+    
+    if (!bucket || now > bucket.resetTime) {
+      bucket = {
+        count: 1,
+        resetTime: now + options.windowMs,
+      };
+      rateLimitStore.set(key, bucket);
+      return next();
+    }
+    
+    if (bucket.count >= options.max) {
+      return res.status(429).json({ error: options.message });
+    }
+    
+    bucket.count++;
+    next();
+  };
+}
+
+async function softAuth(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      if (token) {
+        const payload = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
+        req.auth = {
+          userId: payload.sub,
+          orgId: (payload.org_id as string) || null,
+          orgSlug: (payload.org_slug as string) || null,
+          orgRole: (payload.org_role as string) || null,
+        };
+      }
+    } catch (err) {
+      console.warn('[Strategist Soft Auth] Token verification failed:', err);
+    }
+  }
+  next();
+}
 
 // Configure the model to use for the Content Strategist Wizard
 const MODEL = process.env.GEMINI_COPILOT_MODEL || 'gemini-3.5-flash';
@@ -108,7 +163,7 @@ router.post('/greet', async (req, res) => {
 /**
  * 2. Insight Conversation (Chat)
  */
-router.post('/chat', async (req, res) => {
+router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 'Too many requests. Please try again later.' }), async (req, res) => {
   try {
     const { messages, mode } = req.body;
     
@@ -326,7 +381,7 @@ router.get('/chat/status/:id', async (req, res) => {
 /**
  * 4. Generate Pre-Editor Plan
  */
-router.post('/generate-plan', async (req, res) => {
+router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, message: 'Too many requests. Please try again later.' }), async (req, res) => {
   try {
     const { recommendation, history } = req.body;
 
@@ -428,7 +483,6 @@ router.post('/generate-draft-from-notes', async (req, res) => {
       try {
         const token = authHeader.split(' ')[1];
         if (token) {
-          const { verifyToken } = await import('@clerk/backend');
           const payload = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
           userId = payload.sub;
           orgId = (payload.org_id as string) || null;
@@ -474,7 +528,8 @@ router.post('/generate-draft-from-notes', async (req, res) => {
       const sourcesText = n.sources && n.sources.length > 0 
         ? `Sources: ${n.sources.map(s => s.url).join(', ')}`
         : '';
-      return `NOTE ${i + 1}:\n${n.content}\n${sourcesText}`;
+      const cleanContent = n.content.replace(/\s*\[\d+\]\([^)]+\)/g, '');
+      return `NOTE ${i + 1}:\n${cleanContent}\n${sourcesText}`;
     }).join('\n\n---\n\n');
 
     const basePrompt = `

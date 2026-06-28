@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp, Upload, Link as LinkIcon, Search, X, FileText, Rocket, ExternalLink, Newspaper, Loader2, List, Bookmark, Check, Edit3, Target } from 'lucide-react';
 import { toast } from 'sonner';
-import { getApiUrl } from '@/lib/api-url';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useUser } from '@clerk/nextjs';
@@ -136,7 +135,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`${getApiUrl()}/api/strategist/chat/status/${activeDeepResearchId}`);
+        const res = await fetch(`/api/strategist/chat/status/${activeDeepResearchId}`);
         if (res.ok) {
           const data = await res.json();
           if (data.state === 'COMPLETED' && data.output) {
@@ -253,7 +252,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     }
 
     try {
-      const res = await fetch(`${getApiUrl()}/api/strategist/quick-draft`, {
+      const res = await fetch(`/api/strategist/quick-draft`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -359,7 +358,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     setIsTyping(true);
 
     try {
-      const res = await fetch(`${getApiUrl()}/api/strategist/generate-plan`, {
+      const res = await fetch(`/api/strategist/generate-plan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recommendation: recommendationText, history }), 
@@ -370,7 +369,13 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
       if (data.plan) {
         setCurrentPlan(data.plan);
         if (data.plan?.sources && data.plan.sources.length > 0) {
-          const fakeDomains = data.plan.sources.map((url: string) => ({ url, domain: 'Source' }));
+          const fakeDomains = data.plan.sources.map((url: string) => {
+            let domain = 'Source';
+            try {
+              domain = new URL(url).hostname.replace('www.', '');
+            } catch {}
+            return { url, domain };
+          });
           setCollectedSources(prev => [...prev, ...fakeDomains]);
         }
       }  
@@ -425,7 +430,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     }
 
     try {
-      const res = await fetch(`${getApiUrl()}/api/strategist/chat`, {
+      const res = await fetch(`/api/strategist/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: updatedMessages, mode: researchMode }),

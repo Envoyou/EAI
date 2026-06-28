@@ -19,21 +19,25 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Monorepo Architecture (TurboRepo)**: Menggabungkan repositori `frontend` dan `backend` menjadi satu monorepo tunggal untuk menyederhanakan siklus rilis dan CI/CD.
 - **Shared Package (`@eai/shared`)**: Memindahkan semua tipe data, skema Zod, *helper functions*, utilitas stream JSON, dan *constant* konfigurasi yang duplikat menjadi satu *single source of truth* di `packages/shared`. Ini secara resmi melunasi *Technical Debt* dari sinkronisasi data antar repositori.
 - **Server vs Client Export Isolation**: Ekspor di `@eai/shared` dipisah dengan jalur `"./server"` untuk logika spesifik *backend/edge* yang tidak kompatibel dengan antarmuka klien *browser* seperti Webpack.
+- **Autentikasi Lembut & Pembatasan Akses Copilot**: Menambahkan verifikasi token Clerk (soft auth) dan pembatasan akses custom (rate limiting) secara in-memory (20 req/menit untuk chat, 10 req/menit untuk plan) pada rute strategist.
 
 ### Changed
 - **Separation of Fast & Deep Chat Modes**: Merombak API backend Copilot untuk membedakan kedalaman kueri dengan benar. Mode "Fast" kini menghapus alat yang mahal (`url_context`, `code_execution`) dan secara ketat membatasi Google Search hanya pada satu iterasi demi mendapatkan respons instan yang lebih hemat biaya.
 - **Deep Research Spending Cap Protection**: Menerapkan pembatasan *prompt* yang ketat pada *background agent* `deep-research-preview-04-2026` (maksimal 5 kueri pencarian). Ini mencegah *looping* tak terhingga yang dapat menguras batas pengeluaran proyek Google Cloud (`RateLimitError: 429`).
 - **Dark Mode Palette Refinement**: Merombak palet warna *Dark Mode* untuk menggunakan estetika monokrom netral berkontras tinggi berbasis `#121211`. Mengganti warna bawaan *slate* dan biru *brand* pada `PricingCheckoutButton`, `StatusBar`, dan *sidebar* dengan variabel dari sistem desain (*design system*) asli untuk tampilan yang lebih padu.
 - **Sidebar Animation**: Melakukan *refactoring* pada transisi tata letak `AppSidebarShell` untuk menyelesaikan masalah ikon yang terguncang (*jittering*) saat ditutup (*collapse*). Menggunakan interpolasi `max-width` alih-alih `display: none` secara instan agar proses melipat menjadi halus.
-- **Editor Layout Animations**: Melakukan *refactoring* tata letak Editorial Workspace untuk menggunakan animasi lebar yang mulus dari `framer-motion` pada panel Research Notes Studio dan Feedback. Saat panel samping disembunyikan, editor teks utama secara anggun memfokuskan posisinya ke tengah layar menggunakan transisi `max-width` dinamis, menciptakan mode penulisan bebas gangguan yang elegan.
+- **Editor Layout Animations**: Melakukan *refactoring tata letak Editorial Workspace untuk menggunakan animasi lebar yang mulus dari `framer-motion` pada panel Research Notes Studio dan Feedback. Saat panel samping disembunyikan, editor teks utama secara anggun memfokuskan posisinya ke tengah layar menggunakan transisi `max-width` dinamis, menciptakan mode penulisan bebas gangguan yang elegan.
+- **Routing Relative Path**: Mengganti URL API absolut dengan path relatif pada Research Copilot UI untuk melewatkan fetch melalui middleware proxy Next.js, memastikan injeksi token sesi berjalan otomatis.
 
 ### Fixed
-- **TypeScript `InteractionSSEEvent` discrimination**: Menyelesaikan *error* tipe data IDE yang disebabkan oleh pencarian properti `event.step` dan `event.delta` yang tidak valid pada *discriminated unions*.
+- **TypeScript `InteractionSSEEvent` discrimination**: Menyelesaikan *error* tipe data IDE yang disebabkan oleh pencarian properti `event.step` and `event.delta` yang tidak valid pada *discriminated unions*.
 - **Backend Lint Errors**: Menghapus *import* `requireAuth` dan `ENVOYOU_PROFILE_ID` yang tidak terpakai di *routes* `strategist` untuk memperbaiki kegagalan *lint* pada saat *build*.
 - **Stale LocalStorage State**: Menghapus referensi `eai-provider` yang usang dari hidrasi *state* workspace di *frontend* karena resolusi model AI sekarang ditangani secara aman di sisi server.
 - **ESLint `no-explicit-any`**: Memperbaiki masalah *error* Linter saat *build* pada `strategist.ts` dengan mendefinisikan antarmuka yang tepat (`{ role: string; content: string }`) untuk *map* riwayat interaksi, menggantikan *typecast* ke `any`.
 - **Blank Signup UI Bug**: Memperbaiki intervensi *bundler* Webpack di sisi *frontend* di mana ia mencoba memaketkan dependensi `node:crypto` dan tipe *Edge Config* saat proses autentikasi (Sign-up/Sign-in) akibat *barrel export* dari `packages/shared`.
 - **Clerk v6 Fallback Loop**: Mengkonfigurasi `fallbackRedirectUrl` pada komponen SSO (Daftar & Masuk) Clerk untuk menghindari perilaku siklus *redirect* tak terhingga atau penahanan rendering (*stuck loading*) untuk akun yang sudah dikenali sistem.
+- **Pembersihan Sitasi Catatan**: Membuang tautan sitasi sebaris (`\s*\[\d+\]\([^)]+\)`) dari konten catatan riset sebelum pembuatan draf awal, mengatasi kebingungan model (dual-truth problem) terhadap referensi sumber ganda.
+- **Ekstraksi Domain Blueprint**: Memperbaiki pemformatan nama domain dari URL sumber cetak biru (blueprint) agar menampilkan hostname yang valid, menggantikan penulisan statis `'Source'`.
 
 ## [0.37.0] - 2026-06-23
 

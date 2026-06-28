@@ -23,6 +23,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/analytics/webhook(.*)',
   '/api/analyze(.*)',
   '/api/strategist/quick-draft(.*)',
+  '/api/strategist/chat(.*)',
+  '/api/strategist/generate-plan(.*)',
   '/api/checkout',
   '/api/payments/status',
   '/api/workspace/config',
