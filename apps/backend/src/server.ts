@@ -19,6 +19,7 @@ import adminRouter from './routes/admin';
 import analyticsRouter from './routes/analytics';
 import strategistRouter from './routes/strategist';
 import strategistQuickDraftRouter from './routes/strategist/quick-draft';
+import editorRouter from './routes/editor';
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -82,6 +83,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/strategist', strategistRouter);
 app.use('/api/strategist/quick-draft', strategistQuickDraftRouter);
+app.use('/api/editor', editorRouter);
 
 // Error Handler
 app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {

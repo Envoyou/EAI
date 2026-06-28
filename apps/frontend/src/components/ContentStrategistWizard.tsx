@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUp, Upload, Link as LinkIcon, Search, X, FileText, Rocket, ExternalLink, Newspaper, Loader2, List, Bookmark, Check } from 'lucide-react';
+import { ArrowUp, Upload, Link as LinkIcon, Search, X, FileText, Rocket, ExternalLink, Newspaper, Loader2, List, Bookmark, Check, Edit3, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '@/lib/api-url';
 import ReactMarkdown from 'react-markdown';
@@ -69,6 +69,39 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [showSlashMenu, setShowSlashMenu] = useState(false);
+  const [slashMenuIndex, setSlashMenuIndex] = useState(0);
+
+  const slashCommands = [
+    { id: 'generate-plan', label: 'Generate Plan', icon: <FileText className="w-4 h-4" /> },
+    { id: 'open-editor', label: 'Open Editor', icon: <Edit3 className="w-4 h-4" /> },
+    { id: 'research-topic', label: 'Research Topic', icon: <Search className="w-4 h-4" /> },
+    { id: 'seo-strategy', label: 'SEO Strategy', icon: <Target className="w-4 h-4" /> },
+  ];
+
+  const executeSlashCommand = (id: string) => {
+    setShowSlashMenu(false);
+    
+    if (id === 'generate-plan') {
+      setChatInput('Draft a plan for: ');
+    } else if (id === 'open-editor') {
+      if (currentPlan) {
+        onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, savedNotes);
+      } else {
+        toast.error("No plan available to open editor.");
+        setChatInput('');
+      }
+    } else if (id === 'research-topic') {
+      setChatInput('research topic: ');
+    } else if (id === 'seo-strategy') {
+      setChatInput('seo strategy for: ');
+    }
+    
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
 
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [researchMode, setResearchMode] = useState<'fast' | 'deep'>('fast');
@@ -652,19 +685,76 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                   </>
                 )}
 
+                    {/* Slash Command Menu */}
+                    <AnimatePresence>
+                      {showSlashMenu && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="absolute bottom-full left-0 mb-2 w-64 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden py-1 z-50"
+                        >
+                          <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Commands</div>
+                          {slashCommands.map((cmd, idx) => (
+                            <button
+                              key={cmd.id}
+                              type="button"
+                              onClick={() => executeSlashCommand(cmd.id)}
+                              className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${slashMenuIndex === idx ? 'bg-[var(--surface-2)] text-[var(--foreground)]' : 'hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}
+                            >
+                              <div className="text-[var(--primary)]">{cmd.icon}</div>
+                              <span>{cmd.label}</span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                 <textarea
                   ref={textareaRef}
                   value={chatInput}
                   onChange={e => {
-                    setChatInput(e.target.value);
+                    const val = e.target.value;
+                    setChatInput(val);
+                    
+                    if (val === '/') {
+                      setShowSlashMenu(true);
+                      setSlashMenuIndex(0);
+                    } else if (!val.startsWith('/')) {
+                      setShowSlashMenu(false);
+                    }
+
                     if (textareaRef.current) {
                       textareaRef.current.style.height = 'auto';
                       const newHeight = textareaRef.current.scrollHeight;
                       textareaRef.current.style.height = `${newHeight}px`;
-                      setIsExpanded(newHeight > 50 || e.target.value.includes('\n'));
+                      setIsExpanded(newHeight > 50 || val.includes('\n'));
                     }
                   }}
                   onKeyDown={(e) => {
+                    if (showSlashMenu) {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setSlashMenuIndex((prev) => (prev + 1) % slashCommands.length);
+                        return;
+                      }
+                      if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setSlashMenuIndex((prev) => (prev - 1 + slashCommands.length) % slashCommands.length);
+                        return;
+                      }
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        executeSlashCommand(slashCommands[slashMenuIndex].id);
+                        return;
+                      }
+                      if (e.key === 'Escape') {
+                        e.preventDefault();
+                        setShowSlashMenu(false);
+                        return;
+                      }
+                    }
+
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleSend();

@@ -7,6 +7,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Tiptap Rich-Text Editor**: Menggantikan textarea Markdown mentah dengan editor rich-text tangguh berbasis Tiptap untuk pengalaman menulis yang mulus.
+- **Slash Commands Accelerator (`/`)**: Memperkenalkan menu perintah slash interaktif langsung di dalam editor untuk memicu pemformatan cepat dan operasi AI (misal: Generate Paragraph, SEO Optimize, Add Citation).
+- **AI Action Endpoint**: Membuat endpoint backend khusus (`/api/editor/ai-action`) untuk menangani aksi AI granular pada editor secara aman.
+- **AI Preview Block (Accept/Reject)**: Mengimplementasikan blok pratinjau sebaris untuk hasil edit AI. Pengguna kini dapat meninjau saran AI dan memilih "Accept" (Terima) atau "Reject" (Tolak) sebelum digabungkan ke dokumen, menjaga kontrol penulis atas draf mereka.
+- **Lazy Markdown Serialization**: Mengonfigurasi `tiptap-markdown` untuk memparsing JSON ProseMirror menjadi Markdown secara *lazy* (hanya saat dibutuhkan), meningkatkan performa editor secara signifikan dibandingkan melakukan sinkronisasi pada setiap ketikan.
 - **Research Notes Studio**: Menambahkan integrasi `sessionStorage` lokal untuk menyimpan output AI sebagai "Catatan Riset". Terdapat UI berbasis akordion di sidebar Editor menggunakan `framer-motion` untuk mengulas dan mengelola sumber fakta yang dikumpulkan.
 - **AI Draft Generator**: Mengimplementasikan *endpoint* streaming `/api/strategist/generate-draft-from-notes`. Endpoint ini menerima catatan riset yang dipilih, mensintesisnya menggunakan Gemini Interactions API, dan memancarkan (streaming) draf pertama yang utuh langsung ke kanvas Editor.
 - **EAI Research Copilot (Fitur Baru)**: Meluncurkan AI "Thinking Partner" interaktif untuk *content strategists*. Dibangun menggunakan Gemini Interactions API, fitur ini memiliki antarmuka chat dinamis dengan input yang dapat menyesuaikan ukuran secara otomatis, *Grounding* Google Search secara *real-time*, render Markdown secara *streaming*, dan sitasi sebaris ala Perplexity. Copilot ini membantu pengguna dari analisis data awal hingga menyusun draf cetak biru (*blueprints*) konten.

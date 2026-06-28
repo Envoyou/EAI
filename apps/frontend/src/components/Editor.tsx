@@ -8,6 +8,14 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ContentStrategistWizard from './ContentStrategistWizard';
 import type { ResearchNote } from './ContentStrategistWizard';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import { Markdown } from 'tiptap-markdown';
+import { SlashCommand, renderItems, getSuggestionItems } from './editor/extensions/slash-command';
+import { BubbleMenuAI } from './editor/BubbleMenuAI';
+import { AIPreviewExtension } from './editor/extensions/ai-preview-extension';
+import { AiActionExtension } from './editor/extensions/ai-action-extension';
 
 interface EditorProps {
   value: string;
@@ -80,6 +88,55 @@ export default function Editor({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      Placeholder.configure({ placeholder }),
+      Markdown,
+      AIPreviewExtension,
+      AiActionExtension,
+      SlashCommand.configure({
+        suggestion: {
+          items: getSuggestionItems,
+          render: renderItems,
+        },
+      }),
+    ],
+    content: value,
+    editorProps: {
+      attributes: {
+        class: 'editor-canvas flex-1 w-full max-w-[800px] mx-auto resize-none border-0 outline-none px-6 py-6 md:px-12 md:py-10 leading-[1.85] font-serif text-[16px] bg-transparent text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-0 prose prose-sm dark:prose-invert focus:outline-none min-h-[500px]',
+      },
+      handleKeyDown: (view, event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+          event.preventDefault();
+          if (onAnalyze) {
+            const md = (editor?.storage as unknown as { markdown?: { getMarkdown: () => string } })?.markdown?.getMarkdown();
+            onChange(md || ''); // Serialize immediately on refine
+            onAnalyze();
+          }
+          return true;
+        }
+        return false;
+      },
+    },
+    onFocus: () => setIsFocused(true),
+    onBlur: () => setIsFocused(false),
+  });
+
+  useEffect(() => {
+    if (!editor) return;
+    const interval = setInterval(() => {
+      // Background sync for auto-save (lazy markdown serialization)
+      if (!isFocused) return;
+      const md = (editor.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
+      if (md !== prevValueRef.current) {
+        onChange(md);
+        prevValueRef.current = md;
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [editor, isFocused, onChange]);
 
   // Randomise placeholder only on client to avoid SSR hydration mismatch
   useEffect(() => {
@@ -97,14 +154,7 @@ export default function Editor({
     prevValueRef.current = value;
   }, [value, isFocused]);
   
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault();
-      if (!isLoading && value.trim().length > 0 && !isOverLimit && onAnalyze) {
-        onAnalyze();
-      }
-    }
-  };
+
 
   const handleCopy = async () => {
     if (!value.trim()) return;
@@ -470,21 +520,10 @@ export default function Editor({
             </div>
           )
         ) : (
-          <textarea
-            ref={textareaRef}
-            name="article-draft"
-            autoComplete="off"
-            aria-label="Article draft"
-            className="editor-canvas flex-1 w-full max-w-[800px] mx-auto resize-none border-0 outline-none px-6 py-6 md:px-12 md:py-10 leading-[1.85] font-serif text-[16px] bg-transparent text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-0"
-            placeholder={placeholder}
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            disabled={isLoading}
-            spellCheck
-          />
+          <div className="relative flex-1 w-full overflow-y-auto" onClick={() => editor?.commands.focus()}>
+            {editor && <BubbleMenuAI editor={editor} />}
+            <EditorContent editor={editor} className="w-full h-full" />
+          </div>
         )}
 
         <div className="shrink-0 flex items-center justify-between border-t border-[var(--border)] px-5 py-2 md:px-6 bg-transparent">

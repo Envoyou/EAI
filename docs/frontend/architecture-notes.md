@@ -201,5 +201,15 @@ Publication Identity dibuat:
 5. **Use defaults** membuat profil editorial default pada organisasi aktif dan
    tidak membuat workspace lokal personal.
 
+## 10. Arsitektur Editor (Tiptap & Markdown)
+
+Sistem menggunakan **Tiptap** sebagai editor teks kaya (*Rich Text Editor*) untuk memberikan pengalaman pengguna (UX) yang lebih baik dan interaktif dibandingkan raw textarea. Meskipun demikian, arsitektur ini secara tegas mempertahankan **Markdown sebagai format sumber kebenaran (Source of Truth)**, baik untuk penyimpanan, pengiriman data, maupun pemrosesan AI.
+
+*   **Pemisahan Tanggung Jawab (Separation of Concerns)**:
+    *   **Sisi Klien (UI)**: Merender dokumen secara visual (*Rich Text*), mengelola kursor, seleksi, serta menyediakan antarmuka aksi seperti *Slash Commands* (`/`) dan menu *AI Inline Actions*.
+    *   **Transport & Storage**: Secara otomatis menerjemahkan state Tiptap menjadi Markdown menggunakan ekstensi `tiptap-markdown`. Dengan ini, *backend* tidak perlu berurusan dengan pemrosesan atau sanitasi HTML.
+    *   **AI Pipeline**: Agen dan LLM tetap mengonsumsi dan menghasilkan teks Markdown murni, meminimalisasi kompleksitas tokenisasi dan menjaga struktur *prompt*.
+*   **AI Inline Action & Preview Flow**: Operasi AI yang bersifat lokal pada blok teks (misalnya, memperpanjang, meringkas, atau menulis ulang) dieksekusi melalui endpoint khusus `/api/editor/ai-action`. Sistem mengimplementasikan alur **Preview (Accept/Reject)**: alih-alih mengubah isi dokumen secara instan yang berpotensi menghilangkan konteks, editor memunculkan pratinjau hasil AI. Pengguna harus menekan "Accept" agar perubahan tersebut secara resmi menggantikan teks asli, memastikan bahwa pengguna (editor manusia) tetap memegang kendali penuh.
+
 Migrasi staging yang masih harus diterapkan ke production dicatat di
 [`PRODUCTION_DATABASE_MIGRATIONS.md`](./PRODUCTION_DATABASE_MIGRATIONS.md).

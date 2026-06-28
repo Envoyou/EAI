@@ -7,6 +7,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Tiptap Rich-Text Editor**: Replaced the raw Markdown textarea with a powerful Tiptap-based rich-text editor for a seamless writing experience.
+- **Slash Commands Accelerator (`/`)**: Introduced an interactive slash command menu directly in the editor to trigger quick formatting and AI operations (e.g., Generate Paragraph, SEO Optimize, Add Citation).
+- **AI Action Endpoint**: Created a dedicated backend endpoint (`/api/editor/ai-action`) specifically handling granular editor AI actions.
+- **AI Preview Block (Accept/Reject)**: Implemented an inline preview block for AI-generated edits. Users can now review the AI's suggestions and choose to "Accept" or "Reject" them before they are permanently merged into the document, preventing loss of control over the draft.
+- **Lazy Markdown Serialization**: Configured `tiptap-markdown` to parse ProseMirror JSON into Markdown lazily on demand, significantly improving editor performance compared to syncing on every keystroke.
 - **Research Notes Studio**: Added a local `sessionStorage` integration to save AI responses as "Research Notes". Includes an accordion-based UI in the Editor sidebar using `framer-motion` for reviewing collected factual sources.
 - **AI Draft Generator**: Implemented `/api/strategist/generate-draft-from-notes` streaming endpoint. This endpoint takes selected research notes, synthesizes them via Gemini interactions API, and streams a cohesive first draft directly into the Editor canvas.
 - **EAI Research Copilot (New Feature)**: Launched an interactive AI "Thinking Partner" for content strategists. Built on the Gemini Interactions API, it features a dynamic chat interface with auto-resizing inputs, real-time Google Search Grounding, streaming Markdown rendering, and Perplexity-style inline citations. The Copilot assists users from initial data analysis to drafting content blueprints.

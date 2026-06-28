@@ -3,6 +3,7 @@ import { gemini } from '@/lib/ai/provider-runtime';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { composeEditorialPrompt, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
+import { parseJsonResponse } from '@eai/shared';
 
 const router = Router();
 
@@ -14,10 +15,33 @@ const RESEARCH_MODEL = process.env.GEMINI_RESEARCH_MODEL || 'gemini-3.1-pro-prev
 const FAST_MODE_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_COPILOT_FAST_MAX_TOKENS) || 2048;
 const FAST_MODE_TEMPERATURE = Number(process.env.GEMINI_COPILOT_FAST_TEMPERATURE) || 0.35;
 
-const STRATEGIST_SYSTEM_PROMPT = `You are a senior content strategist for a B2B brand, If targetAudience != B2B, adapt tone and examples accordingly.
-Your role: analyze data, identify trends, and propose actionable editorial strategies.
-Output style: concise, data-driven, structured. Avoid fluff.
-Never write full articles — only research notes, outlines, and recommendations.`;
+const getStrategistSystemPrompt = () => {
+  const timezone = 'Asia/Jakarta';
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+
+  const currentYear = parts.find((part) => part.type === 'year')?.value || new Date().getFullYear().toString();
+  const month = parts.find((part) => part.type === 'month')?.value || '01';
+  const day = parts.find((part) => part.type === 'day')?.value || '01';
+  const currentDate = `${currentYear}-${month}-${day}`;
+
+  return `
+<role>
+You are a senior content strategist for a B2B brand. If targetAudience != B2B, adapt tone and examples accordingly.
+Your role is to analyze data, identify trends, and propose actionable editorial strategies.
+</role>
+
+<constraints>
+- Output style: concise, data-driven, structured. Avoid fluff.
+- Never write full articles — only research notes, outlines, and recommendations.
+- For time-sensitive user queries that require up-to-date information, the current time context is: ${currentDate} (${timezone}) (${currentYear}).
+</constraints>
+`.trim();
+};
 
 
 /**
@@ -29,15 +53,15 @@ router.post('/analyze-data', async (req, res) => {
     let inputPrompt = '';
 
     if (type === 'csv' || type === 'url') {
-      inputPrompt = `The user has uploaded their analytics data from: ${data}. Please analyze the top performing topics, traffic patterns, and user engagement, and propose a friendly opening message to start a discussion on their next content strategy.`;
+      inputPrompt = `<context>\nThe user has uploaded their analytics data from: ${data}\n</context>\n\n<task>\nPlease analyze the top performing topics, traffic patterns, and user engagement, and propose a friendly opening message to start a discussion on their next content strategy.\n</task>`;
     } else {
-      inputPrompt = `The user provided the following manual performance metrics: "${data}". Please analyze this and propose a friendly opening message to start a discussion on their next content strategy.`;
+      inputPrompt = `<context>\nThe user provided the following manual performance metrics: "${data}"\n</context>\n\n<task>\nPlease analyze this and propose a friendly opening message to start a discussion on their next content strategy.\n</task>`;
     }
 
     const interaction = await gemini.interactions.create({
       model: MODEL,
       input: inputPrompt,
-      system_instruction: STRATEGIST_SYSTEM_PROMPT + "\nKeep your responses concise, insightful, and engaging. DO NOT output Markdown formatting for this initial greeting.",
+      system_instruction: getStrategistSystemPrompt() + "\n\n<instructions>\nKeep your responses concise, insightful, and engaging. DO NOT output Markdown formatting for this initial greeting.\n</instructions>",
     });
 
     res.json({ reply: interaction.output_text });
@@ -63,8 +87,8 @@ router.post('/greet', async (req, res) => {
 
     const interaction = await gemini.interactions.create({
       model: MODEL,
-      input: "Greet the user to EAI Research Copilot. Introduce yourself as a Thinking Partner. Be concise, friendly, and offer to analyze their blog data, research trends, or brainstorm content.",
-      system_instruction: STRATEGIST_SYSTEM_PROMPT + "\nAlways provide 3-4 dynamic, clickable suggestion options.",
+      input: "<task>\nGreet the user to EAI Research Copilot. Introduce yourself as a Thinking Partner. Be concise, friendly, and offer to analyze their blog data, research trends, or brainstorm content.\n</task>",
+      system_instruction: getStrategistSystemPrompt() + "\n\n<instructions>\nAlways provide 3-4 dynamic, clickable suggestion options.\n</instructions>",
       response_format: { type: "text", mime_type: "application/json", schema: chatSchema }
     });
 
@@ -110,13 +134,13 @@ router.post('/chat', async (req, res) => {
       return { role: m.role, content: [{ type: 'text', text }] };
     });
 
-    const contextPrompt = history.map((m: { role: string, content: { text: string }[] }) => `${m.role}: ${m.content[0].text}`).join('\n') + `\nuser: ${chatInput}\nassistant:`;
+    const contextPrompt = `<context>\n${history.map((m: { role: string, content: { text: string }[] }) => `${m.role}: ${m.content[0].text}`).join('\n')}\n</context>\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
 
     if (mode === 'deep') {
       const interaction = await gemini.interactions.create({
         model: RESEARCH_MODEL,
-        input: contextPrompt + "\n\n[CRITICAL INSTRUCTION: YOU ARE IN DEEP RESEARCH MODE. Use Google Search thoroughly to gather facts, synthesize a comprehensive report, and ensure all claims are backed by credible sources.]",
-        system_instruction: STRATEGIST_SYSTEM_PROMPT,
+        input: contextPrompt + "\n\n<instructions>\nCRITICAL INSTRUCTION: YOU ARE IN DEEP RESEARCH MODE. Use Google Search thoroughly to gather facts, synthesize a comprehensive report, and ensure all claims are backed by credible sources.\n</instructions>",
+        system_instruction: getStrategistSystemPrompt(),
         tools: [{ type: "google_search" }],
         background: true
       });
@@ -131,20 +155,21 @@ router.post('/chat', async (req, res) => {
 
     // FAST MODE
     const FAST_MODE_INSTRUCTION = `
+<instructions>
 CRITICAL: You are in FAST MODE — a quick research assistant.
 Your task: answer the user's question with ONE focused, actionable insight.
-Each response must:
-- Be 2–4 sentences max (≈80–120 words).
-- Ground all your factual claims. The system will automatically append citations, so do NOT manually type URLs in your response.
-- End with exactly 3 short, clickable follow-up suggestions in this format:
+</instructions>
+
+<constraints>
+1. Be 2–4 sentences max (≈80–120 words).
+2. Ground all your factual claims. The system will automatically append citations, so do NOT manually type URLs in your response.
+3. End with exactly 3 short, clickable follow-up suggestions in this format:
 [SUGGESTIONS: Suggestion 1 | Suggestion 2 | Suggestion 3]
-
-DO NOT:
-- Write long lists, summaries, or multiple sections.
-- Repeat previous answers.
-- Output markdown headings.
-
-If the user asks for a broad topic, pick the most important angle and respond concisely.
+4. DO NOT write long lists, summaries, or multiple sections.
+5. DO NOT repeat previous answers.
+6. DO NOT output markdown headings.
+7. If the user asks for a broad topic, pick the most important angle and respond concisely.
+</constraints>
 `;
 
     const stream = await gemini.interactions.create({
@@ -153,7 +178,7 @@ If the user asks for a broad topic, pick the most important angle and respond co
       tools: [
         { type: "google_search" }
       ],
-      system_instruction: STRATEGIST_SYSTEM_PROMPT + FAST_MODE_INSTRUCTION,
+      system_instruction: getStrategistSystemPrompt() + FAST_MODE_INSTRUCTION,
       stream: true,
       generation_config: {
         max_output_tokens: FAST_MODE_MAX_OUTPUT_TOKENS,
@@ -321,25 +346,33 @@ router.post('/generate-plan', async (req, res) => {
     }
 
     const prompt = `
-      ${STRATEGIST_SYSTEM_PROMPT}
+      ${getStrategistSystemPrompt()}
 
-      The user wants to generate a final blueprint based on the following context:
+      <context>
+      The user wants to generate a final blueprint based on the following recommendation:
       "${recommendation}"
       
       Here is the preceding discussion history which contains the agreed-upon topic, audience, and outline:
-      <history>
       ${chatHistory}
-      </history>
+      </context>
 
-      CRITICAL REQUIREMENT: You MUST use Google Search to find highly credible, real-world sources, data points, and factual references related to this topic. 
-      The resulting "sources" array inside the plan MUST contain valid, real URLs to credible publications, reports, or data sources.
-      The "draft" MUST include factual claims backed by the sources you found. 
-      If you fail to provide real sources, the article will fail the final Editorial Fact-Checking stage.
-      
+      <instructions>
       Write a brief, conversational summary in the 'reply' field explaining the blueprint to the user.
       Provide exactly two suggestions in the 'suggestions' array: "Proceed to Editor" and "Revise Blueprint".
       Output the detailed blueprint in the 'plan' object.
+      </instructions>
 
+      <constraints>
+      1. CRITICAL REQUIREMENT: You MUST use Google Search to find highly credible, real-world sources, data points, and factual references related to this topic. 
+      2. The resulting "sources" array inside the plan MUST contain valid, real URLs to credible publications, reports, or data sources.
+      3. The "draft" MUST include factual claims backed by the sources you found. 
+      4. If you fail to provide real sources, the article will fail the final Editorial Fact-Checking stage.
+      5. The 'draft' field must be a cohesive 400–600 word draft that synthesizes the outline and sources.
+      6. Keep the draft focused on the agreed angle and audience.
+      7. Do NOT include meta-commentary (e.g., "Here is your draft"). Just output the draft text.
+      </constraints>
+
+      <output_format>
       CRITICAL: You MUST output a raw, valid JSON object matching this schema exactly. DO NOT wrap it in markdown code blocks like \`\`\`json.
       Schema:
       {
@@ -355,11 +388,7 @@ router.post('/generate-plan', async (req, res) => {
           "draft": "string"
         }
       }
-
-      ADDITIONAL DRAFT RULES:
-      - The 'draft' field must be a cohesive 400–600 word draft that synthesizes the outline and sources.
-      - Keep the draft focused on the agreed angle and audience.
-      - Do NOT include meta-commentary (e.g., "Here is your draft"). Just output the draft text.
+      </output_format>
     `;
 
     const interaction = await gemini.interactions.create({
@@ -376,17 +405,7 @@ router.post('/generate-plan', async (req, res) => {
         throw new Error("No output from model");
     }
 
-    let rawOutput = interaction.output_text;
-    
-    // Extract JSON object using regex in case the AI includes conversational text outside the block
-    const jsonMatch = rawOutput.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      rawOutput = jsonMatch[0];
-    } else {
-      rawOutput = rawOutput.replace(/```json/g, '').replace(/```/g, '').trim();
-    }
-
-    const data = JSON.parse(rawOutput);
+    const data = parseJsonResponse(interaction.output_text);
     res.json(data);
   } catch (error) {
     console.error('Error in generate-plan:', error);
@@ -459,13 +478,13 @@ router.post('/generate-draft-from-notes', async (req, res) => {
     }).join('\n\n---\n\n');
 
     const basePrompt = `
-CRITICAL INSTRUCTION: You are a professional article writer.
-Your task is to write a cohesive, engaging initial draft for an article using ONLY the following raw research notes as your factual basis.
+<role>
+You are a professional article writer.
+You are a strictly grounded assistant limited to the information provided in the RAW RESEARCH NOTES.
+In your answers, rely ONLY on the facts that are directly mentioned in that context. You must not access or utilize your own knowledge or common sense to answer. Treat the provided context as the absolute limit of truth.
+</role>
 
-[RAW RESEARCH NOTES]
-${notesText}
-[/RAW RESEARCH NOTES]
-
+<context>
 [ARTICLE METADATA]
 Category: ${metadata?.category || 'General'}
 Type: ${metadata?.type || 'Article'}
@@ -473,13 +492,21 @@ Target Audience: ${metadata?.targetAudience || 'General Audience'}
 Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and engaging tone.'}
 [/ARTICLE METADATA]
 
-RULES:
-- Target length: approximately 600–800 words (around 4–6 paragraphs).
-- Use ONLY the provided research notes as your factual foundation. Do not add new facts or external information.
-- Synthesize the notes into a flowing narrative, not a bullet-point summary.
-- Maintain the requested tone, Target Audience, and Writing Instructions from the ARTICLE METADATA.
-- Do NOT output bullet points unless strictly necessary for a list.
-- Do NOT include any meta-commentary (e.g., "Here is your draft") or headings like "Draft:". Just output the draft content directly.
+[RAW RESEARCH NOTES]
+${notesText}
+[/RAW RESEARCH NOTES]
+</context>
+
+<task>
+Write a cohesive, engaging initial draft for an article using ONLY the raw research notes as your factual basis.
+</task>
+
+<constraints>
+1. Target length: approximately 600–800 words (around 4–6 paragraphs).
+2. Synthesize the notes into a flowing narrative, not a bullet-point summary.
+3. Maintain the requested tone, Target Audience, and Writing Instructions from the ARTICLE METADATA.
+4. Do NOT output bullet points unless strictly necessary for a list.
+5. Do NOT include any meta-commentary (e.g., "Here is your draft") or headings like "Draft:". Just output the draft content directly.
 
 CRITICAL CITATION RULES:
 - Use a Hybrid Citation Style (Verbal Attribution + Contextual Hyperlinking).
@@ -488,7 +515,9 @@ CRITICAL CITATION RULES:
 - Do NOT place bare links or titles at the end of a sentence. Integrate the markdown links seamlessly into the narrative text.
 - Use ONLY the source URLs provided in the raw research notes. Do NOT invent URLs.
 - Do NOT wrap the markdown link in any extra parentheses or brackets outside of the standard markdown syntax.
+</constraints>
 
+<example>
 EXAMPLE OF CORRECT HYBRID CITATION:
 If the note says:
 "NOTE 1:
@@ -496,7 +525,8 @@ Apples are red due to anthocyanins.
 Sources: https://apple.com/color"
 
 Your draft MUST output:
-"Sebuah [studi dari Apple Color](https://apple.com/color) menunjukkan bahwa apel pada umumnya berwarna merah. Warna cerah ini secara biologis [disebabkan oleh keberadaan antosianin](https://apple.com/color) pada kulit buah."`;
+"Sebuah [studi dari Apple Color](https://apple.com/color) menunjukkan bahwa apel pada umumnya berwarna merah. Warna cerah ini secara biologis [disebabkan oleh keberadaan antosianin](https://apple.com/color) pada kulit buah."
+</example>`;
 
     const prompt = composeEditorialPrompt(basePrompt, profile);
 
