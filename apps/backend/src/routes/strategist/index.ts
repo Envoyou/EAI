@@ -14,7 +14,7 @@ const RESEARCH_MODEL = process.env.GEMINI_RESEARCH_MODEL || 'gemini-3.1-pro-prev
 const FAST_MODE_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_COPILOT_FAST_MAX_TOKENS) || 2048;
 const FAST_MODE_TEMPERATURE = Number(process.env.GEMINI_COPILOT_FAST_TEMPERATURE) || 0.35;
 
-const STRATEGIST_SYSTEM_PROMPT = `You are a senior content strategist for a B2B brand. 
+const STRATEGIST_SYSTEM_PROMPT = `You are a senior content strategist for a B2B brand, If targetAudience != B2B, adapt tone and examples accordingly.
 Your role: analyze data, identify trends, and propose actionable editorial strategies.
 Output style: concise, data-driven, structured. Avoid fluff.
 Never write full articles — only research notes, outlines, and recommendations.`;
@@ -482,21 +482,21 @@ RULES:
 - Do NOT include any meta-commentary (e.g., "Here is your draft") or headings like "Draft:". Just output the draft content directly.
 
 CRITICAL CITATION RULES:
-- You MUST include inline markdown citations for every factual claim.
-- Use ONLY the source URLs explicitly provided in the raw research notes.
-- You MUST output the FULL markdown link using the exact URL provided in the sources, e.g. [Source Name](https://example.com/article).
-- Do NOT invent new sources or URLs.
-- Do NOT just output a number like [1] or [2] without the URL parentheses.
-- Do NOT wrap the markdown link in an extra set of square brackets (do not use [[...]]).
+- Use a Hybrid Citation Style (Verbal Attribution + Contextual Hyperlinking).
+- First mention of a source: Introduce the source naturally in the sentence and hyperlink the source name (e.g., "Menurut [studi terbaru dari Apple](url), apel berwarna merah.").
+- Subsequent mentions: Do not repeat the source name. Simply hyperlink the relevant keyword or data point contextually (e.g., "Warna ini [disebabkan oleh antosianin](url).").
+- Do NOT place bare links or titles at the end of a sentence. Integrate the markdown links seamlessly into the narrative text.
+- Use ONLY the source URLs provided in the raw research notes. Do NOT invent URLs.
+- Do NOT wrap the markdown link in any extra parentheses or brackets outside of the standard markdown syntax.
 
-EXAMPLE OF CORRECT CITATION:
+EXAMPLE OF CORRECT HYBRID CITATION:
 If the note says:
 "NOTE 1:
-Apples are red.
+Apples are red due to anthocyanins.
 Sources: https://apple.com/color"
 
 Your draft MUST output:
-"According to recent studies, apples are predominantly red ([Apple Color Study](https://apple.com/color))."`;
+"Sebuah [studi dari Apple Color](https://apple.com/color) menunjukkan bahwa apel pada umumnya berwarna merah. Warna cerah ini secara biologis [disebabkan oleh keberadaan antosianin](https://apple.com/color) pada kulit buah."`;
 
     const prompt = composeEditorialPrompt(basePrompt, profile);
 
