@@ -165,7 +165,7 @@ router.post('/greet', async (req, res) => {
  */
 router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 'Too many requests. Please try again later.' }), async (req, res) => {
   try {
-    const { messages, mode } = req.body;
+    const { messages, mode, notesSummary } = req.body;
     
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -189,7 +189,11 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
       return { role: m.role, content: [{ type: 'text', text }] };
     });
 
-    const contextPrompt = `<context>\n${history.map((m: { role: string, content: { text: string }[] }) => `${m.role}: ${m.content[0].text}`).join('\n')}\n</context>\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
+    let contextPrompt = `<context>\n`;
+    if (notesSummary) {
+      contextPrompt += `${notesSummary}\n`;
+    }
+    contextPrompt += `${history.map((m: { role: string, content: { text: string }[] }) => `${m.role}: ${m.content[0].text}`).join('\n')}\n</context>\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
 
     if (mode === 'deep') {
       const interaction = await gemini.interactions.create({
@@ -446,10 +450,33 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       </output_format>
     `;
 
+    const planSchema = {
+      type: "object",
+      properties: {
+        reply: { type: "string" },
+        suggestions: { type: "array", items: { type: "string" } },
+        plan: {
+          type: "object",
+          properties: {
+            angle: { type: "string" },
+            audience: { type: "string" },
+            hook: { type: "string" },
+            outline: { type: "string" },
+            seoIntent: { type: "string" },
+            sources: { type: "array", items: { type: "string" } },
+            draft: { type: "string" }
+          },
+          required: ["angle", "audience", "hook", "outline", "seoIntent", "sources", "draft"]
+        }
+      },
+      required: ["reply", "suggestions", "plan"]
+    };
+
     const interaction = await gemini.interactions.create({
       model: MODEL,
       input: prompt,
       tools: [{ type: "google_search" }],
+      response_format: { type: "text", mime_type: "application/json", schema: planSchema },
       generation_config: {
         max_output_tokens: 4000,
         temperature: 0.5,
@@ -570,6 +597,7 @@ CRITICAL CITATION RULES:
 - Do NOT place bare links or titles at the end of a sentence. Integrate the markdown links seamlessly into the narrative text.
 - Use ONLY the source URLs provided in the raw research notes. Do NOT invent URLs.
 - Do NOT wrap the markdown link in any extra parentheses or brackets outside of the standard markdown syntax.
+6. Output language: ${metadata?.outputLanguage || 'Follow the language of the research notes.'}
 </constraints>
 
 <example>

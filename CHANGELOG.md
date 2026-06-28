@@ -20,6 +20,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Shared Package (`@eai/shared`)**: Moved all duplicate data types, Zod schemas, helper functions, JSON stream utilities, and configuration constants into a single source of truth under `packages/shared`. This officially pays off the Technical Debt of synchronizing data between repositories.
 - **Server vs Client Export Isolation**: Exports in `@eai/shared` are separated with a `"./server"` path for backend/edge-specific logic that is incompatible with browser client interfaces like Webpack.
 - **Copilot Soft Auth & Rate Limiting**: Added Clerk token verification (soft auth) and custom in-memory rate limiting (20 req/min for chat, 10 req/min for plan) on strategist routes to safeguard backend endpoints.
+- **Notes Summary Context Injection**: Added a mechanism to inject a sanitized summary of saved research notes into the Copilot chat history request payload, giving the AI immediate context of what the user has saved.
+- **Schema-Driven Blueprint Plans**: Enforced a strict JSON schema for the `/generate-plan` endpoint output via Gemini `response_format` configuration, ensuring stable parsing on the frontend.
 
 ### Changed
 - **Separation of Fast & Deep Chat Modes**: Overhauled the Copilot backend API to properly differentiate between query depths. "Fast" mode now strips out expensive tools (`url_context`, `code_execution`) and strictly limits Google Search to a single iteration for instant, cost-effective responses.
@@ -28,6 +30,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Sidebar Animation**: Refactored the `AppSidebarShell` layout transitions to resolve icon jittering during collapse. Used `max-width` interpolation instead of immediate `display: none` for smooth folding.
 - **Editor Layout Animations**: Refactored the Editorial Workspace layout to use fluid `framer-motion` width animations for the Research Notes Studio and Feedback panels. When side panels are hidden, the main text editor gracefully centers itself using a dynamic `max-width` transition, creating an elegant distraction-free writing mode.
 - **Relative Path Routing**: Replaced absolute API URLs with relative paths in the Research Copilot UI to route fetches via Next.js proxy middleware, ensuring seamless session token injection.
+- **Deep Research Polling Timeout**: Refactored the frontend status checker polling loop to strictly time out after 180 checks (30 minutes) to prevent memory leaks and infinite background loops.
 
 ### Fixed
 - **TypeScript `InteractionSSEEvent` discrimination**: Resolved an IDE type error caused by an invalid `event.step` and `event.delta` property lookup on discriminated unions.
@@ -38,6 +41,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Clerk v6 Fallback Loop**: Configured `fallbackRedirectUrl` on Clerk SSO components (Sign Up & Sign In) to avoid infinite redirect loops or stuck loading states for accounts already recognized by the system.
 - **Note Citation Stripping**: Stripped inline citation links (`\s*\[\d+\]\([^)]+\)`) from research note contents prior to generating drafts, resolving the dual-truth problem where the model was confused by duplicated source references.
 - **Blueprint Domain Extraction**: Fixed domain hostname parsing from blueprint sources URLs instead of mapping all domains to a hardcoded `'Source'` string.
+- **Draft Language Consistency**: Resolved multi-tenant language mixing by forcing the `outputLanguage` from article metadata as an explicit prompt constraint inside the draft generator.
+- **Blueprint Sources Deduplication**: Prevented UI clutter by deduplicating newly collected blueprint plan sources against existing ones based on URL.
 
 ## [0.37.0] - 2026-06-23
 

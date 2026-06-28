@@ -20,6 +20,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Shared Package (`@eai/shared`)**: Memindahkan semua tipe data, skema Zod, *helper functions*, utilitas stream JSON, dan *constant* konfigurasi yang duplikat menjadi satu *single source of truth* di `packages/shared`. Ini secara resmi melunasi *Technical Debt* dari sinkronisasi data antar repositori.
 - **Server vs Client Export Isolation**: Ekspor di `@eai/shared` dipisah dengan jalur `"./server"` untuk logika spesifik *backend/edge* yang tidak kompatibel dengan antarmuka klien *browser* seperti Webpack.
 - **Autentikasi Lembut & Pembatasan Akses Copilot**: Menambahkan verifikasi token Clerk (soft auth) dan pembatasan akses custom (rate limiting) secara in-memory (20 req/menit untuk chat, 10 req/menit untuk plan) pada rute strategist.
+- **Injeksi Konteks Ringkasan Catatan**: Menambahkan mekanisme untuk menyisipkan ringkasan catatan riset tersimpan (setelah dibersihkan dari format tautan sebaris) ke dalam data riwayat chat Copilot untuk memberikan konteks seketika tentang apa saja yang telah dicatat pengguna.
+- **Skema Cetak Biru Berbasis Schema**: Memaksakan struktur JSON yang kaku dan valid pada keluaran endpoint `/generate-plan` menggunakan konfigurasi `response_format` Gemini API, menjamin parsing stabil di sisi frontend.
 
 ### Changed
 - **Separation of Fast & Deep Chat Modes**: Merombak API backend Copilot untuk membedakan kedalaman kueri dengan benar. Mode "Fast" kini menghapus alat yang mahal (`url_context`, `code_execution`) dan secara ketat membatasi Google Search hanya pada satu iterasi demi mendapatkan respons instan yang lebih hemat biaya.
@@ -28,6 +30,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Sidebar Animation**: Melakukan *refactoring* pada transisi tata letak `AppSidebarShell` untuk menyelesaikan masalah ikon yang terguncang (*jittering*) saat ditutup (*collapse*). Menggunakan interpolasi `max-width` alih-alih `display: none` secara instan agar proses melipat menjadi halus.
 - **Editor Layout Animations**: Melakukan *refactoring tata letak Editorial Workspace untuk menggunakan animasi lebar yang mulus dari `framer-motion` pada panel Research Notes Studio dan Feedback. Saat panel samping disembunyikan, editor teks utama secara anggun memfokuskan posisinya ke tengah layar menggunakan transisi `max-width` dinamis, menciptakan mode penulisan bebas gangguan yang elegan.
 - **Routing Relative Path**: Mengganti URL API absolut dengan path relatif pada Research Copilot UI untuk melewatkan fetch melalui middleware proxy Next.js, memastikan injeksi token sesi berjalan otomatis.
+- **Timeout Polling Deep Research**: Menambahkan logika timeout pada loop status check Deep Research di sisi frontend setelah mencapai batas maksimal 180 kali poll (30 menit) guna menghindari kebocoran memori atau loop latar belakang yang tak terbatas.
 
 ### Fixed
 - **TypeScript `InteractionSSEEvent` discrimination**: Menyelesaikan *error* tipe data IDE yang disebabkan oleh pencarian properti `event.step` and `event.delta` yang tidak valid pada *discriminated unions*.
@@ -38,6 +41,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Clerk v6 Fallback Loop**: Mengkonfigurasi `fallbackRedirectUrl` pada komponen SSO (Daftar & Masuk) Clerk untuk menghindari perilaku siklus *redirect* tak terhingga atau penahanan rendering (*stuck loading*) untuk akun yang sudah dikenali sistem.
 - **Pembersihan Sitasi Catatan**: Membuang tautan sitasi sebaris (`\s*\[\d+\]\([^)]+\)`) dari konten catatan riset sebelum pembuatan draf awal, mengatasi kebingungan model (dual-truth problem) terhadap referensi sumber ganda.
 - **Ekstraksi Domain Blueprint**: Memperbaiki pemformatan nama domain dari URL sumber cetak biru (blueprint) agar menampilkan hostname yang valid, menggantikan penulisan statis `'Source'`.
+- **Konsistensi Bahasa Draf**: Menyelesaikan pencampuran bahasa (Inggris + Indonesia) dengan menerapkan pemaksaan nilai `outputLanguage` dari metadata artikel sebagai instruksi batasan bahasa yang eksplisit dalam generator draf.
+- **Deduplikasi Sumber Blueprint**: Mencegah duplikasi visual pada daftar panel samping dengan menyaring alamat URL sumber blueprint baru terhadap daftar sumber yang telah terkumpul sebelumnya.
 
 ## [0.37.0] - 2026-06-23
 

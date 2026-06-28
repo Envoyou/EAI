@@ -133,7 +133,23 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
   useEffect(() => {
     if (!activeDeepResearchId) return;
 
+    let pollCount = 0;
+    const MAX_POLLS = 180; // 30 minutes
+
     const interval = setInterval(async () => {
+      if (pollCount >= MAX_POLLS) {
+        clearInterval(interval);
+        setActiveDeepResearchId(null);
+        setMessages(prev => [...prev, {
+          id: generateId(),
+          role: 'assistant',
+          type: 'text',
+          content: "Deep Research timed out. Please try again."
+        }]);
+        setIsTyping(false);
+        return;
+      }
+      pollCount++;
       try {
         const res = await fetch(`/api/strategist/chat/status/${activeDeepResearchId}`);
         if (res.ok) {
@@ -376,7 +392,10 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
             } catch {}
             return { url, domain };
           });
-          setCollectedSources(prev => [...prev, ...fakeDomains]);
+          setCollectedSources(prev => {
+            const existing = new Set(prev.map(s => s.url));
+            return [...prev, ...fakeDomains.filter((s: { url: string; domain: string }) => !existing.has(s.url))];
+          });
         }
       }  
       appendMessage({
@@ -429,11 +448,19 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
       return;
     }
 
+    const notesSummary = savedNotes.length > 0 
+      ? `[SAVED NOTES CONTEXT: ${savedNotes.length} notes saved. Snippets: ${savedNotes.map((n, idx) => {
+          const cleanText = n.content.replace(/\s*\[\d+\]\([^)]+\)/g, '');
+          const snippet = cleanText.slice(0, 80).replace(/\n/g, ' ');
+          return `Note ${idx+1}: "${snippet}..."`;
+        }).join(' | ')}]`
+      : undefined;
+
     try {
       const res = await fetch(`/api/strategist/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: updatedMessages, mode: researchMode }),
+        body: JSON.stringify({ messages: updatedMessages, mode: researchMode, notesSummary }),
       });
       
       // Auto-revert to fast mode so they can chat normally while Deep Research runs in background
