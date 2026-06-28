@@ -222,25 +222,44 @@ RULES:
             const urlToIndex = new Map<string, number>();
             const uniqueSourcesData: { url: string; domain: string }[] = [];
             
+            // Unfurl Google Vertex AI Grounding redirect URLs
+            const resolvedUrls = new Map<string, string>();
+            const urlsToResolve = [...new Set(sortedAnnotations.map(a => a.url).filter(Boolean))] as string[];
+            
+            await Promise.all(urlsToResolve.map(async (u) => {
+                if (u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
+                    try {
+                        const res = await fetch(u, { method: 'HEAD', redirect: 'manual' });
+                        const loc = res.headers.get('location');
+                        resolvedUrls.set(u, loc || u);
+                    } catch (_e) {
+                        resolvedUrls.set(u, u);
+                    }
+                } else {
+                    resolvedUrls.set(u, u);
+                }
+            }));
+            
             for (const annotation of sortedAnnotations) {
                 if (annotation.type === "url_citation" && annotation.url) {
-                    sources.push(annotation.url);
+                    const realUrl = resolvedUrls.get(annotation.url) || annotation.url;
+                    sources.push(realUrl);
                     
-                    if (!urlToIndex.has(annotation.url)) {
-                        urlToIndex.set(annotation.url, urlToIndex.size + 1);
+                    if (!urlToIndex.has(realUrl)) {
+                        urlToIndex.set(realUrl, urlToIndex.size + 1);
                         let domain = annotation.title;
                         if (!domain || domain.trim() === "") {
                             try {
-                                domain = new URL(annotation.url).hostname.replace('www.', '');
+                                domain = new URL(realUrl).hostname.replace('www.', '');
                             } catch (_e) { domain = "Source"; }
                         }
                         const cleanDomain = domain.replace(/[[\]()*_`]/g, '').trim();
-                        uniqueSourcesData.push({ url: annotation.url, domain: cleanDomain });
+                        uniqueSourcesData.push({ url: realUrl, domain: cleanDomain });
                     }
                     
-                    const sourceIndex = urlToIndex.get(annotation.url);
+                    const sourceIndex = urlToIndex.get(realUrl);
                     // Perplexity style inline numbered pill
-                    const citationStr = ` [${sourceIndex}](${annotation.url})`;
+                    const citationStr = ` [${sourceIndex}](${realUrl})`;
                     
                     // Interactions API returns UTF-16 character index directly — no conversion needed
                     const charIndex = Math.min(annotation.end_index || 0, finalOutputText.length);
