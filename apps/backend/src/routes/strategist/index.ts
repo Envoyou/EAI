@@ -479,12 +479,27 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
 [/ARTICLE METADATA]
 
 RULES:
+- Do NOT use any information outside of the RAW RESEARCH NOTES as factual basis.
 - Do NOT output bullet points unless strictly necessary for a list. Write flowing paragraphs.
-- Synthesize the raw notes into a unified narrative.
-- Maintain the requested tone and target audience.
+- Synthesize the raw notes into a unified narrative, not just a summary of bullets.
+- Maintain the requested tone, Target Audience, and Writing Instructions from the ARTICLE METADATA.
 - Do NOT include any meta-commentary (e.g., "Here is your draft"). Just output the draft content directly.
-- Include inline markdown citations to the provided sources where factual claims are made (e.g., [1](url)).
-`;
+
+CRITICAL CITATION RULES:
+- You MUST include inline markdown citations for every factual claim.
+- Use ONLY the source URLs explicitly provided in the raw research notes.
+- You MUST output the FULL markdown link using the exact URL provided in the sources, e.g. [[Source Name](https://example.com/article)].
+- Do NOT invent new sources or URLs.
+- Do NOT just output a number like [1] or [2] without the URL parentheses.
+
+EXAMPLE OF CORRECT CITATION:
+If the note says:
+"NOTE 1:
+Apples are red.
+Sources: https://apple.com/color"
+
+Your draft MUST output:
+"According to recent studies, apples are predominantly red [[Apple Color Study](https://apple.com/color)]."`;
 
     const prompt = composeEditorialPrompt(basePrompt, profile);
 
