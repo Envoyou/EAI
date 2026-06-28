@@ -488,9 +488,10 @@ RULES:
 CRITICAL CITATION RULES:
 - You MUST include inline markdown citations for every factual claim.
 - Use ONLY the source URLs explicitly provided in the raw research notes.
-- You MUST output the FULL markdown link using the exact URL provided in the sources, e.g. [[Source Name](https://example.com/article)].
+- You MUST output the FULL markdown link using the exact URL provided in the sources, e.g. [Source Name](https://example.com/article).
 - Do NOT invent new sources or URLs.
 - Do NOT just output a number like [1] or [2] without the URL parentheses.
+- Do NOT wrap the markdown link in an extra set of square brackets (do not use [[...]]).
 
 EXAMPLE OF CORRECT CITATION:
 If the note says:
@@ -499,7 +500,7 @@ Apples are red.
 Sources: https://apple.com/color"
 
 Your draft MUST output:
-"According to recent studies, apples are predominantly red [[Apple Color Study](https://apple.com/color)]."`;
+"According to recent studies, apples are predominantly red ([Apple Color Study](https://apple.com/color))."`;
 
     const prompt = composeEditorialPrompt(basePrompt, profile);
 
