@@ -78,6 +78,11 @@ Dalam masa pengembangan awal, ditemukan beberapa kendala pada respon model AI. B
     *   Pemisahan quality-gate draft dari publication draft agar marker verifikasi tetap diaudit tetapi tidak masuk CMS.
     *   Seleksi internal link berdasarkan overlap substantif dan keluarga topik.
     *   Retry quality gate satu kali sebelum fallback.
+ 
+### G. Caching & Stabilitas Rekayasa Prompt Riset & Draf (EAI Chat & Draft)
+*   **Kendala**: Struktur instruksi asisten riset dan draft kasar cenderung panjang dan dinamis (misalnya menyertakan target bahasa dinamis, sitasi, dan draft mentah), yang menyebabkan caching model (Gemini Context Caching) tidak optimal karena parameter `system_instruction` berubah per permintaan. Selain itu, instruksi sitasi dan batasan menulis sering tersebar di antara input dan system instruction, membagi perhatian model.
+*   **Solusi**: Melakukan konsolidasi total seluruh aturan penulisan dan sitasi ke dalam `system_instruction` yang murni statis tanpa template literal dinamis. Nilai dinamis (seperti outputLanguage) diteruskan sebagai parameter metadata terstruktur dalam kueri `input` (ARTICLE METADATA).
+
 
 ---
 
