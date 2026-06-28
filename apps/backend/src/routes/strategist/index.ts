@@ -14,16 +14,10 @@ const RESEARCH_MODEL = process.env.GEMINI_RESEARCH_MODEL || 'gemini-3.1-pro-prev
 const FAST_MODE_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_COPILOT_FAST_MAX_TOKENS) || 2048;
 const FAST_MODE_TEMPERATURE = Number(process.env.GEMINI_COPILOT_FAST_TEMPERATURE) || 0.35;
 
-const STRATEGIST_SYSTEM_PROMPT = `You are a Data-Driven Content Researcher & Strategic Editorial Analyst for the user's brand/tenant. 
-Your primary task is to help the user analyze research data, generate ideas, and turn them into concrete, measurable, and executable content strategy decisions.
-You are NOT an article writer. You are a content researcher, trend analyst, and editorial roadmap director.
-If the user provides blog analysis data, you must determine:
-1. What topic to write next
-2. Which content pillars to expand
-3. Which pillars to improve
-4. Emerging reader trends
-5. Risks of declining interest before it happens
-Always be strategic, analytical, and highly structured in your advice.`;
+const STRATEGIST_SYSTEM_PROMPT = `You are a senior content strategist for a B2B brand. 
+Your role: analyze data, identify trends, and propose actionable editorial strategies.
+Output style: concise, data-driven, structured. Avoid fluff.
+Never write full articles — only research notes, outlines, and recommendations.`;
 
 
 /**
@@ -137,28 +131,20 @@ router.post('/chat', async (req, res) => {
 
     // FAST MODE
     const FAST_MODE_INSTRUCTION = `
-CRITICAL: You are in FAST MODE — a Pre-Editor research assistant.
-Your output is RAW RESEARCH MATERIAL, not a final article. The user needs structured insights to decide their article angle, audience, and outline.
-
-FORMAT (use this exact structure, no deviation):
-**Executive Summary:** 2–3 sentences capturing the core insight.
-
-**Topics / Angles Worth Developing:**
-5–7 bullet points. Each: 1–2 sentences + 1 inline citation.
-
-**Trends or Emerging Risks:**
-3–4 bullet points capturing momentum shifts or risks.
-
-**Strategic Recommendations:**
-3–4 bullet points — actionable editorial decisions the user can make now.
-
-RULES:
-- Perform at most ONE Google Search iteration.
-- Write substance, not filler. No introductory paragraphs, no closing summaries.
-- Each bullet must add NEW information, not repeat previous points.
-- Cite inline using [n](url) format for all factual claims.
-- At the VERY END, provide exactly 3 short, clickable next-step suggestions:
+CRITICAL: You are in FAST MODE — a quick research assistant.
+Your task: answer the user's question with ONE focused, actionable insight.
+Each response must:
+- Be 2–4 sentences max (≈80–120 words).
+- Include inline citations for every factual claim using FULL markdown links (e.g. [Source Name](url)). DO NOT just output a number like [1].
+- End with exactly 3 short, clickable follow-up suggestions in this format:
 [SUGGESTIONS: Suggestion 1 | Suggestion 2 | Suggestion 3]
+
+DO NOT:
+- Write long lists, summaries, or multiple sections.
+- Repeat previous answers.
+- Output markdown headings.
+
+If the user asks for a broad topic, pick the most important angle and respond concisely.
 `;
 
     const stream = await gemini.interactions.create({
@@ -369,12 +355,21 @@ router.post('/generate-plan', async (req, res) => {
           "draft": "string"
         }
       }
+
+      ADDITIONAL DRAFT RULES:
+      - The 'draft' field must be a cohesive 400–600 word draft that synthesizes the outline and sources.
+      - Keep the draft focused on the agreed angle and audience.
+      - Do NOT include meta-commentary (e.g., "Here is your draft"). Just output the draft text.
     `;
 
     const interaction = await gemini.interactions.create({
       model: MODEL,
       input: prompt,
-      tools: [{ type: "google_search" }]
+      tools: [{ type: "google_search" }],
+      generation_config: {
+        max_output_tokens: 4000,
+        temperature: 0.5,
+      }
     });
     
     if (!interaction.output_text) {
@@ -479,11 +474,12 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
 [/ARTICLE METADATA]
 
 RULES:
-- Do NOT use any information outside of the RAW RESEARCH NOTES as factual basis.
-- Do NOT output bullet points unless strictly necessary for a list. Write flowing paragraphs.
-- Synthesize the raw notes into a unified narrative, not just a summary of bullets.
+- Target length: approximately 600–800 words (around 4–6 paragraphs).
+- Use ONLY the provided research notes as your factual foundation. Do not add new facts or external information.
+- Synthesize the notes into a flowing narrative, not a bullet-point summary.
 - Maintain the requested tone, Target Audience, and Writing Instructions from the ARTICLE METADATA.
-- Do NOT include any meta-commentary (e.g., "Here is your draft"). Just output the draft content directly.
+- Do NOT output bullet points unless strictly necessary for a list.
+- Do NOT include any meta-commentary (e.g., "Here is your draft") or headings like "Draft:". Just output the draft content directly.
 
 CRITICAL CITATION RULES:
 - You MUST include inline markdown citations for every factual claim.
