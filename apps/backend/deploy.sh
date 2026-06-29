@@ -7,8 +7,8 @@ cd /var/www/eai-backend/current || { echo "Direktori /var/www/eai-backend/curren
 # Tarik perubahan kode terbaru dari repositori Git
 git pull origin main
 
-# Instalasi dependensi npm (root monorepo)
-npm install
+# Instalasi dependensi npm (root monorepo) secara bersih dan terkunci
+npm ci
 
 # Masuk ke direktori backend untuk Prisma
 cd apps/backend
