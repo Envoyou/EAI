@@ -260,7 +260,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
   return (
     <div className="text-[var(--foreground)] pb-12">
 
-      <main className="mx-auto grid max-w-7xl gap-6 px-5 py-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <main className="mx-auto max-w-7xl space-y-6 px-5 py-6">
         <aside className="space-y-4">
           <form onSubmit={runSearch} className="ui-card p-4">
             <label className="text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
@@ -287,34 +287,36 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
             </div>
           </form>
 
-          <div className="space-y-2">
-            {results.map((organization) => (
-              <button
-                key={organization.id}
-                type="button"
-                onClick={() => loadOrganization(organization.id)}
-                className={`ui-card ui-card-hover w-full p-4 text-left ${
-                  selected?.id === organization.id ? 'ring-2 ring-[var(--primary)]/40' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold">{organization.name}</p>
-                    <p className="mt-1 truncate text-xs text-[var(--muted-foreground)]">
-                      {organization.users[0]?.email || organization.slug}
-                    </p>
+          {results.length > 0 && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {results.map((organization) => (
+                <button
+                  key={organization.id}
+                  type="button"
+                  onClick={() => loadOrganization(organization.id)}
+                  className={`ui-card ui-card-hover w-full p-4 text-left ${
+                    selected?.id === organization.id ? 'ring-2 ring-[var(--primary)]/40' : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold">{organization.name}</p>
+                      <p className="mt-1 truncate text-xs text-[var(--muted-foreground)]">
+                        {organization.users[0]?.email || organization.slug}
+                      </p>
+                    </div>
+                    <span className="font-mono text-sm font-bold text-[var(--primary)]">
+                      {formatCredits(organization.balance.total)}
+                    </span>
                   </div>
-                  <span className="font-mono text-sm font-bold text-[var(--primary)]">
-                    {formatCredits(organization.balance.total)}
-                  </span>
-                </div>
-                <div className="mt-3 flex items-center justify-between text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
-                  <span>{planLabel(organization.subscription)}</span>
-                  <span>{organization.users.length} member{organization.users.length === 1 ? '' : 's'}</span>
-                </div>
-              </button>
-            ))}
-          </div>
+                  <div className="mt-3 flex items-center justify-between text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
+                    <span>{planLabel(organization.subscription)}</span>
+                    <span>{organization.users.length} member{organization.users.length === 1 ? '' : 's'}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </aside>
 
         <section className="min-w-0">
@@ -333,233 +335,193 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="ui-card p-5">
-                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-                  <div>
-                    <h2 className="text-2xl font-bold">{selected.name}</h2>
-                    <p className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
-                      {selected.id}
-                    </p>
-                    <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-                      {selected.publicationName || selected.domain || selected.slug}
-                    </p>
-                  </div>
-                  <div className="ui-card-soft px-5 py-3 text-right">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
-                      Available credits
-                    </p>
-                    <p className="mt-1 text-3xl font-black text-[var(--primary)]">
-                      {formatCredits(selected.balance.total)}
-                    </p>
-                  </div>
-                </div>
+              {/* Workspace Details + Manual Adjustment Form Split Layout */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* Left side: Workspace details, Available Credits, and Summary Cards (2/3 width on desktop) */}
+                <div className="ui-card flex flex-col justify-between p-5 lg:col-span-2">
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {/* Workspace Identity Details */}
+                    <div>
+                      <h2 className="text-2xl font-bold">{selected.name}</h2>
+                      <p className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
+                        {selected.id}
+                      </p>
+                      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+                        {selected.publicationName || selected.domain || selected.slug}
+                      </p>
+                    </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <SummaryCard
-                    icon={<CreditCard className="h-4 w-4" />}
-                    label="Plan"
-                    value={planLabel(selected.subscription)}
-                  />
-                  <SummaryCard
-                    icon={<PlusCircle className="h-4 w-4" />}
-                    label="Add-on"
-                    value={formatCredits(selected.balance.addon)}
-                  />
-                  <SummaryCard
-                    icon={<CheckCircle2 className="h-4 w-4" />}
-                    label="Subscription"
-                    value={formatCredits(selected.balance.subscription)}
-                  />
-                  <SummaryCard
-                    icon={<Users className="h-4 w-4" />}
-                    label="Members"
-                    value={String(selected.users.length)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-                <div className="ui-card overflow-hidden">
-                  <div className="border-b border-[var(--border)] px-5 py-4">
-                    <h3 className="font-bold">Transaction and audit history</h3>
-                    <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                      Latest 50 ledger entries for this organization
-                    </p>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[900px] text-left text-xs">
-                      <thead className="bg-[var(--surface-2)] text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
-                        <tr>
-                          <th className="px-4 py-3">Time</th>
-                          <th className="px-4 py-3">Type</th>
-                          <th className="px-4 py-3">Amount</th>
-                          <th className="px-4 py-3">Reason</th>
-                          <th className="px-4 py-3">Ticket</th>
-                          <th className="px-4 py-3">Actor</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border)]">
-                        {selected.transactions.map((transaction) => (
-                          <tr key={transaction.id}>
-                            <td className="whitespace-nowrap px-4 py-3 text-[var(--muted-foreground)]">
-                              {formatDate(transaction.createdAt)}
-                            </td>
-                            <td className="px-4 py-3">
-                              <p className="font-semibold">{transaction.type.replaceAll('_', ' ')}</p>
-                              <p className="mt-0.5 font-mono text-[10px] text-[var(--muted-foreground)]">
-                                {transaction.bucket}
-                              </p>
-                            </td>
-                            <td className={`px-4 py-3 font-mono font-bold ${
-                              transaction.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                            }`}>
-                              {transaction.amount >= 0 ? '+' : ''}
-                              {formatCredits(transaction.amount)}
-                            </td>
-                            <td className="max-w-xs px-4 py-3">
-                              {transaction.adjustmentReason || transaction.description || '-'}
-                            </td>
-                            <td className="px-4 py-3 font-mono">
-                              {transaction.externalTicketUrl ? (
-                                <a
-                                  href={transaction.externalTicketUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-1 text-[var(--primary)] hover:underline"
-                                >
-                                  #{transaction.ticketReference}
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              ) : transaction.ticketReference || '-'}
-                            </td>
-                            <td className="px-4 py-3">
-                              {transaction.performedByEmail || 'System'}
-                            </td>
-                          </tr>
+                    {/* Workspace Members list */}
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)] mb-3 flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-[var(--primary)]" />
+                        Workspace Members ({selected.users.length})
+                      </h4>
+                      <div className="space-y-2.5 max-h-32 overflow-y-auto pr-1">
+                        {selected.users.map((user) => (
+                          <div key={user.id} className="flex items-center justify-between gap-3 text-xs border-b border-[var(--border)]/50 pb-2 last:border-0 last:pb-0">
+                            <div className="min-w-0">
+                              <p className="font-semibold truncate text-[var(--foreground)]">{user.name || 'No Name'}</p>
+                              <p className="text-[10px] text-[var(--muted-foreground)] truncate">{user.email}</p>
+                            </div>
+                            <span className="ui-badge ui-badge-surface text-[9px] uppercase tracking-wider px-1.5 py-0.5 shrink-0 font-bold">
+                              {user.role}
+                            </span>
+                          </div>
                         ))}
-                        {selected.transactions.length === 0 && (
-                          <tr>
-                            <td colSpan={6} className="px-4 py-10 text-center text-[var(--muted-foreground)]">
-                              No credit transactions recorded.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex flex-col gap-5 border-t border-[var(--border)] pt-5 md:flex-row md:items-center md:justify-between">
+                    <div className="ui-card-soft px-5 py-3 shrink-0 text-left">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
+                        Available credits
+                      </p>
+                      <p className="mt-1 text-3xl font-black text-[var(--primary)]">
+                        {formatCredits(selected.balance.total)}
+                      </p>
+                    </div>
+
+                    <div className="grid flex-1 grid-cols-2 gap-2 xl:grid-cols-4">
+                      <SummaryCard
+                        icon={<CreditCard className="h-4 w-4" />}
+                        label="Plan"
+                        value={planLabel(selected.subscription)}
+                      />
+                      <SummaryCard
+                        icon={<PlusCircle className="h-4 w-4" />}
+                        label="Add-on"
+                        value={formatCredits(selected.balance.addon)}
+                      />
+                      <SummaryCard
+                        icon={<CheckCircle2 className="h-4 w-4" />}
+                        label="Subscription"
+                        value={formatCredits(selected.balance.subscription)}
+                      />
+                      <SummaryCard
+                        icon={<Users className="h-4 w-4" />}
+                        label="Members"
+                        value={String(selected.users.length)}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <form onSubmit={prepareAdjustment} className="ui-card h-fit p-5">
-                  <h3 className="font-bold">Manual adjustment</h3>
-                  <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                    Recorded as a `manual_adjustment` ledger entry.
-                  </p>
+                {/* Right side: Manual Adjustment Form (1/3 width on desktop) */}
+                <form onSubmit={prepareAdjustment} className="ui-card flex flex-col justify-between p-5">
+                  <div>
+                    <h3 className="font-bold">Manual adjustment</h3>
+                    <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                      Recorded as a `manual_adjustment` ledger entry.
+                    </p>
 
-                  <div className="mt-5 grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setDirection('add')}
-                      className={`ui-btn ui-btn-sm ${direction === 'add' ? 'ui-btn-primary' : 'ui-btn-surface'}`}
-                    >
-                      <PlusCircle className="h-4 w-4" />
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDirection('deduct')}
-                      className={`ui-btn ui-btn-sm ${direction === 'deduct' ? 'ui-btn-danger bg-rose-500/10' : 'ui-btn-surface'}`}
-                    >
-                      <MinusCircle className="h-4 w-4" />
-                      Deduct
-                    </button>
-                  </div>
-
-                  <label className="mt-4 block text-xs font-semibold">
-                    Amount
-                    <input
-                      type="number"
-                      min="1"
-                      max="1000000"
-                      step="1"
-                      value={amount}
-                      onChange={(event) => setAmount(event.target.value)}
-                      className="ui-control ui-input mt-2"
-                      placeholder="100"
-                      required
-                    />
-                  </label>
-
-                  <label className="mt-4 block text-xs font-semibold">
-                    Reason
-                    <textarea
-                      value={reason}
-                      onChange={(event) => setReason(event.target.value)}
-                      className="ui-control ui-textarea mt-2"
-                      placeholder="Customer support correction..."
-                      required
-                    />
-                  </label>
-
-                  <label className="mt-4 block text-xs font-semibold">
-                    {zohoDeskEnabled ? 'Zoho Desk ticket' : 'Ticket reference'}
-                    <div className="mt-2 flex gap-2">
-                      <div className="relative min-w-0 flex-1">
-                        <Ticket className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
-                        <input
-                          value={ticketReference}
-                          onChange={(event) => {
-                            setTicketReference(event.target.value);
-                            setVerifiedTicket(null);
-                          }}
-                          className="ui-control ui-input !pl-10 font-mono"
-                          placeholder={zohoDeskEnabled ? '1024 or ticket ID' : 'SUP-1024'}
-                          required
-                        />
-                      </div>
-                      {zohoDeskEnabled && (
-                        <button
-                          type="button"
-                          onClick={verifyTicket}
-                          disabled={verifyingTicket || !ticketReference.trim()}
-                          className="ui-btn ui-btn-surface ui-btn-sm shrink-0"
-                        >
-                          {verifyingTicket
-                            ? <Loader2 className="h-4 w-4 animate-spin" />
-                            : <ShieldCheck className="h-4 w-4" />}
-                          Verify
-                        </button>
-                      )}
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDirection('add')}
+                        className={`ui-btn ui-btn-sm ${direction === 'add' ? 'ui-btn-primary' : 'ui-btn-surface'}`}
+                      >
+                        <PlusCircle className="h-4 w-4" />
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDirection('deduct')}
+                        className={`ui-btn ui-btn-sm ${direction === 'deduct' ? 'ui-btn-danger bg-rose-500/10' : 'ui-btn-surface'}`}
+                      >
+                        <MinusCircle className="h-4 w-4" />
+                        Deduct
+                      </button>
                     </div>
-                  </label>
 
-                  {zohoDeskEnabled && verifiedTicket && (
-                    <div className="mt-3 rounded-2xl bg-emerald-500/10 p-3 text-xs ring-1 ring-emerald-500/20">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-bold text-emerald-700 dark:text-emerald-300">
-                            Ticket #{verifiedTicket.ticketNumber} verified
-                          </p>
-                          <p className="mt-1 truncate font-semibold">{verifiedTicket.subject}</p>
-                          <p className="mt-1 text-[var(--muted-foreground)]">
-                            {[verifiedTicket.contactName, verifiedTicket.email, verifiedTicket.status]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </p>
+                    <label className="mt-3 block text-xs font-semibold">
+                      Amount
+                      <input
+                        type="number"
+                        min="1"
+                        max="1000000"
+                        step="1"
+                        value={amount}
+                        onChange={(event) => setAmount(event.target.value)}
+                        className="ui-control ui-input mt-1.5"
+                        placeholder="100"
+                        required
+                      />
+                    </label>
+
+                    <label className="mt-3 block text-xs font-semibold">
+                      Reason
+                      <textarea
+                        value={reason}
+                        onChange={(event) => setReason(event.target.value)}
+                        className="ui-control ui-textarea mt-1.5 h-16 resize-none"
+                        placeholder="Customer support correction..."
+                        required
+                      />
+                    </label>
+
+                    <label className="mt-3 block text-xs font-semibold">
+                      {zohoDeskEnabled ? 'Zoho Desk ticket' : 'Ticket reference'}
+                      <div className="mt-1.5 flex gap-2">
+                        <div className="relative min-w-0 flex-1">
+                          <Ticket className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                          <input
+                            value={ticketReference}
+                            onChange={(event) => {
+                              setTicketReference(event.target.value);
+                              setVerifiedTicket(null);
+                            }}
+                            className="ui-control ui-input !pl-10 font-mono"
+                            placeholder={zohoDeskEnabled ? '1024 or ticket ID' : 'SUP-1024'}
+                            required
+                          />
                         </div>
-                        {verifiedTicket.url && (
-                          <a
-                            href={verifiedTicket.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="ui-btn ui-btn-muted ui-btn-icon shrink-0"
-                            aria-label="Open ticket in Zoho Desk"
+                        {zohoDeskEnabled && (
+                          <button
+                            type="button"
+                            onClick={verifyTicket}
+                            disabled={verifyingTicket || !ticketReference.trim()}
+                            className="ui-btn ui-btn-surface ui-btn-sm shrink-0"
                           >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
+                            {verifyingTicket
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <ShieldCheck className="h-4 w-4" />}
+                            Verify
+                          </button>
                         )}
                       </div>
-                    </div>
-                  )}
+                    </label>
+
+                    {zohoDeskEnabled && verifiedTicket && (
+                      <div className="mt-3 rounded-2xl bg-emerald-500/10 p-3 text-xs ring-1 ring-emerald-500/20">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-bold text-emerald-700 dark:text-emerald-300">
+                              Ticket #{verifiedTicket.ticketNumber} verified
+                            </p>
+                            <p className="mt-1 truncate font-semibold">{verifiedTicket.subject}</p>
+                            <p className="mt-1 text-[var(--muted-foreground)]">
+                              {[verifiedTicket.contactName, verifiedTicket.email, verifiedTicket.status]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </p>
+                          </div>
+                          {verifiedTicket.url && (
+                            <a
+                              href={verifiedTicket.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="ui-btn ui-btn-muted ui-btn-icon shrink-0"
+                              aria-label="Open ticket in Zoho Desk"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   <button
                     type="submit"
@@ -572,57 +534,96 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                   </button>
                 </form>
               </div>
+
+              {/* Unified Credit Transaction & Audit History */}
+              <div className="ui-card overflow-hidden">
+                <div className="border-b border-[var(--border)] px-5 py-4">
+                  <h3 className="font-bold">Credit Transaction & Audit History</h3>
+                  <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                    All ledger entries, credit adjustments, and purchases recorded for this workspace.
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[900px] text-left text-xs">
+                    <thead className="bg-[var(--surface-2)] text-[10px] uppercase tracking-wider text-[var(--muted-foreground)] border-b border-[var(--border)]">
+                      <tr>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Event</th>
+                        <th className="px-4 py-3">Bucket</th>
+                        <th className="px-4 py-3 text-right">Amount</th>
+                        <th className="px-4 py-3">Description / Reason</th>
+                        <th className="px-4 py-3">Ticket</th>
+                        <th className="px-4 py-3">Performed By</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border)]">
+                      {selected.transactions.map((transaction) => (
+                        <tr key={transaction.id} className="hover:bg-[var(--surface-2)] transition-colors">
+                          <td className="whitespace-nowrap px-4 py-4 text-[var(--muted-foreground)] tabular-nums">
+                            {formatDate(transaction.createdAt)}
+                          </td>
+                          <td className="px-4 py-4 font-semibold capitalize text-[var(--foreground)]">
+                            {transaction.type.replaceAll('_', ' ')}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <span className="ui-badge ui-badge-surface capitalize text-[9px] font-semibold tracking-wider">
+                              {transaction.bucket}
+                            </span>
+                          </td>
+                          <td className={`whitespace-nowrap px-4 py-4 text-right font-mono font-bold text-sm ${
+                            transaction.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'
+                          }`}>
+                            {transaction.amount >= 0 ? '+' : ''}
+                            {formatCredits(transaction.amount)}
+                          </td>
+                          <td className="max-w-xs px-4 py-4 text-[var(--foreground)] break-words font-medium">
+                            {transaction.adjustmentReason || transaction.description || '-'}
+                          </td>
+                          <td className="px-4 py-4 font-mono">
+                            {transaction.externalTicketUrl ? (
+                              <a
+                                href={transaction.externalTicketUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-[var(--primary)] hover:underline font-semibold"
+                              >
+                                #{transaction.ticketReference}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ) : transaction.ticketReference ? (
+                              <span className="text-[var(--foreground)] font-medium">#{transaction.ticketReference}</span>
+                            ) : (
+                              <span className="text-[var(--muted-foreground)]">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 text-[var(--muted-foreground)]">
+                            {transaction.performedByEmail ? (
+                              <div className="flex items-center gap-2">
+                                <div className="h-5 w-5 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center text-[9px] font-bold uppercase">
+                                  {transaction.performedByEmail.slice(0, 2)}
+                                </div>
+                                <span className="text-[11px] font-medium">{transaction.performedByEmail}</span>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] font-medium text-[var(--muted-foreground)]">System</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {selected.transactions.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="px-4 py-12 text-center text-[var(--muted-foreground)]">
+                            No credit transactions or audit records found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
         </section>
-
-        {selected && selected.transactions && selected.transactions.length > 0 && (
-          <section className="mt-8 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-5 shadow-sm">
-            <h3 className="text-lg font-bold">Ledger History</h3>
-            <p className="mt-1 text-sm text-[var(--muted-foreground)] mb-4">
-              Recent 50 credit activities for this organization.
-            </p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--border)] text-[var(--muted-foreground)]">
-                    <th className="pb-3 pr-4 font-semibold">Date</th>
-                    <th className="pb-3 px-4 font-semibold">Bucket</th>
-                    <th className="pb-3 px-4 font-semibold text-right">Amount</th>
-                    <th className="pb-3 pl-4 font-semibold">Description</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)]">
-                  {selected.transactions.map((tx) => (
-                    <tr key={tx.id} className="hover:bg-[var(--surface-2)]">
-                      <td className="py-3 pr-4 whitespace-nowrap tabular-nums text-[var(--muted-foreground)] text-xs">
-                        {formatDate(tx.createdAt)}
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span className="ui-badge ui-badge-surface capitalize text-[10px]">
-                          {tx.bucket}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap text-right font-mono font-bold">
-                        <span className={tx.amount > 0 ? 'text-emerald-500' : 'text-rose-500'}>
-                          {tx.amount > 0 ? '+' : ''}{tx.amount}
-                        </span>
-                      </td>
-                      <td className="py-3 pl-4">
-                        <span className="font-medium text-[var(--foreground)]">{tx.description || tx.adjustmentReason || tx.type}</span>
-                        {tx.performedByEmail && (
-                          <span className="block text-[10px] text-[var(--muted-foreground)]">
-                            by {tx.performedByEmail}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
       </main>
 
       {pending && selected && (

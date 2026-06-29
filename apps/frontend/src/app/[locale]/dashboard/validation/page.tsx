@@ -220,23 +220,23 @@ export default function ValidationDashboardPage() {
           {/* Download CSV Button */}
           <button
             onClick={handleDownloadCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-sm cursor-pointer text-foreground"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-sm cursor-pointer text-foreground"
             aria-label="Download Report as CSV"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export CSV</span>
+            <span className="hidden sm:inline">Export CSV</span>
           </button>
 
           <Link
             href="/settings/billing"
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-sm"
           >
             <WalletCards className="w-3.5 h-3.5" />
-            <span>Billing Admin</span>
+            <span className="hidden sm:inline">Billing Admin</span>
           </Link>
           <Link
             href="/dashboard"
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-sm"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-sm"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Dashboard</span>

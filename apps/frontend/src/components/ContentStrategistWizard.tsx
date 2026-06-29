@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUp, Upload, Link as LinkIcon, Search, X, FileText, Rocket, ExternalLink, Newspaper, Loader2, List, Bookmark, Check, Edit3, Target } from 'lucide-react';
+import { ArrowUp, Upload, Link as LinkIcon, Search, X, FileText, Rocket, ExternalLink, Newspaper, Loader2, List, Bookmark, Check, Edit3, Target, ChevronDown, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -63,7 +63,6 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   
   const [chatInput, setChatInput] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -71,6 +70,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
 
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashMenuIndex, setSlashMenuIndex] = useState(0);
+  const [showResearchMenu, setShowResearchMenu] = useState(false);
 
   const slashCommands = [
     { id: 'generate-plan', label: 'Generate Plan', icon: <FileText className="w-4 h-4" /> },
@@ -105,8 +105,33 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [researchMode, setResearchMode] = useState<'fast' | 'deep'>('fast');
   const [collectedSources, setCollectedSources] = useState<{ url: string; domain: string; title?: string; description?: string }[]>([]);
+  const [isShowingAllSources, setIsShowingAllSources] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<PreEditorPlan | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachMenuRef = useRef<HTMLDivElement>(null);
+  const researchMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        showResearchMenu &&
+        researchMenuRef.current &&
+        !researchMenuRef.current.contains(target)
+      ) {
+        setShowResearchMenu(false);
+      }
+      if (
+        showAttachMenu &&
+        attachMenuRef.current &&
+        !attachMenuRef.current.contains(target)
+      ) {
+        setShowAttachMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showResearchMenu, showAttachMenu]);
 
   const [activeDeepResearchId, setActiveDeepResearchId] = useState<string | null>(null);
   const [deepResearchReport, setDeepResearchReport] = useState<string | null>(null);
@@ -538,9 +563,10 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
         <div className="flex-1 flex flex-col overflow-hidden relative">
           <button 
             onClick={onCancel} 
-            className="absolute top-4 right-4 z-50 p-2.5 bg-[var(--surface-1)]/50 hover:bg-[var(--surface-2)] backdrop-blur-md rounded-full text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors shadow-sm"
+            className="absolute top-4 left-4 z-50 p-2 bg-[var(--surface-1)]/50 hover:bg-[var(--surface-2)] backdrop-blur-md rounded-full text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors border border-[var(--border)] shadow-sm"
+            title="Go Back"
           >
-            <X className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
           </button>
           
           {messages.length === 0 ? (
@@ -555,7 +581,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
+            <div className="flex-1 overflow-y-auto pt-14" ref={scrollContainerRef}>
               <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-8 pb-10">
                 <AnimatePresence initial={false}>
                   {messages.map((msg, i) => (
@@ -590,7 +616,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                               </div>
                               {msg.payload?.sources && (
                                 <div className="flex items-center gap-3 mt-4 mb-2">
-                                  <button onClick={() => setCollectedSources(msg.payload!.sources!)} className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[var(--surface-2)] hover:bg-[var(--surface-3)] transition-all border border-[var(--border)]">
+                                  <button onClick={() => { setCollectedSources(msg.payload!.sources!); setIsShowingAllSources(false); }} className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[var(--surface-2)] hover:bg-[var(--surface-3)] transition-all border border-[var(--border)]">
                                     <span className="text-[13px]">{msg.payload.sources.length} sources</span>
                                   </button>
                                 </div>
@@ -609,14 +635,14 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                                 <div className="mt-3">
                                   {savedNoteIds.has(msg.id) ? (
                                     <span className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: 'var(--success, #22c55e)' }}>
-                                      <Check className="w-3 h-3" /> Tersimpan
+                                      <Check className="w-3 h-3" /> Saved
                                     </span>
                                   ) : (
                                     <button
                                       onClick={() => saveNote(msg)}
                                       className="flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border border-[var(--border)] rounded-full px-3 py-1.5 hover:bg-[var(--surface-2)] transition-all"
                                     >
-                                      <Bookmark className="w-3 h-3" /> Simpan ke Catatan
+                                      <Bookmark className="w-3 h-3" /> Save to Notes
                                     </button>
                                   )}
                                 </div>
@@ -637,16 +663,8 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
 
           <div className="p-4 bg-[var(--background)] pb-6 z-10 relative">
             <div className="max-w-4xl mx-auto">
-              {/* Actions & Research Mode Toggle */}
-              <div className="flex justify-center mb-3 gap-3">
-                <div className="bg-[var(--surface-2)] p-1 rounded-full inline-flex items-center">
-                    <button onClick={() => setResearchMode('fast')} className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 ${researchMode === 'fast' ? 'bg-[var(--foreground)] text-[var(--background)] shadow-sm' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}>
-                      <Rocket className="w-3.5 h-3.5" /> Fast Research
-                    </button>
-                    <button onClick={() => setResearchMode('deep')} className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 ${researchMode === 'deep' ? 'bg-[var(--foreground)] text-[var(--background)] shadow-sm' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}>
-                      <Search className="w-3.5 h-3.5" /> Deep Research
-                    </button>
-                </div>
+               {/* Actions Row */}
+              <div className="flex justify-center mb-3">
                 {messages.length >= 2 && !currentPlan && (
                   <button 
                     onClick={() => {
@@ -664,83 +682,108 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                 )}
               </div>
 
-              <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className={`w-full max-w-xl mx-auto relative flex flex-col bg-[var(--surface-2)] rounded-3xl p-1 transition-all shadow-sm ${isExpanded ? 'min-h-[100px]' : ''}`}>
-                
-                {/* When NOT expanded, buttons are absolute and text is centered horizontally */}
-                {!isExpanded && (
-                  <>
-                    <div className="absolute left-[8px] bottom-[8px] z-10">
-                      <button type="button" onClick={() => setShowAttachMenu(!showAttachMenu)} className="w-9 h-9 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-3)] rounded-full transition-colors flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+              {/* Compact Sources Panel - Mobile (Inline above Input Form) */}
+              <AnimatePresence>
+                {collectedSources.length > 0 && !currentPlan && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="lg:hidden w-full max-w-xl mx-auto mb-3 bg-[var(--surface-2)] border border-[var(--border)] rounded-2xl p-3.5 shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border)]">
+                      <div className="flex items-center gap-2">
+                        <Search className="w-3.5 h-3.5 text-[var(--primary)]" />
+                        <span className="text-[12px] font-bold text-[var(--foreground)]">
+                          Research Sources ({collectedSources.length})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setCollectedSources([]); setIsShowingAllSources(false); }}
+                        className="p-1 hover:bg-[var(--surface-3)] rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
                       </button>
-                      
-                      <AnimatePresence>
-                        {showAttachMenu && (
-                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 mb-2 w-56 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden py-1 z-50">
-                            <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Analyze</div>
-                            <button type="button" onClick={() => { fileInputRef.current?.click(); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <Upload className="w-4 h-4" /> Upload CSV
-                            </button>
-                            <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Please use the url_context tool to read and analyze my blog at: https://'); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <LinkIcon className="w-4 h-4" /> Blog URL
-                            </button>
-                            <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Here are my manual metrics:\n- Page views: \n- Bounce rate: '); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <FileText className="w-4 h-4" /> Manual Metrics
-                            </button>
-                            <div className="my-1 border-t border-[var(--border)]" />
-                            <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Quick Draft</div>
-                            <button type="button" onClick={() => openQuickDraft('topic')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <FileText className="w-4 h-4" /> Topic
-                            </button>
-                            <button type="button" onClick={() => openQuickDraft('outline')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <List className="w-4 h-4" /> Outline
-                            </button>
-                            <button type="button" onClick={() => openQuickDraft('reference')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <LinkIcon className="w-4 h-4" /> Reference
-                            </button>
-                            <button type="button" onClick={() => openQuickDraft('press_release')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <Newspaper className="w-4 h-4" /> Press Release
-                            </button>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                      <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
                     </div>
-                    
-                    <button 
-                      type="submit" 
-                      disabled={!chatInput.trim() || isTyping} 
-                      className="absolute right-[8px] bottom-[8px] w-9 h-9 rounded-full bg-[var(--foreground)] text-[var(--background)] hover:opacity-90 disabled:opacity-30 transition-opacity shadow-sm flex items-center justify-center z-10"
-                    >
-                      <ArrowUp className="w-5 h-5" strokeWidth={2.5} />
-                    </button>
-                  </>
-                )}
 
-                    {/* Slash Command Menu */}
-                    <AnimatePresence>
-                      {showSlashMenu && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          className="absolute bottom-full left-0 mb-2 w-64 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden py-1 z-50"
-                        >
-                          <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Commands</div>
-                          {slashCommands.map((cmd, idx) => (
-                            <button
-                              key={cmd.id}
-                              type="button"
-                              onClick={() => executeSlashCommand(cmd.id)}
-                              className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${slashMenuIndex === idx ? 'bg-[var(--surface-2)] text-[var(--foreground)]' : 'hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}
+                    {/* Source List */}
+                    <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                      {(isShowingAllSources ? collectedSources : collectedSources.slice(0, 2)).map((source, i) => {
+                        try {
+                          const domain = source.domain;
+                          const title = source.title || `Artikel terkait dari ${domain}`;
+                          
+                          return (
+                            <a
+                              key={i}
+                              href={source.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--surface-3)] transition-colors group text-left"
                             >
-                              <div className="text-[var(--primary)]">{cmd.icon}</div>
-                              <span>{cmd.label}</span>
-                            </button>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
+                                className="w-3.5 h-3.5 rounded-full shrink-0"
+                                alt={domain}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-[12px] font-semibold text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors truncate">
+                                  {title}
+                                </h4>
+                                <span className="text-[10px] text-[var(--muted-foreground)] truncate block">
+                                  {domain}
+                                </span>
+                              </div>
+                            </a>
+                          );
+                        } catch {
+                          return null;
+                        }
+                      })}
+                    </div>
+
+                    {/* Show All / Show Less button */}
+                    {collectedSources.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => setIsShowingAllSources(!isShowingAllSources)}
+                        className="mt-2 text-center w-full py-1.5 text-[11px] font-bold text-[var(--primary)] hover:underline border-t border-[var(--border)] pt-2"
+                      >
+                        {isShowingAllSources ? "Show Less" : `Show All (${collectedSources.length - 2} more)`}
+                      </button>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="w-full max-w-xl mx-auto relative flex flex-col bg-[var(--surface-2)] rounded-3xl p-1.5 transition-all shadow-sm">
+                {/* Slash Command Menu */}
+                <AnimatePresence>
+                  {showSlashMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute bottom-full left-0 mb-2 w-64 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden py-1 z-50"
+                    >
+                      <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Commands</div>
+                      {slashCommands.map((cmd, idx) => (
+                        <button
+                          key={cmd.id}
+                          type="button"
+                          onClick={() => executeSlashCommand(cmd.id)}
+                          className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${slashMenuIndex === idx ? 'bg-[var(--surface-2)] text-[var(--foreground)]' : 'hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}
+                        >
+                          <div className="text-[var(--primary)]">{cmd.icon}</div>
+                          <span>{cmd.label}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <textarea
                   ref={textareaRef}
@@ -760,7 +803,6 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                       textareaRef.current.style.height = 'auto';
                       const newHeight = textareaRef.current.scrollHeight;
                       textareaRef.current.style.height = `${newHeight}px`;
-                      setIsExpanded(newHeight > 50 || val.includes('\n'));
                     }
                   }}
                   onKeyDown={(e) => {
@@ -790,20 +832,18 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleSend();
-                      setIsExpanded(false);
                     }
                   }}
                   placeholder="Ask your ideas.."
-                  className={`w-full block bg-transparent border-0 focus:border-0 focus:ring-0 focus:outline-none outline-none resize-none min-h-[44px] max-h-[200px] text-[15px] ${isExpanded ? 'py-2 px-3 pb-1' : 'py-2.5 pl-[48px] pr-[48px]'}`}
+                  className="w-full block bg-transparent border-0 focus:border-0 focus:ring-0 focus:outline-none outline-none resize-none min-h-[44px] max-h-[200px] text-[15px] px-3 pt-2.5 pb-1"
                   rows={1}
                   disabled={isTyping}
                   autoFocus
                 />
 
-                {/* When EXPANDED, buttons are in a separate row at the bottom, so text goes above them */}
-                {isExpanded && (
-                  <div className="flex justify-between items-center w-full mt-1 px-0.5 pb-0.5">
-                    <div className="relative">
+                <div className="flex justify-between items-center w-full mt-1 px-1.5 pb-1.5">
+                  <div className="flex items-center gap-1">
+                    <div ref={attachMenuRef} className="relative">
                       <button type="button" onClick={() => setShowAttachMenu(!showAttachMenu)} className="w-9 h-9 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-3)] rounded-full transition-colors flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                       </button>
@@ -840,16 +880,64 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                       </AnimatePresence>
                       <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
                     </div>
-                    
-                    <button 
-                      type="submit" 
-                      disabled={!chatInput.trim() || isTyping} 
-                      className="w-9 h-9 rounded-full bg-[var(--foreground)] text-[var(--background)] hover:opacity-90 disabled:opacity-30 transition-opacity shadow-sm flex items-center justify-center"
-                    >
-                      <ArrowUp className="w-5 h-5" strokeWidth={2.5} />
-                    </button>
+
+                    {/* Research Mode Dropdown */}
+                    <div ref={researchMenuRef} className="relative inline-block">
+                      <button
+                        type="button"
+                        onClick={() => setShowResearchMenu(!showResearchMenu)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full hover:bg-[var(--surface-3)] text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all cursor-pointer"
+                      >
+                        <span>{researchMode === 'fast' ? 'Fast' : 'Deep'}</span>
+                        <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" style={{ transform: showResearchMenu ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                      </button>
+
+                      <AnimatePresence>
+                        {showResearchMenu && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="absolute bottom-full left-0 mb-2 w-36 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden py-1.5 z-50 flex flex-col"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setResearchMode('fast');
+                                setShowResearchMenu(false);
+                              }}
+                              className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors hover:bg-[var(--surface-2)] ${
+                                researchMode === 'fast' ? 'text-[var(--primary)] bg-[var(--primary-muted,rgba(var(--primary-rgb,59,130,246),.08))]' : 'text-[var(--foreground)]'
+                              }`}
+                            >
+                              Fast Research
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setResearchMode('deep');
+                                setShowResearchMenu(false);
+                              }}
+                              className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors hover:bg-[var(--surface-2)] ${
+                                researchMode === 'deep' ? 'text-[var(--primary)] bg-[var(--primary-muted,rgba(var(--primary-rgb,59,130,246),.08))]' : 'text-[var(--foreground)]'
+                              }`}
+                            >
+                              Deep Research
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
-                )}
+                  
+                  <button 
+                    type="submit" 
+                    disabled={!chatInput.trim() || isTyping} 
+                    className="w-9 h-9 rounded-full bg-[var(--foreground)] text-[var(--background)] hover:opacity-90 disabled:opacity-30 transition-opacity shadow-sm flex items-center justify-center"
+                  >
+                    <ArrowUp className="w-5 h-5" strokeWidth={2.5} />
+                  </button>
+                </div>
               </form>
               <div className="text-center mt-2">
                 <span className="text-[9px] text-[var(--muted-foreground)] uppercase tracking-wider font-semibold">EAI can make mistakes. Check important info.</span>
@@ -938,7 +1026,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                 <Search className="w-4 h-4 text-[var(--primary)]" />
                 Research Sources
               </h3>
-              <button onClick={() => setCollectedSources([])} className="p-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)] rounded-md transition-colors">
+              <button onClick={() => { setCollectedSources([]); setIsShowingAllSources(false); }} className="p-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)] rounded-md transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
@@ -968,6 +1056,8 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
             </div>
           </div>
         )}
+
+
         
         {/* Deep Research Small Card / NotebookLM Studio Style */}
         {deepResearchReport && !collectedSources.length && !currentPlan && (

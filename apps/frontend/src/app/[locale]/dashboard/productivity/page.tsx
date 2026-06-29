@@ -23,9 +23,9 @@ export default function ProductivityPage() {
               <Users className="w-5 h-5 text-primary" /> Editor Productivity &amp; Coaching
             </h3>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-xs">
+              <table className="w-full min-w-[600px] border-collapse text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 text-muted-foreground uppercase font-semibold tracking-wider">
+                  <tr className="border-b border-slate-100 dark:border-slate-800 text-muted-foreground uppercase font-semibold tracking-wider whitespace-nowrap">
                     <th className="pb-3 pl-2">Editor</th>
                     <th className="pb-3 text-center">Reviews</th>
                     <th className="pb-3 text-center">Ready Rate</th>
@@ -49,7 +49,7 @@ export default function ProductivityPage() {
                     }
 
                     return (
-                      <tr key={user.userId} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors">
+                      <tr key={user.userId} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors whitespace-nowrap">
                         <td className="py-4 pl-2 flex items-center gap-3">
                           {user.imageUrl ? (
                             // Clerk avatar hosts vary by account, so this small image uses the native element.

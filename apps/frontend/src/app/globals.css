@@ -1076,6 +1076,10 @@
   background: var(--background);
 }
 
+.workspace-page-sidebar-toggle {
+  display: none;
+}
+
 
 
 .workspace-page-sidebar-heading {
@@ -1418,6 +1422,10 @@
 }
 
 @media (max-width: 860px) {
+  .workspace-page-sidebar-toggle {
+    display: inline-flex;
+  }
+
   .workspace-page-sidebar-panel {
     position: fixed;
     inset: var(--titlebar-height) auto 0 0;

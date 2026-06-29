@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { createClerkClient } from '@clerk/backend';
 
 import { prisma } from '@/lib/db';
 import { isOwnerUser } from '@eai/shared/server';
@@ -7,6 +8,8 @@ import {
   isSuperAdminRole,
   planCreditDeduction,
 } from '@/lib/admin-billing-core';
+
+const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 export {
   type BillingBalance,
@@ -78,6 +81,40 @@ const calculateOrganizationBalance = async (
   };
 };
 
+const getOrganizationMembers = async (
+  dbUsers: { id: string; email: string; name: string | null; role: string }[],
+  clerkOrganizationId: string | null
+) => {
+  if (!clerkOrganizationId) {
+    return dbUsers;
+  }
+  try {
+    const memberships = await clerk.organizations.getOrganizationMembershipList({
+      organizationId: clerkOrganizationId,
+      limit: 50,
+    });
+    return memberships.data.map((m) => {
+      let role = 'member';
+      if (m.role === 'org:admin' || m.role === 'admin') {
+        role = 'admin';
+      }
+      const firstName = m.publicUserData?.firstName || '';
+      const lastName = m.publicUserData?.lastName || '';
+      const fullName = [firstName, lastName].filter(Boolean).join(' ');
+
+      return {
+        id: m.publicUserData?.userId || m.id,
+        email: m.publicUserData?.identifier || '',
+        name: fullName || null,
+        role,
+      };
+    });
+  } catch (error) {
+    console.error(`[getOrganizationMembers] Failed to fetch memberships from Clerk for ${clerkOrganizationId}:`, error);
+    return dbUsers;
+  }
+};
+
 export const searchBillingOrganizations = async (query: string) => {
   const cleanQuery = query.trim();
   if (cleanQuery.length < 2) return [];
@@ -127,10 +164,14 @@ export const searchBillingOrganizations = async (query: string) => {
     },
   });
 
-  return Promise.all(organizations.map(async (organization) => ({
-    ...organization,
-    balance: await calculateOrganizationBalance(prisma, organization.id),
-  })));
+  return Promise.all(organizations.map(async (organization) => {
+    const users = await getOrganizationMembers(organization.users, organization.clerkOrganizationId);
+    return {
+      ...organization,
+      users,
+      balance: await calculateOrganizationBalance(prisma, organization.id),
+    };
+  }));
 };
 
 export const getBillingOrganizationDetail = async (organizationId: string) => {
@@ -183,8 +224,11 @@ export const getBillingOrganizationDetail = async (organizationId: string) => {
   });
   if (!organization) return null;
 
+  const users = await getOrganizationMembers(organization.users, organization.clerkOrganizationId);
+
   return {
     ...organization,
+    users,
     balance: await calculateOrganizationBalance(prisma, organization.id),
   };
 };
