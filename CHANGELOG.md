@@ -6,6 +6,21 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-29
+
+### Added
+- **Compact Mobile Sources Panel**: Introduced a responsive inline list above the chat input form for mobile screens to display cited sources cleanly without blocking the input field.
+- **Floating Back Button (`<`)**: Replaced the bulky chat header bar with a small, circular back button (`ChevronLeft`) in the top-left corner, reclaiming vertical screen space on mobile.
+- **Default Sidebar Mobile Closed State**: Added automatic viewport detection to set the workspace navigation sidebar to closed by default on screens $\le 860$px on initial load.
+
+### Changed
+- **Touch Event Compatibility**: Added `touchstart` listener support alongside `mousedown` to the outside-click handler, guaranteeing reliable dropdown menu closures on all mobile and tablet touchscreens.
+- **Tiptap Next.js Hydration configuration**: Configured `immediatelyRender: false` on the Tiptap editor hook to suppress developer console warning logs in Next.js.
+
+### Fixed
+- **Tiptap Content Synchronization**: Implemented a reactive `useEffect` synchronization hook in `Editor.tsx` to push external `value` state changes (from wizard generated blueprints or note inserts) directly into the Tiptap canvas without resetting cursor focus.
+- **ESLint State Cascade Warning**: Refactored the `collectedSources` state reset logic to eliminate synchronous `setState` updates inside the component effects.
+
 ## [1.0.0] - 2026-06-29
 
 ### Added

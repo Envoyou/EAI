@@ -6,6 +6,21 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-29
+
+### Added
+- **Panel Sumber Mobile yang Ringkas**: Memperkenalkan daftar inline responsif di atas formulir obrolan chat untuk layar HP/tablet guna menampilkan sumber referensi yang dirujuk tanpa menghalangi atau menutupi kolom input ketik.
+- **Tombol Kembali Mengambang (`<`)**: Menggantikan bilah tajuk (*header bar*) obrolan yang memakan tempat dengan tombol kembali berbentuk lingkaran kecil (`ChevronLeft`) di pojok kiri atas, mengembalikan kelegaan layar vertikal pada mobile.
+- **Default Sidebar Mobile Tertutup**: Menambahkan deteksi otomatis ukuran layar untuk menyetel laci navigasi halaman workspace dalam keadaan tertutup secara default saat dimuat pada perangkat $\le 860$px.
+
+### Changed
+- **Kompatibilitas Layar Sentuh**: Menambahkan dukungan pendengar event `touchstart` di samping `mousedown` pada deteksi klik di luar area (*click-outside*), menjamin menu dropdown menutup secara andal di semua HP dan tablet layar sentuh.
+- **Konfigurasi Hidrasi Tiptap Next.js**: Mengonfigurasi properti `immediatelyRender: false` pada hook editor Tiptap untuk menghilangkan log peringatan Next.js di konsol browser.
+
+### Fixed
+- **Sinkronisasi Konten Tiptap**: Mengimplementasikan hook `useEffect` reaktif di dalam `Editor.tsx` untuk menyinkronkan pembaruan nilai state `value` eksternal (dari cetak biru wizard atau penyisipan catatan riset) langsung ke kanvas Tiptap tanpa merusak posisi kursor ketik.
+- **Peringatan State Cascade ESLint**: Merestrukturisasi logika pembersihan state `collectedSources` untuk menghilangkan pemanggilan synchronous `setState` di dalam efek komponen yang melanggar aturan ESLint.
+
 ## [1.0.0] - 2026-06-29
 
 ### Added
