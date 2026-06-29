@@ -138,6 +138,19 @@ export default function Editor({
     return () => clearInterval(interval);
   }, [editor, isFocused, onChange]);
 
+  // Synchronize external value prop changes into the editor canvas (e.g. from generated drafts or notes)
+  useEffect(() => {
+    if (!editor) return;
+    try {
+      const currentMarkdown = (editor.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
+      if (value !== currentMarkdown) {
+        editor.commands.setContent(value);
+      }
+    } catch (e) {
+      console.error('Error synchronizing editor content:', e);
+    }
+  }, [value, editor]);
+
   // Randomise placeholder only on client to avoid SSR hydration mismatch
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
