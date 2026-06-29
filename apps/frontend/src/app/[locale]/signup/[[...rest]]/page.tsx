@@ -30,7 +30,7 @@ export default async function AppSignUpPage() {
             colorTextSecondary: '#94a3b8',
             colorNeutral: '#94a3b8',
             borderRadius: '14px',
-          },
+          } as any,
           elements: {
             rootBox: 'w-full bg-transparent',
             cardBox: 'w-full shadow-none bg-transparent',
@@ -64,7 +64,7 @@ export default async function AppSignUpPage() {
             alertText: 'text-slate-200',
             alert: 'border border-amber-300/20 bg-amber-300/10 text-amber-100',
           },
-        }}
+        } as any}
       />
     </AuthPageShell>
   );
