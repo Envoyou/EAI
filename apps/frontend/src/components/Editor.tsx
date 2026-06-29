@@ -103,6 +103,7 @@ export default function Editor({
       }),
     ],
     content: value,
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: 'editor-canvas flex-1 w-full max-w-[800px] mx-auto resize-none border-0 outline-none px-6 py-6 md:px-12 md:py-10 leading-[1.85] font-serif text-[16px] bg-transparent text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-0 prose prose-sm dark:prose-invert focus:outline-none min-h-[500px]',

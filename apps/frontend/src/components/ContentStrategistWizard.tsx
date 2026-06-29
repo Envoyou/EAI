@@ -112,7 +112,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
   const researchMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
       const target = e.target as Node;
       if (
         showResearchMenu &&
@@ -130,7 +130,11 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
   }, [showResearchMenu, showAttachMenu]);
 
   const [activeDeepResearchId, setActiveDeepResearchId] = useState<string | null>(null);

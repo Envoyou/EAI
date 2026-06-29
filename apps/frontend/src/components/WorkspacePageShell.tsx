@@ -28,7 +28,12 @@ export function WorkspacePageShell({
   children,
 }: WorkspacePageShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 860px)').matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSidebarOpen(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!sidebarOpen) return;
