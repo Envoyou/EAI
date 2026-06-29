@@ -31,7 +31,8 @@ interface EditorProps {
   onAddNewMetadataOption?: (type: 'category' | 'articleType', value: string) => void;
   charLimit?: number;
   showNotesSidebar?: boolean;
-  onHasNotesChange?: (hasNotes: boolean) => void;
+  researchNotes: ResearchNote[];
+  onNotesChange: (notes: ResearchNote[]) => void;
 }
 
 
@@ -55,7 +56,8 @@ export default function Editor({
   onAddNewMetadataOption,
   charLimit = 15000,
   showNotesSidebar = true,
-  onHasNotesChange,
+  researchNotes,
+  onNotesChange,
 }: EditorProps) {
   const updateMeta = (field: keyof ArticleMetadata, val: string) => {
     onMetadataChange({ ...metadata, [field]: val });
@@ -72,19 +74,7 @@ export default function Editor({
   const prevValueRef = useRef(value);
 
   const SESSION_KEY = 'eai_research_notes';
-  
-  // Research Notes state (NotebookLM approach)
-  const [researchNotes, setResearchNotes] = useState<ResearchNote[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch { return []; }
-  });
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (onHasNotesChange) {
-      onHasNotesChange(researchNotes.length > 0);
-    }
-  }, [researchNotes.length, onHasNotesChange]);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -475,8 +465,7 @@ export default function Editor({
                 const content = draft || outline || topic;
                 onChange(content);
                 if (notes && notes.length > 0) {
-                  setResearchNotes(notes);
-                  if (onHasNotesChange) onHasNotesChange(true);
+                  onNotesChange(notes);
                 }
                 setIsWritingManually(true);
                 setIsDraftingAssistantActive(false);
@@ -485,8 +474,7 @@ export default function Editor({
                 // Reload notes from sessionStorage in case they saved some before cancelling
                 let currentNotes: ResearchNote[] = [];
                 try { currentNotes = JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch {}
-                setResearchNotes(currentNotes);
-                if (onHasNotesChange) onHasNotesChange(currentNotes.length > 0);
+                onNotesChange(currentNotes);
                 
                 setIsDraftingAssistantActive(false);
                 
@@ -582,9 +570,7 @@ export default function Editor({
             </span>
             <button
               onClick={() => {
-                setResearchNotes([]);
-                if (onHasNotesChange) onHasNotesChange(false);
-                sessionStorage.removeItem(SESSION_KEY);
+                onNotesChange([]);
                 toast.success('All notes cleared');
               }}
               className="text-[11px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
@@ -622,8 +608,7 @@ export default function Editor({
                   <button
                     onClick={() => {
                       const updated = researchNotes.filter(n => n.id !== note.id);
-                      setResearchNotes(updated);
-                      sessionStorage.setItem(SESSION_KEY, JSON.stringify(updated));
+                      onNotesChange(updated);
                       if (expandedNoteId === note.id) setExpandedNoteId(null);
                       toast.success('Note deleted');
                     }}

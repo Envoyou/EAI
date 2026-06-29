@@ -207,3 +207,18 @@ export const getFeedbackResponseJsonSchema = (role: Role) => {
   }
   return schema;
 };
+
+export const ResearchNoteSchema = z.object({
+  id: z.string(),
+  content: z.string(),
+  sources: z.array(
+    z.object({
+      url: z.string(),
+      domain: z.string(),
+    })
+  ),
+  savedAt: z.string(),
+});
+
+export const ResearchNotesArraySchema = z.array(ResearchNoteSchema);
+

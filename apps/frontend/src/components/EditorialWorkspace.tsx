@@ -11,7 +11,7 @@ import HistorySidebar from '@/components/HistorySidebar';
 import PanelTabBar, { PanelTab } from '@/components/PanelTabBar';
 import StatusBar from '@/components/StatusBar';
 import ShortcutsModal from '@/components/ShortcutsModal';
-import { AnalysisResult, ArticleMetadata, EditorialProcessStage, EditorialReadiness, ResponseMode, FeedbackItem } from '@eai/shared';
+import { AnalysisResult, ArticleMetadata, EditorialProcessStage, EditorialReadiness, ResponseMode, FeedbackItem, ResearchNote } from '@eai/shared';
 import { Loader2, RotateCcw, Sparkles, Megaphone, Lock, Menu, Zap, Rocket } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { toast } from 'sonner';
@@ -195,9 +195,53 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   const [showFeedbackSidebar, setShowFeedbackSidebar] = useState(true);
   const [showNotesSidebar, setShowNotesSidebar] = useState(true);
   const [hasNotes, setHasNotes] = useState(false);
-
+  const [researchNotes, setResearchNotes] = useState<ResearchNote[]>([]);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [analysisSpeed, setAnalysisSpeed] = useState<'fast' | 'publish'>('publish');
   const [isTargetedFixing, setIsTargetedFixing] = useState<number | null>(null);
+
+  const saveNotesToBackend = async (notes: ResearchNote[]) => {
+    if (!activeHistoryId) return;
+    try {
+      const response = await fetch(`/api/history/${activeHistoryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_research_notes',
+          notes,
+        }),
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        console.error('Failed to save research notes:', errData.error);
+      }
+    } catch (err) {
+      console.error('Error saving research notes:', err);
+    }
+  };
+
+  const handleNotesChange = (notes: ResearchNote[]) => {
+    setResearchNotes(notes);
+    setHasNotes(notes.length > 0);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('eai_research_notes', JSON.stringify(notes));
+    }
+
+    if (!activeHistoryId) return;
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      saveNotesToBackend(notes);
+    }, 1500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (mode === 'demo') {
@@ -408,6 +452,12 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     const textToAnalyze = overrideDraft ?? draft;
     if (!textToAnalyze.trim()) return;
 
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+      await saveNotesToBackend(researchNotes);
+    }
+
     if (isDemoMode && demoRefineCount >= 2) {
       setShowDemoSignupModal(true);
       return;
@@ -438,7 +488,10 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
         body: JSON.stringify({
           text: textToAnalyze,
           role: 'polish',
-          metadata: requestMetadata,
+          metadata: {
+            ...requestMetadata,
+            researchNotes,
+          },
           analysisSpeed: analysisSpeed === 'publish' ? 'deep' : 'fast',
         }),
       });
@@ -737,6 +790,12 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   };
 
   const handleNewDraft = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+      saveNotesToBackend(researchNotes);
+    }
+
     setActiveHistoryId(null);
     setDraft('');
     setSourceDraft('');
@@ -746,6 +805,13 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     setActiveTab('draft');
     setHoveredFeedbackIndex(null);
     setActiveFeedbackIndex(null);
+    
+    setResearchNotes([]);
+    setHasNotes(false);
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('eai_research_notes');
+    }
+
     if (isMobile) setSidebarOpen(false);
   };
 
@@ -783,6 +849,12 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   };
 
   const loadHistory = async (id: string) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+      await saveNotesToBackend(researchNotes);
+    }
+
     try {
       const res = await fetch(`/api/history/${id}`);
       if (res.ok) {
@@ -791,6 +863,15 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
         setDraft(log.content || '');
         setSourceDraft(log.content || '');
         setMetadata(extractArticleMetadata(log.metadata));
+
+        const logMetadata = log.metadata as Record<string, unknown> | null;
+        const loadedNotes = (logMetadata?.researchNotes || []) as ResearchNote[];
+        setResearchNotes(loadedNotes);
+        setHasNotes(loadedNotes.length > 0);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('eai_research_notes', JSON.stringify(loadedNotes));
+        }
+
         setDraftHistory([]);
         setHoveredFeedbackIndex(null);
         setActiveFeedbackIndex(null);
@@ -1387,7 +1468,8 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
                     onAddNewMetadataOption={handleAddNewCategoryOrType}
                     charLimit={editorialOptions.maxTextLength}
                     showNotesSidebar={showNotesSidebar}
-                    onHasNotesChange={setHasNotes}
+                    researchNotes={researchNotes}
+                    onNotesChange={handleNotesChange}
                   />
                 </motion.div>
               )}

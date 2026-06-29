@@ -85,3 +85,11 @@ export interface AllowedEditorialTerm {
   scope?: 'global' | 'category';
   categories?: string[];
 }
+
+export interface ResearchNote {
+  id: string;
+  content: string;
+  sources: { url: string; domain: string }[];
+  savedAt: string; // ISO timestamp
+}
+

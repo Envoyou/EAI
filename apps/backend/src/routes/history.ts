@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma, Prisma } from '@/lib/db';
 import { requireAuth } from '@/middleware/auth';
-import { FeedbackItemSchema } from '@eai/shared';
+import { FeedbackItemSchema, ResearchNotesArraySchema } from '@eai/shared';
 import { getWorkspaceState } from '@/lib/user-workspace';
 
 const router = Router();
@@ -251,6 +251,25 @@ router.patch('/:id', requireAuth, async (req, res) => {
       });
 
       return res.json({ success: true, readiness });
+    }
+
+    const action = req.body?.action;
+    if (action === 'save_research_notes') {
+      const parsedNotes = ResearchNotesArraySchema.safeParse(req.body?.notes);
+      if (!parsedNotes.success) {
+        return res.status(400).json({ error: 'Invalid or missing notes data', details: parsedNotes.error.format() });
+      }
+
+      await prisma.analysisLog.update({
+        where: { id },
+        data: {
+          metadata: {
+            ...metadata,
+            researchNotes: parsedNotes.data,
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return res.json({ success: true });
     }
 
     const title = req.body?.title;
