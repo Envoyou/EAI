@@ -68,8 +68,11 @@ export default async function RootLayout({
   // side is the easiest way to get started
   const messages = await getMessages();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clerkAppearance = { baseTheme: dark } as any;
+
   return (
-    <ClerkProvider appearance={{ baseTheme: dark } as any}>
+    <ClerkProvider appearance={clerkAppearance}>
       <html
         lang={locale}
         className={`
