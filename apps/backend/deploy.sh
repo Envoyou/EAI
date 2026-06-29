@@ -3,6 +3,9 @@ set -e
 
 echo "=== Memulai Pembaruan EAI Backend (Monorepo) ==="
 
+# Atur batasan heap memory Node.js agar tidak crash (OOM) di VPS RAM rendah
+export NODE_OPTIONS="--max-old-space-size=1024"
+
 # Masuk ke direktori utama monorepo
 cd /var/www/eai-backend/current || { echo "Direktori /var/www/eai-backend/current tidak ditemukan!"; exit 1; }
 
