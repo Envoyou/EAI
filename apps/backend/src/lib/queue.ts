@@ -8,6 +8,10 @@ export const redisConnection = new Redis(redisUrl, {
   maxRetriesPerRequest: null,
 });
 
+redisConnection.on('error', (error) => {
+  console.error('[Redis] Connection error:', error);
+});
+
 export const AI_QUEUE_NAME = 'ai-processing-queue';
 
 export const aiQueue = new Queue(AI_QUEUE_NAME, {
