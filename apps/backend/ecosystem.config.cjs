@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "eai-backend",
       script: "dist/server.js",
-      cwd: "/var/www/eai-backend/current",
+      cwd: "/var/www/eai-backend/current/apps/backend",
       env: {
         NODE_ENV: "production"
       },
@@ -16,7 +16,7 @@ module.exports = {
     {
       name: "eai-worker",
       script: "dist/worker.js",
-      cwd: "/var/www/eai-backend/current",
+      cwd: "/var/www/eai-backend/current/apps/backend",
       env: {
         NODE_ENV: "production"
       },
