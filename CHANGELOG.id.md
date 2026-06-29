@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-29
+
 ### Added
 - **Tiptap Rich-Text Editor**: Menggantikan textarea Markdown mentah dengan editor rich-text tangguh berbasis Tiptap untuk pengalaman menulis yang mulus.
 - **Slash Commands Accelerator (`/`)**: Memperkenalkan menu perintah slash interaktif langsung di dalam editor untuk memicu pemformatan cepat dan operasi AI (misal: Generate Paragraph, SEO Optimize, Add Citation).

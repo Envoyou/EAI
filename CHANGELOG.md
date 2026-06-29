@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-29
+
 ### Added
 - **Tiptap Rich-Text Editor**: Replaced the raw Markdown textarea with a powerful Tiptap-based rich-text editor for a seamless writing experience.
 - **Slash Commands Accelerator (`/`)**: Introduced an interactive slash command menu directly in the editor to trigger quick formatting and AI operations (e.g., Generate Paragraph, SEO Optimize, Add Citation).
