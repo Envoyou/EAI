@@ -13,7 +13,6 @@ npm install
 # Masuk ke direktori backend untuk Prisma
 cd apps/backend
 npx prisma generate
-npx prisma migrate deploy
 cd ../..
 
 # Build backend (kompilasi TS ke JS) menggunakan Turbo
