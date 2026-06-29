@@ -6,8 +6,8 @@ echo "=== Memulai Pembaruan EAI Backend (Monorepo) ==="
 # Masuk ke direktori utama monorepo
 cd /var/www/eai-backend/current || { echo "Direktori /var/www/eai-backend/current tidak ditemukan!"; exit 1; }
 
-# Pre-check disk space: Dibutuhkan minimal 2 GB (2097152 KB) ruang kosong pada partisi root
-available_kb=$(df -Pk / | awk 'NR==2 {print $4}')
+# Pre-check disk space: Dibutuhkan minimal 2 GB (2097152 KB) ruang kosong pada partisi tempat projek berada
+available_kb=$(df -Pk . | awk 'NR==2 {print $4}')
 if [ "$available_kb" -lt 2097152 ]; then
   available_gb=$((available_kb / 1024 / 1024))
   available_mb=$((available_kb / 1024))
