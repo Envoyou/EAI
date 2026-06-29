@@ -107,7 +107,7 @@ export function SystemStatePage({
             {primaryAction ? (
               <Link
                 href={primaryAction.href}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white transition hover:bg-primary/90"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
               >
                 {primaryAction.label}
                 <ArrowRight className="h-4 w-4" />
