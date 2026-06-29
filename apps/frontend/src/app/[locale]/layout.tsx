@@ -69,7 +69,7 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <ClerkProvider appearance={{ baseTheme: dark } as any} afterSignOutUrl="/login">
+    <ClerkProvider appearance={{ baseTheme: dark } as any}>
       <html
         lang={locale}
         className={`
