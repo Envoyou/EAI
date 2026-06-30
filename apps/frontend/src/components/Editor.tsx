@@ -569,7 +569,7 @@ export default function Editor({
             <div className="w-[360px] max-md:w-[calc(100vw-1.5rem)] shrink-0 ui-panel flex flex-col bg-[var(--surface-1)] h-full overflow-hidden shadow-sm">
           <div className="px-4 py-3.5 flex items-center justify-between border-b border-[var(--border)] shrink-0 bg-[var(--surface-2)]">
             <span className="text-[13px] font-semibold text-[var(--foreground)] flex items-center gap-2">
-              📋 Research Notes Studio
+              Research Notes Studio
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--primary) 12%, transparent)', color: 'var(--primary)' }}>
                 {researchNotes.length}
               </span>
