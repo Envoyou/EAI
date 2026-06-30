@@ -510,12 +510,6 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     const textToAnalyze = overrideDraft ?? draft;
     if (!textToAnalyze.trim()) return;
 
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-      await saveNotesToBackend(researchNotes);
-    }
-
     if (isDemoMode && demoRefineCount >= 2) {
       setShowDemoSignupModal(true);
       return;
