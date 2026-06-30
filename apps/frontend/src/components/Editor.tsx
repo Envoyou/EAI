@@ -39,9 +39,9 @@ interface EditorProps {
 
 
 const PLACEHOLDERS = [
-  "Begin crafting your article \u2014 write freely, EAI will refine it\u2026",
-  "Your rough ideas belong here. Press Ctrl+Enter when ready\u2026",
-  "Paste or type your draft. EAI will elevate it to publication standards\u2026",
+  "Begin crafting your article — write freely, EAI will refine it…",
+  "Your rough ideas belong here. Press Ctrl+Enter when ready…",
+  "Paste or type your draft. EAI will elevate it to publication standards…",
 ];
 
 export default function Editor({
@@ -314,7 +314,7 @@ export default function Editor({
                     }
                   }}
                   disabled={isLoading}
-                  placeholder="Category\u2026"
+                  placeholder="Category…"
                   className="ui-control ui-input"
                 />
                 <datalist id="category-options">
@@ -338,7 +338,7 @@ export default function Editor({
                     }
                   }}
                   disabled={isLoading}
-                  placeholder="Article type\u2026"
+                  placeholder="Article type…"
                   className="ui-control ui-input"
                 />
                 <datalist id="type-options">
@@ -358,7 +358,7 @@ export default function Editor({
                     aria-label="Article category"
                     className={`ui-control ui-select ${metadata.category ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}`}
                   >
-                    <SelectValue placeholder="Category\u2026" />
+                    <SelectValue placeholder="Category…" />
                   </SelectTrigger>
                   <SelectContent>
                     {categoryOptions.map((option) => (
@@ -376,7 +376,7 @@ export default function Editor({
                     aria-label="Article type"
                     className={`ui-control ui-select ${metadata.type ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}`}
                   >
-                    <SelectValue placeholder="Article type\u2026" />
+                    <SelectValue placeholder="Article type…" />
                   </SelectTrigger>
                   <SelectContent>
                     {articleTypeOptions.map((option) => (
@@ -392,7 +392,7 @@ export default function Editor({
               name="target-audience"
               autoComplete="off"
               aria-label="Target audience"
-              placeholder="Target audience\u2026"
+              placeholder="Target audience…"
               value={metadata.targetAudience || ''}
               onChange={e => updateMeta('targetAudience', e.target.value)}
               disabled={isLoading}
@@ -403,7 +403,7 @@ export default function Editor({
               name="target-length"
               autoComplete="off"
               aria-label="Target article length"
-              placeholder="Target length, e.g. 800 words\u2026"
+              placeholder="Target length, e.g. 800 words…"
               value={metadata.targetLength || ''}
               onChange={e => updateMeta('targetLength', e.target.value)}
               disabled={isLoading}
@@ -447,7 +447,7 @@ export default function Editor({
                   aria-label="Writing instructions"
                   value={metadata.brief || ''}
                   onChange={e => updateMeta('brief', e.target.value)}
-                  placeholder={`Add article-specific guidance\u2026\n\nExample: Use a conversational tone, avoid technical jargon, and prioritize Indonesian sources.`}
+                  placeholder={`Add article-specific guidance…\n\nExample: Use a conversational tone, avoid technical jargon, and prioritize Indonesian sources.`}
                   disabled={isLoading}
                   rows={4}
                   className="ui-control ui-textarea"
@@ -547,7 +547,7 @@ export default function Editor({
               className="text-[11px] font-mono tabular-nums font-semibold"
               style={{ color: 'var(--error)' }}
             >
-              {value.length.toLocaleString()} / {charLimit.toLocaleString()} \u2014 over limit
+              {value.length.toLocaleString()} / {charLimit.toLocaleString()} — over limit
             </span>
           )}
         </div>
