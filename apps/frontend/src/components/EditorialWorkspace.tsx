@@ -1156,8 +1156,12 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
 
       const finalDraft = analysis.polishedDraft || '';
       const result = replaceFirstTargetMatch(finalDraft, item.targetText, replacementText);
-      if (!result.success) {
-        throw new Error('Target text not found in the refined draft.');
+      
+      let nextDraft = finalDraft;
+      if (result.success) {
+        nextDraft = result.nextText;
+      } else {
+        toast.info('Target text was already modified or removed. Marking as resolved.');
       }
 
       const nextFeedback = [...(analysis.feedback || [])];
@@ -1171,12 +1175,12 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       await persistEditorialResolution(
         nextFeedback,
         nextReadiness,
-        result.nextText,
+        nextDraft,
         nextFlags
       );
       setAnalysis(prev => ({
         ...prev,
-        polishedDraft: result.nextText,
+        polishedDraft: nextDraft,
         feedback: nextFeedback,
         readiness: nextReadiness,
         flags: nextFlags,

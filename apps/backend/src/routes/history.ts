@@ -2,22 +2,31 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma, Prisma } from '@/lib/db';
 import { requireAuth } from '@/middleware/auth';
-import { FeedbackItemSchema, ResearchNotesArraySchema } from '@eai/shared';
+import { ResearchNotesArraySchema } from '@eai/shared';
 import { getWorkspaceState } from '@/lib/user-workspace';
 
 const router = Router();
 
-const EditorialFeedbackSchema = FeedbackItemSchema.extend({
-  isAccepted: z.boolean().optional(),
-  isVerified: z.boolean().optional(),
-  verifiedSource: z.string().max(2000).optional(),
-});
+const EditorialFeedbackSchema = z.object({
+  category: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  verificationStatus: z.string().nullable().optional(),
+  message: z.string().nullable().optional(),
+  suggestion: z.string().nullable().optional(),
+  targetText: z.string().nullable().optional(),
+  replacementText: z.string().nullable().optional(),
+  reason: z.string().nullable().optional(),
+  operation: z.string().nullable().optional(),
+  isAccepted: z.boolean().nullable().optional(),
+  isVerified: z.boolean().nullable().optional(),
+  verifiedSource: z.string().max(2000).nullable().optional(),
+}).passthrough();
 
 const EditorialResolutionSchema = z.object({
   action: z.literal('resolve_editorial_feedback'),
-  feedback: z.array(EditorialFeedbackSchema).max(5),
-  polishedDraft: z.string().max(25000),
-  flags: z.array(z.string().max(100)).max(3).optional(),
+  feedback: z.array(EditorialFeedbackSchema),
+  polishedDraft: z.string().max(100000),
+  flags: z.array(z.string()).optional(),
 });
 
 const canAccessLog = (
@@ -256,6 +265,9 @@ router.patch('/:id', requireAuth, async (req, res) => {
         : {};
 
     const resolution = EditorialResolutionSchema.safeParse(req.body);
+    if (!resolution.success) {
+      console.warn('[HISTORY_PATCH] Zod validation failed:', JSON.stringify(resolution.error.format(), null, 2));
+    }
     if (resolution.success) {
       const unresolved = resolution.data.feedback.filter(
         (item) => item.status !== 'pass' && !item.isAccepted && !item.isVerified

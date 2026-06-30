@@ -50,7 +50,9 @@ export const sanitizeJsonLikeText = (text: string) => {
     sanitized += character;
   }
 
-  return sanitized.replace(/,\s*(}|])/g, '$1');
+  return sanitized
+    .replace(/,\s*(}|])/g, '$1')
+    .replace(/(?<!\\)"\s+(?<!\\)"/g, '", "');
 };
 
 export const parseJsonResponse = (text: string): unknown => {

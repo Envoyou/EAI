@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { gemini } from '@/lib/ai/provider-runtime';
+import { gemini, getGeminiSamplingConfig } from '@/lib/ai/provider-runtime';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { composeEditorialPrompt, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
@@ -212,8 +212,14 @@ function truncateAtParagraphBoundary(text: string, maxChars: number): string {
 }
 
 // Configure the model to use for the Content Strategist Wizard
-const MODEL = process.env.GEMINI_COPILOT_MODEL || 'gemini-3.5-flash';
-const RESEARCH_MODEL = process.env.GEMINI_RESEARCH_MODEL || 'gemini-3.1-pro-preview';
+const resolveModel = (modelName: string): string => {
+  if (modelName.startsWith('gemini-2.') || modelName.startsWith('gemini-1.5') || modelName.startsWith('gemini-2.0')) {
+    return 'gemini-3.5-flash';
+  }
+  return modelName;
+};
+const MODEL = resolveModel(process.env.GEMINI_COPILOT_MODEL || 'gemini-3.5-flash');
+const RESEARCH_MODEL = resolveModel(process.env.GEMINI_RESEARCH_MODEL || 'gemini-3.5-flash');
 
 // Fast-mode output control: higher limit for structured research material
 const FAST_MODE_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_COPILOT_FAST_MAX_TOKENS) || 2048;
@@ -235,13 +241,14 @@ const getStrategistSystemPrompt = () => {
 
   return `
 <role>
-You are a senior content strategist for a B2B brand. If targetAudience != B2B, adapt tone and examples accordingly.
+You are a Senior Content Strategist and SEO Editorial Specialist. You possess deep expertise in blending high-quality journalism with data-driven SEO optimization (leveraging GA4, GSC, Ahrefs, and Semrush).
 Your role is to analyze data, identify trends, and propose actionable editorial strategies.
 </role>
 
 <constraints>
-- Output style: concise, data-driven, structured. Avoid fluff.
-- Never write full articles — only research notes, outlines, and recommendations.
+- Output style: concise, data-driven, and highly structured. Avoid fluff or generic introductory text.
+- Never write full articles — only provide research notes, content brief outlines, and strategic recommendations.
+- Focus on practical, actionable advice that bridges editorial quality with search visibility.
 - For time-sensitive user queries that require up-to-date information, the current time context is: ${currentDate} (${timezone}) (${currentYear}).
 </constraints>
 `.trim();
@@ -265,7 +272,7 @@ router.post('/analyze-data', async (req, res) => {
     const interaction = await gemini.interactions.create({
       model: MODEL,
       input: inputPrompt,
-      system_instruction: getStrategistSystemPrompt() + "\n\n<instructions>\nKeep your responses concise, insightful, and engaging. DO NOT output Markdown formatting for this initial greeting.\n</instructions>",
+      system_instruction: getStrategistSystemPrompt() + "\n\n<instructions>\nKeep your responses concise, insightful, and engaging.\n</instructions>",
     });
 
     res.json({ reply: interaction.output_text });
@@ -493,7 +500,7 @@ CRITICAL: A file is attached to this request.
       stream: true,
       generation_config: {
         max_output_tokens: FAST_MODE_MAX_OUTPUT_TOKENS,
-        temperature: FAST_MODE_TEMPERATURE,
+        ...getGeminiSamplingConfig(MODEL, FAST_MODE_TEMPERATURE),
       },
     });
 
@@ -749,8 +756,9 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       tools: [{ type: "google_search" }],
       response_format: { type: "text", mime_type: "application/json", schema: planSchema },
       generation_config: {
-        max_output_tokens: 4000,
-        temperature: 0.5,
+        max_output_tokens: 8192,
+        thinking_level: "low",
+        ...getGeminiSamplingConfig(MODEL, 0.5),
       }
     });
     
@@ -891,8 +899,8 @@ Your draft MUST output:
       system_instruction: systemInstruction,
       stream: true,
       generation_config: {
-        max_output_tokens: 4000,
-        temperature: 0.6,
+        max_output_tokens: 6000,
+        ...getGeminiSamplingConfig(MODEL, 0.6),
       },
     });
 
