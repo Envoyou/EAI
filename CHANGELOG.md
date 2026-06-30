@@ -6,6 +6,21 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Research Notes DB Persistence (Sprint A)**: Integrated Neon PostgreSQL database storage for Research Notes Studio. Notes are now saved inside `AnalysisLog.metadata.researchNotes` instead of being volatile in sessionStorage.
+- **Secure Cloudflare R2 Uploads (Sprint B)**: Implemented direct-to-R2 file uploading for CSV, PDF, and TXT files using presigned PUT URLs with a strict 10MB size limit (frontend and backend gates).
+- **Sync Text Extraction API (Sprint B)**: Added `/api/storage/extract` endpoint to fetch files securely from private R2 bucket and extract text content via `pdf-parse` (PDF) or `utf-8` conversion (TXT/CSV).
+- **Prompt Attachment Context Injection (Sprint B)**: Integrated attached file content (up to 15,000 characters wrapped in `<attached_file>` tags) directly into the strategist AI chat context.
+- **Wizard Attachment Badge & Replace UI (Sprint B)**: Added file attachment info card with clear file size, mime-type indicator, deletion, and auto-replacement behavior for new uploads.
+
+### Changed
+- **Stateless Editor Notes Integration (Sprint A)**: Refactored `Editor.tsx` to consume notes and notes mutation callbacks via props, letting `EditorialWorkspace.tsx` handle unified state and storage.
+- **R2 Read Auto-Retry Logic (Sprint B)**: Implemented a 3-attempt retry loop with 500ms delay in `getFileBuffer` to protect against read-after-write CDN propagation hiccups.
+
+### Fixed
+- **Scanned PDF Rejection (Sprint B)**: Added explicit error detection for scanned image-based PDFs, returning a user-friendly toast warning: `"PDF ini tidak dapat baca karena berbasis gambar atau scan."`
+- **Clerk Auth Type-Casting warnings (Sprint A)**: Resolved ESLint `no-explicit-any` errors by extracting style configurations into external variables in layout and login/signup page templates.
+
 ## [1.1.0] - 2026-06-29
 
 ### Added

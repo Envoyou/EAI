@@ -6,6 +6,21 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Persistensi Database Catatan Riset (Sprint A)**: Mengintegrasikan penyimpanan database Neon PostgreSQL untuk Research Notes Studio. Catatan kini disimpan di dalam JSON `AnalysisLog.metadata.researchNotes` menggantikan penyimpanan sessionStorage yang volatile.
+- **Unggah Cloudflare R2 Aman (Sprint B)**: Mengimplementasikan unggah file langsung ke R2 untuk berkas CSV, PDF, dan TXT menggunakan presigned PUT URL dengan batasan ukuran 10MB yang ketat di sisi frontend dan backend.
+- **API Ekstraksi Teks Sinkron (Sprint B)**: Menambahkan endpoint `/api/storage/extract` untuk mengunduh file secara aman dari bucket R2 private dan mengekstrak teks menggunakan `pdf-parse` (PDF) atau konversi `utf-8` (TXT/CSV).
+- **Injeksi Konteks Lampiran Chat (Sprint B)**: Mengintegrasikan teks ekstraksi berkas (maksimal 15.000 karakter dibungkus tag XML `<attached_file>`) langsung ke dalam prompt AI Strategist.
+- **Lencana Lampiran Wizard & UX Replace (Sprint B)**: Menambahkan kartu informasi lampiran berkas dengan deteksi ukuran file, indikator tipe dokumen, tombol hapus, dan perilaku penggantian otomatis (replace) jika file baru diunggah.
+
+### Changed
+- **Integrasi Catatan Editor Tanpa State (Sprint A)**: Merestrukturisasi `Editor.tsx` agar menerima data catatan dan callback modifikasi via props, melimpahkan pengelolaan state terpadu ke `EditorialWorkspace.tsx`.
+- **Logika Auto-Retry R2 Read (Sprint B)**: Mengimplementasikan loop retry 3x dengan jeda 500ms pada `getFileBuffer` untuk menghindari jeda propagasi CDN/R2 saat file baru selesai diunggah.
+
+### Fixed
+- **Penolakan Scanned PDF (Sprint B)**: Menambahkan deteksi error eksplisit untuk PDF hasil scan/gambar, mengembalikan pesan toast yang jelas: `"PDF ini tidak dapat baca karena berbasis gambar atau scan."`
+- **Peringatan Type-Casting Clerk Auth (Sprint A)**: Mengatasi error ESLint `no-explicit-any` dengan memisahkan konfigurasi penampilan komponen Clerk ke variabel eksternal pada tata letak (layout) dan halaman masuk/daftar.
+
 ## [1.1.0] - 2026-06-29
 
 ### Added
