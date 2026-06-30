@@ -12,7 +12,7 @@ import PanelTabBar, { PanelTab } from '@/components/PanelTabBar';
 import StatusBar from '@/components/StatusBar';
 import ShortcutsModal from '@/components/ShortcutsModal';
 import { AnalysisResult, ArticleMetadata, EditorialProcessStage, EditorialReadiness, ResponseMode, FeedbackItem, ResearchNote, Attachment } from '@eai/shared';
-import { Loader2, RotateCcw, Sparkles, Megaphone, Lock, Menu, Zap, Rocket } from 'lucide-react';
+import { Loader2, RotateCcw, Sparkles, Megaphone, Lock, Menu, Zap, Rocket, Cloud, CloudUpload } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -212,27 +212,44 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     }
   });
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [analysisSpeed, setAnalysisSpeed] = useState<'fast' | 'publish'>('publish');
   const [isTargetedFixing, setIsTargetedFixing] = useState<number | null>(null);
+  const [isSavingToCloud, setIsSavingToCloud] = useState(false);
 
-  const saveNotesToBackend = async (notes: ResearchNote[]) => {
-    if (!activeHistoryId) return;
+  const handleCloudSave = async () => {
+    if (isDemoMode) return;
+    setIsSavingToCloud(true);
     try {
-      const response = await fetch(`/api/history/${activeHistoryId}`, {
-        method: 'PATCH',
+      const response = await fetch('/api/history', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'save_research_notes',
-          notes,
+          content: draft,
+          metadata: {
+            ...metadata,
+            researchNotes,
+          },
         }),
       });
+
       if (!response.ok) {
-        const errData = await response.json();
-        console.error('Failed to save research notes:', errData.error);
+        throw new Error('Failed to create manual draft');
       }
-    } catch (err) {
-      console.error('Error saving research notes:', err);
+
+      const result = await response.json();
+      if (result.id) {
+        setActiveHistoryId(result.id);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('eai-active-history-id', result.id);
+        }
+        setRefreshTrigger(prev => prev + 1);
+        toast.success('Draft synced to cloud');
+      }
+    } catch (error) {
+      console.error('Error saving to cloud:', error);
+      toast.error('Failed to sync draft to cloud');
+    } finally {
+      setIsSavingToCloud(false);
     }
   };
 
@@ -242,22 +259,47 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('eai_research_notes', JSON.stringify(notes));
     }
-
-    if (!activeHistoryId) return;
-
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      saveNotesToBackend(notes);
-    }, 1500);
   };
 
+  // Autosave to cloud database (debounced)
   useEffect(() => {
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
+    if (!isLoaded || !activeHistoryId || isDemoMode) return;
+
+    const controller = new AbortController();
+    setIsSavingToCloud(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/history/${activeHistoryId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            action: 'autosave_draft',
+            content: draft,
+            notes: researchNotes,
+            metadata: {
+              ...metadata,
+            }
+          }),
+        });
+        if (!response.ok) {
+          console.error('Failed to autosave draft to cloud');
+        }
+      } catch (err: unknown) {
+        if ((err as Record<string, unknown>)?.name !== 'AbortError') {
+          console.error('Error in autosave:', err);
+        }
+      } finally {
+        setIsSavingToCloud(false);
       }
+    }, 1500);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
     };
-  }, []);
+  }, [draft, researchNotes, metadata, activeHistoryId, isLoaded, isDemoMode]);
 
   useEffect(() => {
     if (mode === 'demo') {
@@ -807,12 +849,6 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   };
 
   const handleNewDraft = () => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-      saveNotesToBackend(researchNotes);
-    }
-
     setActiveHistoryId(null);
     setDraft('');
     setSourceDraft('');
@@ -867,12 +903,6 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   };
 
   const loadHistory = async (id: string) => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-      await saveNotesToBackend(researchNotes);
-    }
-
     try {
       const res = await fetch(`/api/history/${id}`);
       if (res.ok) {
@@ -1307,6 +1337,49 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
                   />
                   <TooltipContent side="bottom" className="text-xs">
                     Undo last edit
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Cloud Save / Sync Indicator */}
+              {!isDemoMode && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      activeHistoryId ? (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--muted-foreground)] bg-[var(--surface-2)]/45 border border-[var(--border)]/75 rounded-full select-none">
+                          {isSavingToCloud ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--primary)]" />
+                              <span>Saving...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Cloud className="w-3.5 h-3.5 text-emerald-500" />
+                              <span className="hidden sm:inline">Saved to Cloud</span>
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handleCloudSave}
+                          disabled={isSavingToCloud}
+                          className="ui-btn ui-btn-muted ui-btn-sm text-[var(--primary)] border-[var(--primary)]/20 hover:bg-[var(--primary)]/10"
+                        >
+                          {isSavingToCloud ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <CloudUpload className="w-3.5 h-3.5" />
+                          )}
+                          <span>Save to Cloud</span>
+                        </button>
+                      )
+                    }
+                  />
+                  <TooltipContent side="bottom" className="text-xs">
+                    {activeHistoryId 
+                      ? 'Autosave is active. Edits sync to database automatically.' 
+                      : 'Save this draft and notes to the cloud database to work on other devices.'}
                   </TooltipContent>
                 </Tooltip>
               )}
