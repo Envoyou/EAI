@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUp, Upload, Link as LinkIcon, Search, X, FileText, Rocket, ExternalLink, Newspaper, Loader2, List, Bookmark, Check, Edit3, Target, ChevronDown, ChevronLeft } from 'lucide-react';
+import { ArrowUp, Upload, Link as LinkIcon, Search, X, FileText, Rocket, ExternalLink, Newspaper, Loader2, List, Bookmark, Check, Edit3, Target, ChevronDown, ChevronLeft, Copy, Download, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import ReactMarkdown from 'react-markdown';
@@ -129,6 +129,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
   const [credits, setCredits] = useState<number | null>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [paywallMessage, setPaywallMessage] = useState("");
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   const fetchCredits = () => {
     fetch('/api/workspace/config')
@@ -314,6 +315,137 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     };
     setSavedNotes(prev => [...prev, note]);
     toast.success('✅ Note saved successfully');
+  };
+
+  const handleCopy = (text: string, msgId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMessageId(msgId);
+    toast.success('Copied to clipboard');
+    setTimeout(() => {
+      setCopiedMessageId(null);
+    }, 2000);
+  };
+
+  const handleDownload = (text: string) => {
+    const cleanText = text.replace(/\[SUGGESTIONS:[\s\S]*?\]/g, ''); // strip suggestions if any
+    const blob = new Blob([cleanText], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'editorial_recommendation.md');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Downloaded as Markdown');
+  };
+
+  const handleRewrite = async (msgId: string) => {
+    const msgIndex = messages.findIndex(m => m.id === msgId);
+    if (msgIndex === -1) return;
+
+    const messagesBefore = messages.slice(0, msgIndex);
+    const lastUserMessage = messagesBefore[messagesBefore.length - 1];
+    if (!lastUserMessage || lastUserMessage.role !== 'user') {
+      toast.error('Cannot find user message to rewrite');
+      return;
+    }
+
+    setMessages(messagesBefore);
+    setIsTyping(true);
+
+    const notesSummary = savedNotes.length > 0 
+      ? `[SAVED NOTES CONTEXT: ${savedNotes.length} notes saved. Snippets: ${savedNotes.map((n, idx) => {
+          const cleanText = n.content.replace(/\s*\[\d+\]\([^)]+\)/g, '');
+          const snippet = cleanText.slice(0, 80).replace(/\n/g, ' ');
+          return `Note ${idx+1}: "${snippet}..."`;
+        }).join(' | ')}]`
+      : undefined;
+
+    const assistantMsgId = generateId();
+    setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', type: 'text', content: '' }]);
+
+    try {
+      const res = await fetch(`/api/strategist/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: messagesBefore,
+          mode: researchMode,
+          notesSummary,
+          attachments: uploadedAttachment ? [uploadedAttachment] : [],
+          enableSearch,
+          activeHistoryId: activeHistoryId || undefined
+        }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 403) {
+          const errData = await res.json().catch(() => ({}));
+          if (errData.code === 'INSUFFICIENT_CREDITS' || errData.code === 'AUTH_REQUIRED') {
+            setIsTyping(false);
+            setPaywallMessage(errData.message || 'Access denied.');
+            setPaywallOpen(true);
+            setMessages(prev => prev.filter(m => m.id !== assistantMsgId));
+            return;
+          }
+        }
+        throw new Error('API Error');
+      }
+
+      if (!res.body) throw new Error('No body');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let currentContent = '';
+      let buffer = '';
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          
+          for (const line of lines) {
+            if (line.trim().startsWith('data: ')) {
+              const dataStr = line.trim().slice(6);
+              try {
+                const data = JSON.parse(dataStr);
+                if (data.type === 'chunk') {
+                  // eslint-disable-next-line react-hooks/immutability
+                  currentContent += data.chunk;
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent } : m));
+                } else if (data.type === 'replace_text') {
+                  // eslint-disable-next-line react-hooks/immutability
+                  currentContent = data.text;
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent } : m));
+                } else if (data.type === 'sources') {
+                  if (data.sources && data.sources.length > 0) {
+                    setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, sources: data.sources } } : m));
+                  }
+                }
+              } catch {}
+            }
+          }
+        }
+      }
+
+      const sugMatch = currentContent.match(/\[SUGGESTIONS:\s*([\s\S]*?)\](?![^\]]*\])/);
+      if (sugMatch) {
+         const extractedSuggestions = sugMatch[1].split('|').map(s => s.trim());
+         currentContent = currentContent.replace(sugMatch[0], '').trim();
+         setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, suggestions: extractedSuggestions } } : m));
+      }
+      
+      fetchCredits();
+    } catch {
+      toast.error('Failed to rewrite message');
+      setMessages(prev => prev.filter(m => m.id !== assistantMsgId));
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const submitQuickDraft = async () => {
@@ -760,21 +892,53 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                                   ))}
                                 </div>
                               )}
-                              {/* Save to Notes button — visible after streaming, min 50 chars */}
+                              {/* Actions row — visible after streaming, min 50 chars */}
                               {!isTyping && msg.content.length >= 50 && (
-                                <div className="mt-3">
+                                <div className="flex flex-wrap items-center gap-2 mt-4">
                                   {savedNoteIds.has(msg.id) ? (
-                                    <span className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: 'var(--success, #22c55e)' }}>
-                                      <Check className="w-3 h-3" /> Saved
+                                    <span className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--success)] px-3 py-1.5 bg-[var(--surface-3)] border border-[var(--border)] rounded-full">
+                                      <Check className="w-3 h-3 text-[var(--success)]" /> Saved
                                     </span>
                                   ) : (
                                     <button
                                       onClick={() => saveNote(msg)}
-                                      className="flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border border-[var(--border)] rounded-full px-3 py-1.5 hover:bg-[var(--surface-2)] transition-all"
+                                      className="flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border border-[var(--border)] rounded-full px-3 py-1.5 hover:bg-[var(--surface-2)] transition-all cursor-pointer"
                                     >
                                       <Bookmark className="w-3 h-3" /> Save to Notes
                                     </button>
                                   )}
+
+                                  <button
+                                    onClick={() => handleCopy(msg.content, msg.id)}
+                                    className="flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border border-[var(--border)] rounded-full px-3 py-1.5 hover:bg-[var(--surface-2)] transition-all cursor-pointer"
+                                    title="Copy response to clipboard"
+                                  >
+                                    {copiedMessageId === msg.id ? (
+                                      <>
+                                        <Check className="w-3 h-3 text-[var(--success)]" /> Copied
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy className="w-3 h-3" /> Copy
+                                      </>
+                                    )}
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleDownload(msg.content)}
+                                    className="flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border border-[var(--border)] rounded-full px-3 py-1.5 hover:bg-[var(--surface-2)] transition-all cursor-pointer"
+                                    title="Download as Markdown"
+                                  >
+                                    <Download className="w-3 h-3" /> Download
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleRewrite(msg.id)}
+                                    className="flex items-center gap-1.5 text-[12px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border border-[var(--border)] rounded-full px-3 py-1.5 hover:bg-[var(--surface-2)] transition-all cursor-pointer"
+                                    title="Regenerate this response"
+                                  >
+                                    <RotateCcw className="w-3 h-3" /> Rewrite
+                                  </button>
                                 </div>
                               )}
                             </>
