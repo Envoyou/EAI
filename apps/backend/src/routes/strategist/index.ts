@@ -454,7 +454,7 @@ CRITICAL: A file is attached to this request.
     }
 
     // Build tools list: google_search if enabled, url_context if message has a URL
-    const fastTools: { type: string }[] = [];
+    const fastTools: ({ type: 'google_search' } | { type: 'url_context' })[] = [];
     if (isSearchEnabled) fastTools.push({ type: 'google_search' });
     if (hasUrlInMessage) fastTools.push({ type: 'url_context' });
 
