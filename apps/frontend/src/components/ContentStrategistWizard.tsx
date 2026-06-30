@@ -289,11 +289,11 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
   const saveNote = (msg: ChatMessage) => {
     if (savedNoteIds.has(msg.id)) return;
     if (msg.content.length < 50) {
-      toast.info('Konten terlalu pendek untuk disimpan sebagai catatan.');
+      toast.info('Content is too short to save as a note.');
       return;
     }
     if (savedNotes.length >= MAX_NOTES) {
-      toast.warning('Maksimal 10 catatan. Hapus beberapa di panel kanan untuk menambah baru.');
+      toast.warning('Maximum of 10 notes reached. Delete some notes in the right panel to add a new one.');
       return;
     }
     const note: ResearchNote = {
@@ -303,7 +303,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
       savedAt: new Date().toISOString(),
     };
     setSavedNotes(prev => [...prev, note]);
-    toast.success('\u2705 Catatan disimpan');
+    toast.success('✅ Note saved successfully');
   };
 
   const submitQuickDraft = async () => {
@@ -421,7 +421,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     // 1. Frontend Size Validation (Gate 1: Max 10MB)
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     if (file.size > MAX_FILE_SIZE) {
-      toast.error('Ukuran file melebihi batas maksimal 10MB.');
+      toast.error('File size exceeds the maximum limit of 10MB.');
       return;
     }
 
@@ -1112,7 +1112,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
               </h3>
               {savedNotes.length > 0 && (
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: 'var(--primary-muted, rgba(var(--primary-rgb,59,130,246),.12))', color: 'var(--primary)' }}>
-                  📋 {savedNotes.length} Catatan
+                  📋 {savedNotes.length} Notes
                 </span>
               )}
             </div>

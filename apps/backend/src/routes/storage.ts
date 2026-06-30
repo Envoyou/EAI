@@ -66,17 +66,17 @@ router.post('/extract', requireAuth, async (req, res) => {
         extractedText = parsed.text ? parsed.text.trim() : '';
       } catch (pdfErr) {
         console.error('[STORAGE_PDF_PARSING_ERROR]', pdfErr);
-        return res.status(400).json({ error: 'Gagal mengekstrak teks dari file PDF.' });
+        return res.status(400).json({ error: 'Failed to extract text from the PDF file.' });
       }
 
       // Check if text is empty (scanned or image-based PDF)
       if (!extractedText) {
         return res.status(400).json({ 
-          error: 'PDF ini tidak dapat dibaca karena berbasis gambar atau scan.' 
+          error: 'This PDF cannot be read because it is image-based or scanned.' 
         });
       }
     } else {
-      return res.status(400).json({ error: 'Format file tidak didukung untuk ekstraksi.' });
+      return res.status(400).json({ error: 'Unsupported file format for text extraction.' });
     }
 
     const attachmentId = fileKey.split('/').pop() || Date.now().toString();
