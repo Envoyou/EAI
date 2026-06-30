@@ -670,7 +670,9 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
         }
       }
 
-      const sugMatch = currentContent.match(/\[SUGGESTIONS:\s*([\s\S]*?)\]/);
+      // Match [SUGGESTIONS: ...] up to the last closing bracket (using negative lookahead
+      // to prevent getting cut off by nested brackets like [Specific Function] inside a suggestion)
+      const sugMatch = currentContent.match(/\[SUGGESTIONS:\s*([\s\S]*?)\](?![^\]]*\])/);
       if (sugMatch) {
          const extractedSuggestions = sugMatch[1].split('|').map(s => s.trim());
          currentContent = currentContent.replace(sugMatch[0], '').trim();
