@@ -2,8 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '@/middleware/auth';
 import { generatePresignedUploadUrl, getFileBuffer } from '@/lib/r2';
 import { prisma, Prisma } from '@/lib/db';
-// @ts-expect-error: pdf-parse does not have default type exports for its subpath
-import pdfParse from 'pdf-parse/lib/pdf-parse.js';
+import pdfParse from 'pdf-parse';
 
 const router = Router();
 
