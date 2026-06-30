@@ -131,6 +131,13 @@ Fase ini mengembangkan AI Drafting Assistant menjadi workspace berbasis sumber d
     *   Gunakan env var baru `OPENROUTER_COPILOT_MODEL` (bukan berbagi `OPENROUTER_MODEL` yang dipakai pipeline editorial). Model optimal untuk chat copilot (fast, cheap, good instruction following) berbeda dari model optimal untuk pipeline editorial (quality, reasoning). Env var terpisah memungkinkan tuning independen dan lebih jelas untuk debugging di production.
     *   Jika `/chat` fast mode suatu saat dimodularisasi, harus dengan UI eksplisit — bukan silent fallback. Minimal: indikator capability seperti tooltip *"Research mode not available"* di samping Fast Mode toggle. User tidak perlu tahu nama provider, tapi perlu tahu capability apa yang aktif.
     *   Endpoint `/chat` dan turunannya didokumentasikan sebagai **Gemini-only by design**, bukan technical debt.
+7.  **Restrukturisasi Workspace 3-Kolom ala NotebookLM (Rencana Rilis Mendatang)**:
+    *   **Deskripsi**: Mengonsolidasikan antarmuka `/workspace` menjadi layout 3-kolom yang terintegrasi pada layar Desktop. Ini menyatukan proses riset, penulisan, dan peninjauan dalam satu workspace tanpa perlu navigasi penuh layar yang berulang.
+    *   **Tata Letak UI (Anatomi 3-Kolom)**:
+        *   *Kolom Kiri (Sources Panel)*: Tempat mengelola berkas referensi (PDF, CSV, TXT), dropdown organisasi Clerk, tombol "+ Add Source", serta checkbox untuk mengaktifkan *Dynamic Document Mode Override*.
+        *   *Kolom Tengah (Canvas)*: Tabbed view berisi **Content Strategist (Chat)** (dengan toggle Fast/Deep mode dan tombol *Save to Notes*) dan **Markdown Editor (Drafting)** (berbasis Tiptap dengan floating toolbar untuk *Targeted Fix*).
+        *   *Kolom Kanan (Studio & Review)*: Akordeon atau tab untuk **Research Notes Studio** (kartu kutipan ter-auto-save debounced 1.5 detik), **AI Refinement Control** (Refine Fast/Publish), **Editorial Review & Feedback** (skor, keputusan, diff stats, dan feedback highlight otomatis), serta **SEO Pack & Export**.
+    *   **Desain Responsif Seluler (Mobile Tab-Bar)**: Pada layar ponsel (mobile/tablet), layout 3-kolom dilebur menjadi **Bottom Navigation Bar** (Tab Bar di bawah layar) berisi 4 tab: *Sources*, *Chat*, *Editor*, dan *Review*. Setiap tab menampilkan panel terkait secara layar penuh untuk kenyamanan navigasi jempol dan menjaga kelegaan ruang menulis/membaca.
 
 
 ## Fase 5: Legal dan compliance untuk paid SaaS
