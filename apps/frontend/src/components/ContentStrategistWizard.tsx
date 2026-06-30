@@ -634,6 +634,9 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
 
   const generatePlan = async (recommendationText: string, history: ChatMessage[]) => {
     setIsTyping(true);
+    const assistantMsgId = generateId();
+    // Pre-insert empty assistant message with status payload
+    setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', type: 'text', content: '', payload: { status: 'Generating Editorial Blueprint...' } }]);
 
     try {
       const res = await fetch(`/api/strategist/generate-plan`, {
@@ -660,15 +663,21 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
           });
         }
       }  
-      appendMessage({
+      setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+        id: assistantMsgId,
         role: 'assistant',
         type: 'text',
         content: data.reply,
         payload: { suggestions: data.suggestions }
-      });
+      } : m));
     } catch {
       toast.error('Failed to generate draft plan');
-      appendMessage({ role: 'assistant', type: 'text', content: 'I failed to generate the plan. Please try selecting it again.' });
+      setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+        id: assistantMsgId,
+        role: 'assistant',
+        type: 'text',
+        content: 'I failed to generate the plan. Please try selecting it again.'
+      } : m));
     } finally {
       setIsTyping(false);
     }
@@ -718,6 +727,21 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
         }).join(' | ')}]`
       : undefined;
 
+    const assistantMsgId = generateId();
+    // Pre-insert empty assistant message with status payload
+    setMessages(prev => [
+      ...prev,
+      {
+        id: assistantMsgId,
+        role: 'assistant',
+        type: 'text',
+        content: '',
+        payload: {
+          status: researchMode === 'deep' ? 'Initiating Deep Research...' : 'Thinking...'
+        }
+      }
+    ]);
+
     try {
       const res = await fetch(`/api/strategist/chat`, {
         method: 'POST',
@@ -744,8 +768,8 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
             setPaywallMessage(errData.message || 'Access denied.');
             setPaywallOpen(true);
             
-            // Remove the temporary user message from display so they can re-try
-            setMessages(prev => prev.filter(m => m.id !== newMsg.id));
+            // Remove both the user message and the loading assistant message so they can re-try
+            setMessages(prev => prev.filter(m => m.id !== newMsg.id && m.id !== assistantMsgId));
             return;
           }
         }
@@ -756,9 +780,6 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let done = false;
-      const assistantMsgId = generateId();
-      
-      setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', type: 'text', content: '' }]);
       
       let currentContent = '';
       let buffer = '';
