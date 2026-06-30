@@ -998,7 +998,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                       <AnimatePresence>
                         {showAttachMenu && (
                           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 mb-2 w-56 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden py-1 z-50">
-                            <TooltipProvider delay={400}>
+                             <TooltipProvider delay={300}>
                               <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Analyze</div>
 
                               <Tooltip>
@@ -1009,7 +1009,17 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                                     </button>
                                   }
                                 />
-                                <TooltipContent side="right">Upload a .csv, .pdf, or .txt file for EAI to analyze</TooltipContent>
+                                <TooltipContent side="right" sideOffset={12} className="p-0 w-56 flex-col items-stretch bg-[var(--surface-1)] text-[var(--foreground)] border border-[var(--border)] shadow-xl rounded-xl">
+                                  <div className="p-3.5">
+                                    <p className="font-semibold text-[13px] mb-1">Upload File</p>
+                                    <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed">Attach a data file and EAI will extract and analyze its content to inform your editorial strategy.</p>
+                                    <div className="flex gap-1 mt-2.5">
+                                      {['.csv', '.pdf', '.txt'].map(f => (
+                                        <span key={f} className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-[var(--surface-3)] border border-[var(--border)] text-[var(--muted-foreground)]">{f}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </TooltipContent>
                               </Tooltip>
 
                               <Tooltip>
@@ -1020,7 +1030,12 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                                     </button>
                                   }
                                 />
-                                <TooltipContent side="right">Paste your blog URL so EAI can read and analyze your content</TooltipContent>
+                                <TooltipContent side="right" sideOffset={12} className="p-0 w-56 flex-col items-stretch bg-[var(--surface-1)] text-[var(--foreground)] border border-[var(--border)] shadow-xl rounded-xl">
+                                  <div className="p-3.5">
+                                    <p className="font-semibold text-[13px] mb-1">Analyze Blog</p>
+                                    <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed">Paste your blog URL and EAI will read its published content to generate tailored content recommendations.</p>
+                                  </div>
+                                </TooltipContent>
                               </Tooltip>
 
                               <Tooltip>
@@ -1031,7 +1046,17 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                                     </button>
                                   }
                                 />
-                                <TooltipContent side="right">Manually enter page views, bounce rate, and other traffic metrics</TooltipContent>
+                                <TooltipContent side="right" sideOffset={12} className="p-0 w-56 flex-col items-stretch bg-[var(--surface-1)] text-[var(--foreground)] border border-[var(--border)] shadow-xl rounded-xl">
+                                  <div className="p-3.5">
+                                    <p className="font-semibold text-[13px] mb-1">Enter Traffic Metrics</p>
+                                    <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed">Provide page views, bounce rate, and other traffic data. EAI factors them in when prioritizing your content strategy.</p>
+                                    <div className="flex gap-1 mt-2.5 flex-wrap">
+                                      {['Page views', 'Bounce rate', 'Sessions'].map(m => (
+                                        <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--surface-3)] border border-[var(--border)] text-[var(--muted-foreground)]">{m}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </TooltipContent>
                               </Tooltip>
 
                               <div className="my-1 border-t border-[var(--border)]" />
@@ -1045,7 +1070,12 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                                     </button>
                                   }
                                 />
-                                <TooltipContent side="right">Generate a full article draft from a topic idea</TooltipContent>
+                                <TooltipContent side="right" sideOffset={12} className="p-0 w-56 flex-col items-stretch bg-[var(--surface-1)] text-[var(--foreground)] border border-[var(--border)] shadow-xl rounded-xl">
+                                  <div className="p-3.5">
+                                    <p className="font-semibold text-[13px] mb-1">Draft from Topic</p>
+                                    <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed">Describe a topic and EAI will generate a complete, publication-ready article draft tailored to your editorial profile.</p>
+                                  </div>
+                                </TooltipContent>
                               </Tooltip>
 
                               <Tooltip>
@@ -1056,7 +1086,12 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                                     </button>
                                   }
                                 />
-                                <TooltipContent side="right">Generate a structured article outline with headings and key points</TooltipContent>
+                                <TooltipContent side="right" sideOffset={12} className="p-0 w-56 flex-col items-stretch bg-[var(--surface-1)] text-[var(--foreground)] border border-[var(--border)] shadow-xl rounded-xl">
+                                  <div className="p-3.5">
+                                    <p className="font-semibold text-[13px] mb-1">Generate Outline</p>
+                                    <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed">EAI creates a structured article outline with headings, subheadings, and key discussion points ready to develop.</p>
+                                  </div>
+                                </TooltipContent>
                               </Tooltip>
 
                               <Tooltip>
@@ -1067,7 +1102,12 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                                     </button>
                                   }
                                 />
-                                <TooltipContent side="right">Summarize a reference URL or article as a research source</TooltipContent>
+                                <TooltipContent side="right" sideOffset={12} className="p-0 w-56 flex-col items-stretch bg-[var(--surface-1)] text-[var(--foreground)] border border-[var(--border)] shadow-xl rounded-xl">
+                                  <div className="p-3.5">
+                                    <p className="font-semibold text-[13px] mb-1">Add Reference</p>
+                                    <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed">Provide a URL or paste text from a source. EAI will summarize it and save it as a cited research note.</p>
+                                  </div>
+                                </TooltipContent>
                               </Tooltip>
 
                               <Tooltip>
@@ -1078,7 +1118,12 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                                     </button>
                                   }
                                 />
-                                <TooltipContent side="right">Draft a professional press release from your key announcement details</TooltipContent>
+                                <TooltipContent side="right" sideOffset={12} className="p-0 w-56 flex-col items-stretch bg-[var(--surface-1)] text-[var(--foreground)] border border-[var(--border)] shadow-xl rounded-xl">
+                                  <div className="p-3.5">
+                                    <p className="font-semibold text-[13px] mb-1">Draft Press Release</p>
+                                    <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed">Share your announcement details and EAI will write a professional, publish-ready press release for your newsroom.</p>
+                                  </div>
+                                </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           </motion.div>
