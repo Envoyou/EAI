@@ -9,16 +9,33 @@ import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
 import { prisma } from '@/lib/db';
 
 /**
- * Resolve a Clerk org ID (e.g. "org_abc123") to the internal Prisma Organization UUID.
- * Returns null if the org is not found or if clerkOrgId is falsy.
+ * Resolve the internal Prisma Organization UUID for billing purposes.
+ *
+ * Strategy:
+ *  1. If the Clerk JWT includes `org_id`, resolve it via clerkOrganizationId → UUID.
+ *  2. Otherwise fall back to the `organizationId` stored on the User row.
+ *     (Clerk only embeds org_id in the JWT when the user has an active org session;
+ *      subscriptions and credits are always stored against the org UUID, never userId.)
  */
-async function resolveInternalOrgId(clerkOrgId: string | null | undefined): Promise<string | null> {
-  if (!clerkOrgId) return null;
-  const org = await prisma.organization.findUnique({
-    where: { clerkOrganizationId: clerkOrgId },
-    select: { id: true },
+async function resolveInternalOrgId(
+  clerkOrgId: string | null | undefined,
+  userId: string
+): Promise<string | null> {
+  // 1. JWT org_id present — resolve to internal UUID
+  if (clerkOrgId) {
+    const org = await prisma.organization.findUnique({
+      where: { clerkOrganizationId: clerkOrgId },
+      select: { id: true },
+    });
+    if (org) return org.id;
+  }
+
+  // 2. Fallback: look up the org the user belongs to in the DB
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { organizationId: true },
   });
-  return org?.id ?? null;
+  return user?.organizationId ?? null;
 }
 
 const router = Router();
@@ -214,7 +231,8 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
 
       // req.auth.orgId is a Clerk org ID ("org_xxx"), not the internal Prisma UUID.
       // We must resolve it to the internal org ID before billing lookups.
-      const internalOrgId = await resolveInternalOrgId(req.auth.orgId);
+      // Falls back to User.organizationId when org_id is absent from the JWT.
+      const internalOrgId = await resolveInternalOrgId(req.auth.orgId, req.auth.userId);
 
       const balance = await checkCreditsRemaining(req.auth.userId, internalOrgId);
       if (balance < requiredCredits) {
