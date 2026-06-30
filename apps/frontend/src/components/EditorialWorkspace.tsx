@@ -194,8 +194,23 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   const [activeFeedbackIndex, setActiveFeedbackIndex] = useState<number | null>(null);
   const [showFeedbackSidebar, setShowFeedbackSidebar] = useState(true);
   const [showNotesSidebar, setShowNotesSidebar] = useState(true);
-  const [hasNotes, setHasNotes] = useState(false);
-  const [researchNotes, setResearchNotes] = useState<ResearchNote[]>([]);
+  const [researchNotes, setResearchNotes] = useState<ResearchNote[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      return JSON.parse(sessionStorage.getItem('eai_research_notes') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [hasNotes, setHasNotes] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const notes = JSON.parse(sessionStorage.getItem('eai_research_notes') || '[]');
+      return notes.length > 0;
+    } catch {
+      return false;
+    }
+  });
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [analysisSpeed, setAnalysisSpeed] = useState<'fast' | 'publish'>('publish');
