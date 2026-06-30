@@ -27,6 +27,43 @@ const canAccessLog = (
 ) => Boolean(workspaceOrganizationId && log.organizationId === workspaceOrganizationId)
   || (!log.organizationId && log.userId === userId);
 
+// POST /api/history
+router.post('/', requireAuth, async (req, res) => {
+  try {
+    const { userId, orgId, orgSlug, orgRole } = req.auth!;
+    const workspace = await getWorkspaceState(userId, {
+      clerkOrganizationId: orgId,
+      clerkOrganizationSlug: orgSlug,
+      clerkOrganizationRole: orgRole,
+    });
+    
+    if (!workspace || workspace.needsOnboarding || !workspace.organizationId) {
+      return res.status(409).json({ error: 'Workspace onboarding required' });
+    }
+
+    const { content, metadata } = req.body;
+
+    const log = await prisma.analysisLog.create({
+      data: {
+        role: 'editor',
+        content: content || '',
+        metadata: (metadata || {}) as Prisma.InputJsonValue,
+        promptVersion: 'n/a',
+        modelName: 'n/a',
+        status: 'success',
+        verdict: 'draft',
+        userId,
+        organizationId: workspace.organizationId,
+      },
+    });
+
+    return res.json({ id: log.id });
+  } catch (error) {
+    console.error('[HISTORY_POST]', error);
+    return res.status(500).json({ error: 'Failed to create manual draft' });
+  }
+});
+
 // GET /api/history
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -254,6 +291,30 @@ router.patch('/:id', requireAuth, async (req, res) => {
     }
 
     const action = req.body?.action;
+    if (action === 'autosave_draft') {
+      const { content, title: newTitle, notes, metadata: extraMetadata } = req.body;
+      const updatedMetadata = {
+        ...metadata,
+        ...(extraMetadata || {}),
+      } as Record<string, unknown>;
+
+      if (newTitle !== undefined) {
+        updatedMetadata.title = newTitle;
+      }
+      if (notes !== undefined) {
+        updatedMetadata.researchNotes = notes;
+      }
+
+      await prisma.analysisLog.update({
+        where: { id },
+        data: {
+          content: content !== undefined ? content : undefined,
+          metadata: updatedMetadata as Prisma.InputJsonValue,
+        },
+      });
+      return res.json({ success: true });
+    }
+
     if (action === 'save_research_notes') {
       const parsedNotes = ResearchNotesArraySchema.safeParse(req.body?.notes);
       if (!parsedNotes.success) {
