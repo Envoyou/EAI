@@ -6,6 +6,20 @@ import { composeEditorialPrompt, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/s
 import { parseJsonResponse } from '@eai/shared';
 import { verifyToken } from '@clerk/backend';
 import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
+import { prisma } from '@/lib/db';
+
+/**
+ * Resolve a Clerk org ID (e.g. "org_abc123") to the internal Prisma Organization UUID.
+ * Returns null if the org is not found or if clerkOrgId is falsy.
+ */
+async function resolveInternalOrgId(clerkOrgId: string | null | undefined): Promise<string | null> {
+  if (!clerkOrgId) return null;
+  const org = await prisma.organization.findUnique({
+    where: { clerkOrganizationId: clerkOrgId },
+    select: { id: true },
+  });
+  return org?.id ?? null;
+}
 
 const router = Router();
 
@@ -198,7 +212,11 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
         });
       }
 
-      const balance = await checkCreditsRemaining(req.auth.userId, req.auth.orgId);
+      // req.auth.orgId is a Clerk org ID ("org_xxx"), not the internal Prisma UUID.
+      // We must resolve it to the internal org ID before billing lookups.
+      const internalOrgId = await resolveInternalOrgId(req.auth.orgId);
+
+      const balance = await checkCreditsRemaining(req.auth.userId, internalOrgId);
       if (balance < requiredCredits) {
         return res.status(403).json({
           code: 'INSUFFICIENT_CREDITS',
@@ -206,6 +224,9 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
           message: 'You have run out of credits. Please refill your balance or upgrade your plan to continue using this feature.'
         });
       }
+
+      // Store resolved org ID on the request for downstream billing use.
+      (req as Request & { resolvedOrgId?: string | null }).resolvedOrgId = internalOrgId;
     }
 
     res.setHeader('Content-Type', 'text/event-stream');
@@ -250,9 +271,10 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
     contextPrompt += `${history.map((m: { role: string, content: { text: string }[] }) => `${m.role}: ${m.content[0].text}`).join('\n')}\n</context>\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
 
     if (mode === 'deep') {
+      const resolvedOrgId = (req as Request & { resolvedOrgId?: string | null }).resolvedOrgId ?? null;
       await deductCredits(
         req.auth!.userId,
-        req.auth!.orgId,
+        resolvedOrgId,
         requiredCredits,
         'deep_research',
         `Deep Research session started (Query: ${chatInput.slice(0, 60)})`,
@@ -358,9 +380,10 @@ CRITICAL: A file is attached to this request.
 
             if (requiredCredits > 0 && req.auth?.userId) {
                 try {
+                    const resolvedOrgId = (req as Request & { resolvedOrgId?: string | null }).resolvedOrgId ?? null;
                     await deductCredits(
                         req.auth.userId,
-                        req.auth.orgId,
+                        resolvedOrgId,
                         requiredCredits,
                         'copilot_chat',
                         `Fast Chat with Search (Query: ${chatInput.slice(0, 60)})`,
