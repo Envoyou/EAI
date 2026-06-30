@@ -1,6 +1,14 @@
 export const extractJsonFromText = (text: string): string => {
-  const match = text.match(/\{[\s\S]*\}/);
-  return match ? match[0] : text;
+  let cleaned = text.trim();
+  // Strip starting ```json or ```
+  cleaned = cleaned.replace(/^```json\s*/i, '');
+  cleaned = cleaned.replace(/^```\s*/i, '');
+  // Strip ending ```
+  cleaned = cleaned.replace(/```$/, '');
+  cleaned = cleaned.trim();
+
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  return match ? match[0] : cleaned;
 };
 
 export const sanitizeJsonLikeText = (text: string) => {
