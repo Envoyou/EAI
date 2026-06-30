@@ -40,12 +40,39 @@ async function resolveInternalOrgId(
 
 /**
  * Scrapes and cleans text content from a public URL.
- * Strips script tags, head tags, footers, navs, and extracts readable text paragraphs.
+ * Uses Jina Reader API (https://r.jina.ai) as the primary engine to parse CSR (Client-Side Rendered)
+ * and SSR sites into clean markdown. Falls back to a local basic HTML tag parser if Jina fails.
  */
 async function scrapeUrlContent(url: string): Promise<string> {
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 6000); // 6-second timeout
+    
+    // 1. Try Jina Reader API (free, returns clean markdown for modern JS/CSR sites)
+    const jinaUrl = `https://r.jina.ai/${url}`;
+    const jinaRes = await fetch(jinaUrl, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'text/plain',
+      },
+    });
+    clearTimeout(id);
+
+    if (jinaRes.ok) {
+      const text = await jinaRes.text();
+      if (text && text.trim().length > 50) {
+        console.log(`[SCRAPER] Successfully scraped via Jina Reader: ${url} (${text.length} chars)`);
+        return text.slice(0, 15000);
+      }
+    }
+  } catch (jinaErr) {
+    console.warn('[SCRAPER] Jina Reader failed, falling back to basic fetch:', jinaErr);
+  }
+
+  // 2. Fallback: Direct basic fetch & clean HTML regex parser
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 6000);
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
@@ -61,7 +88,6 @@ async function scrapeUrlContent(url: string): Promise<string> {
     }
 
     const html = await res.text();
-    // Clean markup
     const clean = html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
@@ -70,6 +96,7 @@ async function scrapeUrlContent(url: string): Promise<string> {
       .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '')
       .replace(/<!--[\s\S]*?-->/g, '');
 
+    // Matches paragraph and heading tags, tolerating spaces/attributes
     const tagRegex = /<(p|h1|h2|h3|h4|h5|h6)\b[^>]*>([\s\S]*?)<\/\1>/gi;
     const matches: string[] = [];
     let match;
@@ -77,10 +104,9 @@ async function scrapeUrlContent(url: string): Promise<string> {
     while ((match = tagRegex.exec(clean)) !== null) {
       const tag = match[1].toLowerCase();
       let content = match[2]
-        .replace(/<[^>]+>/g, '') // Strip remaining inline HTML tags
+        .replace(/<[^>]+>/g, '')
         .trim();
 
-      // Decode HTML entities
       content = content
         .replace(/&nbsp;/g, ' ')
         .replace(/&amp;/g, '&')
@@ -91,7 +117,7 @@ async function scrapeUrlContent(url: string): Promise<string> {
         .replace(/&rsquo;/g, "'")
         .replace(/&ldquo;/g, '"')
         .replace(/&rdquo;/g, '"')
-        .replace(/\s+/g, ' '); // Collapse spaces
+        .replace(/\s+/g, ' ');
 
       if (content.length > 10) {
         if (tag.startsWith('h')) {
@@ -102,9 +128,11 @@ async function scrapeUrlContent(url: string): Promise<string> {
       }
     }
 
-    return matches.join('\n').slice(0, 15000);
+    const basicText = matches.join('\n');
+    console.log(`[SCRAPER] Successfully scraped via basic parser fallback: ${url} (${basicText.length} chars)`);
+    return basicText.slice(0, 15000);
   } catch (error) {
-    console.error(`[SCRAPER] Error scraping ${url}:`, error);
+    console.error(`[SCRAPER] Fallback scrape also failed for ${url}:`, error);
     return '';
   }
 }
