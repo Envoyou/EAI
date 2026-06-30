@@ -12,6 +12,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Sync Text Extraction API (Sprint B)**: Added `/api/storage/extract` endpoint to fetch files securely from private R2 bucket and extract text content via `pdf-parse` (PDF) or `utf-8` conversion (TXT/CSV).
 - **Prompt Attachment Context Injection (Sprint B)**: Integrated attached file content (up to 15,000 characters wrapped in `<attached_file>` tags) directly into the strategist AI chat context.
 - **Wizard Attachment Badge & Replace UI (Sprint B)**: Added file attachment info card with clear file size, mime-type indicator, deletion, and auto-replacement behavior for new uploads.
+- **Dynamic Document Mode Override (Sprint B)**: Added an automatic fast-mode override block (`<document_mode_override>`) when files are attached, forcing quantitative grounding, relaxing constraint lengths, and generating data-focused suggestion questions.
 
 ### Changed
 - **Stateless Editor Notes Integration (Sprint A)**: Refactored `Editor.tsx` to consume notes and notes mutation callbacks via props, letting `EditorialWorkspace.tsx` handle unified state and storage.
@@ -20,6 +21,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ### Fixed
 - **Scanned PDF Rejection (Sprint B)**: Added explicit error detection for scanned image-based PDFs, returning a user-friendly toast warning: `"PDF ini tidak dapat baca karena berbasis gambar atau scan."`
 - **Clerk Auth Type-Casting warnings (Sprint A)**: Resolved ESLint `no-explicit-any` errors by extracting style configurations into external variables in layout and login/signup page templates.
+- **PDF Parser Class exports (Sprint B)**: Resolved Node.js `ERR_PACKAGE_PATH_NOT_EXPORTED` and TS call signature errors by migrating the pdf-parse default function call to named class instantiations (`new PDFParse(...)` and `.getText()`) to match `pdf-parse` v2.4.5 exports.
 
 ## [1.1.0] - 2026-06-29
 

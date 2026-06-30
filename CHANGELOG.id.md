@@ -12,6 +12,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **API Ekstraksi Teks Sinkron (Sprint B)**: Menambahkan endpoint `/api/storage/extract` untuk mengunduh file secara aman dari bucket R2 private dan mengekstrak teks menggunakan `pdf-parse` (PDF) atau konversi `utf-8` (TXT/CSV).
 - **Injeksi Konteks Lampiran Chat (Sprint B)**: Mengintegrasikan teks ekstraksi berkas (maksimal 15.000 karakter dibungkus tag XML `<attached_file>`) langsung ke dalam prompt AI Strategist.
 - **Lencana Lampiran Wizard & UX Replace (Sprint B)**: Menambahkan kartu informasi lampiran berkas dengan deteksi ukuran file, indikator tipe dokumen, tombol hapus, dan perilaku penggantian otomatis (replace) jika file baru diunggah.
+- **Dynamic Document Mode Override (Sprint B)**: Menambahkan blok instruksi khusus (`<document_mode_override>`) secara dinamis saat ada berkas terlampir pada Fast Mode, memaksa AI melakukan grounding kuantitatif, melonggarkan batasan panjang teks, serta menghasilkan saran pertanyaan yang berfokus pada data.
 
 ### Changed
 - **Integrasi Catatan Editor Tanpa State (Sprint A)**: Merestrukturisasi `Editor.tsx` agar menerima data catatan dan callback modifikasi via props, melimpahkan pengelolaan state terpadu ke `EditorialWorkspace.tsx`.
@@ -20,6 +21,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ### Fixed
 - **Penolakan Scanned PDF (Sprint B)**: Menambahkan deteksi error eksplisit untuk PDF hasil scan/gambar, mengembalikan pesan toast yang jelas: `"PDF ini tidak dapat baca karena berbasis gambar atau scan."`
 - **Peringatan Type-Casting Clerk Auth (Sprint A)**: Mengatasi error ESLint `no-explicit-any` dengan memisahkan konfigurasi penampilan komponen Clerk ke variabel eksternal pada tata letak (layout) dan halaman masuk/daftar.
+- **PDF Parser Class exports (Sprint B)**: Mengatasi masalah `ERR_PACKAGE_PATH_NOT_EXPORTED` dan kesalahan tanda panggilan TS dengan mengubah pemanggilan fungsi default pdf-parse menjadi instansiasi kelas bernama (`new PDFParse(...)` dan `.getText()`) untuk mencocokkan dengan versi ekspor `pdf-parse` 2.4.5.
 
 ## [1.1.0] - 2026-06-29
 
