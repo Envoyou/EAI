@@ -183,7 +183,7 @@ router.post('/greet', async (req, res) => {
  */
 router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 'Too many requests. Please try again later.' }), async (req, res) => {
   try {
-    const { messages, mode, notesSummary } = req.body;
+    const { messages, mode, notesSummary, attachments } = req.body;
     
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -211,6 +211,19 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
     if (notesSummary) {
       contextPrompt += `${notesSummary}\n`;
     }
+
+    if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+      const attachment = attachments[0];
+      if (attachment && attachment.extractedText) {
+        const textLimit = 15000;
+        const text = attachment.extractedText;
+        const truncatedText = text.slice(0, textLimit);
+        const truncationNotice = text.length > textLimit ? '\n[... content truncated at 15,000 characters ...]' : '';
+
+        contextPrompt += `<attached_file>\n<filename>${attachment.filename}</filename>\n<type>${attachment.contentType}</type>\n<content>\n${truncatedText}${truncationNotice}\n</content>\n</attached_file>\n`;
+      }
+    }
+
     contextPrompt += `${history.map((m: { role: string, content: { text: string }[] }) => `${m.role}: ${m.content[0].text}`).join('\n')}\n</context>\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
 
     if (mode === 'deep') {

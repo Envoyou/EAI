@@ -37,6 +37,16 @@ export type ResearchNote = {
   savedAt: string; // ISO timestamp
 };
 
+export type Attachment = {
+  id: string;
+  filename: string;
+  r2Key: string;
+  publicUrl: string;
+  contentType: string;
+  extractedText: string;
+  uploadedAt: string; // ISO timestamp
+};
+
 export type ChatMessageType = 'text' | 'welcome' | 'recommendations' | 'plan';
 
 export type ChatMessage = {
@@ -52,7 +62,7 @@ export type ChatMessage = {
 };
 
 interface ContentStrategistWizardProps {
-  onComplete: (topic: string, outline: string, draft: string, notes: ResearchNote[]) => void;
+  onComplete: (topic: string, outline: string, draft: string, notes: ResearchNote[], attachments: Attachment[]) => void;
   onCancel: () => void;
 }
 
@@ -86,7 +96,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
       setChatInput('Draft a plan for: ');
     } else if (id === 'open-editor') {
       if (currentPlan) {
-        onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, savedNotes);
+        onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, savedNotes, uploadedAttachment ? [uploadedAttachment] : []);
       } else {
         toast.error("No plan available to open editor.");
         setChatInput('');
@@ -148,6 +158,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     if (typeof window === 'undefined') return [];
     try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch { return []; }
   });
+  const [uploadedAttachment, setUploadedAttachment] = useState<Attachment | null>(null);
   const savedNoteIds = useMemo(() => new Set(savedNotes.map(n => n.id)), [savedNotes]); // eslint-disable-line react-hooks/preserve-manual-memoization
 
   // Quick Draft attach-menu modal state
@@ -386,16 +397,77 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const loadingToast = toast.loading('Uploading file...');
+    // 1. Frontend Size Validation (Gate 1: Max 10MB)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('Ukuran file melebihi batas maksimal 10MB.');
+      return;
+    }
+
+    const loadingToast = toast.loading('Uploading and extracting file content...');
     setShowAttachMenu(false);
     try {
-      const text = await file.text();
-      const truncatedText = text.length > 10000 ? text.substring(0, 10000) + '\n...[TRUNCATED]' : text;
+      // 2. Request presigned URL
+      const presignedRes = await fetch('/api/storage/presigned-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || 'text/plain', // fallback if empty
+        }),
+      });
+
+      if (!presignedRes.ok) {
+        const errData = await presignedRes.json();
+        throw new Error(errData.error || 'Failed to get upload authorization');
+      }
+
+      const { uploadUrl, fileKey, publicUrl } = await presignedRes.json();
+
+      // 3. Upload file directly to Cloudflare R2
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type || 'text/plain',
+        },
+        body: file,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload file to storage');
+      }
+
+      // 4. Request text extraction from backend
+      const extractRes = await fetch('/api/storage/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileKey,
+          contentType: file.type || 'text/plain',
+          filename: file.name,
+          publicUrl,
+        }),
+      });
+
+      if (!extractRes.ok) {
+        const errData = await extractRes.json();
+        throw new Error(errData.error || 'Failed to extract text from file');
+      }
+
+      const { attachment } = await extractRes.json();
       
-      toast.success('File attached successfully', { id: loadingToast });
-      setChatInput(prev => prev + (prev ? '\n' : '') + `Attached Data (${file.name}):\n\n${truncatedText}\n\nPlease write and execute Python code to load this CSV text using io.StringIO and pandas, then analyze the traffic patterns, bounce rate, or other metrics inside it.\n`);
-    } catch {
-      toast.error('Failed to attach file', { id: loadingToast });
+      // Replace existing attachment (V1 Replace Behavior)
+      setUploadedAttachment(attachment);
+
+      toast.success('File uploaded and processed successfully!', { id: loadingToast });
+    } catch (err) {
+      console.error('[handleFileUpload ERROR]', err);
+      const msg = err instanceof Error ? err.message : 'Failed to attach file';
+      toast.error(msg, { id: loadingToast });
+    } finally {
+      if (e.target) {
+        e.target.value = '';
+      }
     }
   };
 
@@ -446,7 +518,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     if (!textToSend.trim()) return;
 
     if (textToSend === 'Proceed to Editor' && currentPlan) {
-      onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, savedNotes);
+      onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, savedNotes, uploadedAttachment ? [uploadedAttachment] : []);
       return;
     }
 
@@ -489,7 +561,12 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
       const res = await fetch(`/api/strategist/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: updatedMessages, mode: researchMode, notesSummary }),
+        body: JSON.stringify({
+          messages: updatedMessages,
+          mode: researchMode,
+          notesSummary,
+          attachments: uploadedAttachment ? [uploadedAttachment] : [],
+        }),
       });
       
       // Auto-revert to fast mode so they can chat normally while Deep Research runs in background
@@ -788,6 +865,25 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                     </motion.div>
                   )}
                 </AnimatePresence>
+                {uploadedAttachment && (
+                  <div className="mx-3 mt-2 mb-1.5 flex items-center justify-between bg-[var(--surface-3)] border border-[var(--border)] rounded-xl px-3 py-1.5 text-xs animate-fade-in">
+                    <div className="flex items-center gap-2 text-[var(--foreground)] font-medium truncate">
+                      <span className="shrink-0 text-sm">📎</span>
+                      <span className="truncate max-w-[200px]" title={uploadedAttachment.filename}>{uploadedAttachment.filename}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--surface-1)] text-[var(--muted-foreground)] font-bold uppercase shrink-0 border border-[var(--border)]">
+                        {uploadedAttachment.contentType.split('/').pop()}
+                      </span>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setUploadedAttachment(null)}
+                      className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-1 hover:bg-[var(--surface-4)] rounded-md transition-colors shrink-0"
+                      title="Remove attachment"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
 
                 <textarea
                   ref={textareaRef}
@@ -857,7 +953,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 mb-2 w-56 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden py-1 z-50">
                             <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Analyze</div>
                             <button type="button" onClick={() => { fileInputRef.current?.click(); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <Upload className="w-4 h-4" /> Upload CSV
+                                <Upload className="w-4 h-4" /> Upload File (.csv, .pdf, .txt)
                             </button>
                             <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Please use the url_context tool to read and analyze my blog at: https://'); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
                                 <LinkIcon className="w-4 h-4" /> Blog URL
@@ -882,7 +978,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                           </motion.div>
                         )}
                       </AnimatePresence>
-                      <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                      <input type="file" accept=".csv,.pdf,.txt" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
                     </div>
 
                     {/* Research Mode Dropdown */}
@@ -1001,7 +1097,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
 
             <div className="p-4 border-t border-[var(--border)] bg-[var(--surface-1)] shrink-0 flex flex-col gap-2">
               <button
-                onClick={() => onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, savedNotes)}
+                onClick={() => onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, savedNotes, uploadedAttachment ? [uploadedAttachment] : [])}
                 className="w-full py-2.5 bg-[var(--foreground)] text-[var(--background)] font-medium text-[14px] rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
               >
                 <Rocket className="w-4 h-4" />

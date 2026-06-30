@@ -1,4 +1,4 @@
-import { ArticleMetadata } from '@eai/shared';
+import { ArticleMetadata, Attachment } from '@eai/shared';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Sparkles, Wand2, X } from 'lucide-react';
@@ -33,6 +33,8 @@ interface EditorProps {
   showNotesSidebar?: boolean;
   researchNotes: ResearchNote[];
   onNotesChange: (notes: ResearchNote[]) => void;
+  attachments: Attachment[];
+  onAttachmentsChange: (attachments: Attachment[]) => void;
 }
 
 
@@ -58,6 +60,7 @@ export default function Editor({
   showNotesSidebar = true,
   researchNotes,
   onNotesChange,
+  onAttachmentsChange,
 }: EditorProps) {
   const updateMeta = (field: keyof ArticleMetadata, val: string) => {
     onMetadataChange({ ...metadata, [field]: val });
@@ -461,11 +464,14 @@ export default function Editor({
         {(!value && !isWritingManually) && !isLoading ? (
           isDraftingAssistantActive ? (
             <ContentStrategistWizard
-              onComplete={(topic, outline, draft, notes) => {
+              onComplete={(topic, outline, draft, notes, wizardAttachments) => {
                 const content = draft || outline || topic;
                 onChange(content);
                 if (notes && notes.length > 0) {
                   onNotesChange(notes);
+                }
+                if (wizardAttachments && wizardAttachments.length > 0) {
+                  onAttachmentsChange(wizardAttachments);
                 }
                 setIsWritingManually(true);
                 setIsDraftingAssistantActive(false);

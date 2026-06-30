@@ -222,3 +222,15 @@ export const ResearchNoteSchema = z.object({
 
 export const ResearchNotesArraySchema = z.array(ResearchNoteSchema);
 
+export const AttachmentSchema = z.object({
+  id: z.string(),
+  filename: z.string(),
+  r2Key: z.string(),
+  publicUrl: z.string(),
+  contentType: z.string(),
+  extractedText: z.string(),
+  uploadedAt: z.string(),
+});
+
+export const AttachmentsArraySchema = z.array(AttachmentSchema);
+

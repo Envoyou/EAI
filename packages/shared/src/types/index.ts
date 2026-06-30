@@ -93,3 +93,13 @@ export interface ResearchNote {
   savedAt: string; // ISO timestamp
 }
 
+export interface Attachment {
+  id: string;
+  filename: string;
+  r2Key: string;
+  publicUrl: string;
+  contentType: string;
+  extractedText: string;
+  uploadedAt: string; // ISO timestamp
+}
+

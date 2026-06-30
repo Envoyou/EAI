@@ -11,7 +11,7 @@ import HistorySidebar from '@/components/HistorySidebar';
 import PanelTabBar, { PanelTab } from '@/components/PanelTabBar';
 import StatusBar from '@/components/StatusBar';
 import ShortcutsModal from '@/components/ShortcutsModal';
-import { AnalysisResult, ArticleMetadata, EditorialProcessStage, EditorialReadiness, ResponseMode, FeedbackItem, ResearchNote } from '@eai/shared';
+import { AnalysisResult, ArticleMetadata, EditorialProcessStage, EditorialReadiness, ResponseMode, FeedbackItem, ResearchNote, Attachment } from '@eai/shared';
 import { Loader2, RotateCcw, Sparkles, Megaphone, Lock, Menu, Zap, Rocket } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { toast } from 'sonner';
@@ -196,6 +196,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   const [showNotesSidebar, setShowNotesSidebar] = useState(true);
   const [hasNotes, setHasNotes] = useState(false);
   const [researchNotes, setResearchNotes] = useState<ResearchNote[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [analysisSpeed, setAnalysisSpeed] = useState<'fast' | 'publish'>('publish');
   const [isTargetedFixing, setIsTargetedFixing] = useState<number | null>(null);
@@ -491,6 +492,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
           metadata: {
             ...requestMetadata,
             researchNotes,
+            attachments,
           },
           analysisSpeed: analysisSpeed === 'publish' ? 'deep' : 'fast',
         }),
@@ -808,6 +810,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     
     setResearchNotes([]);
     setHasNotes(false);
+    setAttachments([]);
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('eai_research_notes');
     }
@@ -871,6 +874,9 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('eai_research_notes', JSON.stringify(loadedNotes));
         }
+
+        const loadedAttachments = (logMetadata?.attachments || []) as Attachment[];
+        setAttachments(loadedAttachments);
 
         setDraftHistory([]);
         setHoveredFeedbackIndex(null);
@@ -1470,6 +1476,8 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
                     showNotesSidebar={showNotesSidebar}
                     researchNotes={researchNotes}
                     onNotesChange={handleNotesChange}
+                    attachments={attachments}
+                    onAttachmentsChange={setAttachments}
                   />
                 </motion.div>
               )}
