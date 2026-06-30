@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp, Upload, Link as LinkIcon, Search, X, FileText, Rocket, ExternalLink, Newspaper, Loader2, List, Bookmark, Check, Edit3, Target, ChevronDown, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useUser } from '@clerk/nextjs';
@@ -831,7 +832,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                       {(isShowingAllSources ? collectedSources : collectedSources.slice(0, 2)).map((source, i) => {
                         try {
                           const domain = source.domain;
-                          const title = source.title || `Artikel terkait dari ${domain}`;
+                          const title = source.title || `${domain}`;
                           
                           return (
                             <a
@@ -988,30 +989,75 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                       <AnimatePresence>
                         {showAttachMenu && (
                           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 mb-2 w-56 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden py-1 z-50">
-                            <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Analyze</div>
-                            <button type="button" onClick={() => { fileInputRef.current?.click(); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <Upload className="w-4 h-4" /> Upload File (.csv, .pdf, .txt)
-                            </button>
-                            <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Please use the url_context tool to read and analyze my blog at: https://'); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <LinkIcon className="w-4 h-4" /> Blog URL
-                            </button>
-                            <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Here are my manual metrics:\n- Page views: \n- Bounce rate: '); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <FileText className="w-4 h-4" /> Manual Metrics
-                            </button>
-                            <div className="my-1 border-t border-[var(--border)]" />
-                            <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Quick Draft</div>
-                            <button type="button" onClick={() => openQuickDraft('topic')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <FileText className="w-4 h-4" /> Topic
-                            </button>
-                            <button type="button" onClick={() => openQuickDraft('outline')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <List className="w-4 h-4" /> Outline
-                            </button>
-                            <button type="button" onClick={() => openQuickDraft('reference')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <LinkIcon className="w-4 h-4" /> Reference
-                            </button>
-                            <button type="button" onClick={() => openQuickDraft('press_release')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                <Newspaper className="w-4 h-4" /> Press Release
-                            </button>
+                            <TooltipProvider delay={400}>
+                              <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Analyze</div>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button" onClick={() => { fileInputRef.current?.click(); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                    <Upload className="w-4 h-4" /> Upload File
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">Upload a .csv, .pdf, or .txt file for EAI to analyze</TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Please use the url_context tool to read and analyze my blog at: https://'); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                    <LinkIcon className="w-4 h-4" /> Blog URL
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">Paste your blog URL so EAI can read and analyze your content</TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Here are my manual metrics:\n- Page views: \n- Bounce rate: '); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                    <FileText className="w-4 h-4" /> Manual Metrics
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">Manually enter page views, bounce rate, and other traffic metrics</TooltipContent>
+                              </Tooltip>
+
+                              <div className="my-1 border-t border-[var(--border)]" />
+                              <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Quick Draft</div>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button" onClick={() => openQuickDraft('topic')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                    <FileText className="w-4 h-4" /> Topic
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">Generate a full article draft from a topic idea</TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button" onClick={() => openQuickDraft('outline')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                    <List className="w-4 h-4" /> Outline
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">Generate a structured article outline with headings and key points</TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button" onClick={() => openQuickDraft('reference')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                    <LinkIcon className="w-4 h-4" /> Reference
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">Summarize a reference URL or article as a research source</TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button" onClick={() => openQuickDraft('press_release')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                    <Newspaper className="w-4 h-4" /> Press Release
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">Draft a professional press release from your key announcement details</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -1075,7 +1121,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                           className="w-3.5 h-3.5 rounded-md border-[var(--border)] bg-transparent text-[var(--primary)] focus:ring-0 focus:ring-offset-0 cursor-pointer"
                         />
                         <span className="flex items-center gap-1">
-                          Google Search <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--surface-1)] border border-[var(--border)] shrink-0 font-bold">1 CR</span>
+                          Google Search
                         </span>
                       </label>
                     )}
