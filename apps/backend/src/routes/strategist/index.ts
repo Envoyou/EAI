@@ -607,7 +607,11 @@ CRITICAL: A file is attached to this request.
             // (Markdown appending removed in favor of premium frontend favicon UI)
 
             // Output is sent as-is — structured prompt keeps length bounded without lossy summarization
-            const outputToSend = finalOutputText;
+            // Strip Gemini raw search grounding metadata [cite: ...] and trailing unmatched brackets
+            const outputToSend = finalOutputText
+                .replace(/\[cite:\s*[^\]]*\]/gi, '')
+                .replace(/\s*\[\s*$/g, '')
+                .trim();
             
             if (outputToSend) {
                 res.write(`data: ${JSON.stringify({ type: "replace_text", text: outputToSend })}\n\n`);
