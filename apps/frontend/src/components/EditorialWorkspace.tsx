@@ -120,6 +120,24 @@ const calculateReadiness = (feedback: FeedbackItem[], originalReadiness?: Editor
   return 'needs_review';
 };
 
+const readWithTimeout = async (
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  timeoutMs = 45000
+): Promise<ReadableStreamReadResult<Uint8Array>> => {
+  let timeoutId: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error('Stream idle timeout: No response received from the server for 45 seconds.'));
+    }, timeoutMs);
+  });
+  try {
+    const result = await Promise.race([reader.read(), timeoutPromise]);
+    return result;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 /* ── Page ─────────────────────────────────────────────── */
 export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) {
   const router = useRouter();
@@ -561,7 +579,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       let buffer = '';
 
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await readWithTimeout(reader);
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
@@ -722,7 +740,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       const decoder = new TextDecoder();
       let buffer = '';
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await readWithTimeout(reader);
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
@@ -1109,7 +1127,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       let replacementText = '';
 
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await readWithTimeout(reader);
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
