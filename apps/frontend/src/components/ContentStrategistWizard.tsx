@@ -993,29 +993,35 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                               <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Analyze</div>
 
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button" onClick={() => { fileInputRef.current?.click(); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                    <Upload className="w-4 h-4" /> Upload File
-                                  </button>
-                                </TooltipTrigger>
+                                <TooltipTrigger
+                                  render={
+                                    <button type="button" onClick={() => { fileInputRef.current?.click(); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                      <Upload className="w-4 h-4" /> Upload File
+                                    </button>
+                                  }
+                                />
                                 <TooltipContent side="right">Upload a .csv, .pdf, or .txt file for EAI to analyze</TooltipContent>
                               </Tooltip>
 
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Please use the url_context tool to read and analyze my blog at: https://'); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                    <LinkIcon className="w-4 h-4" /> Blog URL
-                                  </button>
-                                </TooltipTrigger>
+                                <TooltipTrigger
+                                  render={
+                                    <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Please use the url_context tool to read and analyze my blog at: https://'); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                      <LinkIcon className="w-4 h-4" /> Blog URL
+                                    </button>
+                                  }
+                                />
                                 <TooltipContent side="right">Paste your blog URL so EAI can read and analyze your content</TooltipContent>
                               </Tooltip>
 
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Here are my manual metrics:\n- Page views: \n- Bounce rate: '); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                    <FileText className="w-4 h-4" /> Manual Metrics
-                                  </button>
-                                </TooltipTrigger>
+                                <TooltipTrigger
+                                  render={
+                                    <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Here are my manual metrics:\n- Page views: \n- Bounce rate: '); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                      <FileText className="w-4 h-4" /> Manual Metrics
+                                    </button>
+                                  }
+                                />
                                 <TooltipContent side="right">Manually enter page views, bounce rate, and other traffic metrics</TooltipContent>
                               </Tooltip>
 
@@ -1023,38 +1029,46 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                               <div className="px-3 py-1.5 text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Quick Draft</div>
 
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button" onClick={() => openQuickDraft('topic')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                    <FileText className="w-4 h-4" /> Topic
-                                  </button>
-                                </TooltipTrigger>
+                                <TooltipTrigger
+                                  render={
+                                    <button type="button" onClick={() => openQuickDraft('topic')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                      <FileText className="w-4 h-4" /> Topic
+                                    </button>
+                                  }
+                                />
                                 <TooltipContent side="right">Generate a full article draft from a topic idea</TooltipContent>
                               </Tooltip>
 
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button" onClick={() => openQuickDraft('outline')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                    <List className="w-4 h-4" /> Outline
-                                  </button>
-                                </TooltipTrigger>
+                                <TooltipTrigger
+                                  render={
+                                    <button type="button" onClick={() => openQuickDraft('outline')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                      <List className="w-4 h-4" /> Outline
+                                    </button>
+                                  }
+                                />
                                 <TooltipContent side="right">Generate a structured article outline with headings and key points</TooltipContent>
                               </Tooltip>
 
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button" onClick={() => openQuickDraft('reference')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                    <LinkIcon className="w-4 h-4" /> Reference
-                                  </button>
-                                </TooltipTrigger>
+                                <TooltipTrigger
+                                  render={
+                                    <button type="button" onClick={() => openQuickDraft('reference')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                      <LinkIcon className="w-4 h-4" /> Reference
+                                    </button>
+                                  }
+                                />
                                 <TooltipContent side="right">Summarize a reference URL or article as a research source</TooltipContent>
                               </Tooltip>
 
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button" onClick={() => openQuickDraft('press_release')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
-                                    <Newspaper className="w-4 h-4" /> Press Release
-                                  </button>
-                                </TooltipTrigger>
+                                <TooltipTrigger
+                                  render={
+                                    <button type="button" onClick={() => openQuickDraft('press_release')} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                      <Newspaper className="w-4 h-4" /> Press Release
+                                    </button>
+                                  }
+                                />
                                 <TooltipContent side="right">Draft a professional press release from your key announcement details</TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
