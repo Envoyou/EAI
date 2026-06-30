@@ -80,6 +80,15 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Auto-resize textarea whenever chatInput changes (including programmatic updates
+  // from prompt templates inserted via the + menu — not just user keystrokes).
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [chatInput]);
+
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashMenuIndex, setSlashMenuIndex] = useState(0);
   const [showResearchMenu, setShowResearchMenu] = useState(false);
