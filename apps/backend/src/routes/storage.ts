@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '@/middleware/auth';
 import { generatePresignedUploadUrl, getFileBuffer } from '@/lib/r2';
 import { prisma, Prisma } from '@/lib/db';
-import pdfParse from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 
 const router = Router();
 
@@ -61,7 +61,8 @@ router.post('/extract', requireAuth, async (req, res) => {
       extractedText = buffer.toString('utf-8');
     } else if (contentType === 'application/pdf') {
       try {
-        const parsed = await pdfParse(buffer);
+        const parser = new PDFParse({ data: buffer });
+        const parsed = await parser.getText();
         extractedText = parsed.text ? parsed.text.trim() : '';
       } catch (pdfErr) {
         console.error('[STORAGE_PDF_PARSING_ERROR]', pdfErr);
