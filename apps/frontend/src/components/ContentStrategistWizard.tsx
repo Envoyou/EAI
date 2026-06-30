@@ -1025,7 +1025,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                               <Tooltip>
                                 <TooltipTrigger
                                   render={
-                                    <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Please use the url_context tool to read and analyze my blog at: https://'); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
+                                    <button type="button" onClick={() => { setChatInput(prev => prev + (prev ? '\n' : '') + 'Please read and analyze my blog at: https://'); setShowAttachMenu(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--surface-2)] flex items-center gap-2">
                                       <LinkIcon className="w-4 h-4" /> Blog URL
                                     </button>
                                   }

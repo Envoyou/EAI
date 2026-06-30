@@ -336,6 +336,18 @@ Your task: answer the user's question with ONE focused, actionable insight.
 
     let finalFastModeInstruction = FAST_MODE_INSTRUCTION;
     const hasAttachments = attachments && Array.isArray(attachments) && attachments.length > 0;
+
+    // Detect if the user's message contains a URL so we can enable url_context tool
+    const URL_REGEX = /https?:\/\/[^\s"'<>]+/i;
+    const hasUrlInMessage = URL_REGEX.test(chatInput);
+    if (hasUrlInMessage) {
+      finalFastModeInstruction += `
+\n<url_mode_override>
+CRITICAL: The user's message contains a URL. Use the url_context tool to fetch and read that page directly.
+Base your analysis on the actual page content you retrieve — do NOT ask the user to paste the content.
+</url_mode_override>
+`;
+    }
     if (hasAttachments) {
       finalFastModeInstruction += `
 \n<document_mode_override>
@@ -348,10 +360,15 @@ CRITICAL: A file is attached to this request.
 `;
     }
 
+    // Build tools list: google_search if enabled, url_context if message has a URL
+    const fastTools: { type: string }[] = [];
+    if (isSearchEnabled) fastTools.push({ type: 'google_search' });
+    if (hasUrlInMessage) fastTools.push({ type: 'url_context' });
+
     const stream = await gemini.interactions.create({
       model: MODEL,
       input: contextPrompt,
-      tools: isSearchEnabled ? [{ type: "google_search" }] : undefined,
+      tools: fastTools.length > 0 ? fastTools : undefined,
       system_instruction: getStrategistSystemPrompt() + finalFastModeInstruction,
       stream: true,
       generation_config: {
