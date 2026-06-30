@@ -15,8 +15,8 @@ export const GEMINI_REVIEW_OUTPUT_TOKENS = {
 export const GROQ_MODEL = 'qwen/qwen3-32b';
 export const GROQ_SEO_MODEL = 'llama-3.1-8b-instant';
 
-export const OPENROUTER_DEFAULT_MODEL = 'openai/gpt-4.1-mini';
-export const OPENROUTER_DEFAULT_SEO_MODEL = 'openai/gpt-4.1-mini';
+export const OPENROUTER_DEFAULT_MODEL = 'openai/gpt-4o-mini';
+export const OPENROUTER_DEFAULT_SEO_MODEL = 'openai/gpt-4o-mini';
 
 export const gemini = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || 'empty',
