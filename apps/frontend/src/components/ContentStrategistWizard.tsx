@@ -373,8 +373,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
           mode: researchMode,
           notesSummary,
           attachments: uploadedAttachment ? [uploadedAttachment] : [],
-          enableSearch,
-          activeHistoryId: activeHistoryId || undefined
+          enableSearch
         }),
       });
 
