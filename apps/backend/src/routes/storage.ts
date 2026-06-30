@@ -22,7 +22,7 @@ router.post('/presigned-url', requireAuth, async (req, res) => {
 
     if (!ALLOWED_MIME_TYPES.includes(contentType)) {
       return res.status(400).json({ 
-        error: `MIME type "${contentType}" tidak didukung. Harap unggah file .csv, .pdf, atau .txt.` 
+        error: `MIME type "${contentType}" is unsupported. Please upload a .csv, .pdf, or .txt file.` 
       });
     }
 
@@ -52,7 +52,7 @@ router.post('/extract', requireAuth, async (req, res) => {
 
     // 2. Validate file size on backend (Gate 2: Max 10MB)
     if (buffer.length > 10 * 1024 * 1024) {
-      return res.status(400).json({ error: 'Ukuran file melebihi batas maksimal 10MB.' });
+      return res.status(400).json({ error: 'File exceeds the 10MB maximum limit.' });
     }
 
     // 3. Extract text based on Content Type
