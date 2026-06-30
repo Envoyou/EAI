@@ -269,8 +269,9 @@ Your task: answer the user's question with ONE focused, actionable insight.
 \n<document_mode_override>
 CRITICAL: A file is attached to this request.
 1. Prioritize analyzing the data/text inside <attached_file> over web search. Do NOT use Google Search unless the user asks for external information.
-2. The length and structural constraints are relaxed. You are encouraged to output detailed lists, tables, categories, and numerical comparisons if it helps analyze the attached file data.
-3. Be data-driven: cite exact titles, views, and numbers from the attached file.
+2. Treat the query as a research request regardless of phrasing: the "ONE focused insight" constraint and short sentence restrictions are relaxed. You are encouraged to output detailed lists, tables, categories, and numerical comparisons.
+3. Ground all claims quantitatively: ALWAYS cite specific data points (exact numbers, titles, or values) from the attached file rather than generalizing into categories. Do not just say "topic X performed best" — say "Article Y had Z views, the highest among the dataset."
+4. Under the [SUGGESTIONS: ...] block, the 3 follow-up suggestions MUST refer back to specific data points or invite deeper analysis of the attached file (e.g., comparing metrics, asking about outliers, or specific topics) rather than being generic follow-up questions.
 </document_mode_override>
 `;
     }
