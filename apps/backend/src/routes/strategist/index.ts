@@ -262,13 +262,26 @@ Your task: answer the user's question with ONE focused, actionable insight.
 </constraints>
 `;
 
+    let finalFastModeInstruction = FAST_MODE_INSTRUCTION;
+    const hasAttachments = attachments && Array.isArray(attachments) && attachments.length > 0;
+    if (hasAttachments) {
+      finalFastModeInstruction += `
+\n<document_mode_override>
+CRITICAL: A file is attached to this request.
+1. Prioritize analyzing the data/text inside <attached_file> over web search. Do NOT use Google Search unless the user asks for external information.
+2. The length and structural constraints are relaxed. You are encouraged to output detailed lists, tables, categories, and numerical comparisons if it helps analyze the attached file data.
+3. Be data-driven: cite exact titles, views, and numbers from the attached file.
+</document_mode_override>
+`;
+    }
+
     const stream = await gemini.interactions.create({
       model: MODEL,
       input: contextPrompt,
       tools: [
         { type: "google_search" }
       ],
-      system_instruction: getStrategistSystemPrompt() + FAST_MODE_INSTRUCTION,
+      system_instruction: getStrategistSystemPrompt() + finalFastModeInstruction,
       stream: true,
       generation_config: {
         max_output_tokens: FAST_MODE_MAX_OUTPUT_TOKENS,
