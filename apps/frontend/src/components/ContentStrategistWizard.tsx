@@ -362,7 +362,19 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
       : undefined;
 
     const assistantMsgId = generateId();
-    setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', type: 'text', content: '' }]);
+    // Pre-insert empty assistant message with status payload
+    setMessages(prev => [
+      ...prev,
+      {
+        id: assistantMsgId,
+        role: 'assistant',
+        type: 'text',
+        content: '',
+        payload: {
+          status: researchMode === 'deep' ? 'Initiating Deep Research...' : 'Thinking...'
+        }
+      }
+    ]);
 
     try {
       const res = await fetch(`/api/strategist/chat`, {
@@ -415,10 +427,10 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                 if (data.type === 'chunk') {
                   // eslint-disable-next-line react-hooks/immutability
                   currentContent += data.chunk;
-                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent } : m));
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, status: undefined } } : m));
                 } else if (data.type === 'replace_text') {
                   currentContent = data.text;
-                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent } : m));
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, status: undefined } } : m));
                 } else if (data.type === 'sources') {
                   if (data.sources && data.sources.length > 0) {
                     setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, sources: data.sources } } : m));
