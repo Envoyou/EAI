@@ -38,6 +38,77 @@ async function resolveInternalOrgId(
   return user?.organizationId ?? null;
 }
 
+/**
+ * Scrapes and cleans text content from a public URL.
+ * Strips script tags, head tags, footers, navs, and extracts readable text paragraphs.
+ */
+async function scrapeUrlContent(url: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 6000); // 6-second timeout
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+      },
+    });
+    clearTimeout(id);
+
+    if (!res.ok) return '';
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('text/html') && !contentType.includes('text/plain')) {
+      return '';
+    }
+
+    const html = await res.text();
+    // Clean markup
+    const clean = html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      .replace(/<head\b[^<]*(?:(?!<\/head>)<[^<]*)*<\/head>/gi, '')
+      .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, '')
+      .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '')
+      .replace(/<!--[\s\S]*?-->/g, '');
+
+    const tagRegex = /<(p|h1|h2|h3|h4|h5|h6)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+    const matches: string[] = [];
+    let match;
+
+    while ((match = tagRegex.exec(clean)) !== null) {
+      const tag = match[1].toLowerCase();
+      let content = match[2]
+        .replace(/<[^>]+>/g, '') // Strip remaining inline HTML tags
+        .trim();
+
+      // Decode HTML entities
+      content = content
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&rsquo;/g, "'")
+        .replace(/&ldquo;/g, '"')
+        .replace(/&rdquo;/g, '"')
+        .replace(/\s+/g, ' '); // Collapse spaces
+
+      if (content.length > 10) {
+        if (tag.startsWith('h')) {
+          matches.push(`\n## ${content}\n`);
+        } else {
+          matches.push(content);
+        }
+      }
+    }
+
+    return matches.join('\n').slice(0, 15000);
+  } catch (error) {
+    console.error(`[SCRAPER] Error scraping ${url}:`, error);
+    return '';
+  }
+}
+
 const router = Router();
 
 interface RateLimitBucket {
@@ -253,6 +324,16 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
 
     const chatInput = messages[messages.length - 1].content;
 
+    // Detect if the user's message contains a URL and scrape it server-side
+    const URL_REGEX = /https?:\/\/[^\s"'<>]+/i;
+    const urlMatch = chatInput.match(URL_REGEX);
+    let scrapedContent = '';
+    let urlToScrape = '';
+    if (urlMatch) {
+      urlToScrape = urlMatch[0];
+      scrapedContent = await scrapeUrlContent(urlToScrape);
+    }
+
     // Truncate history to last 6 messages to prevent context bloat.
     // Long assistant research outputs are further capped to avoid token spikes.
     const CHAT_HISTORY_WINDOW = 6;
@@ -284,6 +365,10 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
 
         contextPrompt += `<attached_file>\n<filename>${attachment.filename}</filename>\n<type>${attachment.contentType}</type>\n<content>\n${truncatedText}${truncationNotice}\n</content>\n</attached_file>\n`;
       }
+    }
+
+    if (scrapedContent) {
+      contextPrompt += `<scraped_url_content url="${urlToScrape}">\n${scrapedContent}\n</scraped_url_content>\n`;
     }
 
     contextPrompt += `${history.map((m: { role: string, content: { text: string }[] }) => `${m.role}: ${m.content[0].text}`).join('\n')}\n</context>\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
@@ -337,16 +422,24 @@ Your task: answer the user's question with ONE focused, actionable insight.
     let finalFastModeInstruction = FAST_MODE_INSTRUCTION;
     const hasAttachments = attachments && Array.isArray(attachments) && attachments.length > 0;
 
-    // Detect if the user's message contains a URL so we can enable url_context tool
-    const URL_REGEX = /https?:\/\/[^\s"'<>]+/i;
-    const hasUrlInMessage = URL_REGEX.test(chatInput);
+    const hasUrlInMessage = !!urlMatch;
     if (hasUrlInMessage) {
-      finalFastModeInstruction += `
+      if (scrapedContent) {
+        finalFastModeInstruction += `
 \n<url_mode_override>
-CRITICAL: The user's message contains a URL. Use the url_context tool to fetch and read that page directly.
-Base your analysis on the actual page content you retrieve — do NOT ask the user to paste the content.
+CRITICAL: The system has successfully fetched the URL content at ${urlToScrape} and placed it inside <scraped_url_content>.
+Prioritize analyzing the content inside <scraped_url_content> to answer the user's request.
+Do NOT use web search unless additional external details are needed. Do NOT ask the user to copy/paste the content.
 </url_mode_override>
 `;
+      } else {
+        finalFastModeInstruction += `
+\n<url_mode_override>
+CRITICAL: The user provided a URL. Use the url_context tool to fetch and read that page directly.
+If you cannot fetch it or the tool fails, politely ask the user to copy and paste the content manually.
+</url_mode_override>
+`;
+      }
     }
     if (hasAttachments) {
       finalFastModeInstruction += `
