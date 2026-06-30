@@ -418,7 +418,6 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                   currentContent += data.chunk;
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent } : m));
                 } else if (data.type === 'replace_text') {
-                  // eslint-disable-next-line react-hooks/immutability
                   currentContent = data.text;
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent } : m));
                 } else if (data.type === 'sources') {
