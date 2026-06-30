@@ -871,14 +871,10 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-                    >
-                      {msg.payload?.status && (
-                        <div className="px-5 py-3.5 flex gap-3 items-center shadow-sm w-fit mb-2">
-                          <div className="relative flex h-3 w-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--primary)] opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-3 w-3 bg-[var(--primary)]"></span>
-                          </div>
-                          <span className="text-[14px] text-[var(--muted-foreground)] font-medium animate-pulse">{msg.payload.status}</span>
+                    >                      {msg.payload?.status && (
+                        <div className="flex gap-2 items-center text-[13px] text-[var(--muted-foreground)] font-medium py-1 px-1">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--primary)]" />
+                          <span className="animate-pulse">{msg.payload.status}</span>
                         </div>
                       )}
 
