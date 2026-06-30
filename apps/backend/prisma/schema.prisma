@@ -198,6 +198,8 @@ enum CreditTransactionType {
   yearly_monthly_allocation
   addon_purchase
   article_refine
+  copilot_chat
+  deep_research
   refund
   cycle_reset
   manual_adjustment

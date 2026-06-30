@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useUser } from '@clerk/nextjs';
+import Link from 'next/link';
 
 export type SignalData = {
   topic: string;
@@ -114,6 +115,26 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
 
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [researchMode, setResearchMode] = useState<'fast' | 'deep'>('fast');
+  const [enableSearch, setEnableSearch] = useState(true);
+  const [credits, setCredits] = useState<number | null>(null);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [paywallMessage, setPaywallMessage] = useState("");
+
+  const fetchCredits = () => {
+    fetch('/api/workspace/config')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.plan) {
+          setCredits(data.plan.creditsRemaining);
+        }
+      })
+      .catch(err => console.error('Failed to load credits:', err));
+  };
+
+  useEffect(() => {
+    fetchCredits();
+  }, []);
+
   const [collectedSources, setCollectedSources] = useState<{ url: string; domain: string; title?: string; description?: string }[]>([]);
   const [isShowingAllSources, setIsShowingAllSources] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<PreEditorPlan | null>(null);
@@ -566,6 +587,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
           mode: researchMode,
           notesSummary,
           attachments: uploadedAttachment ? [uploadedAttachment] : [],
+          enableSearch,
         }),
       });
       
@@ -574,7 +596,21 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
         setResearchMode('fast');
       }
 
-      if (!res.ok) throw new Error('API Error');
+      if (!res.ok) {
+        if (res.status === 403) {
+          const errData = await res.json().catch(() => ({}));
+          if (errData.code === 'INSUFFICIENT_CREDITS' || errData.code === 'AUTH_REQUIRED') {
+            setIsTyping(false);
+            setPaywallMessage(errData.message || 'Access denied.');
+            setPaywallOpen(true);
+            
+            // Remove the temporary user message from display so they can re-try
+            setMessages(prev => prev.filter(m => m.id !== newMsg.id));
+            return;
+          }
+        }
+        throw new Error('API Error');
+      }
       if (!res.body) throw new Error('No body');
 
       const reader = res.body.getReader();
@@ -631,6 +667,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
          setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, suggestions: extractedSuggestions } } : m));
       }
       
+      fetchCredits();
     } catch {
       toast.error('Failed to send message');
     } finally {
@@ -1028,6 +1065,26 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                         )}
                       </AnimatePresence>
                     </div>
+
+                    {researchMode === 'fast' && (
+                      <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full hover:bg-[var(--surface-3)] text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={enableSearch}
+                          onChange={(e) => setEnableSearch(e.target.checked)}
+                          className="w-3.5 h-3.5 rounded-md border-[var(--border)] bg-transparent text-[var(--primary)] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                        />
+                        <span className="flex items-center gap-1">
+                          Google Search <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--surface-1)] border border-[var(--border)] shrink-0 font-bold">1 CR</span>
+                        </span>
+                      </label>
+                    )}
+
+                    {credits !== null && (
+                      <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[var(--surface-3)] border border-[var(--border)] text-[10px] font-bold text-[var(--muted-foreground)] select-none">
+                        🪙 {credits} Credits
+                      </span>
+                    )}
                   </div>
                   
                   <button 
@@ -1360,6 +1417,49 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                   {isGeneratingQuickDraft && <Loader2 className="w-4 h-4 animate-spin" />}
                   {isGeneratingQuickDraft ? 'Generating…' : 'Generate'}
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {paywallOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[9999]"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+            >
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full flex items-center justify-center mx-auto mb-4 text-3xl select-none">
+                  🪙
+                </div>
+                <h3 className="text-xl font-bold text-[var(--foreground)] mb-2">
+                  Access Restricted
+                </h3>
+                <p className="text-sm text-[var(--muted-foreground)] mb-6 leading-relaxed">
+                  {paywallMessage || "You have run out of credits. Please refill your balance or upgrade your plan to continue using this premium feature."}
+                </p>
+                <div className="flex flex-col gap-2.5">
+                  <Link
+                    href="/pricing"
+                    className="w-full py-2.5 px-4 text-sm font-semibold rounded-xl bg-[var(--foreground)] text-[var(--background)] hover:opacity-90 transition-opacity text-center flex items-center justify-center gap-1.5"
+                  >
+                    Refill & Upgrade
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setPaywallOpen(false)}
+                    className="w-full py-2.5 px-4 text-sm font-medium rounded-xl border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--surface-2)] transition-colors text-center"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

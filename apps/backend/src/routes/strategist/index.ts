@@ -5,6 +5,7 @@ import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { composeEditorialPrompt, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { parseJsonResponse } from '@eai/shared';
 import { verifyToken } from '@clerk/backend';
+import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
 
 const router = Router();
 
@@ -183,8 +184,30 @@ router.post('/greet', async (req, res) => {
  */
 router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 'Too many requests. Please try again later.' }), async (req, res) => {
   try {
-    const { messages, mode, notesSummary, attachments } = req.body;
+    const { messages, mode, notesSummary, attachments, enableSearch, activeHistoryId } = req.body;
     
+    const isSearchEnabled = mode !== 'deep' && enableSearch !== false;
+    const requiredCredits = mode === 'deep' ? 5 : (isSearchEnabled ? 1 : 0);
+
+    if (requiredCredits > 0) {
+      if (!req.auth || !req.auth.userId) {
+        return res.status(403).json({
+          code: 'AUTH_REQUIRED',
+          error: 'Authentication Required',
+          message: 'You must be signed in to use this premium feature.'
+        });
+      }
+
+      const balance = await checkCreditsRemaining(req.auth.userId, req.auth.orgId);
+      if (balance < requiredCredits) {
+        return res.status(403).json({
+          code: 'INSUFFICIENT_CREDITS',
+          error: 'Insufficient Credits',
+          message: 'You have run out of credits. Please refill your balance or upgrade your plan to continue using this feature.'
+        });
+      }
+    }
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -227,6 +250,15 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
     contextPrompt += `${history.map((m: { role: string, content: { text: string }[] }) => `${m.role}: ${m.content[0].text}`).join('\n')}\n</context>\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
 
     if (mode === 'deep') {
+      await deductCredits(
+        req.auth!.userId,
+        req.auth!.orgId,
+        requiredCredits,
+        'deep_research',
+        `Deep Research session started (Query: ${chatInput.slice(0, 60)})`,
+        activeHistoryId || undefined
+      );
+
       const interaction = await gemini.interactions.create({
         model: RESEARCH_MODEL,
         input: contextPrompt + "\n\n<instructions>\nCRITICAL INSTRUCTION: YOU ARE IN DEEP RESEARCH MODE. Use Google Search thoroughly to gather facts, synthesize a comprehensive report, and ensure all claims are backed by credible sources.\n</instructions>",
@@ -279,9 +311,7 @@ CRITICAL: A file is attached to this request.
     const stream = await gemini.interactions.create({
       model: MODEL,
       input: contextPrompt,
-      tools: [
-        { type: "google_search" }
-      ],
+      tools: isSearchEnabled ? [{ type: "google_search" }] : undefined,
       system_instruction: getStrategistSystemPrompt() + finalFastModeInstruction,
       stream: true,
       generation_config: {
@@ -324,7 +354,21 @@ CRITICAL: A file is attached to this request.
                 console.log(`- Input Tokens: ${usage.total_input_tokens || 0}`);
                 console.log(`- Output Tokens: ${usage.total_output_tokens || 0}`);
                 console.log(`- Total Tokens Billed: ${usage.total_tokens || 0}`);
-                console.log("- TODO: Connect to Envoyou User Credit Database to deduct balance.\n");
+            }
+
+            if (requiredCredits > 0 && req.auth?.userId) {
+                try {
+                    await deductCredits(
+                        req.auth.userId,
+                        req.auth.orgId,
+                        requiredCredits,
+                        'copilot_chat',
+                        `Fast Chat with Search (Query: ${chatInput.slice(0, 60)})`,
+                        activeHistoryId || undefined
+                    );
+                } catch (billErr) {
+                    console.error('[CHAT_BILLING_ERROR] Failed to deduct credits:', billErr);
+                }
             }
 
             const sortedAnnotations = [...globalAnnotations].sort((a: { end_index?: number }, b: { end_index?: number }) => {
