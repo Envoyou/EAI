@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-02
+
 ### Added
 - **Persistensi Database Catatan Riset (Sprint A)**: Mengintegrasikan penyimpanan database Neon PostgreSQL untuk Research Notes Studio. Catatan kini disimpan di dalam JSON `AnalysisLog.metadata.researchNotes` menggantikan penyimpanan sessionStorage yang volatile.
 - **Unggah Cloudflare R2 Aman (Sprint B)**: Mengimplementasikan unggah file langsung ke R2 untuk berkas CSV, PDF, dan TXT menggunakan presigned PUT URL dengan batasan ukuran 10MB yang ketat di sisi frontend dan backend.

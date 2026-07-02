@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-02
+
 ### Added
 - **Research Notes DB Persistence (Sprint A)**: Integrated Neon PostgreSQL database storage for Research Notes Studio. Notes are now saved inside `AnalysisLog.metadata.researchNotes` instead of being volatile in sessionStorage.
 - **Secure Cloudflare R2 Uploads (Sprint B)**: Implemented direct-to-R2 file uploading for CSV, PDF, and TXT files using presigned PUT URLs with a strict 10MB size limit (frontend and backend gates).
