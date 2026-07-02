@@ -108,7 +108,7 @@ const runFinalQualityGate = async ({
         )),
         ...getGeminiSamplingConfig(modelName, 0.15),
         candidateCount: 1,
-        maxOutputTokens: 1800,
+        maxOutputTokens: 4000,
         thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
         responseMimeType: 'application/json',
         responseJsonSchema: FinalQualityGateResponseJsonSchema,
@@ -138,7 +138,7 @@ const runFinalQualityGate = async ({
         { role: 'user', content: contents },
       ],
       stream: false,
-      max_tokens: 1800,
+      max_tokens: 4000,
       temperature: 0.15,
       response_format: { type: 'json_object' },
     });
@@ -166,7 +166,7 @@ const runFinalQualityGate = async ({
         { role: 'user', content: contents },
       ],
       stream: false,
-      max_tokens: 1800,
+      max_tokens: 4000,
       temperature: 0.15,
       response_format: { type: 'json_object' },
     });
