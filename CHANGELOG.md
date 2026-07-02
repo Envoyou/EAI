@@ -6,6 +6,15 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-07-02
+
+### Changed
+- **Nginx Streaming Route Configuration**: Restructured Nginx location rule from `/api/draft` to a regex matching all actual backend streaming endpoints (`/api/analyze`, `/api/strategist/chat`, and `/api/strategist/generate-draft-from-notes`) to guarantee real-time typing/streaming UX.
+- **PM2 Memory Limit Upgrade**: Increased memory limits (`--max-old-space-size` and `max_memory_restart`) in `ecosystem.config.cjs` from 150MB to 400MB to resolve OOM crashes and 502 Bad Gateway errors under load.
+
+### Fixed
+- **Production Database Migration**: Ran `npx prisma migrate deploy` to safely apply the pending database migration `20260630040119_add_copilot_chat_transaction_types` to the production database.
+
 ## [2.0.0] - 2026-07-02
 
 ### Added
