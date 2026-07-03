@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-07-04
+
 ### Added
 - **Jejak Penalaran Chain-of-Thought (CoT)**: Mengintegrasikan properti opsional `"thinking"` ke dalam kontrak skema prompt (`FEEDBACK_OUTPUT_PROMPT_SCHEMA`, `POLISH_DIAGNOSIS_OUTPUT_PROMPT_SCHEMA`) dan skema Zod (`FeedbackOutputSchema`, `PolishDiagnosisResponseSchema`, `FinalQualityGateSchema`), memaksa model menuliskan penalaran langkah-demi-langkah terlebih dahulu sebelum memberikan kesimpulan penilaian.
 - **Optimasi Caching Prompt**: Merestrukturisasi fungsi prompt sistem untuk meletakkan semua properti dinamis (seperti kebijakan bahasa dan petunjuk tingkat keketatan) di bagian akhir di bawah blok penanda `=== DYNAMIC CONSTRAINTS ===` demi memaksimalkan rasio kecocokan cache awal (*prefix caching hit rate*) pada Claude dan Gemini.
