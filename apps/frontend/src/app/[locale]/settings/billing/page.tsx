@@ -81,7 +81,7 @@ export default async function BillingSettingsPage() {
         <div className="settings-page-intro m-0">
           <span>Workspace Settings</span>
           <h2 className="text-balance">Billing & Plans</h2>
-          <p className="text-pretty">Manage your subscription, credits, and invoices via Doku.</p>
+          <p className="text-pretty">Manage your subscription, credits, and invoices via Midtrans.</p>
         </div>
 
         {workspace && (

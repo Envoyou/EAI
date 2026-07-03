@@ -17,7 +17,7 @@ export default function SupportPage() {
         <header className="mb-8 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2.5">
             <EAILogo className="h-8 w-8 text-primary" />
-            <span className="font-semibold tracking-tight">EAI</span>
+            <span className="font-semibold tracking-tight">Envoyou AI</span>
           </Link>
           <Link
             href="/"

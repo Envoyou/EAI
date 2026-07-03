@@ -84,7 +84,7 @@ export function AppSidebarShell({
                   }`}
                 >
                   <span className="block text-[15px] font-bold tracking-tight text-[var(--foreground)] leading-none truncate">
-                    EAI
+                    Envoyou AI
                   </span>
                   <span className="block text-[9.5px] text-[var(--muted-foreground)] mt-1 font-medium tracking-wide uppercase truncate">
                     Editorial Intelligence

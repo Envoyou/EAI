@@ -59,9 +59,9 @@ export function SystemStatePage({
                 <EAILogo className="h-6 w-6 text-primary-400" />
               </span>
               <span>
-                <span className="block text-sm font-semibold text-white">EAI</span>
+                <span className="block text-sm font-semibold text-white">Envoyou AI</span>
                 <span className="block text-[10px] uppercase tracking-[0.2em] text-slate-500">
-                  Editorial System
+                  Editorial Intelligence
                 </span>
               </span>
             </Link>

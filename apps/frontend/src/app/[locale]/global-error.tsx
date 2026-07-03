@@ -28,7 +28,7 @@ export default function GlobalError({
                 <EAILogo className="h-6 w-6 text-primary-400" />
               </span>
               <div>
-                <p className="text-sm font-semibold text-white">EAI</p>
+                <p className="text-sm font-semibold text-white">Envoyou AI</p>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Editorial System</p>
               </div>
             </div>

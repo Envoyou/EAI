@@ -135,12 +135,12 @@ export default function PaymentStatusBanner() {
             {isPaid
               ? `${payment?.creditsGranted ?? ''} credits have been allocated for ${payment?.planName}.`
               : isFailed
-                ? `DOKU reported status ${status}. No credits were allocated.`
+                ? `Midtrans reported status ${status}. No credits were allocated.`
                 : error
                   ? error
                   : checking
-                    ? 'DOKU may take a few moments to notify EAI. This page checks the order automatically.'
-                    : 'The order is still pending in EAI. Ask an administrator to check or retry the Notification URL in DOKU Sandbox.'}
+                    ? 'Midtrans may take a few moments to notify EAI. This page checks the order automatically.'
+                    : 'The order is still pending in EAI. Ask an administrator to check or retry the Notification URL in Midtrans Sandbox.'}
           </p>
           <p className="mt-1 font-mono text-[10px] text-slate-500">
             Order: {orderId}
