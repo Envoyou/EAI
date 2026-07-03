@@ -6,6 +6,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Chain-of-Thought (CoT) Reasoning Traces**: Integrated optional `"thinking"` property to the prompt schema definitions (`FEEDBACK_OUTPUT_PROMPT_SCHEMA`, `POLISH_DIAGNOSIS_OUTPUT_PROMPT_SCHEMA`) and Zod schemas (`FeedbackOutputSchema`, `PolishDiagnosisResponseSchema`, `FinalQualityGateSchema`), forcing reviewer roles and Quality Gate prompts to output step-by-step reasoning before generating verdicts.
+- **Prompt Caching Caching Optimizations**: Restructured system prompt functions to place all dynamic prompt properties (like language policies and strictness instructions) under a `=== DYNAMIC CONSTRAINTS ===` block at the end, ensuring static template prefixes remain highly reusable for Gemini and Claude caching.
+- **Replace/Insert Few-Shot Examples**: Added compact examples for the `replace` and `insert_after` edit operations in the 1-click apply rule prompt instructions.
+
 ## [2.0.1] - 2026-07-02
 
 ### Changed
