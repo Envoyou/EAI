@@ -139,6 +139,7 @@ router.post('/', async (req, res) => {
   res.setHeader('Content-Type', 'application/x-ndjson');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
 
   const sendEvent = (type: string, data: unknown) => {
     res.write(JSON.stringify({ type, data }) + '\n');

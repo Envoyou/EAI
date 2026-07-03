@@ -356,6 +356,7 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
 
     const chatInput = messages[messages.length - 1].content;
 
@@ -439,17 +440,24 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
     const FAST_MODE_INSTRUCTION = `
 <instructions>
 CRITICAL: You are in FAST MODE — a professional content strategist.
-Your task: answer the user's question with focused, actionable insights. Use rich Markdown formatting (headings like ###, bold labels **Label**:, bullet points, and tables) to make your output visually beautiful, structured, and easy to read.
+Your task: answer the user's question with focused, actionable insights. Use rich Markdown formatting (headings like ## and ###, horizontal dividers ---, bold labels **Label**:, bullet points, and tables) to make your output visually beautiful, structured, and easy to read.
 </instructions>
 
 <constraints>
-1. Length constraint: Be 2–4 paragraphs for research requests (e.g., "riset tren X untuk artikel"), and 2–4 sentences for simple factual queries (e.g., "apa itu X").
+1. Structure and Length:
+   - For simple, quick factual queries (e.g., "apa itu X"): Be concise (2-4 sentences).
+   - For comprehensive queries, research requests, trend analysis, outline, or report requests: Provide a beautifully structured, rich, and detailed multi-section report. Do NOT artificially limit the length or restrict sections.
 2. Ground all your factual claims. The system will automatically append citations, so do NOT manually type URLs in your response.
 3. End with exactly 3 short, clickable follow-up suggestions in this format:
 [SUGGESTIONS: Suggestion 1 | Suggestion 2 | Suggestion 3]
-4. DO NOT write long lists, summaries, or multiple sections unless requested as part of a research request.
+4. Leverage the full power of Markdown to structure your response. Use:
+   - Headers (e.g., ## for main sections, ### for sub-sections) to establish a clear hierarchy.
+   - Bullet points (*) and bold text (**Text**) for list items.
+   - Tables for comparisons or structured data.
+   - Horizontal rules (---) to separate major sections.
+   - Blockquotes (>) for summaries or key takeaways.
 5. DO NOT repeat previous answers.
-6. If the user asks for a broad topic, pick the most important angle and respond concisely.
+6. If the user asks for a broad topic, pick the most important angle and respond comprehensively.
 </constraints>
 `;
 
@@ -506,7 +514,7 @@ CRITICAL: A file is attached to this request.
 
     let finalOutputText = "";
     const sources: string[] = [];
-    const globalAnnotations: { type?: string; url?: string; title?: string; end_index?: number }[] = [];
+    const globalAnnotations: { type?: string; url?: string; title?: string; start_index?: number; end_index?: number }[] = [];
 
     for await (const event of stream) {
         if (event.event_type === "step.start") {
@@ -556,19 +564,13 @@ CRITICAL: A file is attached to this request.
                 }
             }
 
-            const sortedAnnotations = [...globalAnnotations].sort((a: { end_index?: number }, b: { end_index?: number }) => {
-                const endA = a.end_index || 0;
-                const endB = b.end_index || 0;
-                return endB - endA;
-            });
-            
             // Map to keep track of unique URLs and their footnote index
             const urlToIndex = new Map<string, number>();
             const uniqueSourcesData: { url: string; domain: string }[] = [];
             
             // Unfurl Google Vertex AI Grounding redirect URLs
             const resolvedUrls = new Map<string, string>();
-            const urlsToResolve = [...new Set(sortedAnnotations.map(a => a.url).filter(Boolean))] as string[];
+            const urlsToResolve = [...new Set(globalAnnotations.map(a => a.url).filter(Boolean))] as string[];
             
             await Promise.all(urlsToResolve.map(async (u) => {
                 if (u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
@@ -584,39 +586,39 @@ CRITICAL: A file is attached to this request.
                 }
             }));
             
-            for (const annotation of sortedAnnotations) {
-                if (annotation.type === "url_citation" && annotation.url) {
-                    const realUrl = resolvedUrls.get(annotation.url) || annotation.url;
-                    sources.push(realUrl);
-                    
-                    if (!urlToIndex.has(realUrl)) {
-                        urlToIndex.set(realUrl, urlToIndex.size + 1);
-                        let domain = annotation.title;
-                        if (!domain || domain.trim() === "") {
-                            try {
-                                domain = new URL(realUrl).hostname.replace('www.', '');
-                            } catch (_e) { domain = "Source"; }
-                        }
-                        const cleanDomain = domain.replace(/[[\]()*_`]/g, '').trim();
-                        uniqueSourcesData.push({ url: realUrl, domain: cleanDomain });
-                    }
-                    
-                    const sourceIndex = urlToIndex.get(realUrl);
-                    // Perplexity style inline numbered pill
-                    const citationStr = ` [${sourceIndex}](${realUrl})`;
-                    
-                    // Interactions API returns UTF-16 character index directly — no conversion needed
-                    const charIndex = Math.min(annotation.end_index || 0, finalOutputText.length);
-                    finalOutputText = finalOutputText.slice(0, charIndex) + citationStr + finalOutputText.slice(charIndex);
-                }
-            }
+            // Replace [cite: X] placeholders directly in their original order using globalAnnotations
+            let annotationIndex = 0;
+            const citeRegex = /\[cite:\s*\d+\]/gi;
             
-            // (Markdown appending removed in favor of premium frontend favicon UI)
-
-            // Output is sent as-is — structured prompt keeps length bounded without lossy summarization
-            // Strip Gemini raw search grounding metadata [cite: ...] and trailing unmatched brackets
-            const outputToSend = finalOutputText
-                .replace(/\[cite:\s*[^\]]*\]/gi, '')
+            const finalOutputTextProcessed = finalOutputText.replace(citeRegex, (_match) => {
+                if (annotationIndex < globalAnnotations.length) {
+                    const annotation = globalAnnotations[annotationIndex++];
+                    if (annotation.type === "url_citation" && annotation.url) {
+                        const realUrl = resolvedUrls.get(annotation.url) || annotation.url;
+                        sources.push(realUrl);
+                        
+                        if (!urlToIndex.has(realUrl)) {
+                            urlToIndex.set(realUrl, urlToIndex.size + 1);
+                            let domain = annotation.title;
+                            if (!domain || domain.trim() === "") {
+                                try {
+                                    domain = new URL(realUrl).hostname.replace('www.', '');
+                                } catch (_e) { domain = "Source"; }
+                            }
+                            const cleanDomain = domain.replace(/[[\]()*_`]/g, '').trim();
+                            uniqueSourcesData.push({ url: realUrl, domain: cleanDomain });
+                        }
+                        
+                        const sourceIndex = urlToIndex.get(realUrl);
+                        return `[${sourceIndex}](${realUrl})`;
+                    }
+                }
+                // Strip the placeholder if we run out of annotations or it's not a URL citation
+                return "";
+            });
+            
+            // Clean up any trailing unmatched brackets and trim
+            const outputToSend = finalOutputTextProcessed
                 .replace(/\s*\[\s*$/g, '')
                 .trim();
             
@@ -805,6 +807,7 @@ router.post('/generate-draft-from-notes', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
 
     if (!notes || notes.length === 0) {
       res.write(`data: ${JSON.stringify({ type: "error", message: "No notes provided" })}\n\n`);

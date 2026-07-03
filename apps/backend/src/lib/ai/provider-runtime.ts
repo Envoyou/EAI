@@ -106,8 +106,9 @@ export const getGeminiReviewOutputLimit = (
 export const getGroqReviewOutputLimit = (mode: ResponseMode) =>
   GEMINI_REVIEW_OUTPUT_TOKENS[mode];
 
-export const getOpenRouterReviewOutputLimit = (mode: ResponseMode) =>
-  GEMINI_REVIEW_OUTPUT_TOKENS[mode];
+export const getOpenRouterReviewOutputLimit = (mode: ResponseMode) => {
+  return mode === 'standard' ? 6000 : 4000;
+};
 
 export const getOpenRouterModelForRole = (
   role: Role,
