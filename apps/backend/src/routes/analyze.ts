@@ -1055,6 +1055,18 @@ router.post('/', async (req: Request, res) => {
     res.write(JSON.stringify({ type, data }) + '\n');
   };
 
+  // Start keep-alive heartbeat interval to prevent stream idle timeout
+  const keepAliveInterval = setInterval(() => {
+    sendEvent('ping', Date.now());
+  }, 15000);
+
+  const clearKeepAlive = () => {
+    clearInterval(keepAliveInterval);
+  };
+
+  res.on('finish', clearKeepAlive);
+  res.on('close', clearKeepAlive);
+
   const composePrompt = (prompt: string) =>
     withInputBoundaryPolicy(composeEditorialPrompt(prompt, editorialProfile));
 
