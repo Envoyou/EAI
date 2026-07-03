@@ -955,7 +955,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                         }`}>
                           {msg.role === 'assistant' ? (
                             <>
-                              <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-p:my-1.5 prose-li:my-0.5 prose-headings:my-2 prose-strong:text-[var(--foreground)] prose-a:bg-[var(--surface-3)] prose-a:text-[var(--foreground)] prose-a:px-1.5 prose-a:py-0.5 prose-a:rounded-md prose-a:no-underline prose-a:text-[11px] prose-a:font-medium text-[var(--foreground)]">
+                              <div className="prose prose-base dark:prose-invert max-w-none prose-p:leading-relaxed prose-p:my-1.5 prose-li:my-0.5 prose-headings:my-2 prose-strong:text-[var(--foreground)] prose-a:bg-[var(--surface-3)] prose-a:text-[var(--foreground)] prose-a:px-1.5 prose-a:py-0.5 prose-a:rounded-md prose-a:no-underline prose-a:text-[11px] prose-a:font-medium text-[var(--foreground)]">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                   {msg.content + (isTyping && i === messages.length-1 ? ' ▍' : '')}
                                 </ReactMarkdown>
