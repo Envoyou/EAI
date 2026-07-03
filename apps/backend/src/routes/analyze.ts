@@ -1610,10 +1610,10 @@ router.post('/', async (req: Request, res) => {
         }
 
         const rewriteNotes = [
-          `DIAGNOSIS TRANSFORMASI DRAFT:`,
-          `Arah transformasi: ${validatedData.summary}`,
+          `DRAFT TRANSFORMATION DIAGNOSIS:`,
+          `Transformation direction: ${validatedData.summary}`,
           ``,
-          `Prioritas rewrite:`,
+          `Rewrite priorities:`,
           ...(validatedData.feedback ?? []).slice(0, 3).map(
             (item: FeedbackItem, i: number) => `${i + 1}. [${item.category}] ${item.message}${item.suggestion ? `\n   -> Suggested fix: ${item.suggestion}` : ''}`
           ),
@@ -1627,7 +1627,7 @@ router.post('/', async (req: Request, res) => {
             .join('\n');
           rewriteNotes.push(
             ``,
-            `LINKING INTERNAL TEPERCAYA (Sertakan 1-3 link relevan secara natural):`,
+            `TRUSTED INTERNAL LINKING (Naturally insert 1-3 relevant links):`,
             formattedPosts
           );
         }
@@ -1668,7 +1668,7 @@ router.post('/', async (req: Request, res) => {
                 protectedClaimsNotes,
                 sectionContext: isSingleChunk
                   ? undefined
-                  : `Ini adalah segmen ${i + 1} dari ${chunks.length}. Tulis ulang segmen ini saja. Hubungkan alurnya dengan draf sebelumnya.`,
+                  : `This is segment ${i + 1} of ${chunks.length}. Rewrite only this segment. Connect its flow with the previous draft.`,
               },
               task: 'Polish only the provided article. Apply editorNotes and preserve protectedClaimsNotes.',
             }),
@@ -1858,10 +1858,10 @@ router.post('/', async (req: Request, res) => {
         }
 
         const rewriteNotes = [
-          `DIAGNOSIS TRANSFORMASI DRAFT:`,
-          `Arah transformasi: ${validatedData.summary}`,
+          `DRAFT TRANSFORMATION DIAGNOSIS:`,
+          `Transformation direction: ${validatedData.summary}`,
           ``,
-          `Prioritas rewrite:`,
+          `Rewrite priorities:`,
           ...(validatedData.feedback ?? []).slice(0, 3).map(
             (item: FeedbackItem, i: number) => `${i + 1}. [${item.category}] ${item.message}${item.suggestion ? `\n   -> Suggested fix: ${item.suggestion}` : ''}`
           ),
@@ -1875,7 +1875,7 @@ router.post('/', async (req: Request, res) => {
             .join('\n');
           rewriteNotes.push(
             ``,
-            `LINKING INTERNAL TEPERCAYA (Sertakan 1-3 link relevan secara natural):`,
+            `TRUSTED INTERNAL LINKING (Naturally insert 1-3 relevant links):`,
             formattedPosts
           );
         }
@@ -1915,7 +1915,7 @@ router.post('/', async (req: Request, res) => {
                       : '',
                     sectionContext: isSingleChunk
                       ? undefined
-                      : `Ini adalah segmen ${i + 1} dari ${chunks.length}. Tulis ulang segmen ini saja. Hubungkan alurnya dengan draf sebelumnya.`,
+                      : `This is segment ${i + 1} of ${chunks.length}. Rewrite only this segment. Connect its flow with the previous draft.`,
                   },
                   task: 'Polish only the provided article. Apply editorNotes and preserve protectedClaimsNotes.',
                 }),

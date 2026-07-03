@@ -56,10 +56,10 @@ export const buildFallbackSeoMetadata = (
 
   let safeMetaDescription = (
     metaDescription ||
-    `${title} untuk pembaca ${editorialProfile.config.brandName} yang mencari insight tajam dan relevan.`
+    `${title} for ${editorialProfile.config.brandName} readers seeking sharp and relevant insights.`
   ).slice(0, seoRules.metaDescriptionMaxLength);
   if (safeMetaDescription.length < 50) {
-    safeMetaDescription = `${safeMetaDescription} Analisis editorial dengan konteks, dampak, dan implikasi praktis.`
+    safeMetaDescription = `${safeMetaDescription} Editorial analysis with context, impact, and practical implications.`
       .slice(0, seoRules.metaDescriptionMaxLength);
   }
 
@@ -69,7 +69,7 @@ export const buildFallbackSeoMetadata = (
     excerpt: safeMetaDescription,
     metaTitle: title.slice(0, seoRules.metaTitleMaxLength),
     metaDescription: safeMetaDescription,
-    coverImageAltText: `Ilustrasi untuk artikel ${title}`.slice(0, 120),
+    coverImageAltText: `Illustration for the article: ${title}`.slice(0, 120),
     tags,
   });
 };
