@@ -70,6 +70,17 @@ interface ContentStrategistWizardProps {
 
 const generateId = () => Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
 
+const extractDynamicSuggestions = (content: string) => {
+  const match = content.match(/\[SUGGESTIONS:\s*([\s\S]*?)\](?![^\]]*\])/);
+  if (match) {
+    const suggestions = match[1].split('|').map(s => s.trim());
+    const displayContent = content.replace(match[0], '').trim();
+    return { displayContent, suggestions };
+  }
+  const displayContent = content.replace(/\[SUGGESTIONS:[\s\S]*/, '').trim();
+  return { displayContent, suggestions: undefined };
+};
+
 export default function ContentStrategistWizard({ onComplete, onCancel }: ContentStrategistWizardProps) {
   const { user } = useUser();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -425,12 +436,29 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
               try {
                 const data = JSON.parse(dataStr);
                 if (data.type === 'chunk') {
-                  // eslint-disable-next-line react-hooks/immutability
                   currentContent += data.chunk;
-                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, status: undefined } } : m));
+                  const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+                    ...m,
+                    content: displayContent,
+                    payload: {
+                      ...m.payload,
+                      suggestions: suggestions || m.payload?.suggestions,
+                      status: undefined
+                    }
+                  } : m));
                 } else if (data.type === 'replace_text') {
                   currentContent = data.text;
-                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, status: undefined } } : m));
+                  const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+                    ...m,
+                    content: displayContent,
+                    payload: {
+                      ...m.payload,
+                      suggestions: suggestions || m.payload?.suggestions,
+                      status: undefined
+                    }
+                  } : m));
                 } else if (data.type === 'sources') {
                   if (data.sources && data.sources.length > 0) {
                     setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, sources: data.sources } } : m));
@@ -447,6 +475,12 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
          const extractedSuggestions = sugMatch[1].split('|').map(s => s.trim());
          currentContent = currentContent.replace(sugMatch[0], '').trim();
          setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, suggestions: extractedSuggestions } } : m));
+      } else {
+         const cleaned = currentContent.replace(/\[SUGGESTIONS:[\s\S]*/g, '').trim();
+         if (cleaned !== currentContent) {
+           currentContent = cleaned;
+           setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent } : m));
+         }
       }
       
       fetchCredits();
@@ -815,12 +849,29 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
                 } else if (data.type === 'status') {
                    setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, status: data.message } } : m));
                  } else if (data.type === 'text') {
-                   // eslint-disable-next-line react-hooks/immutability
                    currentContent += data.chunk;
-                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, status: undefined } } : m));
+                   const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
+                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+                     ...m,
+                     content: displayContent,
+                     payload: {
+                       ...m.payload,
+                       suggestions: suggestions || m.payload?.suggestions,
+                       status: undefined
+                     }
+                   } : m));
                  } else if (data.type === 'replace_text') {
                    currentContent = data.text;
-                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, status: undefined } } : m));
+                   const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
+                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+                     ...m,
+                     content: displayContent,
+                     payload: {
+                       ...m.payload,
+                       suggestions: suggestions || m.payload?.suggestions,
+                       status: undefined
+                     }
+                   } : m));
                 } else if (data.type === 'sources') {
                    if (data.sources && data.sources.length > 0) {
                      setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, sources: data.sources } } : m));
@@ -840,6 +891,12 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
          const extractedSuggestions = sugMatch[1].split('|').map(s => s.trim());
          currentContent = currentContent.replace(sugMatch[0], '').trim();
          setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, suggestions: extractedSuggestions } } : m));
+      } else {
+         const cleaned = currentContent.replace(/\[SUGGESTIONS:[\s\S]*/g, '').trim();
+         if (cleaned !== currentContent) {
+           currentContent = cleaned;
+           setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent } : m));
+         }
       }
       
       fetchCredits();
