@@ -3,6 +3,7 @@ import type { Role } from './types';
 
 export const FEEDBACK_OUTPUT_PROMPT_SCHEMA = `
 {
+  "thinking": string (detailed step-by-step thinking or reasoning trace before making any conclusions),
   "score": number (integer 0-100),
   "verdict": "approve" | "revise" | "reject",
   "summary": string (1-2 kalimat, max 280 karakter),
@@ -23,6 +24,7 @@ export const FEEDBACK_OUTPUT_PROMPT_SCHEMA = `
 
 export const POLISH_DIAGNOSIS_OUTPUT_PROMPT_SCHEMA = `
 {
+  "thinking": string (detailed step-by-step thinking or reasoning trace before making any conclusions),
   "summary": string (1-2 kalimat netral tentang arah transformasi, max 280 karakter),
   "feedback": Array<{
     "category": string,
@@ -78,6 +80,7 @@ export const SeoMetadataSchema = z.object({
 });
 
 export const FeedbackOutputSchema = z.object({
+  thinking: z.string().describe('Detailed step-by-step thinking or reasoning trace before making any conclusions.').optional(),
   score: z.number().int().min(0).max(100).describe('Integer editorial quality score for non-polish review roles.'),
   verdict: z.enum(['approve', 'revise', 'reject']).describe('Editorial decision for the draft based on the selected role.'),
   summary: z.string().max(280).describe('One to two sentence summary of the review result.'),
@@ -99,6 +102,7 @@ const QualityResponseFeedbackItemSchema = FeedbackItemSchema.extend({
 });
 
 export const PolishDiagnosisResponseSchema = z.object({
+  thinking: z.string().describe('Detailed step-by-step thinking or reasoning trace before making any conclusions.').optional(),
   summary: z.string().max(280).describe('Neutral transformation direction for rewriting the raw draft.'),
   feedback: z.array(QualityResponseFeedbackItemSchema).max(3).describe('Top rewrite priorities or factual protections for the polishing stage.'),
   flags: z.array(z.string()).max(3).describe('Short risk flags for rewrite planning.').optional().default([]),
@@ -112,6 +116,7 @@ export const PolishDiagnosisSchema = PolishDiagnosisResponseSchema.extend({
 export type PolishDiagnosisOutput = z.infer<typeof PolishDiagnosisSchema>;
 
 export const FinalQualityGateSchema = z.object({
+  thinking: z.string().describe('Detailed step-by-step thinking or reasoning trace before making any conclusions.').optional(),
   readiness: z.enum(['ready', 'needs_review', 'blocked']).describe('Final publication readiness after evaluating the polished draft.'),
   summary: z.string().max(280).describe('One to two sentence readiness summary focused on the final draft.'),
   changes: z.array(z.string().min(1).max(180)).min(1).max(5).describe('Important improvements made from source draft to final draft.'),

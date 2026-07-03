@@ -229,6 +229,7 @@ MANDATORY OUTPUT LIMITS:
 - Maximum 6 feedback items.
 - 'targetText' should be a short unique excerpt from the draft, ideally 5-20 words.
 - 'replacementText' must be at most one short paragraph or one compact heading+excerpt block.
+
 Example 'insert_before':
 {
   "category": "Structure",
@@ -238,6 +239,28 @@ Example 'insert_before':
   "targetText": "Over the past decade, AI technology",
   "replacementText": "# The Hidden AI Shift\\n\\nAI is no longer just a search tool. It is becoming a decision layer.\\n\\n",
   "reason": "${brandName} articles must follow the required editorial structure."
+}
+
+Example 'replace':
+{
+  "category": "Tone",
+  "status": "warning",
+  "message": "Avoid using passive voice to sound more authoritative.",
+  "operation": "replace",
+  "targetText": "The report was published by the team.",
+  "replacementText": "The team published the report.",
+  "reason": "Active voice fits the brand tone guidelines better."
+}
+
+Example 'insert_after':
+{
+  "category": "Factual Accuracy",
+  "status": "warning",
+  "message": "Add a citation to clarify the source of the market cap number.",
+  "operation": "insert_after",
+  "targetText": "reaches a valuation of $10 billion",
+  "replacementText": " [according to the latest Gartner report](https://gartner.com/report-123)",
+  "reason": "Sensitive financial claims require direct source attributions."
 }
 `;
 // ─── Base Guidelines ───────────────────────────────────────────────────────
@@ -337,6 +360,7 @@ Focus on:
 
 ${getJsonOutputContract(FEEDBACK_OUTPUT_PROMPT_SCHEMA, options)}
 
+Before deciding the verdict, score, or feedback items, output your step-by-step reasoning trace in the "thinking" field.
 Note: the "verdict" for the author role must always be "approve" or "revise" (never "reject").
 Include at least 4 feedback categories. Include "suggestion" on every item with status "fail" or "warning".
 `;
@@ -375,6 +399,7 @@ ROLE-SPECIFIC FACTUAL RULES:
 
 ${getJsonOutputContract(FEEDBACK_OUTPUT_PROMPT_SCHEMA, options)}
 
+Before deciding the verdict, score, or feedback items, output your step-by-step reasoning trace in the "thinking" field.
 Note: Use all three verdict options when appropriate ("approve" / "revise" / "reject").
 Scores below 60 must include at least 1 item in "flags".
 Include at least 5 feedback categories.
@@ -397,6 +422,7 @@ Focus on:
 
 ${getJsonOutputContract(FEEDBACK_OUTPUT_PROMPT_SCHEMA, options)}
 
+Before deciding the verdict, score, or feedback items, output your step-by-step reasoning trace in the "thinking" field.
 Note: the "verdict" for the SEO role can be "approve" or "revise".
 Include at least 4 SEO-specific feedback categories. Include "suggestion" on every item with status "fail" or "warning".
 `;
@@ -435,6 +461,7 @@ ROLE-SPECIFIC FACTUAL RULES:
 
 ${getJsonOutputContract(FEEDBACK_OUTPUT_PROMPT_SCHEMA, options)}
 
+Before deciding the verdict, score, or feedback items, output your step-by-step reasoning trace in the "thinking" field.
 Note: the "verdict" for the fact-checker role can be "approve", "revise", or "reject".
 Scores below 60 must include at least 1 item in "flags".
 Include at least 4 fact-checking-specific feedback categories. Include "suggestion" on every item with status "fail" or "warning".
@@ -625,6 +652,7 @@ ${getSourcePolicyGuidance(config)}
 
 Output rules:
 - Reply ONLY with JSON.
+- Before generating the summary, feedback, or flags, output your step-by-step reasoning trace in the "thinking" field.
 - Do not give a score, verdict, approval, rejection, or pass/fail judgment on the raw draft.
 - The summary must be neutral and describe the transformation direction, not judge the writer or raw article.
 - Feedback must contain only specific transformation priorities that can be applied during rewrite.
@@ -698,6 +726,7 @@ ${getSourcePolicyGuidance(config)}
 
 Output rules:
 - Reply ONLY with JSON.
+- thinking: detailed step-by-step thinking or reasoning trace before making any conclusions. Assess readiness, potential risks, source fidelity, structure, and required feedback.
 - summary explains final draft readiness in 1-2 sentences, max 280 characters.
 - changes contains 2-5 of the most important changes successfully made from source draft to final draft.
 - Each changes item must be one concise sentence under 140 characters.
@@ -712,6 +741,7 @@ Output rules:
 - Never put reassuring statements such as "No risks found" or "Tidak ada risiko" in flags.
 
 ${getJsonOutputContract(`{
+  "thinking": string,
   "readiness": "ready" | "needs_review" | "blocked",
   "summary": string,
   "changes": string[],
