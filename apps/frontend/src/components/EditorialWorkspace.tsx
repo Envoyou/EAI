@@ -5,7 +5,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 import Editor from '@/components/Editor';
-import FeedbackPanel from '@/components/FeedbackPanel';
 import FinalDraftPanel from '@/components/FinalDraftPanel';
 import DocumentHistoryPanel from '@/components/DocumentHistoryPanel';
 import ThreeColumnLayout from '@/components/ThreeColumnLayout';
@@ -214,7 +213,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   const [hoveredFeedbackIndex, setHoveredFeedbackIndex] = useState<number | null>(null);
   const [activeFeedbackIndex, setActiveFeedbackIndex] = useState<number | null>(null);
   const [showFeedbackSidebar, setShowFeedbackSidebar] = useState(true);
-  const [showNotesSidebar, setShowNotesSidebar] = useState(true);
+  const [showNotesSidebar] = useState(true);
   const [rightPanelTab, setRightPanelTab] = useState<'strategist' | 'feedback' | 'notes'>('strategist');
   const [researchNotes, setResearchNotes] = useState<ResearchNote[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -237,6 +236,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   const [analysisSpeed, setAnalysisSpeed] = useState<'fast' | 'publish'>('publish');
   const [isTargetedFixing, setIsTargetedFixing] = useState<number | null>(null);
   const [isSavingToCloud, setIsSavingToCloud] = useState(false);
+  const [isGeneratingDraftFromNotes, setIsGeneratingDraftFromNotes] = useState(false);
 
   const handleCloudSave = async () => {
     if (isDemoMode) return;
@@ -885,8 +885,65 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     if (isMobile) setSidebarOpen(false);
   };
 
-  const handleAddNewCategoryOrType = async (type: 'category' | 'articleType', value: string) => {
-    if (!value || !value.trim()) return;
+  const handleGenerateDraftFromNotes = async () => {
+    const notesToGenerate = researchNotes.filter(n => n.content.length > 0);
+    if (notesToGenerate.length === 0) {
+      toast.error('Select at least one note to generate');
+      return;
+    }
+
+    setIsGeneratingDraftFromNotes(true);
+    setDraft('');
+    let currentDraft = '';
+
+    try {
+      const response = await fetch('/api/strategist/generate-draft-from-notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: notesToGenerate, metadata }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to generate draft: ${response.status} - ${errorText}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No reader available');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value: chunk } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(chunk, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'text') {
+              currentDraft += data.chunk;
+              setDraft(currentDraft);
+            } else if (data.type === 'error') {
+              toast.error(data.message);
+            }
+          }
+        }
+      }
+      toast.success('Draft generated successfully!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Gagal men-generate draft');
+    } finally {
+      setIsGeneratingDraftFromNotes(false);
+    }
+  };
+
+  const handleAddNewCategoryOrType = async (type: 'category' | 'articleType', value: string) => {    if (!value || !value.trim()) return;
     const trimmed = value.trim();
     if (type === 'category' && editorialOptions.categories.includes(trimmed)) return;
     if (type === 'articleType' && editorialOptions.articleTypes.includes(trimmed)) return;
@@ -1466,6 +1523,29 @@ return (
                 if (notes && notes.length > 0) handleNotesChange(notes);
                 if (wizardAttachments && wizardAttachments.length > 0) setAttachments(wizardAttachments);
               }}
+              feedbackResult={hasResult || analysis.status === 'loading' ? analysis : null}
+              feedbackTitle={analysis.generatedMetadata?.title as string | undefined}
+              onApplyFix={handleApplyFix}
+              onApplyAll={handleApplyAllFixes}
+              hoveredFeedbackIndex={hoveredFeedbackIndex}
+              onHoveredFeedbackChange={setHoveredFeedbackIndex}
+              activeFeedbackIndex={activeFeedbackIndex}
+              onActiveFeedbackChange={setActiveFeedbackIndex}
+              isProcessing={isStreaming || isRefining}
+              processStage={processStage}
+              processStartedAt={processStartedAt}
+              isRefining={isRefining}
+              onAcceptFeedback={handleAcceptFeedback}
+              onRemoveFeedbackAddition={(idx) => handleTargetedFix(idx, 'remove')}
+              onAddFeedbackSource={handleAddFeedbackSource}
+              onMarkFeedbackVerified={handleMarkFeedbackVerified}
+              onFixFeedbackWithEAI={(idx) => handleTargetedFix(idx, 'fix')}
+              isTargetedFixing={isTargetedFixing}
+              researchNotes={researchNotes}
+              onNotesChange={handleNotesChange}
+              onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
+              isGeneratingDraft={isGeneratingDraftFromNotes}
+              onInsertToDraft={(text) => { setDraft(prev => prev + text); }}
             />
           }
           centerPanel={
@@ -1516,11 +1596,11 @@ return (
                   hasResult={hasResult}
                   isLoading={analysis.status === 'loading'}
                   showFeedbackSidebar={showFeedbackSidebar}
-                  onToggleFeedbackSidebar={() => setShowFeedbackSidebar(p => !p)}
+                  onToggleFeedbackSidebar={() => { setRightPanelTab('feedback'); }}
                   showHistorySidebar={sidebarOpen}
                   onToggleHistorySidebar={() => setSidebarOpen(p => !p)}
                   showNotesSidebar={showNotesSidebar}
-                  onToggleNotesSidebar={() => setShowNotesSidebar(p => !p)}
+                  onToggleNotesSidebar={() => { setRightPanelTab('notes'); }}
                   hasNotes={hasNotes}
                 />
 
@@ -1555,11 +1635,6 @@ return (
                           isPersonal={editorialOptions.isPersonal}
                           onAddNewMetadataOption={handleAddNewCategoryOrType}
                           charLimit={editorialOptions.maxTextLength}
-                          showNotesSidebar={showNotesSidebar}
-                          researchNotes={researchNotes}
-                          onNotesChange={handleNotesChange}
-                          attachments={attachments}
-                          onAttachmentsChange={setAttachments}
                           onOpenStrategist={() => setRightPanelTab('strategist')}
                         />
                       </motion.div>
@@ -1576,68 +1651,13 @@ return (
                         className="h-full w-full flex min-h-0 overflow-hidden absolute inset-0"
                       >
                         {(hasResult || analysis.status === 'loading') ? (
-                          isMobile ? (
-                          <div className="flex-1 min-w-0 h-full overflow-hidden p-4">
-                            {showFeedbackSidebar ? (
-                              <FeedbackPanel
-                                key={`${activeHistoryId ?? 'draft'}-${refreshTrigger}-${analysis.status}`}
-                                result={analysis}
-                                title={analysis.generatedMetadata?.title as string | undefined}
-                                onApplyFix={handleApplyFix}
-                                onApplyAll={handleApplyAllFixes}
-                                hoveredFeedbackIndex={hoveredFeedbackIndex}
-                                onHoveredFeedbackChange={setHoveredFeedbackIndex}
-                                activeFeedbackIndex={activeFeedbackIndex}
-                                onActiveFeedbackChange={setActiveFeedbackIndex}
-                                isSidebarMode={true}
-                                isProcessing={isStreaming || isRefining}
-                                processStage={processStage}
-                                processStartedAt={processStartedAt}
-                                isRefining={isRefining}
-                                onAcceptFeedback={handleAcceptFeedback}
-                                onRemoveFeedbackAddition={(idx) => handleTargetedFix(idx, 'remove')}
-                                onAddFeedbackSource={handleAddFeedbackSource}
-                                onMarkFeedbackVerified={handleMarkFeedbackVerified}
-                                onFixFeedbackWithEAI={(idx) => handleTargetedFix(idx, 'fix')}
-                                isTargetedFixing={isTargetedFixing}
-                              />
-                            ) : (
-                              <FinalDraftPanel
-                                originalDraft={sourceDraft}
-                                polishedDraft={analysis.polishedDraft ?? ''}
-                                ready={analysis.status === 'success'}
-                                exportBlocked={isDemoMode || analysis.readiness !== 'ready'}
-                                cmsConnected={editorialOptions.cmsExportEnabled}
-                                analysisLogId={analysis.analysisLogId || activeHistoryId || undefined}
-                                sourceRef={analysis.sourceRef || metadata.sourceRef}
-                                articleMetadata={metadata}
-                                exportStatus={analysis.exportStatus}
-                                generatedMetadata={analysis.generatedMetadata}
-                                isStreaming={isStreaming}
-                                isRefining={isRefining}
-                                processStage={processStage}
-                                processStartedAt={processStartedAt}
-                                isStale={analysis.summary?.startsWith('Iterative refinement')}
-                                onRefineAgain={handleRefineAgain}
-                                onReanalyze={handleReanalyze}
-                                hoveredFeedbackIndex={hoveredFeedbackIndex}
-                                activeFeedbackIndex={activeFeedbackIndex}
-                                onActiveFeedbackChange={setActiveFeedbackIndex}
-                                feedback={analysis.feedback || []}
-                                isDemoMode={isDemoMode}
-                              />
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex-1 min-w-0 flex h-full overflow-hidden p-3 gap-3 md:px-5 md:py-5 md:gap-4">
+                          <div className="flex-1 min-w-0 h-full overflow-hidden p-3 md:px-5 md:py-5">
                             <div
                               className="min-w-0 h-full flex flex-col overflow-hidden"
                               style={{
-                                flex: 1,
-                                maxWidth: showFeedbackSidebar ? '9999px' : '56rem',
+                                maxWidth: '56rem',
                                 marginLeft: 'auto',
                                 marginRight: 'auto',
-                                transition: 'max-width 240ms cubic-bezier(0.4, 0, 0.2, 1)',
                               }}
                             >
                               <FinalDraftPanel
@@ -1665,61 +1685,8 @@ return (
                                 isDemoMode={isDemoMode}
                               />
                             </div>
-                            <motion.div
-                              initial={false}
-                              animate={{
-                                width: showFeedbackSidebar ? 380 : 0,
-                                opacity: showFeedbackSidebar ? 1 : 0,
-                              }}
-                              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                              style={{
-                                flexShrink: 0,
-                                overflow: 'hidden',
-                                height: '100%',
-                                display: 'flex',
-                                flexDirection: 'column',
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: '380px',
-                                  height: '100%',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  background: 'var(--card)',
-                                  borderRadius: 'var(--radius-lg)',
-                                  border: '1px solid var(--border)',
-                                  boxShadow: 'none',
-                                  overflow: 'hidden',
-                                }}
-                              >
-                                <FeedbackPanel
-                                  key={`${activeHistoryId ?? 'draft'}-${refreshTrigger}-${analysis.status}`}
-                                  result={analysis}
-                                  title={analysis.generatedMetadata?.title as string | undefined}
-                                  onApplyFix={handleApplyFix}
-                                  onApplyAll={handleApplyAllFixes}
-                                  hoveredFeedbackIndex={hoveredFeedbackIndex}
-                                  onHoveredFeedbackChange={setHoveredFeedbackIndex}
-                                  activeFeedbackIndex={activeFeedbackIndex}
-                                  onActiveFeedbackChange={setActiveFeedbackIndex}
-                                  isSidebarMode={true}
-                                  isProcessing={isStreaming || isRefining}
-                                  processStage={processStage}
-                                  processStartedAt={processStartedAt}
-                                  isRefining={isRefining}
-                                  onAcceptFeedback={handleAcceptFeedback}
-                                  onRemoveFeedbackAddition={(idx) => handleTargetedFix(idx, 'remove')}
-                                  onAddFeedbackSource={handleAddFeedbackSource}
-                                  onMarkFeedbackVerified={handleMarkFeedbackVerified}
-                                  onFixFeedbackWithEAI={(idx) => handleTargetedFix(idx, 'fix')}
-                                  isTargetedFixing={isTargetedFixing}
-                                />
-                              </div>
-                            </motion.div>
                           </div>
-                        )
-                      ) : (
+                        ) : (
                         <div className="h-full max-w-4xl mx-auto w-full p-6 md:p-10">
                           <div className="ui-state-card flex h-full items-center justify-center p-8">
                             <p className="text-xs ui-muted">
