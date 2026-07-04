@@ -7,8 +7,6 @@ import { useRouter } from 'next/navigation';
 import Editor from '@/components/Editor';
 import FeedbackPanel from '@/components/FeedbackPanel';
 import FinalDraftPanel from '@/components/FinalDraftPanel';
-import HistorySidebar from '@/components/HistorySidebar';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import DocumentHistoryPanel from '@/components/DocumentHistoryPanel';
 import ThreeColumnLayout from '@/components/ThreeColumnLayout';
 import EditorCanvas from '@/components/EditorCanvas';
@@ -1448,18 +1446,14 @@ return (
           rightPanelOpen={true}
           leftPanel={
             !isDemoMode ? (
-              <div style={{ width: '100%', height: '100%' }}>
-                <HistorySidebar
-                  onSelect={loadHistory}
-                  onNew={handleNewDraft}
-                  activeId={activeHistoryId}
-                  refreshTrigger={refreshTrigger}
-                  sidebarOpen={sidebarOpen}
-                  onToggleSidebar={() => setSidebarOpen(p => !p)}
-                  isDemoMode={isDemoMode}
-                  activePlan={editorialOptions.activePlan}
-                />
-              </div>
+              <DocumentHistoryPanel
+                onSelect={loadHistory}
+                onNew={handleNewDraft}
+                activeId={activeHistoryId}
+                refreshTrigger={refreshTrigger}
+                onToggle={() => setSidebarOpen(p => !p)}
+                isDemoMode={isDemoMode}
+              />
             ) : null
           }
           rightPanel={
