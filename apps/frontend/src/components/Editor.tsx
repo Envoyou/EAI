@@ -180,6 +180,17 @@ export default function Editor({
     if (!value.trim()) return;
     onChange('');
     setIsWritingManually(false);
+
+    // Clear strategist chat session state
+    sessionStorage.removeItem('eai_strategist_messages');
+    sessionStorage.removeItem('eai_strategist_sources');
+    sessionStorage.removeItem('eai_strategist_current_plan');
+    sessionStorage.removeItem('eai_strategist_deep_research');
+    sessionStorage.removeItem('eai_strategist_attachment');
+    sessionStorage.removeItem(SESSION_KEY);
+    onNotesChange([]);
+    onAttachmentsChange([]);
+
     toast.success('Workspace cleared');
   };
 
@@ -276,7 +287,16 @@ export default function Editor({
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-1">
+             <div className="flex shrink-0 items-center gap-1">
+              <button
+                onClick={() => setIsDraftingAssistantActive(true)}
+                className="ui-btn ui-btn-muted ui-btn-xs"
+                style={{ color: 'var(--primary)', borderColor: 'color-mix(in srgb, var(--primary) 30%, transparent)' }}
+                disabled={isLoading}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[var(--primary)] animate-pulse" strokeWidth={2.5} />
+                <span>AI Strategist</span>
+              </button>
               <button
                 onClick={handleCopy}
                 disabled={!value.trim()}
@@ -462,71 +482,38 @@ export default function Editor({
 
         {/* Textarea, Welcome Card, or AI Drafting Form based on state */}
         {(!value && !isWritingManually) && !isLoading ? (
-          isDraftingAssistantActive ? (
-            <ContentStrategistWizard
-              onComplete={(topic, outline, draft, notes, wizardAttachments) => {
-                const content = draft || outline || topic;
-                onChange(content);
-                if (notes && notes.length > 0) {
-                  onNotesChange(notes);
-                }
-                if (wizardAttachments && wizardAttachments.length > 0) {
-                  onAttachmentsChange(wizardAttachments);
-                }
-                setIsWritingManually(true);
-                setIsDraftingAssistantActive(false);
-              }}
-              onCancel={() => {
-                // Reload notes from sessionStorage in case they saved some before cancelling
-                let currentNotes: ResearchNote[] = [];
-                try { currentNotes = JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch {}
-                onNotesChange(currentNotes);
-                
-                setIsDraftingAssistantActive(false);
-                
-                // If they saved notes, transition to manual writing mode so they can see the notes panel
-                if (currentNotes.length > 0) {
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto select-none animate-fade-in my-auto">
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] text-[var(--primary)]">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-semibold tracking-tight mb-2 text-[var(--foreground)]">
+              Start your article
+            </h3>
+            <p className="text-sm text-[var(--muted-foreground)] mb-6 leading-relaxed text-pretty">
+              Write or paste an existing draft, or ask EAI to create a structured starting point.
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <button
+                onClick={() => setIsDraftingAssistantActive(true)}
+                className="ui-btn ui-btn-primary ui-btn-sm"
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                Create with EAI
+              </button>
+              <button
+                onClick={() => {
                   setIsWritingManually(true);
+                  onChange("");
                   setTimeout(() => {
                     if (textareaRef.current) textareaRef.current.focus();
                   }, 50);
-                }
-              }}
-            />
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto select-none animate-fade-in my-auto">
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] text-[var(--primary)]">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <h3 className="text-lg font-semibold tracking-tight mb-2 text-[var(--foreground)]">
-                Start your article
-              </h3>
-              <p className="text-sm text-[var(--muted-foreground)] mb-6 leading-relaxed text-pretty">
-                Write or paste an existing draft, or ask EAI to create a structured starting point.
-              </p>
-              <div className="flex flex-wrap justify-center gap-2">
-                <button
-                  onClick={() => setIsDraftingAssistantActive(true)}
-                  className="ui-btn ui-btn-primary ui-btn-sm"
-                >
-                  <Wand2 className="w-3.5 h-3.5" />
-                  Create with EAI
-                </button>
-                <button
-                  onClick={() => {
-                    setIsWritingManually(true);
-                    onChange("");
-                    setTimeout(() => {
-                      if (textareaRef.current) textareaRef.current.focus();
-                    }, 50);
-                  }}
-                  className="ui-btn ui-btn-outline ui-btn-sm"
-                >
-                  Write or Paste
-                </button>
-              </div>
+                }}
+                className="ui-btn ui-btn-outline ui-btn-sm"
+              >
+                Write or Paste
+              </button>
             </div>
-          )
+          </div>
         ) : (
           <div className="relative flex-1 w-full overflow-y-auto" onClick={() => editor?.commands.focus()}>
             {editor && <BubbleMenuAI editor={editor} />}
@@ -720,6 +707,38 @@ export default function Editor({
         </div>
       </motion.div>
       )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isDraftingAssistantActive && (
+          <ContentStrategistWizard
+            onComplete={(topic, outline, draft, notes, wizardAttachments) => {
+              const content = draft || outline || topic;
+              onChange(content);
+              if (notes && notes.length > 0) {
+                onNotesChange(notes);
+              }
+              if (wizardAttachments && wizardAttachments.length > 0) {
+                onAttachmentsChange(wizardAttachments);
+              }
+              setIsWritingManually(true);
+              setIsDraftingAssistantActive(false);
+            }}
+            onCancel={() => {
+              // Reload notes from sessionStorage in case they saved some before cancelling
+              let currentNotes: ResearchNote[] = [];
+              try { currentNotes = JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch {}
+              onNotesChange(currentNotes);
+              
+              setIsDraftingAssistantActive(false);
+              
+              // If they saved notes, transition to manual writing mode so they can see the notes panel
+              if (currentNotes.length > 0) {
+                setIsWritingManually(true);
+              }
+            }}
+          />
+        )}
       </AnimatePresence>
     </div>
   );

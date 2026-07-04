@@ -6,6 +6,18 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Content Strategist Chat Session Persistence**: Integrated `sessionStorage` state persistence in `ContentStrategistWizard` for `messages`, `collectedSources`, `currentPlan`, `deepResearchReport`, and `uploadedAttachment` to avoid losing chat state when switching panels.
+- **AI Strategist Toggle Button & Overlay**: Added an "AI Strategist" button to the editor header, allowing users to toggle open the strategist chat as a z-index absolute overlay regardless of whether draft text already exists.
+- **Automated Blueprint Save**: Automatically converts generated blueprints (Angle, Outline, Audience, Hook, SEO Intent, Sources) into a structured markdown note and saves it to the Research Notes Studio panel upon clicking "Proceed to Editor".
+
+### Changed
+- **Optimized Chat Serialization**: Synchronized chat message arrays to `sessionStorage` only when `isTyping` changes to `false` (when streaming/generating finishes) to prevent browser keystroke lag.
+- **Improved Token & Temperature Configurations**: Restricted Gemini 3.5's reasoning tokens with `thinking_level: "low"` and raised `max_output_tokens` to `8192` in `/generate-plan` to prevent JSON schema truncation. Integrated `getGeminiSamplingConfig` to dynamically omit temperature (defaulting to `1.0` as recommended by Google) for Gemini 3 series.
+
+### Fixed
+- **History PATCH Schema Relaxation**: Relaxed Zod schema bounds (`EditorialResolutionSchema`, `EditorialFeedbackSchema`) in history endpoints, resolving "Fix Failed: A title or valid editorial resolution is required" errors. Raised max polished draft characters to `100000` and gracefully marked resolved if target sentences are missing.
+
 ## [2.0.2] - 2026-07-04
 
 ### Added

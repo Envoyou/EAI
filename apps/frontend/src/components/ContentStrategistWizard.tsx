@@ -83,10 +83,21 @@ const extractDynamicSuggestions = (content: string) => {
 
 export default function ContentStrategistWizard({ onComplete, onCancel }: ContentStrategistWizardProps) {
   const { user } = useUser();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try { return JSON.parse(sessionStorage.getItem('eai_strategist_messages') || '[]'); } catch { return []; }
+  });
+
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+
+  // Synchronize messages to sessionStorage only when typing or streaming completes to avoid lag
+  useEffect(() => {
+    if (!isTyping && typeof window !== 'undefined') {
+      sessionStorage.setItem('eai_strategist_messages', JSON.stringify(messages));
+    }
+  }, [messages, isTyping]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -157,9 +168,38 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     fetchCredits();
   }, []);
 
-  const [collectedSources, setCollectedSources] = useState<{ url: string; domain: string; title?: string; description?: string }[]>([]);
+  const [collectedSources, setCollectedSources] = useState<{ url: string; domain: string; title?: string; description?: string }[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try { return JSON.parse(sessionStorage.getItem('eai_strategist_sources') || '[]'); } catch { return []; }
+  });
+
   const [isShowingAllSources, setIsShowingAllSources] = useState(false);
-  const [currentPlan, setCurrentPlan] = useState<PreEditorPlan | null>(null);
+
+  const [currentPlan, setCurrentPlan] = useState<PreEditorPlan | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = sessionStorage.getItem('eai_strategist_current_plan');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('eai_strategist_sources', JSON.stringify(collectedSources));
+    }
+  }, [collectedSources]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (currentPlan) {
+        sessionStorage.setItem('eai_strategist_current_plan', JSON.stringify(currentPlan));
+      } else {
+        sessionStorage.removeItem('eai_strategist_current_plan');
+      }
+    }
+  }, [currentPlan]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachMenuRef = useRef<HTMLDivElement>(null);
   const researchMenuRef = useRef<HTMLDivElement>(null);
@@ -191,7 +231,10 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
   }, [showResearchMenu, showAttachMenu]);
 
   const [activeDeepResearchId, setActiveDeepResearchId] = useState<string | null>(null);
-  const [deepResearchReport, setDeepResearchReport] = useState<string | null>(null);
+  const [deepResearchReport, setDeepResearchReport] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try { return sessionStorage.getItem('eai_strategist_deep_research'); } catch { return null; }
+  });
   const [isReportOpen, setIsReportOpen] = useState(false);
 
   // Research Notes — NotebookLM approach
@@ -201,7 +244,35 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     if (typeof window === 'undefined') return [];
     try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch { return []; }
   });
-  const [uploadedAttachment, setUploadedAttachment] = useState<Attachment | null>(null);
+  const [uploadedAttachment, setUploadedAttachment] = useState<Attachment | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = sessionStorage.getItem('eai_strategist_attachment');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (deepResearchReport) {
+        sessionStorage.setItem('eai_strategist_deep_research', deepResearchReport);
+      } else {
+        sessionStorage.removeItem('eai_strategist_deep_research');
+      }
+    }
+  }, [deepResearchReport]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (uploadedAttachment) {
+        sessionStorage.setItem('eai_strategist_attachment', JSON.stringify(uploadedAttachment));
+      } else {
+        sessionStorage.removeItem('eai_strategist_attachment');
+      }
+    }
+  }, [uploadedAttachment]);
   const savedNoteIds = useMemo(() => new Set(savedNotes.map(n => n.id)), [savedNotes]); // eslint-disable-line react-hooks/preserve-manual-memoization
 
   // Quick Draft attach-menu modal state
@@ -729,12 +800,50 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     }
   };
 
+  const handleProceedToEditor = () => {
+    if (!currentPlan) return;
+
+    const sourcesMapped = (currentPlan.sources || []).map((url: string) => {
+      let domain = 'Source';
+      try {
+        domain = new URL(url).hostname.replace('www.', '');
+      } catch {}
+      return { url, domain };
+    });
+
+    const blueprintNote: ResearchNote = {
+      id: `blueprint-${generateId()}`,
+      content: [
+        `# Blueprint: ${currentPlan.angle}`,
+        `**Audience:** ${currentPlan.audience}`,
+        `**SEO Intent:** ${currentPlan.seoIntent || 'N/A'}`,
+        `**Hook:** ${currentPlan.hook}`,
+        `\n## Outline`,
+        currentPlan.outline,
+      ].join('\n'),
+      sources: sourcesMapped,
+      savedAt: new Date().toISOString(),
+    };
+
+    const nextNotes = [...savedNotes, blueprintNote];
+    setSavedNotes(nextNotes);
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(nextNotes));
+
+    onComplete(
+      currentPlan.angle,
+      currentPlan.outline,
+      currentPlan.draft,
+      nextNotes,
+      uploadedAttachment ? [uploadedAttachment] : []
+    );
+  };
+
   const handleSend = async (forcedText?: string) => {
     const textToSend = forcedText ?? chatInput;
     if (!textToSend.trim()) return;
 
     if (textToSend === 'Proceed to Editor' && currentPlan) {
-      onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, savedNotes, uploadedAttachment ? [uploadedAttachment] : []);
+      handleProceedToEditor();
       return;
     }
 
@@ -1518,7 +1627,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
 
             <div className="p-4 border-t border-[var(--border)] bg-[var(--surface-1)] shrink-0 flex flex-col gap-2">
               <button
-                onClick={() => onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, savedNotes, uploadedAttachment ? [uploadedAttachment] : [])}
+                onClick={handleProceedToEditor}
                 className="w-full py-2.5 bg-[var(--foreground)] text-[var(--background)] font-medium text-[14px] rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
               >
                 <Rocket className="w-4 h-4" />

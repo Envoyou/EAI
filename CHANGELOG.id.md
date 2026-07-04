@@ -6,6 +6,18 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Persistensi Sesi Chat AI Strategist**: Mengintegrasikan penyimpanan sesi `sessionStorage` di `ContentStrategistWizard` untuk properti `messages`, `collectedSources`, `currentPlan`, `deepResearchReport`, dan `uploadedAttachment` agar riwayat chat tidak hilang saat berpindah halaman.
+- **Tombol Toggle & Overlay AI Strategist**: Menambahkan tombol "AI Strategist" di header editor, merender antarmuka chat riset sebagai overlay z-index absolut sehingga pengguna bisa membuka-tutup obrolan kapan saja tanpa terhalang teks draf aktif.
+- **Penyimpanan Otomatis Blueprint**: Secara otomatis mengonversi detail blueprint yang dihasilkan (Angle, Outline, Audience, Hook, SEO Intent, Sources) menjadi sebuah Catatan Riset terstruktur dan menyimpannya di panel Research Notes Studio saat pengguna memilih "Proceed to Editor".
+
+### Changed
+- **Sinkronisasi Sesi Teroptimasi**: Obrolan chat diserialisasikan ke `sessionStorage` hanya saat `isTyping` bernilai `false` (saat AI selesai berbicara/mengalirkan teks) untuk mencegah lag pengetikan di browser.
+- **Peningkatan Konfigurasi Token & Suhu (Temperature)**: Membatasi token penalaran Gemini 3.5 lewat parameter `thinking_level: "low"` serta meningkatkan `max_output_tokens` menjadi `8192` pada endpoint `/generate-plan` untuk mencegah kegagalan JSON terpotong. Mengintegrasikan `getGeminiSamplingConfig` agar model Gemini 3 menggunakan suhu default `1.0` sesuai rekomendasi Google.
+
+### Fixed
+- **Pelonggaran Skema Validasi PATCH Riwayat**: Melonggarkan batasan validasi Zod (`EditorialResolutionSchema`, `EditorialFeedbackSchema`) pada endpoint riwayat, menyelesaikan error "Fix Failed: A title or valid editorial resolution is required". Batas draf dipoles ditingkatkan hingga `100.000` karakter dan klaim ganda diselesaikan dengan toleran jika kalimat target hilang.
+
 ## [2.0.2] - 2026-07-04
 
 ### Added
