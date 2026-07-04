@@ -2,15 +2,16 @@
 
 import { useState } from 'react';
 import { Sparkles, MessageCircle, Notebook } from 'lucide-react';
+import StrategistTab from '@/components/StrategistTab';
+import { useContentStrategist, type Attachment } from '@/lib/hooks/useContentStrategist';
+import type { ResearchNote } from '@/lib/hooks/useContentStrategist';
 
 type RightTab = 'strategist' | 'feedback' | 'notes';
 
 interface AICopilotPanelProps {
   activeTab?: RightTab;
   onTabChange?: (tab: RightTab) => void;
-  strategistContent?: React.ReactNode;
-  feedbackContent?: React.ReactNode;
-  notesContent?: React.ReactNode;
+  onStrategistComplete?: (topic: string, outline: string, draft: string, notes: ResearchNote[], attachments: Attachment[]) => void;
 }
 
 const TABS: { key: RightTab; label: string; icon: React.ReactNode }[] = [
@@ -22,9 +23,7 @@ const TABS: { key: RightTab; label: string; icon: React.ReactNode }[] = [
 export default function AICopilotPanel({
   activeTab: controlledTab,
   onTabChange,
-  strategistContent,
-  feedbackContent,
-  notesContent,
+  onStrategistComplete,
 }: AICopilotPanelProps) {
   const [internalTab, setInternalTab] = useState<RightTab>('strategist');
   const activeTab = controlledTab ?? internalTab;
@@ -37,20 +36,31 @@ export default function AICopilotPanel({
     }
   };
 
+  const strategist = useContentStrategist({
+    onComplete: (topic, outline, draft, notes, attachments) => {
+      onStrategistComplete?.(topic, outline, draft, notes, attachments);
+    },
+  });
+
   const renderContent = () => {
     switch (activeTab) {
       case 'strategist':
-        return strategistContent ?? (
-          <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
-            <Sparkles className="w-10 h-10 text-[var(--primary)]/30 mb-3" />
-            <p className="text-xs text-[var(--muted-foreground)] font-medium mb-1">AI Strategist</p>
-            <p className="text-xs text-[var(--muted-foreground)]/70">
-              Your AI co-pilot for research, outlines, and content ideas.
-            </p>
-          </div>
+        return (
+          <StrategistTab
+            messages={strategist.messages}
+            chatInput={strategist.chatInput}
+            setChatInput={strategist.setChatInput}
+            isTyping={strategist.isTyping}
+            handleSend={strategist.handleSend}
+            handleRewrite={strategist.handleRewrite}
+            handleCopy={strategist.handleCopy}
+            saveNote={strategist.saveNote}
+            copiedMessageId={strategist.copiedMessageId}
+            onQuickDraftOpen={() => strategist.openQuickDraft('topic')}
+          />
         );
       case 'feedback':
-        return feedbackContent ?? (
+        return (
           <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
             <MessageCircle className="w-10 h-10 text-[var(--primary)]/30 mb-3" />
             <p className="text-xs text-[var(--muted-foreground)] font-medium mb-1">Editorial Feedback</p>
@@ -60,7 +70,7 @@ export default function AICopilotPanel({
           </div>
         );
       case 'notes':
-        return notesContent ?? (
+        return (
           <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
             <Notebook className="w-10 h-10 text-[var(--primary)]/30 mb-3" />
             <p className="text-xs text-[var(--muted-foreground)] font-medium mb-1">Research Notes</p>

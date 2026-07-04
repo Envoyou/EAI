@@ -6,8 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { toast } from 'sonner';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ContentStrategistWizard from './ContentStrategistWizard';
-import type { ResearchNote } from './ContentStrategistWizard';
+import type { ResearchNote } from '@/lib/hooks/useContentStrategist';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -35,6 +34,7 @@ interface EditorProps {
   onNotesChange: (notes: ResearchNote[]) => void;
   attachments: Attachment[];
   onAttachmentsChange: (attachments: Attachment[]) => void;
+  onOpenStrategist?: () => void;
 }
 
 
@@ -61,6 +61,7 @@ export default function Editor({
   researchNotes,
   onNotesChange,
   onAttachmentsChange,
+  onOpenStrategist,
 }: EditorProps) {
   const updateMeta = (field: keyof ArticleMetadata, val: string) => {
     onMetadataChange({ ...metadata, [field]: val });
@@ -72,7 +73,6 @@ export default function Editor({
   const isOverLimit = value.length > charLimit;
 
   // AI Drafting Assistant States
-  const [isDraftingAssistantActive, setIsDraftingAssistantActive] = useState(false);
   const [isWritingManually, setIsWritingManually] = useState(false);
   const prevValueRef = useRef(value);
 
@@ -289,7 +289,7 @@ export default function Editor({
             </div>
              <div className="flex shrink-0 items-center gap-1">
               <button
-                onClick={() => setIsDraftingAssistantActive(true)}
+                onClick={() => onOpenStrategist?.()}
                 className="ui-btn ui-btn-muted ui-btn-xs"
                 style={{ color: 'var(--primary)', borderColor: 'color-mix(in srgb, var(--primary) 30%, transparent)' }}
                 disabled={isLoading}
@@ -494,7 +494,7 @@ export default function Editor({
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               <button
-                onClick={() => setIsDraftingAssistantActive(true)}
+                onClick={() => onOpenStrategist?.()}
                 className="ui-btn ui-btn-primary ui-btn-sm"
               >
                 <Wand2 className="w-3.5 h-3.5" />
@@ -709,37 +709,7 @@ export default function Editor({
       )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {isDraftingAssistantActive && (
-          <ContentStrategistWizard
-            onComplete={(topic, outline, draft, notes, wizardAttachments) => {
-              const content = draft || outline || topic;
-              onChange(content);
-              if (notes && notes.length > 0) {
-                onNotesChange(notes);
-              }
-              if (wizardAttachments && wizardAttachments.length > 0) {
-                onAttachmentsChange(wizardAttachments);
-              }
-              setIsWritingManually(true);
-              setIsDraftingAssistantActive(false);
-            }}
-            onCancel={() => {
-              // Reload notes from sessionStorage in case they saved some before cancelling
-              let currentNotes: ResearchNote[] = [];
-              try { currentNotes = JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch {}
-              onNotesChange(currentNotes);
-              
-              setIsDraftingAssistantActive(false);
-              
-              // If they saved notes, transition to manual writing mode so they can see the notes panel
-              if (currentNotes.length > 0) {
-                setIsWritingManually(true);
-              }
-            }}
-          />
-        )}
-      </AnimatePresence>
+      
     </div>
   );
 }

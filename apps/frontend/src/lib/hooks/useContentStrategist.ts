@@ -1,0 +1,820 @@
+'use client';
+
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { toast } from 'sonner';
+import { generateId, extractDynamicSuggestions } from '@/lib/strategist-utils';
+
+export type SignalData = {
+  topic: string;
+  internalSignal: 'High' | 'Medium' | 'Low';
+  externalSignal: 'Rising' | 'Stable' | 'Declining';
+};
+
+export type Recommendation = {
+  type: 'write_now' | 'experiment' | 'avoid';
+  title: string;
+  description: string;
+};
+
+export type PreEditorPlan = {
+  angle: string;
+  audience: string;
+  hook: string;
+  outline: string;
+  seoIntent: string;
+  sources: string[];
+  draft: string;
+};
+
+export type ResearchNote = {
+  id: string;
+  content: string;
+  sources: { url: string; domain: string }[];
+  savedAt: string;
+};
+
+export type Attachment = {
+  id: string;
+  filename: string;
+  r2Key: string;
+  publicUrl: string;
+  contentType: string;
+  extractedText: string;
+  uploadedAt: string;
+};
+
+export type ChatMessageType = 'text' | 'welcome' | 'recommendations' | 'plan';
+
+export type ChatMessage = {
+  id: string;
+  role: 'user' | 'assistant';
+  type: ChatMessageType;
+  content: string;
+  payload?: {
+    status?: string;
+    suggestions?: string[];
+    sources?: { url: string; domain: string; title?: string; description?: string }[];
+  };
+};
+
+interface UseContentStrategistOptions {
+  onComplete: (topic: string, outline: string, draft: string, notes: ResearchNote[], attachments: Attachment[]) => void;
+}
+
+const MAX_NOTES = 10;
+const SESSION_KEY = 'eai_research_notes';
+
+export function useContentStrategist({ onComplete }: UseContentStrategistOptions) {
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try { return JSON.parse(sessionStorage.getItem('eai_strategist_messages') || '[]'); } catch { return []; }
+  });
+
+  const [chatInput, setChatInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+
+  useEffect(() => {
+    if (!isTyping && typeof window !== 'undefined') {
+      sessionStorage.setItem('eai_strategist_messages', JSON.stringify(messages));
+    }
+  }, [messages, isTyping]);
+
+  const [showSlashMenu, setShowSlashMenu] = useState(false);
+  const [slashMenuIndex, setSlashMenuIndex] = useState(0);
+  const [showResearchMenu, setShowResearchMenu] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [researchMode, setResearchMode] = useState<'fast' | 'deep'>('fast');
+  const [enableSearch, setEnableSearch] = useState(true);
+  const [credits, setCredits] = useState<number | null>(null);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [paywallMessage, setPaywallMessage] = useState("");
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+
+  const fetchCredits = useCallback(() => {
+    fetch('/api/workspace/config')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.plan) setCredits(data.plan.creditsRemaining);
+      })
+      .catch(err => console.error('Failed to load credits:', err));
+  }, []);
+
+  useEffect(() => { fetchCredits(); }, [fetchCredits]);
+
+  const [collectedSources, setCollectedSources] = useState<{ url: string; domain: string; title?: string; description?: string }[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try { return JSON.parse(sessionStorage.getItem('eai_strategist_sources') || '[]'); } catch { return []; }
+  });
+
+  const [isShowingAllSources, setIsShowingAllSources] = useState(false);
+
+  const [currentPlan, setCurrentPlan] = useState<PreEditorPlan | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = sessionStorage.getItem('eai_strategist_current_plan');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem('eai_strategist_current_plan', currentPlan ? JSON.stringify(currentPlan) : 'null');
+  }, [currentPlan]);
+
+  useEffect(() => {
+    sessionStorage.setItem('eai_strategist_sources', JSON.stringify(collectedSources));
+  }, [collectedSources]);
+
+  const [activeDeepResearchId, setActiveDeepResearchId] = useState<string | null>(null);
+  const [deepResearchReport, setDeepResearchReport] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem('eai_strategist_deep_research');
+  });
+  const [isReportOpen, setIsReportOpen] = useState(false);
+
+  const [savedNotes, setSavedNotes] = useState<ResearchNote[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch { return []; }
+  });
+
+  const [uploadedAttachment, setUploadedAttachment] = useState<Attachment | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = sessionStorage.getItem('eai_strategist_attachment');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(savedNotes));
+  }, [savedNotes]);
+
+  useEffect(() => {
+    sessionStorage.setItem('eai_strategist_attachment', uploadedAttachment ? JSON.stringify(uploadedAttachment) : 'null');
+  }, [uploadedAttachment]);
+
+  const savedNoteIds = useMemo(() => new Set(savedNotes.map(n => n.id)), [savedNotes]);
+
+  const [quickDraftMode, setQuickDraftMode] = useState<'topic' | 'outline' | 'reference' | 'press_release' | null>(null);
+  const [quickDraftTopic, setQuickDraftTopic] = useState('');
+  const [quickDraftOutline, setQuickDraftOutline] = useState('');
+  const [quickDraftReference, setQuickDraftReference] = useState('');
+  const [quickDraftOutput, setQuickDraftOutput] = useState('');
+  const [isGeneratingQuickDraft, setIsGeneratingQuickDraft] = useState(false);
+  const [quickDraftError, setQuickDraftError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!activeDeepResearchId) return;
+
+    let pollCount = 0;
+    const MAX_POLLS = 180;
+
+    const interval = setInterval(async () => {
+      if (pollCount >= MAX_POLLS) {
+        clearInterval(interval);
+        setActiveDeepResearchId(null);
+        setMessages(prev => [...prev, {
+          id: generateId(),
+          role: 'assistant',
+          type: 'text',
+          content: "Deep Research timed out. Please try again."
+        }]);
+        setIsTyping(false);
+        return;
+      }
+      pollCount++;
+      try {
+        const res = await fetch(`/api/strategist/chat/status/${activeDeepResearchId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.state === 'COMPLETED' && data.output) {
+            setDeepResearchReport(data.output);
+            sessionStorage.setItem('eai_strategist_deep_research', data.output);
+            setActiveDeepResearchId(null);
+
+            setMessages(prev => [...prev, {
+              id: generateId(),
+              role: 'assistant',
+              type: 'text',
+              content: "Deep Research complete. Open the report from the right panel."
+            }]);
+            setIsTyping(false);
+          } else if (data.state === 'FAILED') {
+            setActiveDeepResearchId(null);
+            setMessages(prev => [...prev, {
+              id: generateId(),
+              role: 'assistant',
+              type: 'text',
+              content: "Deep Research encountered an error and failed to complete."
+            }]);
+            setIsTyping(false);
+          }
+        }
+      } catch { /* silent */ }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [activeDeepResearchId]);
+
+  const appendMessage = useCallback((msg: Omit<ChatMessage, 'id'>) => {
+    setMessages(prev => [...prev, { ...msg, id: generateId() }]);
+  }, []);
+
+  const openQuickDraft = useCallback((mode: 'topic' | 'outline' | 'reference' | 'press_release') => {
+    setQuickDraftMode(mode);
+    setQuickDraftTopic('');
+    setQuickDraftOutline('');
+    setQuickDraftReference('');
+    setQuickDraftOutput('');
+    setQuickDraftError(null);
+    setIsGeneratingQuickDraft(false);
+    setShowAttachMenu(false);
+  }, []);
+
+  const closeQuickDraft = useCallback(() => {
+    setQuickDraftMode(null);
+    setQuickDraftTopic('');
+    setQuickDraftOutline('');
+    setQuickDraftReference('');
+    setQuickDraftOutput('');
+    setQuickDraftError(null);
+    setIsGeneratingQuickDraft(false);
+  }, []);
+
+  const saveNote = useCallback((msg: ChatMessage) => {
+    if (savedNoteIds.has(msg.id)) return;
+    if (msg.content.length < 50) {
+      toast.info('Content is too short to save as a note.');
+      return;
+    }
+    if (savedNotes.length >= MAX_NOTES) {
+      toast.warning('Maximum of 10 notes reached.');
+      return;
+    }
+    const note: ResearchNote = {
+      id: msg.id,
+      content: msg.content,
+      sources: msg.payload?.sources || [],
+      savedAt: new Date().toISOString(),
+    };
+    setSavedNotes(prev => [...prev, note]);
+    toast.success('Note saved');
+  }, [savedNoteIds, savedNotes.length]);
+
+  const handleCopy = useCallback((text: string, msgId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMessageId(msgId);
+    toast.success('Copied to clipboard');
+    setTimeout(() => setCopiedMessageId(null), 2000);
+  }, []);
+
+  const handleProceedToEditor = useCallback(() => {
+    if (!currentPlan) return;
+
+    const sourcesMapped = (currentPlan.sources || []).map((url: string) => {
+      let domain = 'Source';
+      try { domain = new URL(url).hostname.replace('www.', ''); } catch {}
+      return { url, domain };
+    });
+
+    const blueprintNote: ResearchNote = {
+      id: `blueprint-${generateId()}`,
+      content: [
+        `# Blueprint: ${currentPlan.angle}`,
+        `**Audience:** ${currentPlan.audience}`,
+        `**SEO Intent:** ${currentPlan.seoIntent || 'N/A'}`,
+        `**Hook:** ${currentPlan.hook}`,
+        `\n## Outline`,
+        currentPlan.outline,
+        `\n## Draft`,
+        currentPlan.draft,
+      ].join('\n'),
+      sources: sourcesMapped,
+      savedAt: new Date().toISOString(),
+    };
+
+    const allNotes = [...savedNotes, blueprintNote];
+    setSavedNotes(allNotes);
+
+    onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, allNotes, uploadedAttachment ? [uploadedAttachment] : []);
+  }, [currentPlan, savedNotes, uploadedAttachment, onComplete]);
+
+  const generatePlan = useCallback(async (recommendationText: string, history: ChatMessage[]) => {
+    setIsTyping(true);
+    const assistantMsgId = generateId();
+    setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', type: 'text', content: '', payload: { status: 'Generating Editorial Blueprint...' } }]);
+
+    try {
+      const res = await fetch('/api/strategist/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recommendation: recommendationText, history }),
+      });
+
+      if (!res.ok) throw new Error('Plan generation failed');
+      const data = await res.json();
+      if (data.plan) {
+        setCurrentPlan(data.plan);
+        if (data.plan?.sources && data.plan.sources.length > 0) {
+          const fakeDomains = data.plan.sources.map((url: string) => {
+            let domain = 'Source';
+            try { domain = new URL(url).hostname.replace('www.', ''); } catch {}
+            return { url, domain };
+          });
+          setCollectedSources(prev => {
+            const existing = new Set(prev.map(s => s.url));
+            return [...prev, ...fakeDomains.filter((s: { url: string; domain: string }) => !existing.has(s.url))];
+          });
+        }
+      }
+      setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+        id: assistantMsgId,
+        role: 'assistant',
+        type: 'text',
+        content: data.reply,
+        payload: { suggestions: data.suggestions }
+      } : m));
+    } catch {
+      toast.error('Failed to generate draft plan');
+      setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+        id: assistantMsgId,
+        role: 'assistant',
+        type: 'text',
+        content: 'I failed to generate the plan. Please try again.'
+      } : m));
+    } finally {
+      setIsTyping(false);
+    }
+  }, []);
+
+  const handleRewrite = useCallback(async (msgId: string) => {
+    const msgIndex = messages.findIndex(m => m.id === msgId);
+    if (msgIndex === -1) return;
+
+    const messagesBefore = messages.slice(0, msgIndex);
+    const lastUserMessage = messagesBefore[messagesBefore.length - 1];
+    if (!lastUserMessage || lastUserMessage.role !== 'user') {
+      toast.error('Cannot find user message to rewrite');
+      return;
+    }
+
+    setMessages(messagesBefore);
+    setIsTyping(true);
+
+    const notesSummary = savedNotes.length > 0
+      ? `[SAVED NOTES CONTEXT: ${savedNotes.length} notes saved. Snippets: ${savedNotes.map((n, idx) => {
+          const cleanText = n.content.replace(/\s*\[\d+\]\([^)]+\)/g, '');
+          const snippet = cleanText.slice(0, 80).replace(/\n/g, ' ');
+          return `Note ${idx + 1}: "${snippet}..."`;
+        }).join(' | ')}]`
+      : undefined;
+
+    const assistantMsgId = generateId();
+    setMessages(prev => [...prev, {
+      id: assistantMsgId,
+      role: 'assistant',
+      type: 'text',
+      content: '',
+      payload: {
+        status: researchMode === 'deep' ? 'Initiating Deep Research...' : 'Thinking...'
+      }
+    }]);
+
+    try {
+      const res = await fetch('/api/strategist/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: messagesBefore,
+          mode: researchMode,
+          notesSummary,
+          attachments: uploadedAttachment ? [uploadedAttachment] : [],
+          enableSearch
+        }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 403) {
+          const errData = await res.json().catch(() => ({}));
+          if (errData.code === 'INSUFFICIENT_CREDITS' || errData.code === 'AUTH_REQUIRED') {
+            setIsTyping(false);
+            setPaywallMessage(errData.message || 'Access denied.');
+            setPaywallOpen(true);
+            setMessages(prev => prev.filter(m => m.id !== assistantMsgId));
+            return;
+          }
+        }
+        throw new Error('API Error');
+      }
+
+      if (!res.body) throw new Error('No body');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let currentContent = '';
+      let buffer = '';
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.trim().startsWith('data: ')) {
+              const dataStr = line.trim().slice(6);
+              try {
+                const data = JSON.parse(dataStr);
+                if (data.type === 'chunk') {
+                  currentContent += data.chunk;
+                  const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+                    ...m, content: displayContent, payload: { ...m.payload, suggestions: suggestions || m.payload?.suggestions, status: undefined }
+                  } : m));
+                } else if (data.type === 'replace_text') {
+                  currentContent = data.text;
+                  const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+                    ...m, content: displayContent, payload: { ...m.payload, suggestions: suggestions || m.payload?.suggestions, status: undefined }
+                  } : m));
+                } else if (data.type === 'sources') {
+                  if (data.sources && data.sources.length > 0) {
+                    setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, sources: data.sources } } : m));
+                  }
+                }
+              } catch { /* skip */ }
+            }
+          }
+        }
+      }
+
+      const sugMatch = currentContent.match(/\[SUGGESTIONS:\s*([\s\S]*?)\](?![^\]]*\])/);
+      if (sugMatch) {
+        const extractedSuggestions = sugMatch[1].split('|').map(s => s.trim());
+        currentContent = currentContent.replace(sugMatch[0], '').trim();
+        setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, suggestions: extractedSuggestions } } : m));
+      } else {
+        const cleaned = currentContent.replace(/\[SUGGESTIONS:[\s\S]*/g, '').trim();
+        if (cleaned !== currentContent) {
+          currentContent = cleaned;
+          setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent } : m));
+        }
+      }
+
+      fetchCredits();
+    } catch {
+      toast.error('Failed to rewrite message');
+      setMessages(prev => prev.filter(m => m.id !== assistantMsgId));
+    } finally {
+      setIsTyping(false);
+    }
+  }, [messages, savedNotes, researchMode, uploadedAttachment, enableSearch, fetchCredits]);
+
+  const submitQuickDraft = useCallback(async () => {
+    if (!quickDraftTopic.trim() || isGeneratingQuickDraft || !quickDraftMode) return;
+
+    setIsGeneratingQuickDraft(true);
+    setQuickDraftOutput('');
+    setQuickDraftError(null);
+
+    const isOutlineMode = quickDraftMode === 'outline';
+    const body: Record<string, unknown> = {
+      topic: quickDraftTopic,
+      mode: isOutlineMode ? 'outline' : 'draft',
+      draftMode: isOutlineMode ? 'topic' : quickDraftMode,
+      provider: 'gemini',
+    };
+
+    if (!isOutlineMode && quickDraftOutline.trim()) body.outline = quickDraftOutline;
+    if ((quickDraftMode === 'reference' || quickDraftMode === 'press_release') && quickDraftReference.trim()) body.referenceText = quickDraftReference;
+
+    try {
+      const res = await fetch('/api/strategist/quick-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const result = await res.json().catch(() => null);
+        throw new Error(result?.error || `Quick draft failed (${res.status})`);
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('Response reader not available');
+
+      const decoder = new TextDecoder();
+      let buf = '';
+      let output = '';
+
+      while (true) {
+        const { done: rd, value } = await reader.read();
+        if (rd) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event: { type: string; data: unknown };
+          try { event = JSON.parse(line); } catch { continue; }
+          if (event.type === 'draft_chunk') {
+            output += event.data as string;
+            setQuickDraftOutput(output);
+          } else if (event.type === 'error') {
+            throw new Error(event.data as string);
+          }
+        }
+      }
+
+      appendMessage({ role: 'user', type: 'text', content: `Quick draft request (${quickDraftMode.replace('_', ' ')}): ${quickDraftTopic}` });
+
+      appendMessage({
+        role: 'assistant',
+        type: 'text',
+        content: isOutlineMode
+          ? `Here is a structured outline for **${quickDraftTopic}**:\n\n${output}`
+          : `Here is a rough draft for **${quickDraftTopic}**:\n\n${output}`,
+      });
+
+      setCurrentPlan({
+        angle: quickDraftTopic,
+        audience: '',
+        hook: '',
+        outline: isOutlineMode ? output : quickDraftOutline,
+        seoIntent: '',
+        sources: [],
+        draft: output,
+      });
+
+      closeQuickDraft();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Quick draft failed';
+      setQuickDraftError(message);
+      toast.error(message);
+    } finally {
+      setIsGeneratingQuickDraft(false);
+    }
+  }, [quickDraftTopic, quickDraftMode, quickDraftOutline, quickDraftReference, isGeneratingQuickDraft, appendMessage, closeQuickDraft]);
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('File size exceeds the maximum limit of 10MB.');
+      return;
+    }
+
+    const loadingToast = toast.loading('Uploading and extracting file content...');
+    setShowAttachMenu(false);
+    try {
+      const presignedRes = await fetch('/api/storage/presigned-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, contentType: file.type || 'text/plain' }),
+      });
+
+      if (!presignedRes.ok) {
+        const errData = await presignedRes.json();
+        throw new Error(errData.error || 'Failed to get upload authorization');
+      }
+
+      const { uploadUrl, fileKey, publicUrl } = await presignedRes.json();
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'text/plain' },
+        body: file,
+      });
+
+      if (!uploadRes.ok) throw new Error('Failed to upload file to storage');
+
+      const extractRes = await fetch('/api/storage/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileKey, contentType: file.type || 'text/plain', filename: file.name, publicUrl }),
+      });
+
+      if (!extractRes.ok) {
+        const errData = await extractRes.json();
+        throw new Error(errData.error || 'Failed to extract text from file');
+      }
+
+      const { attachment } = await extractRes.json();
+      setUploadedAttachment(attachment);
+      toast.success('File uploaded and processed successfully!', { id: loadingToast });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to attach file';
+      toast.error(msg, { id: loadingToast });
+    }
+  }, []);
+
+  const handleSend = useCallback(async (forcedText?: string) => {
+    const textToSend = forcedText ?? chatInput;
+    if (!textToSend.trim()) return;
+
+    if (textToSend === 'Proceed to Editor' && currentPlan) {
+      handleProceedToEditor();
+      return;
+    }
+
+    if (!forcedText) setChatInput('');
+    setIsTyping(true);
+    setShowAttachMenu(false);
+
+    let messageText = textToSend;
+    if (textToSend === 'Revise Blueprint') {
+      messageText = "I want to revise the blueprint with different data. Please forget the previous draft idea.";
+      setCurrentPlan(null);
+    }
+
+    const newMsg: ChatMessage = { id: generateId(), role: 'user', type: 'text', content: messageText };
+    const updatedMessages = [...messages, newMsg];
+    setMessages(updatedMessages);
+
+    const DRAFT_INTENT_PATTERN = /\b(buat(kan)?|tulis(kan)?|generate|write|create|bikin)\b.{0,30}\bdraft\b|\bdraft\b.{0,20}\bartikel\b/i;
+    if (DRAFT_INTENT_PATTERN.test(messageText) || messageText.toLowerCase().startsWith('draft')) {
+      generatePlan(messageText, updatedMessages);
+      return;
+    }
+
+    const notesSummary = savedNotes.length > 0
+      ? `[SAVED NOTES CONTEXT: ${savedNotes.length} notes saved. Snippets: ${savedNotes.map((n, idx) => {
+          const cleanText = n.content.replace(/\s*\[\d+\]\([^)]+\)/g, '');
+          const snippet = cleanText.slice(0, 80).replace(/\n/g, ' ');
+          return `Note ${idx + 1}: "${snippet}..."`;
+        }).join(' | ')}]`
+      : undefined;
+
+    const assistantMsgId = generateId();
+    setMessages(prev => [...prev, {
+      id: assistantMsgId,
+      role: 'assistant',
+      type: 'text',
+      content: '',
+      payload: { status: researchMode === 'deep' ? 'Initiating Deep Research...' : 'Thinking...' }
+    }]);
+
+    try {
+      const res = await fetch('/api/strategist/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: updatedMessages,
+          mode: researchMode,
+          notesSummary,
+          attachments: uploadedAttachment ? [uploadedAttachment] : [],
+          enableSearch,
+        }),
+      });
+
+      if (researchMode === 'deep') setResearchMode('fast');
+
+      if (!res.ok) {
+        if (res.status === 403) {
+          const errData = await res.json().catch(() => ({}));
+          if (errData.code === 'INSUFFICIENT_CREDITS' || errData.code === 'AUTH_REQUIRED') {
+            setIsTyping(false);
+            setPaywallMessage(errData.message || 'Access denied.');
+            setPaywallOpen(true);
+            setMessages(prev => prev.filter(m => m.id !== newMsg.id && m.id !== assistantMsgId));
+            return;
+          }
+        }
+        throw new Error('API Error');
+      }
+      if (!res.body) throw new Error('No body');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let currentContent = '';
+      let buf = '';
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.trim().startsWith('data: ')) {
+              const dataStr = line.trim().slice(6);
+              try {
+                const data = JSON.parse(dataStr);
+                if (data.type === 'deep_research_started') {
+                  setActiveDeepResearchId(data.interaction_id);
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, status: "Deep Research in progress..." } } : m));
+                } else if (data.type === 'status') {
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, status: data.message } } : m));
+                } else if (data.type === 'text') {
+                  currentContent += data.chunk;
+                  const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+                    ...m, content: displayContent, payload: { ...m.payload, suggestions: suggestions || m.payload?.suggestions, status: undefined }
+                  } : m));
+                } else if (data.type === 'replace_text') {
+                  currentContent = data.text;
+                  const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+                    ...m, content: displayContent, payload: { ...m.payload, suggestions: suggestions || m.payload?.suggestions, status: undefined }
+                  } : m));
+                } else if (data.type === 'sources') {
+                  if (data.sources && data.sources.length > 0) {
+                    setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, sources: data.sources } } : m));
+                  }
+                }
+              } catch { /* skip */ }
+            }
+          }
+        }
+      }
+
+      const sugMatch = currentContent.match(/\[SUGGESTIONS:\s*([\s\S]*?)\](?![^\]]*\])/);
+      if (sugMatch) {
+        const extractedSuggestions = sugMatch[1].split('|').map(s => s.trim());
+        currentContent = currentContent.replace(sugMatch[0], '').trim();
+        setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, suggestions: extractedSuggestions } } : m));
+      } else {
+        const cleaned = currentContent.replace(/\[SUGGESTIONS:[\s\S]*/g, '').trim();
+        if (cleaned !== currentContent) {
+          currentContent = cleaned;
+          setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent } : m));
+        }
+      }
+
+      fetchCredits();
+    } catch {
+      toast.error('Failed to send message');
+    } finally {
+      setIsTyping(false);
+    }
+  }, [chatInput, messages, currentPlan, savedNotes, researchMode, uploadedAttachment, enableSearch, handleProceedToEditor, generatePlan, fetchCredits]);
+
+  const clearMessages = useCallback(() => {
+    setMessages([]);
+    setCurrentPlan(null);
+    setChatInput('');
+    sessionStorage.removeItem('eai_strategist_messages');
+    sessionStorage.removeItem('eai_strategist_current_plan');
+  }, []);
+
+  return {
+    messages,
+    chatInput,
+    setChatInput,
+    isTyping,
+    handleSend,
+    handleRewrite,
+    savedNotes,
+    saveNote,
+    setSavedNotes,
+    uploadedAttachment,
+    setUploadedAttachment,
+    currentPlan,
+    handleProceedToEditor,
+    clearMessages,
+    quickDraftMode,
+    openQuickDraft,
+    closeQuickDraft,
+    quickDraftTopic,
+    setQuickDraftTopic,
+    quickDraftOutline,
+    setQuickDraftOutline,
+    quickDraftReference,
+    setQuickDraftReference,
+    quickDraftOutput,
+    isGeneratingQuickDraft,
+    submitQuickDraft,
+    quickDraftError,
+    collectedSources,
+    isShowingAllSources,
+    setIsShowingAllSources,
+    deepResearchReport,
+    isReportOpen,
+    setIsReportOpen,
+    researchMode,
+    setResearchMode,
+    enableSearch,
+    setEnableSearch,
+    credits,
+    paywallOpen,
+    setPaywallOpen,
+    paywallMessage,
+    copiedMessageId,
+    handleCopy,
+    showAttachMenu,
+    setShowAttachMenu,
+    handleFileUpload,
+    showSlashMenu,
+    setShowSlashMenu,
+    slashMenuIndex,
+    setSlashMenuIndex,
+    showResearchMenu,
+    setShowResearchMenu,
+    generatePlan,
+  };
+}

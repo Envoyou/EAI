@@ -215,6 +215,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   const [activeFeedbackIndex, setActiveFeedbackIndex] = useState<number | null>(null);
   const [showFeedbackSidebar, setShowFeedbackSidebar] = useState(true);
   const [showNotesSidebar, setShowNotesSidebar] = useState(true);
+  const [rightPanelTab, setRightPanelTab] = useState<'strategist' | 'feedback' | 'notes'>('strategist');
   const [researchNotes, setResearchNotes] = useState<ResearchNote[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -1457,7 +1458,15 @@ return (
             ) : null
           }
           rightPanel={
-            <AICopilotPanel />
+            <AICopilotPanel
+              activeTab={rightPanelTab}
+              onTabChange={setRightPanelTab}
+              onStrategistComplete={(topic, outline, draft, notes, wizardAttachments) => {
+                setDraft(draft || outline || topic);
+                if (notes && notes.length > 0) handleNotesChange(notes);
+                if (wizardAttachments && wizardAttachments.length > 0) setAttachments(wizardAttachments);
+              }}
+            />
           }
           centerPanel={
             <EditorCanvas>
@@ -1551,6 +1560,7 @@ return (
                           onNotesChange={handleNotesChange}
                           attachments={attachments}
                           onAttachmentsChange={setAttachments}
+                          onOpenStrategist={() => setRightPanelTab('strategist')}
                         />
                       </motion.div>
                     )}
