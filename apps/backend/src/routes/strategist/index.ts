@@ -586,6 +586,24 @@ CRITICAL: A file is attached to this request.
                 }
             }));
             
+            // Pre-populate unique sources from globalAnnotations directly
+            for (const annotation of globalAnnotations) {
+                if (annotation.type === "url_citation" && annotation.url) {
+                    const realUrl = resolvedUrls.get(annotation.url) || annotation.url;
+                    if (!urlToIndex.has(realUrl)) {
+                        urlToIndex.set(realUrl, urlToIndex.size + 1);
+                        let domain = annotation.title;
+                        if (!domain || domain.trim() === "") {
+                            try {
+                                domain = new URL(realUrl).hostname.replace('www.', '');
+                            } catch (_e) { domain = "Source"; }
+                        }
+                        const cleanDomain = domain.replace(/[[\]()*_`]/g, '').trim();
+                        uniqueSourcesData.push({ url: realUrl, domain: cleanDomain });
+                    }
+                }
+            }
+            
             // Replace [cite: X] placeholders directly in their original order using globalAnnotations
             let annotationIndex = 0;
             const citeRegex = /\[cite:\s*\d+\]/gi;
@@ -596,20 +614,7 @@ CRITICAL: A file is attached to this request.
                     if (annotation.type === "url_citation" && annotation.url) {
                         const realUrl = resolvedUrls.get(annotation.url) || annotation.url;
                         sources.push(realUrl);
-                        
-                        if (!urlToIndex.has(realUrl)) {
-                            urlToIndex.set(realUrl, urlToIndex.size + 1);
-                            let domain = annotation.title;
-                            if (!domain || domain.trim() === "") {
-                                try {
-                                    domain = new URL(realUrl).hostname.replace('www.', '');
-                                } catch (_e) { domain = "Source"; }
-                            }
-                            const cleanDomain = domain.replace(/[[\]()*_`]/g, '').trim();
-                            uniqueSourcesData.push({ url: realUrl, domain: cleanDomain });
-                        }
-                        
-                        const sourceIndex = urlToIndex.get(realUrl);
+                        const sourceIndex = urlToIndex.get(realUrl) || 1;
                         return `[${sourceIndex}](${realUrl})`;
                     }
                 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, MessageCircle, Notebook } from 'lucide-react';
+import { Sparkles, MessageCircle, Notebook, ChevronRight } from 'lucide-react';
 import StrategistTab from '@/components/StrategistTab';
 import FeedbackTab from '@/components/FeedbackTab';
 import NotesTab from '@/components/NotesTab';
@@ -38,6 +38,8 @@ interface AICopilotPanelProps {
   onGenerateDraftFromNotes?: () => void;
   isGeneratingDraft?: boolean;
   onInsertToDraft?: (text: string) => void;
+  onClose?: () => void;
+  activeHistoryId?: string | null;
 }
 
 const TABS: { key: RightTab; label: string; icon: React.ReactNode }[] = [
@@ -73,6 +75,8 @@ export default function AICopilotPanel({
   onGenerateDraftFromNotes,
   isGeneratingDraft,
   onInsertToDraft,
+  onClose,
+  activeHistoryId,
 }: AICopilotPanelProps) {
   const [internalTab, setInternalTab] = useState<RightTab>('strategist');
   const activeTab = controlledTab ?? internalTab;
@@ -89,6 +93,9 @@ export default function AICopilotPanel({
     onComplete: (topic, outline, draft, notes, attachments) => {
       onStrategistComplete?.(topic, outline, draft, notes, attachments);
     },
+    notes: researchNotes,
+    onNotesChange,
+    documentId: activeHistoryId || 'new',
   });
 
   const renderContent = () => {
@@ -105,7 +112,15 @@ export default function AICopilotPanel({
             handleCopy={strategist.handleCopy}
             saveNote={strategist.saveNote}
             copiedMessageId={strategist.copiedMessageId}
-            onQuickDraftOpen={() => strategist.openQuickDraft('topic')}
+            uploadedAttachment={strategist.uploadedAttachment}
+            setUploadedAttachment={strategist.setUploadedAttachment}
+            handleFileUpload={strategist.handleFileUpload}
+            enableSearch={strategist.enableSearch}
+            setEnableSearch={strategist.setEnableSearch}
+            researchMode={strategist.researchMode}
+            setResearchMode={strategist.setResearchMode}
+            deepResearchReport={strategist.deepResearchReport}
+            clearMessages={strategist.clearMessages}
           />
         );
       case 'feedback':
@@ -157,21 +172,32 @@ export default function AICopilotPanel({
 
   return (
     <div className="flex flex-col h-full bg-[var(--surface-1)] border-l border-[var(--border)]">
-      <div className="flex items-center border-b border-[var(--border)] px-1">
-        {TABS.map((tab) => (
+      <div className="flex items-center justify-between border-b border-[var(--border)] px-1">
+        <div className="flex items-center">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => handleTabChange(tab.key)}
+              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px ${
+                activeTab === tab.key
+                  ? 'text-[var(--foreground)] border-[var(--primary)]'
+                  : 'text-[var(--muted-foreground)] border-transparent hover:text-[var(--foreground)]'
+              }`}
+            >
+              {tab.icon}
+              <span className="hidden xl:inline">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+        {onClose && (
           <button
-            key={tab.key}
-            onClick={() => handleTabChange(tab.key)}
-            className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px ${
-              activeTab === tab.key
-                ? 'text-[var(--foreground)] border-[var(--primary)]'
-                : 'text-[var(--muted-foreground)] border-transparent hover:text-[var(--foreground)]'
-            }`}
+            onClick={onClose}
+            className="p-1 mr-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+            aria-label="Collapse panel"
           >
-            {tab.icon}
-            <span className="hidden xl:inline">{tab.label}</span>
+            <ChevronRight className="w-4 h-4" />
           </button>
-        ))}
+        )}
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden">

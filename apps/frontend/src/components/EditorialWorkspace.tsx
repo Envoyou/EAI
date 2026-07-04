@@ -209,9 +209,11 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   const [isLoaded, setIsLoaded] = useState(false);
   const [hoveredFeedbackIndex, setHoveredFeedbackIndex] = useState<number | null>(null);
   const [activeFeedbackIndex, setActiveFeedbackIndex] = useState<number | null>(null);
-  const [showFeedbackSidebar, setShowFeedbackSidebar] = useState(true);
-  const [showNotesSidebar] = useState(true);
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [rightPanelTab, setRightPanelTab] = useState<'strategist' | 'feedback' | 'notes'>('strategist');
+
+  const showFeedbackSidebar = rightPanelOpen;
+  const showNotesSidebar = rightPanelOpen;
   const [researchNotes, setResearchNotes] = useState<ResearchNote[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -439,7 +441,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       if (savedHistoryId !== null) setActiveHistoryId(savedHistoryId || null);
       if (savedSourceDraft !== null) setSourceDraft(savedSourceDraft);
       if (savedActiveTab !== null) setActiveTab(savedActiveTab as PanelTab);
-      if (savedShowSidebar !== null) setShowFeedbackSidebar(savedShowSidebar === 'true');
+      if (savedShowSidebar !== null) setRightPanelOpen(savedShowSidebar === 'true');
 
       if (savedSpeed === 'fast' || savedSpeed === 'publish') setAnalysisSpeed(savedSpeed);
       if (savedDemoCount !== null) setDemoRefineCount(parseInt(savedDemoCount, 10) || 0);
@@ -493,18 +495,16 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
 
   useEffect(() => {
     if (isLoaded && typeof window !== 'undefined') {
-      localStorage.setItem('eai-show-feedback-sidebar', String(showFeedbackSidebar));
+      localStorage.setItem('eai-show-feedback-sidebar', String(rightPanelOpen));
 
       localStorage.setItem('eai-analysis-speed', analysisSpeed);
     }
-  }, [showFeedbackSidebar, analysisSpeed, isLoaded]);
+  }, [rightPanelOpen, analysisSpeed, isLoaded]);
 
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (mobile) setSidebarOpen(false);
+      setIsMobile(window.innerWidth < 640);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -514,8 +514,17 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   // Global '?' shortcut for modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+      const isInput = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName);
+      if (e.key === '?' && !isInput) {
         setIsShortcutModalOpen(p => !p);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b' && !isInput) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          setRightPanelOpen(p => !p);
+        } else {
+          setSidebarOpen(p => !p);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -1495,35 +1504,53 @@ return (
       </header>
 
       {/* ── Body: Three Column Layout ── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
+        {/* Mobile Backdrop Drawer Close Trigger */}
+        {isMobile && (sidebarOpen || rightPanelOpen) && (
+          <button
+            type="button"
+            onClick={() => {
+              setSidebarOpen(false);
+              setRightPanelOpen(false);
+            }}
+            className="fixed inset-0 z-[90] border-none outline-none cursor-pointer"
+            style={{
+              background: 'rgba(9, 13, 22, 0.42)',
+              backdropFilter: 'blur(3px)',
+            }}
+            aria-label="Close menus"
+          />
+        )}
         <ThreeColumnLayout
           leftPanelOpen={sidebarOpen && !isDemoMode}
-          rightPanelOpen={true}
+          rightPanelOpen={rightPanelOpen}
           leftPanel={
-            !isDemoMode ? (
-              <DocumentHistoryPanel
-                onSelect={loadHistory}
-                onNew={handleNewDraft}
-                activeId={activeHistoryId}
-                refreshTrigger={refreshTrigger}
-                onToggle={() => setSidebarOpen(p => !p)}
-                isDemoMode={isDemoMode}
-              />
-            ) : null
-          }
-          rightPanel={
-            <AICopilotPanel
-              activeTab={rightPanelTab}
-              onTabChange={setRightPanelTab}
-              onStrategistComplete={(topic, outline, draft, notes, wizardAttachments) => {
-                setDraft(draft || outline || topic);
-                if (notes && notes.length > 0) handleNotesChange(notes);
-                if (wizardAttachments && wizardAttachments.length > 0) setAttachments(wizardAttachments);
-              }}
-              feedbackResult={hasResult || analysis.status === 'loading' ? analysis : null}
-              feedbackTitle={analysis.generatedMetadata?.title as string | undefined}
-              onApplyFix={handleApplyFix}
-              onApplyAll={handleApplyAllFixes}
+              !isDemoMode ? (
+                <DocumentHistoryPanel
+                  onSelect={loadHistory}
+                  onNew={handleNewDraft}
+                  activeId={activeHistoryId}
+                  refreshTrigger={refreshTrigger}
+                  onToggle={() => setSidebarOpen(p => !p)}
+                  isDemoMode={isDemoMode}
+                />
+              ) : null
+            }
+            rightPanel={
+              <AICopilotPanel
+                key={activeHistoryId || 'new'}
+                activeTab={rightPanelTab}
+                onTabChange={setRightPanelTab}
+                activeHistoryId={activeHistoryId}
+                onStrategistComplete={(topic, outline, draft, notes, wizardAttachments) => {
+                  setDraft(draft || outline || topic);
+                  if (notes && notes.length > 0) handleNotesChange(notes);
+                  if (wizardAttachments && wizardAttachments.length > 0) setAttachments(wizardAttachments);
+                }}
+                feedbackResult={hasResult || analysis.status === 'loading' ? analysis : null}
+                feedbackTitle={analysis.generatedMetadata?.title as string | undefined}
+                onApplyFix={handleApplyFix}
+                onApplyAll={handleApplyAllFixes}
               hoveredFeedbackIndex={hoveredFeedbackIndex}
               onHoveredFeedbackChange={setHoveredFeedbackIndex}
               activeFeedbackIndex={activeFeedbackIndex}
@@ -1543,6 +1570,7 @@ return (
               onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
               isGeneratingDraft={isGeneratingDraftFromNotes}
               onInsertToDraft={(text) => { setDraft(prev => prev + text); }}
+              onClose={() => setRightPanelOpen(false)}
             />
           }
           centerPanel={
@@ -1560,9 +1588,23 @@ return (
               sidebarOpen={sidebarOpen}
               onToggleSidebar={() => setSidebarOpen(p => !p)}
               showFeedbackSidebar={showFeedbackSidebar}
-              onToggleFeedbackSidebar={() => { setRightPanelTab('feedback'); }}
+              onToggleFeedbackSidebar={() => {
+                if (rightPanelOpen && rightPanelTab === 'feedback') {
+                  setRightPanelOpen(false);
+                } else {
+                  setRightPanelOpen(true);
+                  setRightPanelTab('feedback');
+                }
+              }}
               showNotesSidebar={showNotesSidebar}
-              onToggleNotesSidebar={() => { setRightPanelTab('notes'); }}
+              onToggleNotesSidebar={() => {
+                if (rightPanelOpen && rightPanelTab === 'notes') {
+                  setRightPanelOpen(false);
+                } else {
+                  setRightPanelOpen(true);
+                  setRightPanelTab('notes');
+                }
+              }}
               hasNotes={hasNotes}
               isDemoMode={isDemoMode}
               wordCount={wordCount}
@@ -1579,7 +1621,6 @@ return (
               onRefineAgain={handleRefineAgain}
               onReanalyze={handleReanalyze}
               onAddNewMetadataOption={handleAddNewCategoryOrType}
-              onOpenStrategist={() => setRightPanelTab('strategist')}
               onOpenShortcuts={() => setIsShortcutModalOpen(true)}
             />
           }

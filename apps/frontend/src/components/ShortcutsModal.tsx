@@ -32,6 +32,8 @@ export default function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps)
 
 const shortcuts = [
   { key: 'Ctrl + Enter', desc: 'Refine the current draft' },
+  { key: 'Ctrl + B', desc: 'Toggle document history panel' },
+  { key: 'Ctrl + Shift + B', desc: 'Toggle AI co-pilot tab' },
   { key: '?', desc: 'Open or close this guide' },
   { key: 'Esc', desc: 'Close this guide' },
 ];

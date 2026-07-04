@@ -1,5 +1,5 @@
 import { Extension, Editor, Range } from '@tiptap/core';
-import Suggestion, { SuggestionOptions } from '@tiptap/suggestion';
+import Suggestion, { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion';
 import { ReactRenderer } from '@tiptap/react';
 import tippy, { Instance as TippyInstance } from 'tippy.js';
 import { CommandList } from './CommandList';
@@ -131,7 +131,7 @@ export const renderItems = () => {
   let popup: TippyInstance[] | null = null;
 
   return {
-    onStart: (props: Record<string, unknown> & { editor: Editor; clientRect?: () => DOMRect }) => {
+    onStart: (props: SuggestionProps<CommandItem>) => {
       component = new ReactRenderer(CommandList, {
         props,
         editor: props.editor,
@@ -142,7 +142,7 @@ export const renderItems = () => {
       }
 
       popup = tippy('body', {
-        getReferenceClientRect: props.clientRect,
+        getReferenceClientRect: props.clientRect as () => DOMRect,
         appendTo: () => document.body,
         content: component.element,
         showOnCreate: true,
@@ -152,7 +152,7 @@ export const renderItems = () => {
       });
     },
 
-    onUpdate(props: Record<string, unknown> & { clientRect?: () => DOMRect }) {
+    onUpdate(props: SuggestionProps<CommandItem>) {
       component?.updateProps(props);
 
       if (!props.clientRect) {
@@ -160,7 +160,7 @@ export const renderItems = () => {
       }
 
       popup?.[0]?.setProps({
-        getReferenceClientRect: props.clientRect,
+        getReferenceClientRect: props.clientRect as () => DOMRect,
       });
     },
 

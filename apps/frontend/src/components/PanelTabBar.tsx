@@ -47,7 +47,6 @@ export default function PanelTabBar({
   onToggleHistorySidebar,
   showNotesSidebar = true,
   onToggleNotesSidebar,
-  hasNotes = false,
 }: PanelTabBarProps) {
   return (
     <div className="ide-tabbar" role="tablist" aria-label="Editor Panels">
@@ -157,23 +156,23 @@ export default function PanelTabBar({
                     w-7.5 h-7.5 flex items-center justify-center rounded-md transition-colors text-xs border border-transparent cursor-pointer
                     ${showFeedbackSidebar 
                       ? 'bg-primary-100/70 dark:bg-primary-950/45 text-[var(--primary)]' 
-                      : 'bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}
+                      : 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'}
                   `}
-                  aria-label={showFeedbackSidebar ? 'Hide Feedback Panel' : 'Show Feedback Panel'}
+                  aria-label={showFeedbackSidebar ? 'Hide Assistant Panel' : 'Show Assistant Panel'}
                 >
                   <PanelRight className="w-4 h-4" />
                 </button>
               }
             />
             <TooltipContent side="bottom" className="text-xs">
-              {showFeedbackSidebar ? 'Hide Feedback' : 'Show Feedback'}
+              {showFeedbackSidebar ? 'Hide Assistant' : 'Show Assistant'}
             </TooltipContent>
           </Tooltip>
         </div>
       )}
 
       {/* Right Sidebar Toggle Button for Notes Studio */}
-      {activeTab === 'draft' && hasNotes && onToggleNotesSidebar && (
+      {activeTab === 'draft' && onToggleNotesSidebar && (
         <div className="pr-3 flex items-center">
           <Tooltip>
             <TooltipTrigger
@@ -184,16 +183,16 @@ export default function PanelTabBar({
                     w-7.5 h-7.5 flex items-center justify-center rounded-md transition-colors text-xs border border-transparent cursor-pointer
                     ${showNotesSidebar 
                       ? 'bg-primary-100/70 dark:bg-primary-950/45 text-[var(--primary)]' 
-                      : 'bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}
+                      : 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'}
                   `}
-                  aria-label={showNotesSidebar ? 'Hide Notes Studio' : 'Show Notes Studio'}
+                  aria-label={showNotesSidebar ? 'Hide Assistant Panel' : 'Show Assistant Panel'}
                 >
                   <PanelRight className="w-4 h-4" />
                 </button>
               }
             />
             <TooltipContent side="bottom" className="text-xs">
-              {showNotesSidebar ? 'Hide Notes' : 'Show Notes'}
+              {showNotesSidebar ? 'Hide Assistant' : 'Show Assistant'}
             </TooltipContent>
           </Tooltip>
         </div>

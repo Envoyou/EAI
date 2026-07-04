@@ -59,25 +59,65 @@ export type ChatMessage = {
 
 interface UseContentStrategistOptions {
   onComplete: (topic: string, outline: string, draft: string, notes: ResearchNote[], attachments: Attachment[]) => void;
+  notes?: ResearchNote[];
+  onNotesChange?: (notes: ResearchNote[]) => void;
+  documentId?: string;
 }
 
 const MAX_NOTES = 10;
 const SESSION_KEY = 'eai_research_notes';
 
-export function useContentStrategist({ onComplete }: UseContentStrategistOptions) {
+export function useContentStrategist({ onComplete, notes, onNotesChange, documentId = 'new' }: UseContentStrategistOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (typeof window === 'undefined') return [];
-    try { return JSON.parse(sessionStorage.getItem('eai_strategist_messages') || '[]'); } catch { return []; }
+    try {
+      const stored = sessionStorage.getItem(`eai_strategist_messages_${documentId}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
   });
-
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<PreEditorPlan | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = sessionStorage.getItem(`eai_strategist_current_plan_${documentId}`);
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
+  const [collectedSources, setCollectedSources] = useState<{ url: string; domain: string; title?: string; description?: string }[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = sessionStorage.getItem(`eai_strategist_sources_${documentId}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+  const [deepResearchReport, setDeepResearchReport] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return sessionStorage.getItem(`eai_strategist_deep_research_${documentId}`);
+    } catch { return null; }
+  });
 
+  // Persist messages when they change
   useEffect(() => {
     if (!isTyping && typeof window !== 'undefined') {
-      sessionStorage.setItem('eai_strategist_messages', JSON.stringify(messages));
+      sessionStorage.setItem(`eai_strategist_messages_${documentId}`, JSON.stringify(messages));
     }
-  }, [messages, isTyping]);
+  }, [messages, isTyping, documentId]);
+
+  // Persist currentPlan
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`eai_strategist_current_plan_${documentId}`, currentPlan ? JSON.stringify(currentPlan) : 'null');
+    }
+  }, [currentPlan, documentId]);
+
+  // Persist collectedSources
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`eai_strategist_sources_${documentId}`, JSON.stringify(collectedSources));
+    }
+  }, [collectedSources, documentId]);
 
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashMenuIndex, setSlashMenuIndex] = useState(0);
@@ -101,40 +141,26 @@ export function useContentStrategist({ onComplete }: UseContentStrategistOptions
 
   useEffect(() => { fetchCredits(); }, [fetchCredits]);
 
-  const [collectedSources, setCollectedSources] = useState<{ url: string; domain: string; title?: string; description?: string }[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try { return JSON.parse(sessionStorage.getItem('eai_strategist_sources') || '[]'); } catch { return []; }
-  });
-
   const [isShowingAllSources, setIsShowingAllSources] = useState(false);
 
-  const [currentPlan, setCurrentPlan] = useState<PreEditorPlan | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const stored = sessionStorage.getItem('eai_strategist_current_plan');
-      return stored ? JSON.parse(stored) : null;
-    } catch { return null; }
-  });
-
-  useEffect(() => {
-    sessionStorage.setItem('eai_strategist_current_plan', currentPlan ? JSON.stringify(currentPlan) : 'null');
-  }, [currentPlan]);
-
-  useEffect(() => {
-    sessionStorage.setItem('eai_strategist_sources', JSON.stringify(collectedSources));
-  }, [collectedSources]);
-
   const [activeDeepResearchId, setActiveDeepResearchId] = useState<string | null>(null);
-  const [deepResearchReport, setDeepResearchReport] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return sessionStorage.getItem('eai_strategist_deep_research');
-  });
   const [isReportOpen, setIsReportOpen] = useState(false);
 
-  const [savedNotes, setSavedNotes] = useState<ResearchNote[]>(() => {
+  const [localNotes, setLocalNotes] = useState<ResearchNote[]>(() => {
     if (typeof window === 'undefined') return [];
     try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch { return []; }
   });
+
+  const savedNotes = notes ?? localNotes;
+
+  const updateSavedNotes = useCallback((newNotes: ResearchNote[] | ((prev: ResearchNote[]) => ResearchNote[])) => {
+    if (onNotesChange) {
+      const resolved = typeof newNotes === 'function' ? newNotes(savedNotes) : newNotes;
+      onNotesChange(resolved);
+    } else {
+      setLocalNotes(newNotes);
+    }
+  }, [onNotesChange, savedNotes]);
 
   const [uploadedAttachment, setUploadedAttachment] = useState<Attachment | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -188,7 +214,7 @@ export function useContentStrategist({ onComplete }: UseContentStrategistOptions
           const data = await res.json();
           if (data.state === 'COMPLETED' && data.output) {
             setDeepResearchReport(data.output);
-            sessionStorage.setItem('eai_strategist_deep_research', data.output);
+            sessionStorage.setItem(`eai_strategist_deep_research_${documentId}`, data.output);
             setActiveDeepResearchId(null);
 
             setMessages(prev => [...prev, {
@@ -213,7 +239,7 @@ export function useContentStrategist({ onComplete }: UseContentStrategistOptions
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [activeDeepResearchId]);
+  }, [activeDeepResearchId, documentId]);
 
   const appendMessage = useCallback((msg: Omit<ChatMessage, 'id'>) => {
     setMessages(prev => [...prev, { ...msg, id: generateId() }]);
@@ -256,9 +282,9 @@ export function useContentStrategist({ onComplete }: UseContentStrategistOptions
       sources: msg.payload?.sources || [],
       savedAt: new Date().toISOString(),
     };
-    setSavedNotes(prev => [...prev, note]);
+    updateSavedNotes(prev => [...prev, note]);
     toast.success('Note saved');
-  }, [savedNoteIds, savedNotes.length]);
+  }, [savedNoteIds, savedNotes.length, updateSavedNotes]);
 
   const handleCopy = useCallback((text: string, msgId: string) => {
     navigator.clipboard.writeText(text);
@@ -293,10 +319,10 @@ export function useContentStrategist({ onComplete }: UseContentStrategistOptions
     };
 
     const allNotes = [...savedNotes, blueprintNote];
-    setSavedNotes(allNotes);
+    updateSavedNotes(allNotes);
 
     onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, allNotes, uploadedAttachment ? [uploadedAttachment] : []);
-  }, [currentPlan, savedNotes, uploadedAttachment, onComplete]);
+  }, [currentPlan, savedNotes, uploadedAttachment, onComplete, updateSavedNotes]);
 
   const generatePlan = useCallback(async (recommendationText: string, history: ChatMessage[]) => {
     setIsTyping(true);
@@ -758,9 +784,11 @@ export function useContentStrategist({ onComplete }: UseContentStrategistOptions
     setMessages([]);
     setCurrentPlan(null);
     setChatInput('');
-    sessionStorage.removeItem('eai_strategist_messages');
-    sessionStorage.removeItem('eai_strategist_current_plan');
-  }, []);
+    sessionStorage.removeItem(`eai_strategist_messages_${documentId}`);
+    sessionStorage.removeItem(`eai_strategist_current_plan_${documentId}`);
+    sessionStorage.removeItem(`eai_strategist_sources_${documentId}`);
+    sessionStorage.removeItem(`eai_strategist_deep_research_${documentId}`);
+  }, [documentId]);
 
   return {
     messages,
@@ -771,7 +799,7 @@ export function useContentStrategist({ onComplete }: UseContentStrategistOptions
     handleRewrite,
     savedNotes,
     saveNote,
-    setSavedNotes,
+    setSavedNotes: updateSavedNotes,
     uploadedAttachment,
     setUploadedAttachment,
     currentPlan,

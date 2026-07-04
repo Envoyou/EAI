@@ -1,7 +1,7 @@
 import { ArticleMetadata } from '@eai/shared';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Sparkles, Wand2 } from 'lucide-react';
+import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { useState, useRef, useEffect } from 'react';
@@ -13,6 +13,10 @@ import { SlashCommand, renderItems, getSuggestionItems } from './editor/extensio
 import { BubbleMenuAI } from './editor/BubbleMenuAI';
 import { AIPreviewExtension } from './editor/extensions/ai-preview-extension';
 import { AiActionExtension } from './editor/extensions/ai-action-extension';
+import { Table } from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
 
 interface EditorProps {
   value: string;
@@ -27,7 +31,6 @@ interface EditorProps {
   isPersonal?: boolean;
   onAddNewMetadataOption?: (type: 'category' | 'articleType', value: string) => void;
   charLimit?: number;
-  onOpenStrategist?: () => void;
 }
 
 
@@ -50,7 +53,6 @@ export default function Editor({
   isPersonal = false,
   onAddNewMetadataOption,
   charLimit = 15000,
-  onOpenStrategist,
 }: EditorProps) {
   const updateMeta = (field: keyof ArticleMetadata, val: string) => {
     onMetadataChange({ ...metadata, [field]: val });
@@ -72,6 +74,12 @@ const [isWritingManually, setIsWritingManually] = useState(false);
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Placeholder.configure({ placeholder }),
       Markdown,
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
       AIPreviewExtension,
       AiActionExtension,
       SlashCommand.configure({
@@ -85,7 +93,8 @@ const [isWritingManually, setIsWritingManually] = useState(false);
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: 'editor-canvas flex-1 w-full max-w-[800px] mx-auto resize-none border-0 outline-none px-6 py-6 md:px-12 md:py-10 leading-[1.85] font-serif text-[16px] bg-transparent text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-0 prose prose-sm dark:prose-invert focus:outline-none min-h-[500px]',
+        spellcheck: 'false',
+        class: 'editor-canvas flex-1 w-full max-w-[95%] mx-auto resize-none border-0 outline-none px-4 py-6 md:px-4 md:py-6 leading-[1.85] font-inter text-[16px] bg-transparent text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-0 prose prose-sm dark:prose-invert focus:outline-none min-h-[500px]',
       },
       handleKeyDown: (view, event) => {
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
@@ -197,15 +206,6 @@ const [isWritingManually, setIsWritingManually] = useState(false);
               </div>
             </div>
              <div className="flex shrink-0 items-center gap-1">
-              <button
-                onClick={() => onOpenStrategist?.()}
-                className="ui-btn ui-btn-muted ui-btn-xs"
-                style={{ color: 'var(--primary)', borderColor: 'color-mix(in srgb, var(--primary) 30%, transparent)' }}
-                disabled={isLoading}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[var(--primary)] animate-pulse" strokeWidth={2.5} />
-                <span>AI Strategist</span>
-              </button>
               <button
                 onClick={handleCopy}
                 disabled={!value.trim()}
@@ -399,16 +399,9 @@ const [isWritingManually, setIsWritingManually] = useState(false);
               Start your article
             </h3>
             <p className="text-sm text-[var(--muted-foreground)] mb-6 leading-relaxed text-pretty">
-              Write or paste an existing draft, or ask EAI to create a structured starting point.
+              Write or paste an existing draft to get started.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
-              <button
-                onClick={() => onOpenStrategist?.()}
-                className="ui-btn ui-btn-primary ui-btn-sm"
-              >
-                <Wand2 className="w-3.5 h-3.5" />
-                Create with EAI
-              </button>
               <button
                 onClick={() => {
                   setIsWritingManually(true);
@@ -417,7 +410,7 @@ const [isWritingManually, setIsWritingManually] = useState(false);
                     if (textareaRef.current) textareaRef.current.focus();
                   }, 50);
                 }}
-                className="ui-btn ui-btn-outline ui-btn-sm"
+                className="ui-btn ui-btn-primary ui-btn-sm"
               >
                 Write or Paste
               </button>

@@ -52,7 +52,6 @@ interface EditorCanvasProps {
   onRefineAgain: (instruction: string) => Promise<void>;
   onReanalyze: () => void;
   onAddNewMetadataOption: (type: 'category' | 'articleType', value: string) => void;
-  onOpenStrategist: () => void;
   onOpenShortcuts: () => void;
 }
 
@@ -89,7 +88,6 @@ export default function EditorCanvas({
   onRefineAgain,
   onReanalyze,
   onAddNewMetadataOption,
-  onOpenStrategist,
   onOpenShortcuts,
 }: EditorCanvasProps) {
   const router = useRouter();
@@ -177,7 +175,6 @@ export default function EditorCanvas({
                 isPersonal={editorialOptions.isPersonal}
                 onAddNewMetadataOption={onAddNewMetadataOption}
                 charLimit={editorialOptions.maxTextLength}
-                onOpenStrategist={onOpenStrategist}
               />
             </motion.div>
           )}

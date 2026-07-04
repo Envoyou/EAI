@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { X, ChevronDown, ChevronUp, FileEdit, Wand2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { ResearchNote, Attachment } from '@/lib/hooks/useContentStrategist';
 
 interface NotesTabProps {
@@ -153,9 +155,11 @@ export default function NotesTab({
                     className="overflow-hidden"
                   >
                     <div className="pt-2 pb-1">
-                      <p className="text-xs text-[var(--foreground)] leading-relaxed whitespace-pre-wrap mb-2">
-                        {note.content}
-                      </p>
+                      <div className="prose strategist-prose max-w-none text-[var(--foreground)] mb-2">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {note.content}
+                        </ReactMarkdown>
+                      </div>
 
                       {note.sources.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-1.5">

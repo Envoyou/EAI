@@ -365,6 +365,116 @@
   letter-spacing: -0.01em;
 }
 
+.prose hr,
+[class*="prose-"] hr {
+  margin-top: 1.25rem !important;
+  margin-bottom: 1.25rem !important;
+}
+
+.prose table,
+[class*="prose-"] table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+.prose th,
+[class*="prose-"] th {
+  background-color: var(--surface-2) !important;
+  color: var(--foreground) !important;
+  font-weight: 600 !important;
+  padding: 0.5rem 0.6rem !important;
+  border: 1px solid var(--border) !important;
+  text-align: left !important;
+}
+
+.prose td,
+[class*="prose-"] td {
+  padding: 0.4rem 0.6rem !important;
+  border: 1px solid var(--border) !important;
+  color: var(--foreground) !important;
+}
+
+.prose tr:nth-child(even),
+[class*="prose-"] tr:nth-child(even) {
+  background-color: var(--surface-1) !important;
+}
+
+.prose tr:nth-child(odd),
+[class*="prose-"] tr:nth-child(odd) {
+  background-color: transparent !important;
+}
+
+.prose tr:hover,
+[class*="prose-"] tr:hover {
+  background-color: var(--surface-2) !important;
+}
+
+/* Strategist Chat Panel Custom Typography spacing */
+.strategist-prose {
+  font-size: 0.875rem !important; /* text-sm */
+  line-height: 1.6 !important;
+}
+.strategist-prose p {
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+.strategist-prose h1,
+.strategist-prose h2,
+.strategist-prose h3,
+.strategist-prose h4 {
+  margin-top: 1rem !important;
+  margin-bottom: 0.4rem !important;
+}
+.strategist-prose ul,
+.strategist-prose ol {
+  margin-top: 0.4rem !important;
+  margin-bottom: 0.4rem !important;
+  padding-left: 1.25rem !important;
+}
+.strategist-prose li {
+  margin-top: 0.2rem !important;
+  margin-bottom: 0.2rem !important;
+}
+.strategist-prose hr {
+  margin-top: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+}
+.strategist-prose table {
+  margin-top: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  font-size: 0.8125rem !important;
+}
+.strategist-prose th {
+  background-color: var(--surface-2) !important;
+  color: var(--foreground) !important;
+  font-weight: 600 !important;
+  padding: 0.5rem 0.6rem !important;
+  border: 1px solid var(--border) !important;
+  text-align: left !important;
+}
+.strategist-prose td {
+  padding: 0.4rem 0.6rem !important;
+  border: 1px solid var(--border) !important;
+  color: var(--foreground) !important;
+}
+.strategist-prose tr:nth-child(even) {
+  background-color: var(--surface-1) !important;
+}
+.strategist-prose tr:nth-child(odd) {
+  background-color: transparent !important;
+}
+.strategist-prose tr:hover {
+  background-color: var(--surface-2) !important;
+}
+
 /* ============================================================
    Component Utilities
    ============================================================ */
@@ -2053,5 +2163,66 @@
 
   .final-draft-stat .text-2xl {
     font-size: 22px;
+  }
+}
+
+/* Responsive Mobile Overlay Drawers for 3-Column Layout */
+@media (max-width: 768px) {
+  /* Prevent the resizable panels group from setting row flex structure */
+  div[data-panel-group-direction="horizontal"] {
+    position: relative !important;
+    display: block !important;
+  }
+
+  /* Make center panel take 100% viewport width */
+  .workspace-center-panel {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+    height: 100% !important;
+    position: relative !important;
+  }
+
+  /* Left Panel overlay drawer */
+  .workspace-left-panel {
+    position: fixed !important;
+    top: var(--titlebar-height) !important;
+    bottom: var(--statusbar-height) !important;
+    left: 0 !important;
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+    z-index: 100 !important;
+    box-shadow: var(--shadow-2xl) !important;
+    border-right: 1px solid var(--border) !important;
+    transform: translateX(-102%) !important;
+    transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+    background: var(--surface-1) !important;
+  }
+
+  .workspace-left-panel[data-open="true"] {
+    transform: translateX(0) !important;
+  }
+
+  /* Right Panel overlay drawer */
+  .workspace-right-panel {
+    position: fixed !important;
+    top: var(--titlebar-height) !important;
+    bottom: var(--statusbar-height) !important;
+    right: 0 !important;
+    width: 320px !important;
+    min-width: 320px !important;
+    max-width: min(320px, 85vw) !important;
+    z-index: 100 !important;
+    box-shadow: var(--shadow-2xl) !important;
+    border-left: 1px solid var(--border) !important;
+    transform: translateX(102%) !important;
+    transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+    background: var(--surface-1) !important;
+  }
+
+  .workspace-right-panel[data-open="true"] {
+    transform: translateX(0) !important;
   }
 }
