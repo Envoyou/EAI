@@ -1798,8 +1798,8 @@
   color: var(--foreground);
 }
 
-/* Panel Resize Handle */
-[data-panel-group-direction='horizontal'] [data-panel-resize-handle-id] {
+/* Panel Resize Handle (react-resizable-panels Separator) */
+.panel-resize-handle {
   width: var(--panel-handle-width);
   background: transparent;
   cursor: col-resize;
@@ -1811,12 +1811,12 @@
   justify-content: center;
 }
 
-[data-panel-group-direction='horizontal'] [data-panel-resize-handle-id]:hover,
-[data-panel-group-direction='horizontal'] [data-panel-resize-handle-id][data-resize-handle-active] {
+.panel-resize-handle:hover,
+.panel-resize-handle[data-resize-handle-active] {
   background: var(--border-gold);
 }
 
-[data-panel-group-direction='horizontal'] [data-panel-resize-handle-id]::after {
+.panel-resize-handle::after {
   content: '';
   width: 1px;
   height: 40px;
@@ -1825,8 +1825,8 @@
   transition: background 150ms ease, height 150ms ease;
 }
 
-[data-panel-group-direction='horizontal'] [data-panel-resize-handle-id]:hover::after,
-[data-panel-group-direction='horizontal'] [data-panel-resize-handle-id][data-resize-handle-active]::after {
+.panel-resize-handle:hover::after,
+.panel-resize-handle[data-resize-handle-active]::after {
   background: var(--primary);
   height: 60px;
 }

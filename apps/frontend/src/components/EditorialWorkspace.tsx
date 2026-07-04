@@ -8,6 +8,11 @@ import Editor from '@/components/Editor';
 import FeedbackPanel from '@/components/FeedbackPanel';
 import FinalDraftPanel from '@/components/FinalDraftPanel';
 import HistorySidebar from '@/components/HistorySidebar';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import DocumentHistoryPanel from '@/components/DocumentHistoryPanel';
+import ThreeColumnLayout from '@/components/ThreeColumnLayout';
+import EditorCanvas from '@/components/EditorCanvas';
+import AICopilotPanel from '@/components/AICopilotPanel';
 import PanelTabBar, { PanelTab } from '@/components/PanelTabBar';
 import StatusBar from '@/components/StatusBar';
 import ShortcutsModal from '@/components/ShortcutsModal';
@@ -1209,582 +1214,555 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     );
   }
 
-  return (
+return (
     <MotionConfig reducedMotion="user">
     <div
       className="flex flex-col h-screen overflow-hidden relative"
       style={{ background: 'var(--background)' }}
     >
 
-      {/* ── Body: Sidebar + Main ── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      {/* ── Title Bar ── */}
+      <header className="ide-titlebar max-sm:h-14 max-sm:px-3 max-sm:gap-2 border-b border-[var(--border)]" role="banner" style={{ background: 'var(--surface-1)' }}>
+        {/* Left Side: Active Document Path */}
+        <div className="titlebar-path flex min-w-0 shrink-0 items-center gap-2 select-none">
+          {!sidebarOpen && !isDemoMode && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="mr-2 p-1.5 -ml-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] md:hidden"
+              aria-label="Open Sidebar"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+          )}
+          {isDemoMode ? (
+            <>
+              <span className="titlebar-workspace text-sm font-bold text-[var(--foreground)] tracking-tight">EAI</span>
+              <span className="ui-badge ui-badge-surface ui-badge-xs ml-1 font-semibold tracking-wide uppercase">Try Demo</span>
+            </>
+          ) : (
+            <>
+              <span className="titlebar-workspace text-sm font-semibold text-[var(--foreground)]">Workspace</span>
+              <span className="text-[11px] text-[var(--muted-foreground)]">/</span>
+              <span className="titlebar-current truncate text-[13px] font-medium text-[var(--muted-foreground)]">
+                {activeTab === 'draft' ? 'Draft Article' : 'Refined Draft'}
+              </span>
+            </>
+          )}
+          {analysis.editorStatus && (
+            <span className={`ui-badge ui-badge-xs ml-1 capitalize ${editorStatusBadgeClass(analysis.editorStatus)}`}>
+              {analysis.editorStatus}
+            </span>
+          )}
+        </div>
 
+        {/* Spacer */}
+        <div className="flex-1" />
 
-
-        {/* Sidebar (History) — always mounted, width/transform animates */}
-        {!isDemoMode && (
-          <div
-            className={`shrink-0 h-full ${isMobile ? 'fixed inset-y-0 left-0 z-50' : 'relative'}`}
-            style={isMobile ? {
-              width: 'var(--sidebar-panel-width)',
-              borderRight: 'none',
-              transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-              transition: 'transform 240ms cubic-bezier(0.4, 0, 0.2, 1)',
-            } : {
-              width: sidebarOpen ? 'var(--sidebar-panel-width)' : '0px',
-              borderRight: 'none',
-              overflow: 'hidden',
-              overflowX: 'hidden',
-              transition: 'width 240ms cubic-bezier(0.4, 0, 0.2, 1)',
-            }}
-          >
-          <div style={{ width: '100%', height: '100%' }}>
-            <HistorySidebar
-              onSelect={loadHistory}
-              onNew={handleNewDraft}
-              activeId={activeHistoryId}
-              refreshTrigger={refreshTrigger}
-              sidebarOpen={sidebarOpen}
-              onToggleSidebar={() => setSidebarOpen(p => !p)}
-              isDemoMode={isDemoMode}
-              activePlan={editorialOptions.activePlan}
-            />
-            </div>
-          </div>
-        )}
-
-        {/* Mobile backdrop — always mounted, opacity animates */}
-        {isMobile && !isDemoMode && (
-          <button
-            type="button"
-            aria-label="Close draft history"
-            className="fixed inset-0 z-40"
-            style={{
-              background: 'rgba(9,9,9,0.7)',
-              backdropFilter: 'blur(3px)',
-              opacity: sidebarOpen ? 1 : 0,
-              pointerEvents: sidebarOpen ? 'auto' : 'none',
-              transition: 'opacity 240ms ease',
-            }}
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* ── Main Editor Area ── */}
-        <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
-          {/* ── Title Bar ── */}
-          <header className="ide-titlebar max-sm:h-14 max-sm:px-3 max-sm:gap-2" role="banner">
-            {/* Left Side: Active Document Path */}
-            <div className="titlebar-path flex min-w-0 shrink-0 items-center gap-2 select-none">
-              {!sidebarOpen && !isDemoMode && (
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="mr-2 p-1.5 -ml-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] md:hidden"
-                  aria-label="Open Sidebar"
-                >
-                  <Menu className="w-4 h-4" />
-                </button>
-              )}
-              {isDemoMode ? (
-                <>
-                  <span className="titlebar-workspace text-sm font-bold text-[var(--foreground)] tracking-tight">EAI</span>
-                  <span className="ui-badge ui-badge-surface ui-badge-xs ml-1 font-semibold tracking-wide uppercase">Try Demo</span>
-                </>
-              ) : (
-                <>
-                  <span className="titlebar-workspace text-sm font-semibold text-[var(--foreground)]">Workspace</span>
-                  <span className="text-[11px] text-[var(--muted-foreground)]">/</span>
-                  <span className="titlebar-current truncate text-[13px] font-medium text-[var(--muted-foreground)]">
-                    {activeTab === 'draft' ? 'Draft Article' : 'Refined Draft'}
-                  </span>
-                </>
-              )}
-              {analysis.editorStatus && (
-                <span className={`ui-badge ui-badge-xs ml-1 capitalize ${editorStatusBadgeClass(analysis.editorStatus)}`}>
-                  {analysis.editorStatus}
-                </span>
-              )}
-            </div>
-
-            {/* Spacer */}
-            <div className="flex-1" />
-
-            {/* Global Actions */}
-            <div className="titlebar-actions flex items-center gap-1.5">
-              {/* What's New */}
-              {!isDemoMode && (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <a
-                        id="titlebar-whats-new"
-                        href="https://envoyou.com/changelog"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ui-btn ui-btn-muted ui-btn-sm no-underline"
-                      >
-                        <Megaphone className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">What&apos;s New</span>
-                      </a>
-                    }
-                  />
-                  <TooltipContent side="bottom" className="text-xs">
-                    View latest platform updates
-                  </TooltipContent>
-                </Tooltip>
-              )}
-
-              {/* Undo (Borderless) */}
-              {!isDemoMode && (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <button
-                        id="titlebar-undo"
-                        onClick={handleUndoLastEdit}
-                        disabled={draftHistory.length === 0 || analysis.status === 'loading'}
-                        className="ui-btn ui-btn-muted ui-btn-sm"
-                        aria-label="Undo last edit"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                        <span className="hidden sm:inline">Undo</span>
-                      </button>
-                    }
-                  />
-                  <TooltipContent side="bottom" className="text-xs">
-                    Undo last edit
-                  </TooltipContent>
-                </Tooltip>
-              )}
-
-              {/* Cloud Save / Sync Indicator */}
-              {!isDemoMode && (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      activeHistoryId ? (
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--muted-foreground)] bg-[var(--surface-2)]/45 border border-[var(--border)]/75 rounded-full select-none">
-                          {isSavingToCloud ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--primary)]" />
-                              <span>Saving...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Cloud className="w-3.5 h-3.5 text-emerald-500" />
-                              <span className="hidden sm:inline">Saved to Cloud</span>
-                            </>
-                          )}
-                        </div>
-                      ) : (
-                        <button
-                          onClick={handleCloudSave}
-                          disabled={isSavingToCloud}
-                          className="ui-btn ui-btn-muted ui-btn-sm text-[var(--primary)] border-[var(--primary)]/20 hover:bg-[var(--primary)]/10"
-                        >
-                          {isSavingToCloud ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <CloudUpload className="w-3.5 h-3.5" />
-                          )}
-                          <span>Save to Cloud</span>
-                        </button>
-                      )
-                    }
-                  />
-                  <TooltipContent side="bottom" className="text-xs">
-                    {activeHistoryId 
-                      ? 'Autosave is active. Edits sync to database automatically.' 
-                      : 'Save this draft and notes to the cloud database to work on other devices.'}
-                  </TooltipContent>
-                </Tooltip>
-              )}
-
-              {/* Mode Selector (Borderless) */}
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setAnalysisSpeed('fast')}
-                        className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[13px] font-[550] transition-colors border-none bg-transparent cursor-pointer rounded-md ${
-                          analysisSpeed === 'fast' ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
-                        }`}
-                      >
-                        <Zap className="w-3.5 h-3.5" />
-                        <span className="hidden md:inline">Fast</span>
-                        {analysisSpeed === 'fast' && (
-                          <div className="absolute -bottom-[5px] left-2 right-2 h-[2px] bg-[var(--primary)] rounded-t-sm" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (isDemoMode) {
-                            setShowDemoSignupModal(true);
-                            return;
-                          }
-                          setAnalysisSpeed('publish');
-                        }}
-                        className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[13px] font-[550] transition-colors border-none bg-transparent cursor-pointer rounded-md ${
-                          analysisSpeed === 'publish' ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
-                        }`}
-                      >
-                        {isDemoMode ? <Lock className="w-3.5 h-3.5 text-slate-400" /> : <Rocket className="w-3.5 h-3.5" />}
-                        <span className="hidden md:inline">Publish</span>
-                        {analysisSpeed === 'publish' && (
-                          <div className="absolute -bottom-[5px] left-2 right-2 h-[2px] bg-[var(--primary)] rounded-t-sm" />
-                        )}
-                      </button>
-                    </div>
-                  }
-                />
-                <TooltipContent side="bottom" className="text-xs">
-                  {analysisSpeed === 'fast' 
-                    ? 'Fast Review: Quick and cost-efficient. Skips SEO generation and internal link lookup.'
-                    : 'Publish Ready: Full editorial workflow with SEO metadata and internal links.'}
-                </TooltipContent>
-              </Tooltip>
-
-              {/* Refine Draft — Primary CTA */}
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <button
-                      id="titlebar-refine"
-                      onClick={() => handleAnalyze()}
-                      disabled={!draft.trim() || analysis.status === 'loading'}
-                      className={`ui-btn ui-btn-primary ui-btn-sm ${
-                        activeTab !== 'draft' ? 'max-sm:hidden' : ''
-                      }`}
-                    >
-                      {analysis.status === 'loading'
-                        ? <Loader2 className="w-4 h-4 animate-spin" />
-                        : <Sparkles className="w-4 h-4" />
-                      }
-                      <span className="hidden sm:inline">
-                        {analysis.status === 'loading' ? 'Refining…' : 'Refine Draft'}
-                      </span>
-                    </button>
-                  }
-                />
-                <TooltipContent side="bottom" className="text-xs">
-                  {analysis.status === 'loading' ? 'Refining draft…' : 'Refine Draft (Ctrl+Enter)'}
-                </TooltipContent>
-              </Tooltip>
-
-            </div>
-            
-            {/* Demo CTAs */}
-            {isDemoMode && (
-              <div className="flex items-center gap-2 ml-2 pl-2 border-l border-[var(--border)]">
-                <button
-                  onClick={() => router.push('/login')}
-                  className="text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors px-2"
-                >
-                  Login
-                </button>
-                <button
-                  onClick={() => router.push('/signup')}
-                  className="ui-btn ui-btn-primary ui-btn-sm text-xs px-3"
-                >
-                  Start Free
-                </button>
-              </div>
-            )}
-          </header>
-
-          {/* Demo Progress Stepper */}
-          {isDemoMode && (
-            <div className="flex items-center justify-center gap-0 border-b border-[var(--border)] px-4 py-2.5" style={{ background: 'var(--background)' }}>
-              <span className="text-[11px] font-semibold text-[var(--muted-foreground)] mr-4 hidden sm:block">Try EAI in 30 sec</span>
-              {/* Step 1: Refine Draft */}
-              <div className={`flex items-center gap-1.5 text-[11px] font-semibold ${
-                analysis.status === 'idle' ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'
-              }`}>
-                <span className="flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold bg-[var(--primary)] text-white">
-                  {analysis.status !== 'idle' ? '✓' : '1'}
-                </span>
-                <span className="hidden sm:block">Refine Draft</span>
-              </div>
-              <div className="w-6 sm:w-10 h-px bg-[var(--border)] mx-2" />
-              {/* Step 2: See Improvements */}
-              <div className={`flex items-center gap-1.5 text-[11px] font-semibold ${
-                analysis.status === 'loading' ? 'text-[var(--primary)]' :
-                hasResult ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'
-              }`}>
-                <span className={`flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${
-                  analysis.status === 'loading' ? 'bg-[var(--primary)] text-white' :
-                  hasResult ? 'bg-[var(--primary)] text-white' : 'border border-[var(--border)] text-[var(--muted-foreground)]'
-                }`}>{hasResult ? '✓' : analysis.status === 'loading' ? '…' : '2'}</span>
-                <span className="hidden sm:block">See Improvements</span>
-              </div>
-              <div className="w-6 sm:w-10 h-px bg-[var(--border)] mx-2" />
-              {/* Step 3: Save Workspace */}
-              <div className={`flex items-center gap-1.5 text-[11px] font-semibold ${
-                hasResult ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'
-              }`}>
-                <span className={`flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${
-                  hasResult ? 'border border-[var(--primary)] text-[var(--primary)]' : 'border border-[var(--border)] text-[var(--muted-foreground)]'
-                }`}>3</span>
-                <span className="hidden sm:block">Save Workspace</span>
-              </div>
-            </div>
+        {/* Global Actions */}
+        <div className="titlebar-actions flex items-center gap-1.5">
+          {/* What's New */}
+          {!isDemoMode && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <a
+                    id="titlebar-whats-new"
+                    href="https://envoyou.com/changelog"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ui-btn ui-btn-muted ui-btn-sm no-underline"
+                  >
+                    <Megaphone className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">What&apos;s New</span>
+                  </a>
+                }
+              />
+              <TooltipContent side="bottom" className="text-xs">
+                View latest platform updates
+              </TooltipContent>
+            </Tooltip>
           )}
 
-          {/* Tab Bar */}
-          <PanelTabBar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            hasResult={hasResult}
-            isLoading={analysis.status === 'loading'}
-            showFeedbackSidebar={showFeedbackSidebar}
-            onToggleFeedbackSidebar={() => setShowFeedbackSidebar(p => !p)}
-            showHistorySidebar={sidebarOpen}
-            onToggleHistorySidebar={() => setSidebarOpen(p => !p)}
-            showNotesSidebar={showNotesSidebar}
-            onToggleNotesSidebar={() => setShowNotesSidebar(p => !p)}
-            hasNotes={hasNotes}
-          />
+          {/* Undo */}
+          {!isDemoMode && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    id="titlebar-undo"
+                    onClick={handleUndoLastEdit}
+                    disabled={draftHistory.length === 0 || analysis.status === 'loading'}
+                    className="ui-btn ui-btn-muted ui-btn-sm"
+                    aria-label="Undo last edit"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span className="hidden sm:inline">Undo</span>
+                  </button>
+                }
+              />
+              <TooltipContent side="bottom" className="text-xs">
+                Undo last edit
+              </TooltipContent>
+            </Tooltip>
+          )}
 
-          {/* Workspace */}
-          <div
-            id={`panel-${activeTab}`}
-            role="tabpanel"
-            aria-labelledby={`panel-tab-${activeTab}`}
-            className="flex-1 min-h-0 overflow-hidden relative"
-          >
-            <AnimatePresence mode="wait">
-              {/* ── DRAFT TAB ── */}
-              {activeTab === 'draft' && (
-                <motion.div
-                  key="draft-tab"
-                  initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="h-full w-full p-3 md:px-6 md:py-5 absolute inset-0"
-                >
-                  <Editor
-                    value={draft}
-                    onChange={setDraft}
-                    metadata={metadata}
-                    onMetadataChange={setMetadata}
-                    isLoading={analysis.status === 'loading'}
-                    onAnalyze={handleAnalyze}
-                    categoryOptions={editorialOptions.categories}
-                    articleTypeOptions={editorialOptions.articleTypes}
-                    editorialBrandName={editorialOptions.brandName}
-                    isPersonal={editorialOptions.isPersonal}
-                    onAddNewMetadataOption={handleAddNewCategoryOrType}
-                    charLimit={editorialOptions.maxTextLength}
-                    showNotesSidebar={showNotesSidebar}
-                    researchNotes={researchNotes}
-                    onNotesChange={handleNotesChange}
-                    attachments={attachments}
-                    onAttachmentsChange={setAttachments}
-                  />
-                </motion.div>
-              )}
-
-              {/* ── REFINED DRAFT TAB ── */}
-              {activeTab === 'refined' && (
-                <motion.div
-                  key="refined-tab"
-                  initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="h-full w-full flex min-h-0 overflow-hidden absolute inset-0"
-                >
-                  {(hasResult || analysis.status === 'loading') ? (
-                    isMobile ? (
-                    <div className="flex-1 min-w-0 h-full overflow-hidden p-4">
-                      {showFeedbackSidebar ? (
-                        <FeedbackPanel
-                          key={`${activeHistoryId ?? 'draft'}-${refreshTrigger}-${analysis.status}`}
-                          result={analysis}
-                          title={analysis.generatedMetadata?.title as string | undefined}
-                          onApplyFix={handleApplyFix}
-                          onApplyAll={handleApplyAllFixes}
-                          hoveredFeedbackIndex={hoveredFeedbackIndex}
-                          onHoveredFeedbackChange={setHoveredFeedbackIndex}
-                          activeFeedbackIndex={activeFeedbackIndex}
-                          onActiveFeedbackChange={setActiveFeedbackIndex}
-                          isSidebarMode={true}
-                          isProcessing={isStreaming || isRefining}
-                          processStage={processStage}
-                          processStartedAt={processStartedAt}
-                          isRefining={isRefining}
-                          onAcceptFeedback={handleAcceptFeedback}
-                          onRemoveFeedbackAddition={(idx) => handleTargetedFix(idx, 'remove')}
-                          onAddFeedbackSource={handleAddFeedbackSource}
-                          onMarkFeedbackVerified={handleMarkFeedbackVerified}
-                          onFixFeedbackWithEAI={(idx) => handleTargetedFix(idx, 'fix')}
-                          isTargetedFixing={isTargetedFixing}
-                        />
+          {/* Cloud Save */}
+          {!isDemoMode && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  activeHistoryId ? (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--muted-foreground)] bg-[var(--surface-2)]/45 border border-[var(--border)]/75 rounded-full select-none">
+                      {isSavingToCloud ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--primary)]" />
+                          <span>Saving...</span>
+                        </>
                       ) : (
-                        <FinalDraftPanel
-                          originalDraft={sourceDraft}
-                          polishedDraft={analysis.polishedDraft ?? ''}
-                          ready={analysis.status === 'success'}
-                          exportBlocked={isDemoMode || analysis.readiness !== 'ready'}
-                          cmsConnected={editorialOptions.cmsExportEnabled}
-                          analysisLogId={analysis.analysisLogId || activeHistoryId || undefined}
-                          sourceRef={analysis.sourceRef || metadata.sourceRef}
-                          articleMetadata={metadata}
-                          exportStatus={analysis.exportStatus}
-                          generatedMetadata={analysis.generatedMetadata}
-                          isStreaming={isStreaming}
-                          isRefining={isRefining}
-                          processStage={processStage}
-                          processStartedAt={processStartedAt}
-                          isStale={analysis.summary?.startsWith('Iterative refinement')}
-                          onRefineAgain={handleRefineAgain}
-                          onReanalyze={handleReanalyze}
-                          hoveredFeedbackIndex={hoveredFeedbackIndex}
-                          activeFeedbackIndex={activeFeedbackIndex}
-                          onActiveFeedbackChange={setActiveFeedbackIndex}
-                          feedback={analysis.feedback || []}
-                          isDemoMode={isDemoMode}
-                        />
+                        <>
+                          <Cloud className="w-3.5 h-3.5 text-emerald-500" />
+                          <span className="hidden sm:inline">Saved to Cloud</span>
+                        </>
                       )}
                     </div>
                   ) : (
-                    <div className="flex-1 min-w-0 flex h-full overflow-hidden p-3 gap-3 md:px-5 md:py-5 md:gap-4">
-                      <div
-                        className="min-w-0 h-full flex flex-col overflow-hidden"
-                        style={{
-                          flex: 1,
-                          maxWidth: showFeedbackSidebar ? '9999px' : '56rem',
-                          marginLeft: 'auto',
-                          marginRight: 'auto',
-                          transition: 'max-width 240ms cubic-bezier(0.4, 0, 0.2, 1)',
-                        }}
-                      >
-                        <FinalDraftPanel
-                          originalDraft={sourceDraft}
-                          polishedDraft={analysis.polishedDraft ?? ''}
-                          ready={analysis.status === 'success'}
-                          exportBlocked={isDemoMode || analysis.readiness !== 'ready'}
-                          cmsConnected={editorialOptions.cmsExportEnabled}
-                          analysisLogId={analysis.analysisLogId || activeHistoryId || undefined}
-                          sourceRef={analysis.sourceRef || metadata.sourceRef}
-                          articleMetadata={metadata}
-                          exportStatus={analysis.exportStatus}
-                          generatedMetadata={analysis.generatedMetadata}
-                          isStreaming={isStreaming}
-                          isRefining={isRefining}
-                          processStage={processStage}
-                          processStartedAt={processStartedAt}
-                          isStale={analysis.summary?.startsWith('Iterative refinement')}
-                          onRefineAgain={handleRefineAgain}
-                          onReanalyze={handleReanalyze}
-                          hoveredFeedbackIndex={hoveredFeedbackIndex}
-                          activeFeedbackIndex={activeFeedbackIndex}
-                          onActiveFeedbackChange={setActiveFeedbackIndex}
-                          feedback={analysis.feedback || []}
-                          isDemoMode={isDemoMode}
-                        />
-                      </div>
-                      <motion.div
-                        initial={false}
-                        animate={{
-                          width: showFeedbackSidebar ? 380 : 0,
-                          opacity: showFeedbackSidebar ? 1 : 0,
-                        }}
-                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                        style={{
-                          flexShrink: 0,
-                          overflow: 'hidden',
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column',
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: '380px',
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            background: 'var(--card)',
-                            borderRadius: 'var(--radius-lg)',
-                            border: '1px solid var(--border)',
-                            boxShadow: 'none',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          <FeedbackPanel
-                            key={`${activeHistoryId ?? 'draft'}-${refreshTrigger}-${analysis.status}`}
-                            result={analysis}
-                            title={analysis.generatedMetadata?.title as string | undefined}
-                            onApplyFix={handleApplyFix}
-                            onApplyAll={handleApplyAllFixes}
-                            hoveredFeedbackIndex={hoveredFeedbackIndex}
-                            onHoveredFeedbackChange={setHoveredFeedbackIndex}
-                            activeFeedbackIndex={activeFeedbackIndex}
-                            onActiveFeedbackChange={setActiveFeedbackIndex}
-                            isSidebarMode={true}
-                            isProcessing={isStreaming || isRefining}
-                            processStage={processStage}
-                            processStartedAt={processStartedAt}
-                            isRefining={isRefining}
-                            onAcceptFeedback={handleAcceptFeedback}
-                            onRemoveFeedbackAddition={(idx) => handleTargetedFix(idx, 'remove')}
-                            onAddFeedbackSource={handleAddFeedbackSource}
-                            onMarkFeedbackVerified={handleMarkFeedbackVerified}
-                            onFixFeedbackWithEAI={(idx) => handleTargetedFix(idx, 'fix')}
-                            isTargetedFixing={isTargetedFixing}
-                          />
-                        </div>
-                      </motion.div>
-                    </div>
+                    <button
+                      onClick={handleCloudSave}
+                      disabled={isSavingToCloud}
+                      className="ui-btn ui-btn-muted ui-btn-sm text-[var(--primary)] border-[var(--primary)]/20 hover:bg-[var(--primary)]/10"
+                    >
+                      {isSavingToCloud ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <CloudUpload className="w-3.5 h-3.5" />
+                      )}
+                      <span>Save to Cloud</span>
+                    </button>
                   )
-                ) : (
-                  <div className="h-full max-w-4xl mx-auto w-full p-6 md:p-10">
-                    <div className="ui-state-card flex h-full items-center justify-center p-8">
-                      <p className="text-xs ui-muted">
-                        Run &ldquo;Refine Draft&rdquo; to generate the Refined Draft.
-                      </p>
+                }
+              />
+              <TooltipContent side="bottom" className="text-xs">
+                {activeHistoryId
+                  ? 'Autosave is active. Edits sync to database automatically.'
+                  : 'Save this draft and notes to the cloud database to work on other devices.'}
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Mode Selector */}
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setAnalysisSpeed('fast')}
+                    className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[13px] font-[550] transition-colors border-none bg-transparent cursor-pointer rounded-md ${
+                      analysisSpeed === 'fast' ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
+                    }`}
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Fast</span>
+                    {analysisSpeed === 'fast' && (
+                      <div className="absolute -bottom-[5px] left-2 right-2 h-[2px] bg-[var(--primary)] rounded-t-sm" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (isDemoMode) {
+                        setShowDemoSignupModal(true);
+                        return;
+                      }
+                      setAnalysisSpeed('publish');
+                    }}
+                    className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[13px] font-[550] transition-colors border-none bg-transparent cursor-pointer rounded-md ${
+                      analysisSpeed === 'publish' ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
+                    }`}
+                  >
+                    {isDemoMode ? <Lock className="w-3.5 h-3.5 text-slate-400" /> : <Rocket className="w-3.5 h-3.5" />}
+                    <span className="hidden md:inline">Publish</span>
+                    {analysisSpeed === 'publish' && (
+                      <div className="absolute -bottom-[5px] left-2 right-2 h-[2px] bg-[var(--primary)] rounded-t-sm" />
+                    )}
+                  </button>
+                </div>
+              }
+            />
+            <TooltipContent side="bottom" className="text-xs">
+              {analysisSpeed === 'fast'
+                ? 'Fast Review: Quick and cost-efficient. Skips SEO generation and internal link lookup.'
+                : 'Publish Ready: Full editorial workflow with SEO metadata and internal links.'}
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Refine Draft CTA */}
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  id="titlebar-refine"
+                  onClick={() => handleAnalyze()}
+                  disabled={!draft.trim() || analysis.status === 'loading'}
+                  className={`ui-btn ui-btn-primary ui-btn-sm ${
+                    activeTab !== 'draft' ? 'max-sm:hidden' : ''
+                  }`}
+                >
+                  {analysis.status === 'loading'
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Sparkles className="w-4 h-4" />
+                  }
+                  <span className="hidden sm:inline">
+                    {analysis.status === 'loading' ? 'Refining…' : 'Refine Draft'}
+                  </span>
+                </button>
+              }
+            />
+            <TooltipContent side="bottom" className="text-xs">
+              {analysis.status === 'loading' ? 'Refining draft…' : 'Refine Draft (Ctrl+Enter)'}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Demo CTAs */}
+        {isDemoMode && (
+          <div className="flex items-center gap-2 ml-2 pl-2 border-l border-[var(--border)]">
+            <button
+              onClick={() => router.push('/login')}
+              className="text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors px-2"
+            >
+              Login
+            </button>
+            <button
+              onClick={() => router.push('/signup')}
+              className="ui-btn ui-btn-primary ui-btn-sm text-xs px-3"
+            >
+              Start Free
+            </button>
+          </div>
+        )}
+      </header>
+
+      {/* ── Body: Three Column Layout ── */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <ThreeColumnLayout
+          leftPanelOpen={sidebarOpen && !isDemoMode}
+          rightPanelOpen={true}
+          leftPanel={
+            !isDemoMode ? (
+              <div style={{ width: '100%', height: '100%' }}>
+                <HistorySidebar
+                  onSelect={loadHistory}
+                  onNew={handleNewDraft}
+                  activeId={activeHistoryId}
+                  refreshTrigger={refreshTrigger}
+                  sidebarOpen={sidebarOpen}
+                  onToggleSidebar={() => setSidebarOpen(p => !p)}
+                  isDemoMode={isDemoMode}
+                  activePlan={editorialOptions.activePlan}
+                />
+              </div>
+            ) : null
+          }
+          rightPanel={
+            <AICopilotPanel />
+          }
+          centerPanel={
+            <EditorCanvas>
+              <div className="flex flex-col h-full min-h-0 overflow-hidden">
+                {/* Demo Progress Stepper */}
+                {isDemoMode && (
+                  <div className="flex items-center justify-center gap-0 border-b border-[var(--border)] px-4 py-2.5" style={{ background: 'var(--background)' }}>
+                    <span className="text-[11px] font-semibold text-[var(--muted-foreground)] mr-4 hidden sm:block">Try EAI in 30 sec</span>
+                    {/* Step 1: Refine Draft */}
+                    <div className={`flex items-center gap-1.5 text-[11px] font-semibold ${
+                      analysis.status === 'idle' ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'
+                    }`}>
+                      <span className="flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold bg-[var(--primary)] text-white">
+                        {analysis.status !== 'idle' ? '\u2713' : '1'}
+                      </span>
+                      <span className="hidden sm:block">Refine Draft</span>
+                    </div>
+                    <div className="w-6 sm:w-10 h-px bg-[var(--border)] mx-2" />
+                    {/* Step 2: See Improvements */}
+                    <div className={`flex items-center gap-1.5 text-[11px] font-semibold ${
+                      analysis.status === 'loading' ? 'text-[var(--primary)]' :
+                      hasResult ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'
+                    }`}>
+                      <span className={`flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${
+                        analysis.status === 'loading' ? 'bg-[var(--primary)] text-white' :
+                        hasResult ? 'bg-[var(--primary)] text-white' : 'border border-[var(--border)] text-[var(--muted-foreground)]'
+                      }`}>{hasResult ? '\u2713' : analysis.status === 'loading' ? '\u2026' : '2'}</span>
+                      <span className="hidden sm:block">See Improvements</span>
+                    </div>
+                    <div className="w-6 sm:w-10 h-px bg-[var(--border)] mx-2" />
+                    {/* Step 3: Save Workspace */}
+                    <div className={`flex items-center gap-1.5 text-[11px] font-semibold ${
+                      hasResult ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'
+                    }`}>
+                      <span className={`flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${
+                        hasResult ? 'border border-[var(--primary)] text-[var(--primary)]' : 'border border-[var(--border)] text-[var(--muted-foreground)]'
+                      }`}>3</span>
+                      <span className="hidden sm:block">Save Workspace</span>
                     </div>
                   </div>
                 )}
-              </motion.div>
-            )}
-            </AnimatePresence>
-          </div>
 
-          {/* Status Bar */}
-          <StatusBar
-            wordCount={wordCount}
-            charCount={charCount}
-            charLimit={MAX_TEXT_LENGTH}
-            readiness={analysis.readiness}
-            isLoading={analysis.status === 'loading'}
-            isStreaming={isStreaming}
-            isRefining={isRefining}
-            activeTab={activeTab}
-            onOpenShortcuts={() => setIsShortcutModalOpen(true)}
-          />
+                {/* Tab Bar */}
+                <PanelTabBar
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                  hasResult={hasResult}
+                  isLoading={analysis.status === 'loading'}
+                  showFeedbackSidebar={showFeedbackSidebar}
+                  onToggleFeedbackSidebar={() => setShowFeedbackSidebar(p => !p)}
+                  showHistorySidebar={sidebarOpen}
+                  onToggleHistorySidebar={() => setSidebarOpen(p => !p)}
+                  showNotesSidebar={showNotesSidebar}
+                  onToggleNotesSidebar={() => setShowNotesSidebar(p => !p)}
+                  hasNotes={hasNotes}
+                />
 
-          {/* Demo CTA: Continue with your own content */}
-          {isDemoMode && hasResult && (
-            <div
-              className="flex items-center justify-between gap-4 px-5 py-2.5 border-t border-[var(--border)]"
-              style={{ background: 'var(--surface-1)' }}
-            >
-              <p className="text-xs text-[var(--muted-foreground)] leading-tight">
-                Your demo won&apos;t be saved. Create an account to keep your work.
-              </p>
-              <button
-                onClick={() => router.push('/signup')}
-                className="ui-btn ui-btn-primary ui-btn-xs whitespace-nowrap shrink-0"
-              >
-                Continue Editing →
-              </button>
-            </div>
-          )}
-        </div>
+                {/* Workspace */}
+                <div
+                  id={`panel-${activeTab}`}
+                  role="tabpanel"
+                  aria-labelledby={`panel-tab-${activeTab}`}
+                  className="flex-1 min-h-0 overflow-hidden relative"
+                >
+                  <AnimatePresence mode="wait">
+                    {/* ── DRAFT TAB ── */}
+                    {activeTab === 'draft' && (
+                      <motion.div
+                        key="draft-tab"
+                        initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                        className="h-full w-full p-3 md:px-6 md:py-5 absolute inset-0"
+                      >
+                        <Editor
+                          value={draft}
+                          onChange={setDraft}
+                          metadata={metadata}
+                          onMetadataChange={setMetadata}
+                          isLoading={analysis.status === 'loading'}
+                          onAnalyze={handleAnalyze}
+                          categoryOptions={editorialOptions.categories}
+                          articleTypeOptions={editorialOptions.articleTypes}
+                          editorialBrandName={editorialOptions.brandName}
+                          isPersonal={editorialOptions.isPersonal}
+                          onAddNewMetadataOption={handleAddNewCategoryOrType}
+                          charLimit={editorialOptions.maxTextLength}
+                          showNotesSidebar={showNotesSidebar}
+                          researchNotes={researchNotes}
+                          onNotesChange={handleNotesChange}
+                          attachments={attachments}
+                          onAttachmentsChange={setAttachments}
+                        />
+                      </motion.div>
+                    )}
+
+                    {/* ── REFINED DRAFT TAB ── */}
+                    {activeTab === 'refined' && (
+                      <motion.div
+                        key="refined-tab"
+                        initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                        className="h-full w-full flex min-h-0 overflow-hidden absolute inset-0"
+                      >
+                        {(hasResult || analysis.status === 'loading') ? (
+                          isMobile ? (
+                          <div className="flex-1 min-w-0 h-full overflow-hidden p-4">
+                            {showFeedbackSidebar ? (
+                              <FeedbackPanel
+                                key={`${activeHistoryId ?? 'draft'}-${refreshTrigger}-${analysis.status}`}
+                                result={analysis}
+                                title={analysis.generatedMetadata?.title as string | undefined}
+                                onApplyFix={handleApplyFix}
+                                onApplyAll={handleApplyAllFixes}
+                                hoveredFeedbackIndex={hoveredFeedbackIndex}
+                                onHoveredFeedbackChange={setHoveredFeedbackIndex}
+                                activeFeedbackIndex={activeFeedbackIndex}
+                                onActiveFeedbackChange={setActiveFeedbackIndex}
+                                isSidebarMode={true}
+                                isProcessing={isStreaming || isRefining}
+                                processStage={processStage}
+                                processStartedAt={processStartedAt}
+                                isRefining={isRefining}
+                                onAcceptFeedback={handleAcceptFeedback}
+                                onRemoveFeedbackAddition={(idx) => handleTargetedFix(idx, 'remove')}
+                                onAddFeedbackSource={handleAddFeedbackSource}
+                                onMarkFeedbackVerified={handleMarkFeedbackVerified}
+                                onFixFeedbackWithEAI={(idx) => handleTargetedFix(idx, 'fix')}
+                                isTargetedFixing={isTargetedFixing}
+                              />
+                            ) : (
+                              <FinalDraftPanel
+                                originalDraft={sourceDraft}
+                                polishedDraft={analysis.polishedDraft ?? ''}
+                                ready={analysis.status === 'success'}
+                                exportBlocked={isDemoMode || analysis.readiness !== 'ready'}
+                                cmsConnected={editorialOptions.cmsExportEnabled}
+                                analysisLogId={analysis.analysisLogId || activeHistoryId || undefined}
+                                sourceRef={analysis.sourceRef || metadata.sourceRef}
+                                articleMetadata={metadata}
+                                exportStatus={analysis.exportStatus}
+                                generatedMetadata={analysis.generatedMetadata}
+                                isStreaming={isStreaming}
+                                isRefining={isRefining}
+                                processStage={processStage}
+                                processStartedAt={processStartedAt}
+                                isStale={analysis.summary?.startsWith('Iterative refinement')}
+                                onRefineAgain={handleRefineAgain}
+                                onReanalyze={handleReanalyze}
+                                hoveredFeedbackIndex={hoveredFeedbackIndex}
+                                activeFeedbackIndex={activeFeedbackIndex}
+                                onActiveFeedbackChange={setActiveFeedbackIndex}
+                                feedback={analysis.feedback || []}
+                                isDemoMode={isDemoMode}
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex-1 min-w-0 flex h-full overflow-hidden p-3 gap-3 md:px-5 md:py-5 md:gap-4">
+                            <div
+                              className="min-w-0 h-full flex flex-col overflow-hidden"
+                              style={{
+                                flex: 1,
+                                maxWidth: showFeedbackSidebar ? '9999px' : '56rem',
+                                marginLeft: 'auto',
+                                marginRight: 'auto',
+                                transition: 'max-width 240ms cubic-bezier(0.4, 0, 0.2, 1)',
+                              }}
+                            >
+                              <FinalDraftPanel
+                                originalDraft={sourceDraft}
+                                polishedDraft={analysis.polishedDraft ?? ''}
+                                ready={analysis.status === 'success'}
+                                exportBlocked={isDemoMode || analysis.readiness !== 'ready'}
+                                cmsConnected={editorialOptions.cmsExportEnabled}
+                                analysisLogId={analysis.analysisLogId || activeHistoryId || undefined}
+                                sourceRef={analysis.sourceRef || metadata.sourceRef}
+                                articleMetadata={metadata}
+                                exportStatus={analysis.exportStatus}
+                                generatedMetadata={analysis.generatedMetadata}
+                                isStreaming={isStreaming}
+                                isRefining={isRefining}
+                                processStage={processStage}
+                                processStartedAt={processStartedAt}
+                                isStale={analysis.summary?.startsWith('Iterative refinement')}
+                                onRefineAgain={handleRefineAgain}
+                                onReanalyze={handleReanalyze}
+                                hoveredFeedbackIndex={hoveredFeedbackIndex}
+                                activeFeedbackIndex={activeFeedbackIndex}
+                                onActiveFeedbackChange={setActiveFeedbackIndex}
+                                feedback={analysis.feedback || []}
+                                isDemoMode={isDemoMode}
+                              />
+                            </div>
+                            <motion.div
+                              initial={false}
+                              animate={{
+                                width: showFeedbackSidebar ? 380 : 0,
+                                opacity: showFeedbackSidebar ? 1 : 0,
+                              }}
+                              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                              style={{
+                                flexShrink: 0,
+                                overflow: 'hidden',
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: '380px',
+                                  height: '100%',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  background: 'var(--card)',
+                                  borderRadius: 'var(--radius-lg)',
+                                  border: '1px solid var(--border)',
+                                  boxShadow: 'none',
+                                  overflow: 'hidden',
+                                }}
+                              >
+                                <FeedbackPanel
+                                  key={`${activeHistoryId ?? 'draft'}-${refreshTrigger}-${analysis.status}`}
+                                  result={analysis}
+                                  title={analysis.generatedMetadata?.title as string | undefined}
+                                  onApplyFix={handleApplyFix}
+                                  onApplyAll={handleApplyAllFixes}
+                                  hoveredFeedbackIndex={hoveredFeedbackIndex}
+                                  onHoveredFeedbackChange={setHoveredFeedbackIndex}
+                                  activeFeedbackIndex={activeFeedbackIndex}
+                                  onActiveFeedbackChange={setActiveFeedbackIndex}
+                                  isSidebarMode={true}
+                                  isProcessing={isStreaming || isRefining}
+                                  processStage={processStage}
+                                  processStartedAt={processStartedAt}
+                                  isRefining={isRefining}
+                                  onAcceptFeedback={handleAcceptFeedback}
+                                  onRemoveFeedbackAddition={(idx) => handleTargetedFix(idx, 'remove')}
+                                  onAddFeedbackSource={handleAddFeedbackSource}
+                                  onMarkFeedbackVerified={handleMarkFeedbackVerified}
+                                  onFixFeedbackWithEAI={(idx) => handleTargetedFix(idx, 'fix')}
+                                  isTargetedFixing={isTargetedFixing}
+                                />
+                              </div>
+                            </motion.div>
+                          </div>
+                        )
+                      ) : (
+                        <div className="h-full max-w-4xl mx-auto w-full p-6 md:p-10">
+                          <div className="ui-state-card flex h-full items-center justify-center p-8">
+                            <p className="text-xs ui-muted">
+                              Run &ldquo;Refine Draft&rdquo; to generate the Refined Draft.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Status Bar */}
+                <StatusBar
+                  wordCount={wordCount}
+                  charCount={charCount}
+                  charLimit={MAX_TEXT_LENGTH}
+                  readiness={analysis.readiness}
+                  isLoading={analysis.status === 'loading'}
+                  isStreaming={isStreaming}
+                  isRefining={isRefining}
+                  activeTab={activeTab}
+                  onOpenShortcuts={() => setIsShortcutModalOpen(true)}
+                />
+
+                {/* Demo CTA */}
+                {isDemoMode && hasResult && (
+                  <div
+                    className="flex items-center justify-between gap-4 px-5 py-2.5 border-t border-[var(--border)]"
+                    style={{ background: 'var(--surface-1)' }}
+                  >
+                    <p className="text-xs text-[var(--muted-foreground)] leading-tight">
+                      Your demo won&apos;t be saved. Create an account to keep your work.
+                    </p>
+                    <button
+                      onClick={() => router.push('/signup')}
+                      className="ui-btn ui-btn-primary ui-btn-xs whitespace-nowrap shrink-0"
+                    >
+                      Continue Editing &rarr;
+                    </button>
+                  </div>
+                )}
+              </div>
+            </EditorCanvas>
+          }
+        />
       </div>
 
       <ShortcutsModal
@@ -1848,4 +1826,5 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     </div>
     </MotionConfig>
   );
+
 }
