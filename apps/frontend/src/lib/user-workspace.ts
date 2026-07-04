@@ -30,7 +30,6 @@ export const isOrganizationAdmin = (
 
 export const getWorkspaceState = async (
   userId: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _context: ClerkOrganizationContext = {}
 ) => {
   try {

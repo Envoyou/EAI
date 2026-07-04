@@ -65,6 +65,7 @@ export interface AnalysisResult {
     excerpt?: string;
     metaTitle?: string;
     metaDescription?: string;
+    focusKeyword?: string;
     coverImageAltText?: string;
     tags?: string[];
   };

@@ -65,10 +65,13 @@ export type ChatMessage = {
 
 interface ContentStrategistWizardProps {
   onComplete: (topic: string, outline: string, draft: string, notes: ResearchNote[], attachments: Attachment[]) => void;
-  onCancel: () => void;
+  onCancel?: () => void;
+  savedNotes: ResearchNote[];
+  onNotesChange: (notes: ResearchNote[]) => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+
 
 const extractDynamicSuggestions = (content: string) => {
   const match = content.match(/\[SUGGESTIONS:\s*([\s\S]*?)\](?![^\]]*\])/);
@@ -81,7 +84,7 @@ const extractDynamicSuggestions = (content: string) => {
   return { displayContent, suggestions: undefined };
 };
 
-export default function ContentStrategistWizard({ onComplete, onCancel }: ContentStrategistWizardProps) {
+export default function ContentStrategistWizard({ onComplete, onCancel, savedNotes, onNotesChange }: ContentStrategistWizardProps) {
   const { user } = useUser();
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -236,14 +239,11 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     try { return sessionStorage.getItem('eai_strategist_deep_research'); } catch { return null; }
   });
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [showBlueprintMobile, setShowBlueprintMobile] = useState(true);
+
 
   // Research Notes — NotebookLM approach
-  const SESSION_KEY = 'eai_research_notes';
   const MAX_NOTES = 10;
-  const [savedNotes, setSavedNotes] = useState<ResearchNote[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch { return []; }
-  });
   const [uploadedAttachment, setUploadedAttachment] = useState<Attachment | null>(() => {
     if (typeof window === 'undefined') return null;
     try {
@@ -273,7 +273,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
       }
     }
   }, [uploadedAttachment]);
-  const savedNoteIds = useMemo(() => new Set(savedNotes.map(n => n.id)), [savedNotes]); // eslint-disable-line react-hooks/preserve-manual-memoization
+  const savedNoteIds = useMemo(() => new Set(savedNotes.map(n => n.id)), [savedNotes]);
 
   // Quick Draft attach-menu modal state
   const [quickDraftMode, setQuickDraftMode] = useState<'topic' | 'outline' | 'reference' | 'press_release' | null>(null);
@@ -348,10 +348,6 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     }
   }, [isTyping]);
 
-  // Sync research notes to sessionStorage
-  useEffect(() => {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(savedNotes));
-  }, [savedNotes, SESSION_KEY]);
 
 
   const appendMessage = (msg: Omit<ChatMessage, 'id'>) => {
@@ -395,7 +391,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
       sources: msg.payload?.sources || [],
       savedAt: new Date().toISOString(),
     };
-    setSavedNotes(prev => [...prev, note]);
+    onNotesChange([...savedNotes, note]);
     toast.success('✅ Note saved successfully');
   };
 
@@ -656,6 +652,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
         sources: [],
         draft: output,
       });
+      setShowBlueprintMobile(true);
 
       if (analysisLogId) {
         console.log('[quick-draft] saved log:', analysisLogId);
@@ -766,6 +763,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
       const data = await res.json();
       if (data.plan) {
         setCurrentPlan(data.plan);
+        setShowBlueprintMobile(true);
         if (data.plan?.sources && data.plan.sources.length > 0) {
           const fakeDomains = data.plan.sources.map((url: string) => {
             let domain = 'Source';
@@ -826,8 +824,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
     };
 
     const nextNotes = [...savedNotes, blueprintNote];
-    setSavedNotes(nextNotes);
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(nextNotes));
+    onNotesChange(nextNotes);
 
     onComplete(
       currentPlan.angle,
@@ -1017,16 +1014,19 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
   };
 
   return (
-    <div className="absolute inset-0 bg-[var(--background)] flex flex-col animate-in fade-in zoom-in-95 duration-200 z-50">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--background)] relative">
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden relative">
-          <button 
-            onClick={onCancel} 
-            className="absolute top-4 left-4 z-50 p-2 bg-[var(--surface-1)]/50 hover:bg-[var(--surface-2)] backdrop-blur-md rounded-full text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors border border-[var(--border)] shadow-sm"
-            title="Go Back"
-          >
-            <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
-          </button>
+          {onCancel && (
+            <button 
+              onClick={onCancel} 
+              className="absolute top-4 left-4 z-50 p-2 bg-[var(--surface-1)]/50 hover:bg-[var(--surface-2)] backdrop-blur-md rounded-full text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors border border-[var(--border)] shadow-sm"
+              title="Go Back"
+            >
+              <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
+            </button>
+          )}
+          
           
           {messages.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
@@ -1040,7 +1040,7 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto pt-14" ref={scrollContainerRef}>
+            <div className={`flex-1 overflow-y-auto ${onCancel ? 'pt-14' : 'pt-4'}`} ref={scrollContainerRef}>
               <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-8 pb-10">
                 <AnimatePresence initial={false}>
                   {messages.map((msg, i) => (
@@ -1576,18 +1576,29 @@ export default function ContentStrategistWizard({ onComplete, onCancel }: Conten
           </div>
         </div>
         {/* Blueprint Panel */}
-        {currentPlan && (
+        {currentPlan && showBlueprintMobile && (
           <div className="w-full lg:w-96 border-l border-[var(--border)] flex absolute lg:relative inset-y-0 right-0 flex-col animate-in slide-in-from-right duration-300 bg-[var(--background)] z-50 lg:z-10 shadow-2xl lg:shadow-none">
             <div className="p-4 flex items-center justify-between shrink-0 border-b border-[var(--border)]">
               <h3 className="font-semibold text-[14px] flex items-center gap-2 text-[var(--foreground)]">
                 <FileText className="w-4 h-4" />
                 Draft Blueprint
               </h3>
-              {savedNotes.length > 0 && (
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: 'var(--primary-muted, rgba(var(--primary-rgb,59,130,246),.12))', color: 'var(--primary)' }}>
-                  📋 {savedNotes.length} Notes
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {savedNotes.length > 0 && (
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: 'var(--primary-muted, rgba(var(--primary-rgb,59,130,246),.12))', color: 'var(--primary)' }}>
+                    📋 {savedNotes.length}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowBlueprintMobile(false)}
+                  className="lg:hidden p-1.5 rounded-full hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none bg-transparent cursor-pointer transition-colors"
+                  aria-label="Hide blueprint"
+                  title="Hide blueprint"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
             
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
