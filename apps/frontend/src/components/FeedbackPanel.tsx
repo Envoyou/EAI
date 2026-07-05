@@ -526,11 +526,11 @@ export default function FeedbackPanel({
                     {isResolved && <CheckCircle2  className="w-4 h-4 shrink-0" style={{ color: 'var(--success)' }} />}
                     {!isResolved && item.status === 'warning' && <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: 'var(--warning)' }} />}
                     {!isResolved && item.status === 'fail'    && <AlertCircle   className="w-4 h-4 shrink-0" style={{ color: 'var(--error)'   }} />}
-                    <span className="text-xs font-semibold ui-text break-words whitespace-normal flex-1 min-w-0">
+                    <span className="text-xs font-semibold ui-text shrink-0 whitespace-nowrap">
                       {item.category}
                     </span>
                     {!isExpanded && item.message && (
-                      <span className="hidden md:inline text-xs truncate ml-1 font-normal ui-muted">
+                      <span className="hidden md:block text-xs truncate ml-1 font-normal ui-muted flex-1 min-w-0">
                         — {item.message}
                       </span>
                     )}
