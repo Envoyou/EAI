@@ -99,9 +99,9 @@ export function AuthPageShell({
         {/* logo */}
         <div className="relative flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center hover:translate-y-[-2px] transition-all duration-300">
-            <EAILogo className="h-7 w-7 text-primary-400" />
+            <EAILogo className="h-9 w-9 text-primary-400" />
           </div>
-          <span className="text-2xl font-semibold tracking-tight text-white">By Envoyou</span>
+          <span className="text-sm font-semibold tracking-tight text-white">By Envoyou</span>
         </div>
 
         {/* headline + highlights */}
@@ -167,8 +167,8 @@ export function AuthPageShell({
         {/* top bar */}
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 lg:hidden">
-            <EAILogo className="h-6 w-6 text-primary-400" />
-            <span className="text-base font-semibold tracking-tight text-white">By Envoyou</span>
+            <EAILogo className="h-9 w-9 text-primary-400" />
+            <span className="text-sm font-semibold tracking-tight text-white">By Envoyou</span>
           </div>
 
           <nav className="ml-auto flex items-center gap-5 text-sm">

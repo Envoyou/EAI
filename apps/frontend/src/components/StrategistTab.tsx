@@ -8,6 +8,7 @@ import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import type { ChatMessage, Attachment } from '@/lib/hooks/useContentStrategist';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface StrategistTabProps {
   messages: ChatMessage[];
@@ -130,15 +131,23 @@ export default function StrategistTab({
           )}
 
           {/* New Chat Button */}
-          <button
-            type="button"
-            onClick={clearMessages}
-            className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] font-medium cursor-pointer border border-[var(--border)] text-[10px]"
-            title="Start new chat session"
-          >
-            <Plus className="w-3 h-3 text-[var(--primary)] shrink-0" />
-            <span>New Chat</span>
-          </button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={clearMessages}
+                  className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] font-medium cursor-pointer border border-[var(--border)] text-[10px]"
+                >
+                  <Plus className="w-3 h-3 text-[var(--primary)] shrink-0" />
+                  <span>New Chat</span>
+                </button>
+              }
+            />
+            <TooltipContent side="bottom" className="text-xs">
+              Start new chat session
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -194,10 +203,10 @@ export default function StrategistTab({
                                >
                                  <div className="flex items-center gap-1 select-none">
                                    <Globe className="w-3 h-3 text-[var(--primary)] shrink-0" />
-                                   <span>Sumber Referensi ({msg.payload.sources.length})</span>
+                                   <span>Source ({msg.payload.sources.length})</span>
                                  </div>
                                  <span className="text-[9px] text-[var(--primary)] font-medium">
-                                   {expandedSources[msg.id] ? 'Sembunyikan' : 'Tampilkan Semua'}
+                                   {expandedSources[msg.id] ? 'Hide' : 'Show All'}
                                  </span>
                                </button>
                                <div className="flex flex-wrap gap-1 mt-1">
@@ -224,7 +233,7 @@ export default function StrategistTab({
                                      onClick={() => toggleSources(msg.id)}
                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] transition-colors border border-[var(--primary)]/20 cursor-pointer font-semibold text-[9px]"
                                    >
-                                     +{msg.payload.sources.length - 3} lainnya
+                                     +{msg.payload.sources.length - 3} more
                                    </button>
                                  )}
                                </div>
@@ -233,46 +242,82 @@ export default function StrategistTab({
 
                           {/* Actions */}
                           <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => handleCopy(msg.content, msg.id)}
-                              className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)]"
-                            >
-                              {copiedMessageId === msg.id ? (
-                                <Copy className="w-3 h-3 text-emerald-500" />
-                              ) : (
-                                <Copy className="w-3 h-3" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => saveNote(msg)}
-                              className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)]"
-                              title="Save as note"
-                            >
-                              <Bookmark className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                const clean = msg.content.replace(/\[SUGGESTIONS:[\s\S]*?\]/g, '');
-                                const blob = new Blob([clean], { type: 'text/markdown;charset=utf-8;' });
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = 'response.md';
-                                a.click();
-                                URL.revokeObjectURL(url);
-                              }}
-                              className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)]"
-                              title="Download"
-                            >
-                              <Download className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => handleRewrite(msg.id)}
-                              className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)]"
-                              title="Rewrite"
-                            >
-                              <RotateCcw className="w-3 h-3" />
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    onClick={() => handleCopy(msg.content, msg.id)}
+                                    className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)]"
+                                  >
+                                    {copiedMessageId === msg.id ? (
+                                      <Copy className="w-3 h-3 text-emerald-500" />
+                                    ) : (
+                                      <Copy className="w-3 h-3" />
+                                    )}
+                                  </button>
+                                }
+                              />
+                              <TooltipContent side="bottom" className="text-xs">
+                                {copiedMessageId === msg.id ? 'Copied' : 'Copy'}
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    onClick={() => saveNote(msg)}
+                                    className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)]"
+                                  >
+                                    <Bookmark className="w-3 h-3" />
+                                  </button>
+                                }
+                              />
+                              <TooltipContent side="bottom" className="text-xs">
+                                Save as note
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    onClick={() => {
+                                      const clean = msg.content.replace(/\[SUGGESTIONS:[\s\S]*?\]/g, '');
+                                      const blob = new Blob([clean], { type: 'text/markdown;charset=utf-8;' });
+                                      const url = URL.createObjectURL(blob);
+                                      const a = document.createElement('a');
+                                      a.href = url;
+                                      a.download = 'response.md';
+                                      a.click();
+                                      URL.revokeObjectURL(url);
+                                    }}
+                                    className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)]"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                  </button>
+                                }
+                              />
+                              <TooltipContent side="bottom" className="text-xs">
+                                Download
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    onClick={() => handleRewrite(msg.id)}
+                                    className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)]"
+                                  >
+                                    <RotateCcw className="w-3 h-3" />
+                                  </button>
+                                }
+                              />
+                              <TooltipContent side="bottom" className="text-xs">
+                                Rewrite
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
 
                           {/* Suggestions */}
@@ -308,14 +353,22 @@ export default function StrategistTab({
           <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[var(--surface-3)] rounded-lg text-[10px] text-[var(--foreground)] w-fit mb-2 animate-fade-in border border-[var(--border)]">
             <FileText className="w-3 h-3 text-[var(--primary)] shrink-0" />
             <span className="truncate max-w-[150px] font-medium">{uploadedAttachment.filename}</span>
-            <button
-              type="button"
-              onClick={() => setUploadedAttachment(null)}
-              className="p-0.5 rounded hover:bg-[var(--surface-4)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none bg-transparent cursor-pointer ml-1"
-              title="Remove attachment"
-            >
-              <X className="w-2.5 h-2.5" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    onClick={() => setUploadedAttachment(null)}
+                    className="p-0.5 rounded hover:bg-[var(--surface-4)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none bg-transparent cursor-pointer ml-1"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                }
+              />
+              <TooltipContent side="bottom" className="text-xs">
+                Remove attachment
+              </TooltipContent>
+            </Tooltip>
           </div>
         )}
         <div className="flex flex-col bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-1.5 focus-within:ring-1 focus-within:ring-[var(--primary)]/30 focus-within:border-[var(--primary)]/30 transition-all">
@@ -341,28 +394,44 @@ export default function StrategistTab({
           <div className="flex items-center justify-between border-t border-[var(--border)]/20 pt-2 mt-1 px-1">
             <div className="flex items-center gap-1.5">
               {/* Upload Button */}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer border-none bg-transparent"
-                title="Attach file (PDF, CSV, TXT)"
-              >
-                <Paperclip className="w-3.5 h-3.5" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer border-none bg-transparent"
+                    >
+                      <Paperclip className="w-3.5 h-3.5" />
+                    </button>
+                  }
+                />
+                <TooltipContent side="top" className="text-xs">
+                  Attach file (PDF, CSV, TXT)
+                </TooltipContent>
+              </Tooltip>
 
               {/* Search Web Button */}
-              <button
-                type="button"
-                onClick={() => setEnableSearch(!enableSearch)}
-                className={`flex items-center justify-center w-7 h-7 rounded-lg border transition-colors cursor-pointer ${
-                  enableSearch
-                    ? 'border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)]'
-                    : 'border-[var(--border)] bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-3)]'
-                }`}
-                title={enableSearch ? 'Disable Web Search' : 'Enable Web Search'}
-              >
-                <Globe className="w-3.5 h-3.5" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      onClick={() => setEnableSearch(!enableSearch)}
+                      className={`flex items-center justify-center w-7 h-7 rounded-lg border transition-colors cursor-pointer ${
+                        enableSearch
+                          ? 'border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)]'
+                          : 'border-[var(--border)] bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-3)]'
+                      }`}
+                    >
+                      <Globe className="w-3.5 h-3.5" />
+                    </button>
+                  }
+                />
+                <TooltipContent side="top" className="text-xs">
+                  {enableSearch ? 'Disable Web Search' : 'Enable Web Search'}
+                </TooltipContent>
+              </Tooltip>
 
               {/* Select Research Mode Trigger */}
               <Select value={researchMode} onValueChange={(val) => { if (val) setResearchMode(val); }}>
@@ -406,25 +475,42 @@ export default function StrategistTab({
                 <span className="font-semibold text-sm text-[var(--foreground)]">Deep Research Report</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(deepResearchReport || '');
-                    toast.success('Report copied to clipboard!');
-                  }}
-                  className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none bg-transparent cursor-pointer"
-                  title="Copy Report"
-                >
-                  <Copy className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowReportModal(false)}
-                  className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none bg-transparent cursor-pointer"
-                  title="Close"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(deepResearchReport || '');
+                          toast.success('Report copied to clipboard!');
+                        }}
+                        className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none bg-transparent cursor-pointer"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    }
+                  />
+                  <TooltipContent side="bottom" className="text-xs">
+                    Copy Report
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        onClick={() => setShowReportModal(false)}
+                        className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none bg-transparent cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    }
+                  />
+                  <TooltipContent side="bottom" className="text-xs">
+                    Close
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
             {/* Body */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, AlertTriangle, ShieldAlert, Loader2, Keyboard, PanelRightOpen } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, ShieldAlert, Loader2, Keyboard, ArrowLeftRight } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditorialReadiness } from '@eai/shared';
 import packageJson from '../../package.json';
@@ -140,12 +140,12 @@ export default function StatusBar({
                 className={`ide-statusbar-item hover:bg-[var(--surface-2)] transition-colors rounded-sm px-1.5 ml-1 max-sm:hidden ${layoutReversed ? 'text-[var(--primary)]' : ''}`}
                 aria-label="Swap panel positions"
               >
-                <PanelRightOpen className="w-3.5 h-3.5" />
+                <ArrowLeftRight className="w-3.5 h-3.5" />
               </button>
             }
           />
           <TooltipContent side="top" className="text-xs">
-            {layoutReversed ? 'Layout: AI kiri · Dokumen kanan (klik untuk reset)' : 'Layout: Dokumen kiri · AI kanan (klik untuk swap)'}
+            {layoutReversed ? 'Layout: AI left · Document right (click to reset)' : 'Layout: Document left · AI right (click to swap)'}
           </TooltipContent>
         </Tooltip>
       )}

@@ -1366,8 +1366,6 @@
   line-height: 1.5;
 }
 
-.settings-page-section-body {
-}
 
 .settings-page-row {
   display: grid;
@@ -1378,8 +1376,6 @@
   padding: 17px 0;
 }
 
-.settings-page-row + .settings-page-row {
-}
 
 .settings-page-row h3 {
   color: var(--foreground);
@@ -2127,6 +2123,7 @@
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     line-height: 1.35;
     word-break: normal;
   }

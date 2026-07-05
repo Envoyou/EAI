@@ -77,7 +77,7 @@ export function AppSidebarShell({
                 }`}
                 aria-label="Toggle sidebar"
               >
-                <EAILogo className="w-6 h-6 shrink-0" />
+                <EAILogo className="w-9 h-9 shrink-0" />
                 <div
                   className={`flex flex-col justify-center min-w-0 overflow-hidden transition-all duration-300 ${
                     sidebarOpen ? 'opacity-100 max-w-[200px] ml-2.5' : 'opacity-0 max-w-0 ml-0'

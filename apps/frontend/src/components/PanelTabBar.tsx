@@ -171,7 +171,7 @@ export default function PanelTabBar({
                   className={`
                     w-7.5 h-7.5 flex items-center justify-center rounded-md transition-colors text-xs border border-transparent cursor-pointer
                     ${rightToggleActiveFeedback
-                      ? 'bg-primary-100/70 dark:bg-primary-950/45 text-[var(--primary)]'
+                      ? 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
                       : 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'}
                   `}
                   aria-label={rightToggleActiveFeedback ? 'Hide Assistant Panel' : 'Show Assistant Panel'}
@@ -198,7 +198,7 @@ export default function PanelTabBar({
                   className={`
                     w-7.5 h-7.5 flex items-center justify-center rounded-md transition-colors text-xs border border-transparent cursor-pointer
                     ${rightToggleActiveNotes
-                      ? 'bg-primary-100/70 dark:bg-primary-950/45 text-[var(--primary)]'
+                      ? 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
                       : 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'}
                   `}
                   aria-label={rightToggleActiveNotes ? 'Hide Assistant Panel' : 'Show Assistant Panel'}
