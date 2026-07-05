@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-05
+
 ### Added
 - **Content Strategist Chat Session Persistence**: Integrated `sessionStorage` state persistence in `ContentStrategistWizard` for `messages`, `collectedSources`, `currentPlan`, `deepResearchReport`, and `uploadedAttachment` to avoid losing chat state when switching panels.
 - **AI Strategist Toggle Button & Overlay**: Added an "AI Strategist" button to the editor header, allowing users to toggle open the strategist chat as a z-index absolute overlay regardless of whether draft text already exists.

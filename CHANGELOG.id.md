@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-05
+
 ### Added
 - **Persistensi Sesi Chat AI Strategist**: Mengintegrasikan penyimpanan sesi `sessionStorage` di `ContentStrategistWizard` untuk properti `messages`, `collectedSources`, `currentPlan`, `deepResearchReport`, dan `uploadedAttachment` agar riwayat chat tidak hilang saat berpindah halaman.
 - **Tombol Toggle & Overlay AI Strategist**: Menambahkan tombol "AI Strategist" di header editor, merender antarmuka chat riset sebagai overlay z-index absolut sehingga pengguna bisa membuka-tutup obrolan kapan saja tanpa terhalang teks draf aktif.
