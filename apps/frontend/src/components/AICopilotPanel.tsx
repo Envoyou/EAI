@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, MessageCircle, Notebook, ChevronRight } from 'lucide-react';
+import { Sparkles, MessageCircle, Notebook } from 'lucide-react';
 import StrategistTab from '@/components/StrategistTab';
 import FeedbackTab from '@/components/FeedbackTab';
 import NotesTab from '@/components/NotesTab';
@@ -38,7 +38,6 @@ interface AICopilotPanelProps {
   onGenerateDraftFromNotes?: () => void;
   isGeneratingDraft?: boolean;
   onInsertToDraft?: (text: string) => void;
-  onClose?: () => void;
   activeHistoryId?: string | null;
 }
 
@@ -75,7 +74,6 @@ export default function AICopilotPanel({
   onGenerateDraftFromNotes,
   isGeneratingDraft,
   onInsertToDraft,
-  onClose,
   activeHistoryId,
 }: AICopilotPanelProps) {
   const [internalTab, setInternalTab] = useState<RightTab>('strategist');
@@ -189,15 +187,7 @@ export default function AICopilotPanel({
             </button>
           ))}
         </div>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="p-1 mr-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] rounded hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
-            aria-label="Collapse panel"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        )}
+
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden">

@@ -12,6 +12,7 @@ export interface ThreeColumnLayoutProps {
   rightPanelOpen?: boolean;
   leftDefaultSize?: number;
   rightDefaultSize?: number;
+  reversed?: boolean;
 }
 
 const DEFAULT_LEFT_SIZE = 20;
@@ -25,6 +26,7 @@ export default function ThreeColumnLayout({
   rightPanelOpen = true,
   leftDefaultSize = DEFAULT_LEFT_SIZE,
   rightDefaultSize = DEFAULT_RIGHT_SIZE,
+  reversed = false,
 }: ThreeColumnLayoutProps) {
   const groupRef = useRef<GroupImperativeHandle>(null);
   const mountedRef = useRef(false);
@@ -60,7 +62,22 @@ export default function ThreeColumnLayout({
       'center-panel': center,
       'right-panel': right,
     });
-  }, [leftPanelOpen, rightPanelOpen, leftDefaultSize, rightDefaultSize]);
+  }, [leftPanelOpen, rightPanelOpen, leftDefaultSize, rightDefaultSize, reversed]);
+
+  // When reversed=true: document panel swaps to right, AI panel swaps to left
+  const firstPanelContent  = reversed ? rightPanel : leftPanel;
+  const firstPanelOpen     = reversed ? rightPanelOpen : leftPanelOpen;
+  const firstDefaultSize   = reversed ? rightDefaultSize : leftDefaultSize;
+  const firstMaxSize       = reversed ? '42%' : '35%';
+  const firstPanelId       = reversed ? 'right-panel' : 'left-panel';
+  const firstPanelClass    = reversed ? 'workspace-right-panel' : 'workspace-left-panel';
+
+  const lastPanelContent   = reversed ? leftPanel : rightPanel;
+  const lastPanelOpen      = reversed ? leftPanelOpen : rightPanelOpen;
+  const lastDefaultSize    = reversed ? leftDefaultSize : rightDefaultSize;
+  const lastMaxSize        = reversed ? '35%' : '42%';
+  const lastPanelId        = reversed ? 'left-panel' : 'right-panel';
+  const lastPanelClass     = reversed ? 'workspace-left-panel' : 'workspace-right-panel';
 
   return (
     <Group
@@ -87,21 +104,23 @@ export default function ThreeColumnLayout({
       }}
     >
       <Panel
-        id="left-panel"
-        className="workspace-left-panel"
-        data-open={leftPanelOpen}
-        defaultSize={leftPanelOpen ? `${leftDefaultSize}%` : '0%'}
-        minSize={leftPanelOpen ? '15%' : '0%'}
-        maxSize="35%"
+        key={`${firstPanelId}-${firstPanelOpen}`}
+        id={firstPanelId}
+        className={firstPanelClass}
+        data-open={firstPanelOpen}
+        defaultSize={firstPanelOpen ? `${firstDefaultSize}%` : '0%'}
+        minSize={firstPanelOpen ? '15%' : '0%'}
+        maxSize={firstMaxSize}
         collapsible
         collapsedSize="0%"
       >
-        {leftPanel}
+        {firstPanelContent}
       </Panel>
 
       <Separator id="left-separator" className="panel-resize-handle hidden md:flex" />
 
       <Panel
+        key="center-panel"
         id="center-panel"
         className="workspace-center-panel"
         defaultSize={`${100 - leftDefaultSize - rightDefaultSize}%`}
@@ -113,16 +132,17 @@ export default function ThreeColumnLayout({
       <Separator id="right-separator" className="panel-resize-handle hidden md:flex" />
 
       <Panel
-        id="right-panel"
-        className="workspace-right-panel"
-        data-open={rightPanelOpen}
-        defaultSize={rightPanelOpen ? `${rightDefaultSize}%` : '0%'}
-        minSize={rightPanelOpen ? '15%' : '0%'}
-        maxSize="42%"
+        key={`${lastPanelId}-${lastPanelOpen}`}
+        id={lastPanelId}
+        className={lastPanelClass}
+        data-open={lastPanelOpen}
+        defaultSize={lastPanelOpen ? `${lastDefaultSize}%` : '0%'}
+        minSize={lastPanelOpen ? '15%' : '0%'}
+        maxSize={lastMaxSize}
         collapsible
         collapsedSize="0%"
       >
-        {rightPanel}
+        {lastPanelContent}
       </Panel>
     </Group>
   );

@@ -211,6 +211,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   const [activeFeedbackIndex, setActiveFeedbackIndex] = useState<number | null>(null);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [rightPanelTab, setRightPanelTab] = useState<'strategist' | 'feedback' | 'notes'>('strategist');
+  const [layoutReversed, setLayoutReversed] = useState(false);
 
   const showFeedbackSidebar = rightPanelOpen;
   const showNotesSidebar = rightPanelOpen;
@@ -443,6 +444,9 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       if (savedActiveTab !== null) setActiveTab(savedActiveTab as PanelTab);
       if (savedShowSidebar !== null) setRightPanelOpen(savedShowSidebar === 'true');
 
+      const savedLayoutReversed = localStorage.getItem('eai-layout-reversed');
+      if (savedLayoutReversed !== null) setLayoutReversed(savedLayoutReversed === 'true');
+
       if (savedSpeed === 'fast' || savedSpeed === 'publish') setAnalysisSpeed(savedSpeed);
       if (savedDemoCount !== null) setDemoRefineCount(parseInt(savedDemoCount, 10) || 0);
 
@@ -496,10 +500,10 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   useEffect(() => {
     if (isLoaded && typeof window !== 'undefined') {
       localStorage.setItem('eai-show-feedback-sidebar', String(rightPanelOpen));
-
       localStorage.setItem('eai-analysis-speed', analysisSpeed);
+      localStorage.setItem('eai-layout-reversed', String(layoutReversed));
     }
-  }, [rightPanelOpen, analysisSpeed, isLoaded]);
+  }, [rightPanelOpen, analysisSpeed, layoutReversed, isLoaded]);
 
 
   useEffect(() => {
@@ -1524,6 +1528,7 @@ return (
         <ThreeColumnLayout
           leftPanelOpen={sidebarOpen && !isDemoMode}
           rightPanelOpen={rightPanelOpen}
+          reversed={layoutReversed}
           leftPanel={
               !isDemoMode ? (
                 <DocumentHistoryPanel
@@ -1570,7 +1575,6 @@ return (
               onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
               isGeneratingDraft={isGeneratingDraftFromNotes}
               onInsertToDraft={(text) => { setDraft(prev => prev + text); }}
-              onClose={() => setRightPanelOpen(false)}
             />
           }
           centerPanel={
@@ -1589,7 +1593,7 @@ return (
               onToggleSidebar={() => setSidebarOpen(p => !p)}
               showFeedbackSidebar={showFeedbackSidebar}
               onToggleFeedbackSidebar={() => {
-                if (rightPanelOpen && rightPanelTab === 'feedback') {
+                if (rightPanelOpen) {
                   setRightPanelOpen(false);
                 } else {
                   setRightPanelOpen(true);
@@ -1598,7 +1602,7 @@ return (
               }}
               showNotesSidebar={showNotesSidebar}
               onToggleNotesSidebar={() => {
-                if (rightPanelOpen && rightPanelTab === 'notes') {
+                if (rightPanelOpen) {
                   setRightPanelOpen(false);
                 } else {
                   setRightPanelOpen(true);
@@ -1622,6 +1626,8 @@ return (
               onReanalyze={handleReanalyze}
               onAddNewMetadataOption={handleAddNewCategoryOrType}
               onOpenShortcuts={() => setIsShortcutModalOpen(true)}
+              layoutReversed={layoutReversed}
+              onToggleLayoutReversed={() => setLayoutReversed(p => !p)}
             />
           }
         />

@@ -53,6 +53,8 @@ interface EditorCanvasProps {
   onReanalyze: () => void;
   onAddNewMetadataOption: (type: 'category' | 'articleType', value: string) => void;
   onOpenShortcuts: () => void;
+  layoutReversed?: boolean;
+  onToggleLayoutReversed?: () => void;
 }
 
 export default function EditorCanvas({
@@ -89,6 +91,8 @@ export default function EditorCanvas({
   onReanalyze,
   onAddNewMetadataOption,
   onOpenShortcuts,
+  layoutReversed,
+  onToggleLayoutReversed,
 }: EditorCanvasProps) {
   const router = useRouter();
 
@@ -142,6 +146,7 @@ export default function EditorCanvas({
         showNotesSidebar={showNotesSidebar}
         onToggleNotesSidebar={onToggleNotesSidebar}
         hasNotes={hasNotes}
+        layoutReversed={layoutReversed}
       />
 
       {/* Workspace */}
@@ -250,6 +255,8 @@ export default function EditorCanvas({
         isRefining={isRefining}
         activeTab={activeTab}
         onOpenShortcuts={onOpenShortcuts}
+        layoutReversed={layoutReversed}
+        onToggleLayoutReversed={onToggleLayoutReversed}
       />
 
       {/* Demo CTA */}

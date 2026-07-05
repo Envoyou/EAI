@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import type { ChatMessage, Attachment } from '@/lib/hooks/useContentStrategist';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface StrategistTabProps {
   messages: ChatMessage[];
@@ -112,48 +113,8 @@ export default function StrategistTab({
   return (
     <div className="flex flex-col h-full">
       {/* Chat Settings & Controls */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--border)] text-xs text-[var(--muted-foreground)] shrink-0">
-        <div className="flex items-center gap-2">
-          {/* Web Search Grounding Toggle */}
-          <button
-            type="button"
-            onClick={() => setEnableSearch(!enableSearch)}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded-full border transition-colors cursor-pointer text-[10px] ${
-              enableSearch
-                ? 'border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)] font-medium'
-                : 'border-[var(--border)] bg-transparent hover:text-[var(--foreground)]'
-            }`}
-          >
-            <Globe className="w-3 h-3" />
-            <span>Search Web</span>
-          </button>
-
-          {/* Research Mode Segmented Switch */}
-          <div className="flex items-center rounded-full bg-[var(--surface-2)] p-0.5 border border-[var(--border)] text-[9px]">
-            <button
-              type="button"
-              onClick={() => setResearchMode('fast')}
-              className={`px-2 py-0.5 rounded-full transition-colors cursor-pointer border-none font-medium ${
-                researchMode === 'fast'
-                  ? 'bg-[var(--surface-1)] text-[var(--foreground)] shadow-xs'
-                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] bg-transparent'
-              }`}
-            >
-              Fast
-            </button>
-            <button
-              type="button"
-              onClick={() => setResearchMode('deep')}
-              className={`px-2 py-0.5 rounded-full transition-colors cursor-pointer border-none font-medium ${
-                researchMode === 'deep'
-                  ? 'bg-[var(--surface-1)] text-[var(--foreground)] shadow-xs'
-                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] bg-transparent'
-              }`}
-            >
-              Deep
-            </button>
-          </div>
-        </div>
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border)] text-xs text-[var(--muted-foreground)] shrink-0">
+        <div className="font-semibold text-[var(--foreground)] ml-1">AI Strategist</div>
 
         <div className="flex items-center gap-1.5">
           {/* View Deep Research Report Button */}
@@ -161,7 +122,7 @@ export default function StrategistTab({
             <button
               type="button"
               onClick={() => setShowReportModal(true)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--primary)] hover:text-[var(--primary)]/80 font-medium cursor-pointer border border-[var(--primary)]/20 text-[10px]"
+              className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-[var(--surface-2)] text-[var(--primary)] hover:text-[var(--primary)]/80 font-medium cursor-pointer border border-[var(--primary)]/20 text-[10px]"
             >
               <FileText className="w-3 h-3" />
               <span>View Report</span>
@@ -172,7 +133,7 @@ export default function StrategistTab({
           <button
             type="button"
             onClick={clearMessages}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] font-medium cursor-pointer border border-[var(--border)] text-[10px]"
+            className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] font-medium cursor-pointer border border-[var(--border)] text-[10px]"
             title="Start new chat session"
           >
             <Plus className="w-3 h-3 text-[var(--primary)] shrink-0" />
@@ -357,7 +318,7 @@ export default function StrategistTab({
             </button>
           </div>
         )}
-        <div className="relative flex items-end gap-1.5 bg-[var(--surface-2)] rounded-xl p-1.5">
+        <div className="flex flex-col bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-1.5 focus-within:ring-1 focus-within:ring-[var(--primary)]/30 focus-within:border-[var(--primary)]/30 transition-all">
           <input
             type="file"
             ref={fileInputRef}
@@ -365,14 +326,7 @@ export default function StrategistTab({
             accept=".pdf,.csv,.txt"
             className="hidden"
           />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer border-none bg-transparent"
-            title="Attach file (PDF, CSV, TXT)"
-          >
-            <Paperclip className="w-3.5 h-3.5" />
-          </button>
+          
           <textarea
             ref={textareaRef}
             value={chatInput}
@@ -381,19 +335,63 @@ export default function StrategistTab({
             placeholder="Ask about your article..."
             rows={1}
             disabled={isTyping}
-            className="flex-1 resize-none bg-transparent border-none outline-none text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] py-1.5 px-1 min-h-[32px] max-h-[120px]"
+            className="w-full resize-none bg-transparent border-none outline-none text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] px-2 py-1.5 min-h-[44px] max-h-[120px] focus:ring-0"
           />
-          <button
-            onClick={() => handleSend()}
-            disabled={(!chatInput.trim() && !uploadedAttachment) || isTyping}
-            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--primary)] text-white dark:text-black disabled:opacity-30 transition-opacity cursor-pointer border-none"
-          >
-            {isTyping ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <ArrowUp className="w-3.5 h-3.5" />
-            )}
-          </button>
+
+          <div className="flex items-center justify-between border-t border-[var(--border)]/20 pt-2 mt-1 px-1">
+            <div className="flex items-center gap-1.5">
+              {/* Upload Button */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer border-none bg-transparent"
+                title="Attach file (PDF, CSV, TXT)"
+              >
+                <Paperclip className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Search Web Button */}
+              <button
+                type="button"
+                onClick={() => setEnableSearch(!enableSearch)}
+                className={`flex items-center justify-center w-7 h-7 rounded-lg border transition-colors cursor-pointer ${
+                  enableSearch
+                    ? 'border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)]'
+                    : 'border-[var(--border)] bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-3)]'
+                }`}
+                title={enableSearch ? 'Disable Web Search' : 'Enable Web Search'}
+              >
+                <Globe className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Select Research Mode Trigger */}
+              <Select value={researchMode} onValueChange={(val) => { if (val) setResearchMode(val); }}>
+                <SelectTrigger
+                  size="sm"
+                  className="h-7 border border-[var(--border)] bg-transparent hover:bg-[var(--surface-3)] text-[var(--foreground)] hover:text-[var(--foreground)] text-[10px] font-semibold rounded-lg px-2 flex items-center gap-1 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[var(--border)]"
+                >
+                  <SelectValue placeholder="Mode" />
+                </SelectTrigger>
+                <SelectContent className="bg-[var(--surface-1)] border border-[var(--border)] rounded-lg p-1 min-w-[130px] z-50">
+                  <SelectItem value="fast" className="text-[10px] cursor-pointer rounded py-1.5 pl-2 pr-8 hover:bg-[var(--surface-2)]">Fast Mode</SelectItem>
+                  <SelectItem value="deep" className="text-[10px] cursor-pointer rounded py-1.5 pl-2 pr-8 hover:bg-[var(--surface-2)]">Deep Research</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Send Button */}
+            <button
+              onClick={() => handleSend()}
+              disabled={(!chatInput.trim() && !uploadedAttachment) || isTyping}
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--primary)] text-white dark:text-black disabled:opacity-30 transition-opacity cursor-pointer border-none"
+            >
+              {isTyping ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <ArrowUp className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

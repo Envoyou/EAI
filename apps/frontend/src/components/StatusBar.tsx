@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, AlertTriangle, ShieldAlert, Loader2, Keyboard } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, ShieldAlert, Loader2, Keyboard, PanelRightOpen } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditorialReadiness } from '@eai/shared';
 import packageJson from '../../package.json';
@@ -16,6 +16,8 @@ interface StatusBarProps {
   activeTab: string;
   appVersion?: string;
   onOpenShortcuts?: () => void;
+  layoutReversed?: boolean;
+  onToggleLayoutReversed?: () => void;
 }
 
 function ReadinessIcon({ readiness }: { readiness?: EditorialReadiness }) {
@@ -43,6 +45,8 @@ export default function StatusBar({
   activeTab,
   appVersion = packageJson.version,
   onOpenShortcuts,
+  layoutReversed = false,
+  onToggleLayoutReversed,
 }: StatusBarProps) {
   const isOverLimit = charCount > charLimit;
 
@@ -124,6 +128,26 @@ export default function StatusBar({
           </kbd>
           <span className="ml-1">to Refine</span>
         </span>
+      )}
+
+      {/* Layout Swap Trigger */}
+      {onToggleLayoutReversed && (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                onClick={onToggleLayoutReversed}
+                className={`ide-statusbar-item hover:bg-[var(--surface-2)] transition-colors rounded-sm px-1.5 ml-1 max-sm:hidden ${layoutReversed ? 'text-[var(--primary)]' : ''}`}
+                aria-label="Swap panel positions"
+              >
+                <PanelRightOpen className="w-3.5 h-3.5" />
+              </button>
+            }
+          />
+          <TooltipContent side="top" className="text-xs">
+            {layoutReversed ? 'Layout: AI kiri · Dokumen kanan (klik untuk reset)' : 'Layout: Dokumen kiri · AI kanan (klik untuk swap)'}
+          </TooltipContent>
+        </Tooltip>
       )}
 
       {/* Shortcuts Trigger */}
