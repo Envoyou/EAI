@@ -92,9 +92,9 @@ Fase ini mengembangkan AI Drafting Assistant menjadi workspace berbasis sumber d
 4.  ~~**Integrasi deep research agent**~~ (Diimplementasikan melalui Gemini Interactions API):
     *   Menyematkan agen pencarian asinkron berbasis alat Google Search Grounding di dalam mode interaktif Copilot.
     *   Saat di mode *Deep*, Copilot secara independen mencari informasi terbaru di web, memverifikasi klaim, dan mensintesis hasilnya untuk dikumpulkan ke dalam *Research Notes*.
-5.  **Pengembangan & Optimasi EAI Chat & Draft (Rencana Rilis Mendatang)**:
-    *   **Persistensi Catatan Riset**: Mengalihkan penyimpanan catatan dari *session storage* lokal ke database permanen (PostgreSQL/Prisma) agar catatan pengguna tidak hilang dan dapat diakses lintas perangkat secara stabil.
-    *   **Integrasi Ledger Pelacakan Kredit**: Menghubungkan log telemetry token Gemini yang dicatat saat ini (`console.log`) ke database pemotongan kredit internal pengguna untuk penagihan koin otomatis.
+5.  **Pengembangan & Optimasi EAI Chat & Draft**:
+    *   ~~**Persistensi Catatan Riset**~~ (Diimplementasikan pada v2.0.0): Mengalihkan penyimpanan catatan dari *session storage* lokal ke database permanen (PostgreSQL/Prisma) agar catatan pengguna tidak hilang dan dapat diakses lintas perangkat secara stabil.
+    *   ~~**Integrasi Ledger Pelacakan Kredit**~~ (Diimplementasikan pada v2.0.0 & v2.0.1): Menghubungkan log telemetry token Gemini yang dicatat saat ini ke database pemotongan kredit internal pengguna untuk penagihan koin otomatis.
     *   **Penyempurnaan Parser Rekomendasi/Saran**: Menstabilkan penanganan saran Copilot agar format parser `[SUGGESTIONS:]` lebih tangguh (*fault-tolerant*) terhadap variasi luaran model.
 6.  **Modularisasi AI Provider untuk Strategist — `generate-draft-from-notes`**:
 
@@ -131,7 +131,7 @@ Fase ini mengembangkan AI Drafting Assistant menjadi workspace berbasis sumber d
     *   Gunakan env var baru `OPENROUTER_COPILOT_MODEL` (bukan berbagi `OPENROUTER_MODEL` yang dipakai pipeline editorial). Model optimal untuk chat copilot (fast, cheap, good instruction following) berbeda dari model optimal untuk pipeline editorial (quality, reasoning). Env var terpisah memungkinkan tuning independen dan lebih jelas untuk debugging di production.
     *   Jika `/chat` fast mode suatu saat dimodularisasi, harus dengan UI eksplisit — bukan silent fallback. Minimal: indikator capability seperti tooltip *"Research mode not available"* di samping Fast Mode toggle. User tidak perlu tahu nama provider, tapi perlu tahu capability apa yang aktif.
     *   Endpoint `/chat` dan turunannya didokumentasikan sebagai **Gemini-only by design**, bukan technical debt.
-7.  **Restrukturisasi Workspace 3-Kolom ala NotebookLM (Rencana Rilis Mendatang)**:
+7.  ~~**Restrukturisasi Workspace 3-Kolom ala NotebookLM**~~ (Diimplementasikan pada v2.1.0):
     *   **Deskripsi**: Mengonsolidasikan antarmuka `/workspace` menjadi layout 3-kolom yang terintegrasi pada layar Desktop. Ini menyatukan proses riset, penulisan, dan peninjauan dalam satu workspace tanpa perlu navigasi penuh layar yang berulang.
     *   **Tata Letak UI (Anatomi 3-Kolom)**:
         *   *Kolom Kiri (Sources Panel)*: Tempat mengelola berkas referensi (PDF, CSV, TXT), dropdown organisasi Clerk, tombol "+ Add Source", serta checkbox untuk mengaktifkan *Dynamic Document Mode Override*.

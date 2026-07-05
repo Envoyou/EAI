@@ -1,12 +1,148 @@
 import { Router } from 'express';
 import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
-import { CREDENTIAL_KEY_VERSION, decryptCredentials, encryptCredentials } from '@/lib/credential-vault';
-import { createEaiRestAdapter } from '@/lib/cms-adapter';
-import { hashEditorialConfiguration } from '@eai/shared/server';
-import { buildSandboxEditorialProfile, DEFAULT_ONBOARDING_DATA, OnboardingDataSchema, OnboardingSaveSchema, CmsConnectionTestSchema } from '@eai/shared';
+import { hashEditorialConfiguration, PREDEFINED_CATEGORIES, PREDEFINED_ARTICLE_TYPES } from '@eai/shared/server';
+import { buildSandboxEditorialProfile, OnboardingDataSchema, OnboardingSaveSchema } from '@eai/shared';
 import { ensureCurrentUserRecord, getWorkspaceState } from '@/lib/user-workspace';
+import { gemini, getGeminiSamplingConfig } from '@/lib/ai/provider-runtime';
+
 const router = Router();
+
+function cleanHtml(html: string): string {
+  // Remove script, style, head, nav, footer, and other noisy markup
+  const clean = html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+    .replace(/<head\b[^<]*(?:(?!<\/head>)<[^<]*)*<\/head>/gi, '')
+    .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, '')
+    .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '');
+
+  const tagRegex = /<(p|h1|h2|h3|h4|h5|h6)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  const matches: string[] = [];
+  let match;
+
+  while ((match = tagRegex.exec(clean)) !== null) {
+    const tag = match[1].toLowerCase();
+    let content = match[2]
+      .replace(/<[^>]+>/g, '') // Strip remaining inline HTML tags
+      .trim();
+
+    // Decode HTML entities
+    content = content
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&rsquo;/g, "'")
+      .replace(/&ldquo;/g, '"')
+      .replace(/&rdquo;/g, '"')
+      .replace(/\s+/g, ' '); // Collapse spaces
+
+    if (content.length > 10) {
+      if (tag.startsWith('h')) {
+        matches.push(`\n## ${content}\n`);
+      } else {
+        matches.push(content);
+      }
+    }
+  }
+
+  return matches.join('\n');
+}
+
+async function scrapeWebsiteWithTimeout(url: string, timeoutMs: number = 8000): Promise<string> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+      },
+    });
+    clearTimeout(id);
+
+    if (!response.ok) {
+      throw new Error(`Scrape HTTP Error: ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('text/html') && !contentType.includes('text/plain')) {
+      throw new Error('Unsupported content type');
+    }
+
+    const html = await response.text();
+    const cleanText = cleanHtml(html);
+    return cleanText.slice(0, 10000); // limit to 10k chars for LLM safety
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
+
+function getFallbackProfile(workspaceName: string, primaryGoal: string, defaultLanguage: string) {
+  const isId = defaultLanguage === 'id';
+  const brandName = workspaceName || 'My Publication';
+
+  let positioning = isId
+    ? `Workspace editorial praktis untuk meningkatkan produktivitas konten ${brandName}.`
+    : `A practical editorial workspace to accelerate content creation for ${brandName}.`;
+  let audience = isId
+    ? `Pembaca profesional dan pembuat keputusan yang mencari wawasan terpercaya.`
+    : `Professional readers and decision-makers looking for reliable insights.`;
+  let categories = ['Technology & AI', 'Business & Economy'];
+  let articleTypes = ['News & Trend Analysis', 'Opinion / Op-Ed', 'In-Depth Guide / Explainer', 'How-To / Tutorial'];
+  let tone = ['professional', 'clear', 'insightful'];
+
+  if (primaryGoal === 'grow_traffic') {
+    positioning = isId
+      ? `Menggerakkan pertumbuhan lalu lintas organik melalui konten SEO berkualitas tinggi untuk ${brandName}.`
+      : `Driving organic traffic growth through high-quality, SEO-optimized content for ${brandName}.`;
+    audience = isId
+      ? `Pengguna internet umum, peminat teknologi, dan konsumen digital.`
+      : `General online readers, tech enthusiasts, and digital consumers.`;
+    categories = ['Marketing & Growth', 'Technology & AI', 'Business & Economy'];
+    articleTypes = ['Listicle', 'In-Depth Guide / Explainer', 'News & Trend Analysis'];
+    tone = ['professional', 'conversational', 'engaging'];
+  } else if (primaryGoal === 'research') {
+    positioning = isId
+      ? `Analisis mendalam dan riset berbasis data untuk mendukung pembaca ${brandName}.`
+      : `In-depth analysis and data-driven research to empower ${brandName} readers.`;
+    audience = isId
+      ? `Para peneliti, analis, pendiri startup, dan eksekutif bisnis.`
+      : `Researchers, analysts, founders, and business executives.`;
+    categories = ['Data & Insight', 'Technology & AI', 'Business & Economy'];
+    articleTypes = ['Case Study', 'In-Depth Guide / Explainer'];
+    tone = ['analytical', 'data-driven', 'professional'];
+  }
+
+  return {
+    brandName,
+    positioning,
+    audience,
+    categories,
+    articleTypes,
+    tone,
+    articleStructure: ['Hook', 'Context', 'Body', 'Strategic Closing'],
+    additionalProhibitedPatterns: [],
+    sourcePolicy: 'strict' as const,
+    seoRules: {
+      titleMaxLength: 120,
+      metaTitleMaxLength: 60,
+      metaDescriptionMaxLength: 155,
+      tagCountMin: 3,
+      tagCountMax: 5,
+    },
+    internalLinkDomains: [],
+    internalLinkBaseUrl: '',
+    customInstructions: '',
+    allowedEditorialTerms: [],
+  };
+}
 
 const buildOnboardingDataFromWorkspace = (
   workspace: Awaited<ReturnType<typeof getWorkspaceState>>
@@ -15,17 +151,13 @@ const buildOnboardingDataFromWorkspace = (
   const publicationName = organization?.publicationName || organization?.name || '';
 
   return {
-    ...DEFAULT_ONBOARDING_DATA,
-    organization: {
-      name: organization?.name || '',
-      slug: organization?.slug || '',
-      domain: organization?.domain || '',
-      publicationName,
+    activation: {
+      workspaceName: publicationName,
+      website: organization?.domain || '',
+      primaryGoal: 'grow_traffic' as const,
+      defaultLanguage: 'auto' as const,
     },
-    editorialProfile: {
-      ...DEFAULT_ONBOARDING_DATA.editorialProfile,
-      brandName: publicationName,
-    },
+    editorialProfile: null,
   };
 };
 
@@ -77,10 +209,10 @@ router.get('/', requireAuth, async (req, res) => {
     const activeDraft = draft?.organizationId === activeOrganizationId ? draft : null;
     return res.json({
       completed: false,
-      step: activeDraft?.step || 'organization',
+      step: activeDraft?.step || 'activation',
       organization: activeOrganization,
       data: activeDraft?.data || buildOnboardingDataFromWorkspace(workspace),
-      hasStoredCredential: Boolean(activeDraft?.encryptedCredentials),
+      hasStoredCredential: false,
     });
   } catch (error: unknown) {
     console.error('[ONBOARDING_GET]', error);
@@ -102,7 +234,6 @@ router.put('/', requireAuth, async (req, res) => {
       return res.status(409).json({ error: 'Create or select a Clerk organization before starting onboarding.' });
     }
     const activeOrganizationId = workspace!.organizationId!;
-    const activeOrganization = workspace!.organization!;
     if (cannotConfigureClerkOrganization(workspace)) {
       return res.status(403).json({ error: 'Only organization admins can configure this workspace.' });
     }
@@ -116,45 +247,18 @@ router.put('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid onboarding draft', issues: parsed.error.issues });
     }
 
-    const existingDraft = await prisma.onboardingDraft.findUnique({
-      where: { userId },
-      select: { organizationId: true },
-    });
-    const switchedOrganization = existingDraft?.organizationId !== activeOrganizationId;
-    const credentialPatch = parsed.data.cmsSecret
-      ? {
-          encryptedCredentials: encryptCredentials({ secret: parsed.data.cmsSecret }),
-          credentialKeyVersion: CREDENTIAL_KEY_VERSION,
-        }
-      : switchedOrganization
-        ? {
-            encryptedCredentials: null,
-            credentialKeyVersion: null,
-          }
-        : {};
-    const canonicalData = {
-      ...parsed.data.data,
-      organization: {
-        ...parsed.data.data.organization,
-        name: activeOrganization.name,
-        slug: activeOrganization.slug,
-      },
-    };
-
     await prisma.onboardingDraft.upsert({
       where: { userId },
       update: {
         organizationId: activeOrganizationId,
         step: parsed.data.step,
-        data: canonicalData,
-        ...credentialPatch,
+        data: parsed.data.data,
       },
       create: {
         userId,
         organizationId: activeOrganizationId,
         step: parsed.data.step,
-        data: canonicalData,
-        ...credentialPatch,
+        data: parsed.data.data,
       },
     });
 
@@ -162,6 +266,138 @@ router.put('/', requireAuth, async (req, res) => {
   } catch (error: unknown) {
     console.error('[ONBOARDING_PUT]', error);
     return res.status(500).json({ error: error instanceof Error ? error.message : 'Internal Server Error' });
+  }
+});
+
+// POST /api/onboarding/discover
+router.post('/discover', requireAuth, async (req, res) => {
+  try {
+    const { userId, orgId, orgSlug, orgRole } = req.auth!;
+    const workspace = await getWorkspaceState(userId, {
+      clerkOrganizationId: orgId,
+      clerkOrganizationSlug: orgSlug,
+      clerkOrganizationRole: orgRole,
+    });
+
+    if (!hasActiveClerkOrganization(workspace, orgId)) {
+      return res.status(409).json({ error: 'Create or select a Clerk organization.' });
+    }
+
+    const { workspaceName, website, primaryGoal, defaultLanguage } = req.body;
+    if (!workspaceName) {
+      return res.status(400).json({ error: 'Workspace Name is required' });
+    }
+
+    // Rate Limiting per-user check in Prisma to avoid abuse
+    const requestCount = await prisma.onboardingDraft.findUnique({
+      where: { userId },
+      select: { updatedAt: true },
+    });
+
+    if (requestCount && Date.now() - new Date(requestCount.updatedAt).getTime() < 3000) {
+      return res.status(429).json({ error: 'Too many requests. Please wait before running discovery again.' });
+    }
+
+    let scrapedText = '';
+    if (website && website.trim()) {
+      try {
+        scrapedText = await scrapeWebsiteWithTimeout(website.trim(), 8000);
+      } catch (err) {
+        console.warn(`Scrape failed for ${website}, falling back directly to metadata generation:`, err);
+      }
+    }
+
+    const categoryList = PREDEFINED_CATEGORIES.flatMap((c) => c.items);
+    const typeList = PREDEFINED_ARTICLE_TYPES.map((t) => t.name);
+
+    const systemInstruction = `
+You are an expert editorial strategist. Your task is to analyze the provided website text (if any) or workspace details to generate a highly customized and professional Editorial Profile for the brand.
+
+Output a valid JSON object matching the following structure:
+{
+  "brandName": "Name of the brand/publication",
+  "positioning": "A single-line or brief multi-line positioning statement (max 1000 chars) explaining what makes this brand unique and the value promised to readers.",
+  "audience": "A description of the target audience (max 1000 chars) including demographics, interests, and professional roles.",
+  "categories": ["Category 1", "Category 2"], // Choose 3-5 categories that best represent the brand from: ${JSON.stringify(categoryList)}
+  "articleTypes": ["Type 1", "Type 2"], // Choose 2-4 article types that match the content style from: ${JSON.stringify(typeList)}
+  "tone": ["tone1", "tone2", "tone3"] // Choose 3-5 tone words that describe the brand voice (e.g. professional, analytical, conversational, bold, data-driven, etc.)
+}
+
+Rules:
+1. Conformance: All fields are mandatory in the output JSON.
+2. categories MUST be exact matches of items from the provided category list.
+3. articleTypes MUST be exact matches of items from the provided article types list.
+4. If a website text is provided, analyze the brand name, topics, tone, and audience from the text.
+5. If no website text is provided or if it is empty, generate appropriate guidelines based ONLY on the Workspace Name, Primary Goal, and Default Language.
+6. The language of the positioning and audience fields should match the Default Language requested (English if 'en', Indonesian if 'id', and auto-detected or default language based on the scraped content if 'auto').
+`;
+
+    let generatedProfile;
+
+    try {
+      const promptContent = `
+Workspace Name: ${workspaceName}
+Primary Goal: ${primaryGoal}
+Default Language: ${defaultLanguage}
+${scrapedText ? `Scraped Website Content:\n${scrapedText}` : 'No website provided or scraping failed.'}
+`;
+
+      const response = await gemini.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: promptContent,
+        config: {
+          systemInstruction,
+          ...getGeminiSamplingConfig('gemini-3.5-flash', 0.2),
+          candidateCount: 1,
+          responseMimeType: 'application/json',
+        },
+      });
+
+      const rawText = response.text ? response.text.trim() : '';
+      if (!rawText) throw new Error('Empty response from LLM');
+
+      const parsedJson = JSON.parse(rawText);
+
+      // Verify and merge
+      generatedProfile = {
+        brandName: parsedJson.brandName || workspaceName,
+        positioning: parsedJson.positioning || `Editorial workspace for ${workspaceName}`,
+        audience: parsedJson.audience || 'General readers and professionals.',
+        categories: Array.isArray(parsedJson.categories) && parsedJson.categories.length > 0
+          ? parsedJson.categories.filter((c: string) => categoryList.includes(c))
+          : ['Technology & AI', 'Business & Economy'],
+        articleTypes: Array.isArray(parsedJson.articleTypes) && parsedJson.articleTypes.length > 0
+          ? parsedJson.articleTypes.filter((t: string) => typeList.includes(t))
+          : ['News & Trend Analysis', 'Opinion / Op-Ed'],
+        tone: Array.isArray(parsedJson.tone) && parsedJson.tone.length > 0
+          ? parsedJson.tone
+          : ['professional', 'clear'],
+        articleStructure: ['Hook', 'Context', 'Body', 'Strategic Closing'],
+        additionalProhibitedPatterns: [],
+        sourcePolicy: 'strict' as const,
+        seoRules: {
+          titleMaxLength: 120,
+          metaTitleMaxLength: 60,
+          metaDescriptionMaxLength: 155,
+          tagCountMin: 3,
+          tagCountMax: 5,
+        },
+        internalLinkDomains: website ? [new URL(website).hostname] : [],
+        internalLinkBaseUrl: website ? `${website.replace(/\/$/, '')}/posts` : '',
+        customInstructions: '',
+        allowedEditorialTerms: [],
+        primaryGoal,
+        defaultLanguage,
+      };
+    } catch (err) {
+      console.error('LLM Discovery analysis failed, using programmatic fallback:', err);
+      generatedProfile = getFallbackProfile(workspaceName, primaryGoal, defaultLanguage);
+    }
+
+    return res.json({ success: true, profile: generatedProfile });
+  } catch (error) {
+    console.error('[ONBOARDING_DISCOVER_ERROR]', error);
+    return res.status(500).json({ error: 'Failed to generate editorial DNA profile' });
   }
 });
 
@@ -280,34 +516,19 @@ router.post('/', requireAuth, async (req, res) => {
       console.error('[ONBOARDING_POST_VALIDATION_ERROR] Detailed issues:', JSON.stringify(parsed.error.issues, null, 2));
       return res.status(400).json({ error: 'Onboarding data is incomplete', issues: parsed.error.issues });
     }
-    const { organization, editorialProfile, cms } = parsed.data;
-    if (cms.adapterKey !== 'none' && (!cms.verified || !draft.encryptedCredentials)) {
-      return res.status(400).json({ error: 'CMS connection must be verified before activation.' });
-    }
-    if (cms.adapterKey !== 'none') {
-      try {
-        const credentials = decryptCredentials(draft.encryptedCredentials as string);
-        const adapter = createEaiRestAdapter({
-          key: cms.adapterKey,
-          displayName: cms.name,
-          baseUrl: cms.baseUrl,
-          secret: credentials.secret || '',
-        });
-        await adapter.listPublishedPosts(1);
-      } catch (error: unknown) {
-        return res.status(502).json({
-          error: error instanceof Error ? `CMS verification failed during activation: ${error.message}` : 'CMS verification failed during activation.',
-        });
-      }
-    }
+
+    const { activation, editorialProfile } = parsed.data;
+
+    // Use default sandbox profile if no profile was generated or confirmed
+    const confirmedProfile = editorialProfile || buildSandboxEditorialProfile(activation.workspaceName);
 
     try {
       const activated = await prisma.$transaction(async (tx) => {
         const activatedOrganization = await tx.organization.update({
           where: { id: workspace!.organizationId! },
           data: {
-            publicationName: organization.publicationName,
-            domain: organization.domain || null,
+            publicationName: activation.workspaceName,
+            domain: activation.website || null,
             onboardingStatus: 'completed',
             activatedAt: new Date(),
           },
@@ -320,13 +541,13 @@ router.post('/', requireAuth, async (req, res) => {
             },
           },
           update: {
-            name: `${organization.publicationName} Default`,
+            name: `${activation.workspaceName} Default`,
             isActive: true,
           },
           create: {
             organizationId: activatedOrganization.id,
             key: activatedOrganization.slug,
-            name: `${organization.publicationName} Default`,
+            name: `${activation.workspaceName} Default`,
             isActive: true,
           },
         });
@@ -336,30 +557,15 @@ router.post('/', requireAuth, async (req, res) => {
           select: { version: true },
         });
         const nextVersion = (latestVersion?.version ?? 0) + 1;
-        const configHash = hashEditorialConfiguration(profile.key, nextVersion, editorialProfile);
+        const configHash = hashEditorialConfiguration(profile.key, nextVersion, confirmedProfile);
         const version = await tx.editorialProfileVersion.create({
           data: {
             profileId: profile.id,
             version: nextVersion,
-            config: editorialProfile,
+            config: confirmedProfile,
             configHash,
           },
         });
-
-        if (cms.adapterKey !== 'none') {
-          await tx.cmsConnection.create({
-            data: {
-              organizationId: activatedOrganization.id,
-              adapterKey: cms.adapterKey,
-              name: cms.name,
-              baseUrl: cms.baseUrl,
-              encryptedCredentials: draft.encryptedCredentials,
-              credentialKeyVersion: draft.credentialKeyVersion,
-              status: 'verified',
-              lastVerifiedAt: new Date(),
-            },
-          });
-        }
 
         await tx.user.update({
           where: { id: userId },
@@ -386,58 +592,6 @@ router.post('/', requireAuth, async (req, res) => {
     }
   } catch (error) {
     console.error('[ONBOARDING_POST]', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-// POST /api/onboarding/test-cms
-router.post('/test-cms', requireAuth, async (req, res) => {
-  try {
-    const { userId, orgId, orgSlug, orgRole } = req.auth!;
-    const workspace = await getWorkspaceState(userId, {
-      clerkOrganizationId: orgId,
-      clerkOrganizationSlug: orgSlug,
-      clerkOrganizationRole: orgRole,
-    });
-    if (
-      !orgId ||
-      !workspace?.organizationId ||
-      workspace.organization?.clerkOrganizationId !== orgId
-    ) {
-      return res.status(409).json({
-        error: 'Create or select a Clerk organization before configuring a CMS connection.',
-      });
-    }
-    if (workspace?.organization?.clerkOrganizationId && !workspace.isAdmin) {
-      return res.status(403).json({ error: 'Only organization admins can configure CMS connections.' });
-    }
-    if (workspace && !workspace.needsOnboarding) {
-      return res.status(409).json({ error: 'Workspace is already active.' });
-    }
-
-    const parsed = CmsConnectionTestSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid CMS connection details', issues: parsed.error.flatten() });
-    }
-
-    try {
-      const adapter = createEaiRestAdapter({
-        key: parsed.data.adapterKey,
-        displayName: parsed.data.name,
-        baseUrl: parsed.data.baseUrl,
-        secret: parsed.data.secret,
-      });
-      const posts = await adapter.listPublishedPosts(3);
-      return res.json({
-        success: true,
-        adapterKey: adapter.key,
-        samplePosts: posts,
-      });
-    } catch (error: unknown) {
-      return res.status(502).json({ error: error instanceof Error ? error.message : 'CMS connection failed.' });
-    }
-  } catch (error) {
-    console.error('[ONBOARDING_TEST_CMS]', error);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });

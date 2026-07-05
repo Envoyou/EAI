@@ -54,6 +54,8 @@ export const EditorialProfileConfigSchema = z.object({
   customInstructions: z.string().trim().max(2000).optional(),
   timezone: z.string().trim().optional(),
   allowedEditorialTerms: z.array(AllowedEditorialTermSchema).max(100).default([]),
+  primaryGoal: z.enum(['grow_traffic', 'publish_faster', 'knowledge_base', 'research', 'documentation']).optional(),
+  defaultLanguage: z.enum(['en', 'id', 'auto']).optional(),
 }).strict();
 
 export type EditorialProfileConfigInput = z.infer<typeof EditorialProfileConfigSchema>;

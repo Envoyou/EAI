@@ -11,19 +11,15 @@ import {
   Building2,
   Check,
   CheckCircle2,
-  CircleAlert,
-  DatabaseZap,
-  Eye,
   FileText,
   Globe2,
-  KeyRound,
-  Link2,
   Loader2,
-  LockKeyhole,
   Rocket,
   ShieldCheck,
   Sparkles,
   WandSparkles,
+  RefreshCw,
+  Edit2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -32,7 +28,6 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DEFAULT_ONBOARDING_DATA, type OnboardingData, type OnboardingStep } from '@eai/shared';
-import { PREDEFINED_CATEGORIES, PREDEFINED_ARTICLE_TYPES } from '@eai/shared/server';
 
 const STEPS: Array<{
   id: OnboardingStep;
@@ -40,90 +35,58 @@ const STEPS: Array<{
   eyebrow: string;
   icon: typeof Building2;
 }> = [
-  { id: 'organization', label: 'Publication Setup', eyebrow: '01 / Foundation', icon: Building2 },
-  { id: 'editorial_profile', label: 'Editorial Identity', eyebrow: '02 / Voice', icon: BookOpenText },
-  { id: 'editorial_rules', label: 'Editorial Rules', eyebrow: '03 / Standards', icon: ShieldCheck },
-  { id: 'cms_connection', label: 'CMS Connection', eyebrow: '04 / Delivery', icon: DatabaseZap },
-  { id: 'review', label: 'Review & Activate', eyebrow: '05 / Launch', icon: Rocket },
+  { id: 'activation', label: 'Activation Desk', eyebrow: '01 / Setup', icon: Building2 },
+  { id: 'discovery', label: 'DNA Discovery', eyebrow: '02 / AI Scan', icon: WandSparkles },
+  { id: 'review', label: 'DNA Review', eyebrow: '03 / Review', icon: Rocket },
 ];
 
-type ActiveOrganization = {
-  id: string;
-  clerkOrganizationId?: string | null;
-  slug: string;
-  name: string;
-};
+const GOALS = [
+  { id: 'grow_traffic', label: 'Grow Organic Traffic', desc: 'Fokus pada optimasi SEO dan menarik pengunjung baru.', icon: Globe2 },
+  { id: 'publish_faster', label: 'Publish Faster', desc: 'Mempercepat produksi draf siap publikasi.', icon: Rocket },
+  { id: 'knowledge_base', label: 'Build Knowledge Base', desc: 'Mengorganisir informasi dan dokumentasi internal.', icon: BookOpenText },
+  { id: 'research', label: 'Research & Copilot', desc: 'Melakukan riset mendalam terhadap topik tertentu.', icon: Sparkles },
+  { id: 'documentation', label: 'Documentation', desc: 'Membuat petunjuk teknis dan dokumentasi terstruktur.', icon: FileText },
+];
 
-type ValidationIssue = {
-  path: Array<string | number>;
-  message: string;
-};
-
-const isValidationIssue = (value: unknown): value is ValidationIssue => {
-  if (!value || typeof value !== 'object') return false;
-  const issue = value as Record<string, unknown>;
-  return Array.isArray(issue.path) && typeof issue.message === 'string';
-};
-
-const formatValidationIssues = (value: unknown) => {
-  if (!Array.isArray(value)) return '';
-  return value
-    .filter(isValidationIssue)
-    .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-    .join(', ');
-};
-
-const cloneDefaultData = () => structuredClone(DEFAULT_ONBOARDING_DATA);
-const splitList = (value: string) => value.split('\n');
-const joinList = (value: string[]) => value.join('\n');
-const cleanList = (value: string[]) =>
-  value.map((item) => item.trim()).filter(Boolean);
-const cleanOnboardingData = (value: OnboardingData): OnboardingData => ({
-  ...value,
-  organization: {
-    ...value.organization,
-    name: value.organization.name.trim(),
-    slug: value.organization.slug.trim(),
-    domain: value.organization.domain.trim(),
-    publicationName: value.organization.publicationName.trim(),
-  },
-  editorialProfile: {
-    ...value.editorialProfile,
-    brandName: value.editorialProfile.brandName.trim(),
-    positioning: value.editorialProfile.positioning.trim(),
-    audience: value.editorialProfile.audience.trim(),
-    categories: cleanList(value.editorialProfile.categories),
-    articleTypes: cleanList(value.editorialProfile.articleTypes || []),
-    tone: cleanList(value.editorialProfile.tone),
-    articleStructure: cleanList(value.editorialProfile.articleStructure),
-    additionalProhibitedPatterns: cleanList(
-      value.editorialProfile.additionalProhibitedPatterns
-    ),
-    internalLinkDomains: cleanList(value.editorialProfile.internalLinkDomains),
-    internalLinkBaseUrl: value.editorialProfile.internalLinkBaseUrl?.trim(),
-    customInstructions: value.editorialProfile.customInstructions?.trim(),
-    allowedEditorialTerms: value.editorialProfile.allowedEditorialTerms ?? [],
-  },
-  cms: {
-    ...value.cms,
-    name: value.cms.name.trim(),
-    baseUrl: value.cms.baseUrl.trim(),
-  },
-});
+const PREDEFINED_CATEGORIES = [
+  'Artificial Intelligence (AI)',
+  'Software Engineering & Development',
+  'Cybersecurity & Privacy',
+  'Blockchain & Web3',
+  'Consumer Technology & Gadgets',
+  'Startups & Venture Capital',
+  'Market Trends & Analysis',
+  'E-commerce & Retail',
+  'Leadership & Management',
+  'Future Economy',
+  'Personal Finance',
+  'Stock Market & Investing',
+  'Cryptocurrency',
+  'Macroeconomics',
+  'Content Creation & Strategy',
+  'Social Media Dynamics',
+  'Monetization & Audience Growth',
+  'Digital Marketing',
+  'SEO & Search Strategy',
+  'Career Development',
+  'Remote Work Culture',
+  'Health & Wellness',
+  'Society & Culture'
+];
 
 export function OnboardingWizard() {
   const router = useRouter();
-  const [data, setData] = useState<OnboardingData>(cloneDefaultData);
-  const [step, setStep] = useState<OnboardingStep>('organization');
+  const [data, setData] = useState<OnboardingData>(() => structuredClone(DEFAULT_ONBOARDING_DATA));
+  const [step, setStep] = useState<OnboardingStep>('activation');
   const [loading, setLoading] = useState(true);
+  const [discovering, setDiscovering] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activating, setActivating] = useState(false);
-  const [testingCms, setTestingCms] = useState(false);
-  const [cmsSecret, setCmsSecret] = useState('');
-  const [hasStoredCredential, setHasStoredCredential] = useState(false);
-  const [cmsSample, setCmsSample] = useState<Array<{ title: string; slug: string }>>([]);
-  const [skipping, setSkipping] = useState(false);
-  const [activeOrganization, setActiveOrganization] = useState<ActiveOrganization | null>(null);
+  const [activeOrganization, setActiveOrganization] = useState<{ name: string; slug: string } | null>(null);
+  
+  // Loading dynamic micro-copy stages
+  const [loadingPhase, setLoadingPhase] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
 
   const currentIndex = STEPS.findIndex((item) => item.id === step);
   const currentStep = STEPS[currentIndex] || STEPS[0];
@@ -138,9 +101,10 @@ export function OnboardingWizard() {
         return;
       }
       setActiveOrganization(result.organization || null);
-      setData(result.data || cloneDefaultData());
-      setStep(result.step || 'organization');
-      setHasStoredCredential(Boolean(result.hasStoredCredential));
+      if (result.data) {
+        setData(result.data);
+      }
+      setStep(result.step || 'activation');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load onboarding.');
     } finally {
@@ -152,170 +116,162 @@ export function OnboardingWizard() {
     void loadDraft();
   }, [loadDraft]);
 
-  const updateOrganization = (
-    key: keyof OnboardingData['organization'],
+  const updateActivation = (
+    key: keyof OnboardingData['activation'],
     value: string
   ) => {
     setData((current) => {
-      const nextOrganization = { ...current.organization, [key]: value };
-      return { ...current, organization: nextOrganization };
+      const nextActivation = { ...current.activation, [key]: value };
+      return { ...current, activation: nextActivation };
     });
   };
 
-  const updateProfile = <K extends keyof OnboardingData['editorialProfile']>(
+  const updateProfile = <K extends keyof NonNullable<OnboardingData['editorialProfile']>>(
     key: K,
-    value: OnboardingData['editorialProfile'][K]
+    value: NonNullable<OnboardingData['editorialProfile']>[K]
   ) => {
-    setData((current) => ({
-      ...current,
-      editorialProfile: { ...current.editorialProfile, [key]: value },
-    }));
+    setData((current) => {
+      if (!current.editorialProfile) return current;
+      return {
+        ...current,
+        editorialProfile: { ...current.editorialProfile, [key]: value },
+      };
+    });
   };
 
-  const updateCms = <K extends keyof OnboardingData['cms']>(
-    key: K,
-    value: OnboardingData['cms'][K]
-  ) => {
-    setData((current) => ({
-      ...current,
-      cms: {
-        ...current.cms,
-        [key]: value,
-        ...(key === 'baseUrl' || key === 'adapterKey' ? { verified: false } : {}),
-      },
-    }));
-    if (key === 'baseUrl' || key === 'adapterKey') setCmsSample([]);
+  const runDiscovery = async () => {
+    setDiscovering(true);
+    setLoadingPhase(0);
+    setStep('discovery');
+
+    // Simulate phases animation
+    const interval = setInterval(() => {
+      setLoadingPhase((p) => Math.min(p + 1, 3));
+    }, 2500);
+
+    try {
+      const response = await fetch('/api/onboarding/discover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data.activation),
+      });
+      const result = await response.json();
+      clearInterval(interval);
+      if (!response.ok) throw new Error(result.error || 'Discovery failed.');
+
+      // Complete phases immediately
+      setLoadingPhase(3);
+      
+      setData((current) => ({
+        ...current,
+        editorialProfile: result.profile,
+      }));
+
+      // Wait a bit for the animation to look complete before moving to review
+      setTimeout(() => {
+        setStep('review');
+        setDiscovering(false);
+      }, 800);
+
+    } catch (error) {
+      clearInterval(interval);
+      toast.error(error instanceof Error ? error.message : 'Discovery failed. Loading defaults.');
+      
+      // Fallback
+      const workspaceName = data.activation.workspaceName || activeOrganization?.name || 'Publication';
+      const fallbackProfile = {
+        brandName: workspaceName,
+        positioning: `A practical editorial workspace for ${workspaceName}.`,
+        audience: 'General readers and professionals.',
+        categories: ['Technology & AI', 'Business & Economy'],
+        articleTypes: ['News & Trend Analysis', 'Opinion / Op-Ed'],
+        tone: ['professional', 'clear'],
+        articleStructure: ['Hook', 'Context', 'Body', 'Strategic Closing'],
+        additionalProhibitedPatterns: [],
+        sourcePolicy: 'strict' as const,
+        seoRules: {
+          titleMaxLength: 120,
+          metaTitleMaxLength: 60,
+          metaDescriptionMaxLength: 155,
+          tagCountMin: 3,
+          tagCountMax: 5,
+        },
+        internalLinkDomains: [],
+        internalLinkBaseUrl: '',
+        customInstructions: '',
+        allowedEditorialTerms: [],
+        primaryGoal: data.activation.primaryGoal,
+        defaultLanguage: data.activation.defaultLanguage,
+      };
+
+      setData((current) => ({
+        ...current,
+        editorialProfile: fallbackProfile,
+      }));
+
+      setTimeout(() => {
+        setStep('review');
+        setDiscovering(false);
+      }, 1000);
+    }
   };
 
-  const saveDraft = async (nextStep: OnboardingStep) => {
+  const saveDraft = async (nextStep: OnboardingStep, updatedData?: OnboardingData) => {
     setSaving(true);
     try {
-      const cleanedData = cleanOnboardingData(data);
+      const dataToSave = updatedData || data;
       const response = await fetch('/api/onboarding', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           step: nextStep,
-          data: cleanedData,
-          cmsSecret: cmsSecret || undefined,
+          data: dataToSave,
         }),
       });
       const result = await response.json();
       if (!response.ok) {
-        const details = formatValidationIssues(result.issues);
-        if (details) {
-          console.error('[ONBOARDING_SAVE_ERROR] Issues:', result.issues);
-        }
-        throw new Error(
-          (result.error || 'Failed to save onboarding') + (details ? `: ${details}` : '')
-        );
+        throw new Error(result.error || 'Failed to save onboarding draft');
       }
-      if (cmsSecret) setHasStoredCredential(true);
-      setData(cleanedData);
+      setData(dataToSave);
       setStep(nextStep);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save onboarding.');
-      throw error;
+      toast.error(error instanceof Error ? error.message : 'Failed to save draft.');
     } finally {
       setSaving(false);
     }
   };
 
-  const validateStep = () => {
-    if (step === 'organization') {
-      return Boolean(
-        data.organization.name.trim() &&
-        data.organization.slug.trim() &&
-        data.organization.publicationName.trim()
-      );
-    }
-    if (step === 'editorial_profile') {
-      return Boolean(
-        data.editorialProfile.brandName.trim() &&
-        data.editorialProfile.positioning.trim() &&
-        data.editorialProfile.audience.trim() &&
-        data.editorialProfile.categories.some(Boolean) &&
-        data.editorialProfile.articleTypes?.some(Boolean) &&
-        data.editorialProfile.tone.some(Boolean)
-      );
-    }
-    if (step === 'editorial_rules') {
-      return data.editorialProfile.articleStructure.some(Boolean);
-    }
-    if (step === 'cms_connection') {
-      return data.cms.adapterKey === 'none' || (
-        data.cms.verified &&
-        Boolean(data.cms.name && data.cms.baseUrl) &&
-        (Boolean(cmsSecret) || hasStoredCredential)
-      );
-    }
-    return true;
+  const validateActivation = () => {
+    return Boolean(data.activation.workspaceName.trim());
   };
 
   const goNext = async () => {
-    if (!validateStep()) {
-      toast.error('Please complete the required fields in this step.');
-      return;
+    if (step === 'activation') {
+      if (!validateActivation()) {
+        toast.error('Please enter a Workspace Name.');
+        return;
+      }
+      await saveDraft('discovery');
+      void runDiscovery();
     }
-    const next = STEPS[Math.min(currentIndex + 1, STEPS.length - 1)].id;
-    await saveDraft(next);
   };
 
   const goBack = async () => {
-    const previous = STEPS[Math.max(currentIndex - 1, 0)].id;
-    await saveDraft(previous);
-  };
-
-  const testCms = async () => {
-    if (!cmsSecret && !hasStoredCredential) {
-      toast.error('Please enter the CMS shared secret to test the connection.');
-      return;
-    }
-    if (!cmsSecret) {
-      toast.info('Please re-enter the shared secret to perform a new connection test.');
-      return;
-    }
-    setTestingCms(true);
-    try {
-      const response = await fetch('/api/onboarding/test-cms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          adapterKey: 'eai-rest-v1',
-          name: data.cms.name,
-          baseUrl: data.cms.baseUrl,
-          secret: cmsSecret,
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'CMS connection failed.');
-      setCmsSample(result.samplePosts || []);
-      updateCms('verified', true);
-      toast.success('CMS connection verified.');
-    } catch (error) {
-      updateCms('verified', false);
-      toast.error(error instanceof Error ? error.message : 'CMS connection failed.');
-    } finally {
-      setTestingCms(false);
-    }
+    const previous = step === 'review' ? 'activation' : 'activation';
+    await saveDraft(previous as OnboardingStep);
   };
 
   const activateWorkspace = async () => {
     setActivating(true);
     try {
+      // First save the current data as review draft
       await saveDraft('review');
       const response = await fetch('/api/onboarding', { method: 'POST' });
       const result = await response.json();
       if (!response.ok) {
-        const details = formatValidationIssues(result.issues);
-        if (details) {
-          console.error('[ONBOARDING_ACTIVATE_ERROR] Issues:', result.issues);
-        }
-        throw new Error(
-          (result.error || 'Workspace activation failed') + (details ? `: ${details}` : '')
-        );
+        throw new Error(result.error || 'Workspace activation failed.');
       }
-      toast.success('Workspace active. Editorial profile v1 has been created.');
+      toast.success('Workspace active. Editorial DNA profile v1 has been created!');
       router.replace('/workspace');
       router.refresh();
     } catch (error) {
@@ -326,7 +282,7 @@ export function OnboardingWizard() {
   };
 
   const skipOnboarding = async () => {
-    setSkipping(true);
+    setSaving(true);
     try {
       const response = await fetch('/api/onboarding', {
         method: 'POST',
@@ -341,31 +297,53 @@ export function OnboardingWizard() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to skip onboarding.');
     } finally {
-      setSkipping(false);
+      setSaving(false);
     }
   };
 
   const handleToggleCategory = (category: string) => {
-    const current = data.editorialProfile.categories;
+    if (!data.editorialProfile) return;
+    const current = data.editorialProfile.categories || [];
     const next = current.includes(category)
       ? current.filter((item) => item !== category)
       : [...current, category];
     updateProfile('categories', next);
   };
 
-  const handleToggleArticleType = (type: string) => {
-    const current = data.editorialProfile.articleTypes || [];
-    const next = current.includes(type)
-      ? current.filter((item) => item !== type)
-      : [...current, type];
-    updateProfile('articleTypes', next);
+  const handleToggleTone = (tone: string) => {
+    if (!data.editorialProfile) return;
+    const current = data.editorialProfile.tone || [];
+    const next = current.includes(tone)
+      ? current.filter((item) => item !== tone)
+      : [...current, tone];
+    updateProfile('tone', next);
   };
 
-  const editorialPreview = useMemo(() => {
-    const brand = data.editorialProfile.brandName || data.organization.publicationName || 'Your Publication';
-    const positioning = data.editorialProfile.positioning || 'Editorial positioning will appear here.';
-    return { brand, positioning };
-  }, [data]);
+  const handleAddCustomTone = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter') return;
+    const target = event.currentTarget;
+    const newTone = target.value.trim().toLowerCase();
+    if (!newTone || !data.editorialProfile) return;
+    const current = data.editorialProfile.tone || [];
+    if (!current.includes(newTone)) {
+      updateProfile('tone', [...current, newTone]);
+    }
+    target.value = '';
+    event.preventDefault();
+  };
+
+  const dynamicLoadingCopy = useMemo(() => {
+    const website = data.activation.website;
+    const workspaceName = data.activation.workspaceName || activeOrganization?.name || 'Workspace';
+    const lang = data.activation.defaultLanguage === 'id' ? 'Bahasa Indonesia' : data.activation.defaultLanguage === 'en' ? 'English' : 'Otomatis';
+
+    return [
+      { text: `Analyzing primary goals for "${workspaceName}"...`, complete: loadingPhase > 0 },
+      { text: website ? `Extracting brand identity from ${website}...` : `Generating brand identity for "${workspaceName}"...`, complete: loadingPhase > 1 },
+      { text: `Synthesizing writing tone and categories for ${lang}...`, complete: loadingPhase > 2 },
+      { text: `Finalizing Editorial DNA and structure...`, complete: loadingPhase >= 3 }
+    ];
+  }, [data.activation, activeOrganization, loadingPhase]);
 
   if (loading) {
     return (
@@ -380,16 +358,16 @@ export function OnboardingWizard() {
 
   return (
     <div className="min-h-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)] relative flex flex-col">
-      {/* Ambient Radial Glow (Envoyou Brand Identity) */}
+      {/* Ambient Radial Glow */}
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_0%,rgba(13,135,207,0.05),transparent_40%),radial-gradient(circle_at_80%_10%,rgba(99,102,241,0.03),transparent_35%)] dark:bg-[radial-gradient(circle_at_20%_0%,rgba(13,135,207,0.1),transparent_40%),radial-gradient(circle_at_80%_10%,rgba(99,102,241,0.06),transparent_35%)]" />
-      {/* Subtle noise texture for premium material feel */}
+      
+      {/* Subtle Noise Material */}
       <div 
         className="pointer-events-none absolute inset-0 -z-10 opacity-[0.02] dark:opacity-[0.035] mix-blend-overlay"
         style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}
       />
 
       <header className="ide-titlebar justify-between px-5 md:px-8 relative z-20 border-b border-[var(--border)] bg-[var(--surface-1)]/80 backdrop-blur-2xl shrink-0">
-        <div className="sidebar-header-glow" />
         <div className="flex items-center gap-3 relative z-10">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-primary">
             <EAILogo className="h-5 w-5" />
@@ -407,13 +385,14 @@ export function OnboardingWizard() {
       </header>
 
       <main className="relative z-10 mx-auto grid min-h-0 flex-1 w-full max-w-[1500px] lg:grid-cols-[300px_minmax(0,1fr)_320px]">
+        {/* Navigation Sidebar */}
         <aside className="border-r border-[var(--border)] p-6 lg:p-8 flex flex-col">
           <div className="mb-8">
             <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-primary">
               Launch sequence
             </div>
             <p className="mt-3 text-xs leading-5 text-[var(--muted-foreground)]">
-              Five decisions to transform EAI into your organization&apos;s editorial workspace.
+              Sederhana, cepat, berbasis kecerdasan buatan. Biarkan EAI menganalisis brand Anda secara instan.
             </p>
           </div>
           <div className="space-y-2">
@@ -422,16 +401,14 @@ export function OnboardingWizard() {
               const active = item.id === step;
               const complete = index < currentIndex;
               return (
-                <button
+                <div
                   key={item.id}
-                  type="button"
-                  onClick={() => complete && void saveDraft(item.id)}
-                  className={`group flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${
+                  className={`group flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition select-none ${
                     active
                       ? 'border-[var(--primary)]/20 bg-[var(--primary)]/10 text-[var(--foreground)]'
                       : complete
-                        ? 'border-transparent hover:bg-[var(--surface-2)] cursor-pointer text-[var(--foreground)]'
-                        : 'cursor-default border-transparent opacity-40 text-[var(--muted-foreground)]'
+                        ? 'border-transparent text-[var(--foreground)]'
+                        : 'border-transparent opacity-40 text-[var(--muted-foreground)]'
                   }`}
                 >
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
@@ -447,27 +424,19 @@ export function OnboardingWizard() {
                     <div className="font-mono text-[8px] uppercase tracking-[0.15em] text-[var(--muted-foreground)]">
                       {item.eyebrow}
                     </div>
-                    <div className={`mt-1 truncate text-xs font-semibold ${active ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]'}`}>
+                    <div className={`mt-1 truncate text-xs font-semibold ${active ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}`}>
                       {item.label}
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
-          <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
-            <div className="flex items-center gap-2 text-[var(--success)]">
-              <LockKeyhole className="h-3.5 w-3.5" />
-              <span className="font-mono text-[9px] uppercase tracking-[0.16em]">Private draft</span>
-            </div>
-            <p className="mt-2 text-[11px] leading-5 text-[var(--muted-foreground)]">
-              Profile v1 will not be created until you click Activate Workspace.
-            </p>
-          </div>
         </aside>
 
+        {/* Wizard Main Content Canvas */}
         <section className="flex min-w-0 flex-col p-5 md:p-10 lg:p-12">
-          <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
+          <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center">
             <div className="mb-8">
               <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">
                 {currentStep.eyebrow}
@@ -486,384 +455,295 @@ export function OnboardingWizard() {
                 transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
                 className="flex-1"
               >
-                {step === 'organization' && (
+                {step === 'activation' && (
                   <div className="space-y-6">
-                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/70 p-5">
-                      <div className="flex items-start gap-3">
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-[var(--success)]/20 bg-[var(--success)]/10 text-[var(--success)]">
-                          <Check className="size-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-xs font-semibold text-[var(--muted-foreground)]">
-                            Clerk workspace connected
-                          </div>
-                          <div className="mt-2 truncate text-lg font-semibold text-[var(--foreground)]">
-                            {activeOrganization?.name || data.organization.name}
-                          </div>
-                          <div className="mt-1 truncate font-mono text-xs text-[var(--muted-foreground)]">
-                            /{activeOrganization?.slug || data.organization.slug}
-                          </div>
-                        </div>
-                      </div>
-                      <p className="mt-4 text-xs leading-5 text-[var(--muted-foreground)]">
-                        Workspace identity is managed by Clerk. The publication details below
-                        control how EAI identifies and writes for your brand.
-                      </p>
-                    </div>
-                    <WizardField
-                      label="Publication name"
-                      icon={FileText}
-                      hint={`${data.organization.publicationName.length} / 100`}
-                    >
+                    <WizardField label="Nama Workspace" icon={Building2}>
                       <Input
                         type="text"
-                        value={data.organization.publicationName}
-                        onChange={(event) => updateOrganization('publicationName', event.target.value)}
-                        placeholder="Acme Journal"
+                        value={data.activation.workspaceName}
+                        onChange={(event) => updateActivation('workspaceName', event.target.value)}
+                        placeholder="Nama Publikasi / Workspace Anda (misal: EAI Blog)"
                         className="ui-control ui-input h-11"
                       />
                     </WizardField>
-                    <WizardField
-                      label="Publication website"
-                      icon={Globe2}
-                      optional
-                      hint={`Optional • ${data.organization.domain.length} / 300`}
-                    >
+
+                    <WizardField label="Website Publikasi" icon={Globe2} optional>
                       <Input
                         type="url"
-                        value={data.organization.domain}
-                        onChange={(event) => updateOrganization('domain', event.target.value)}
-                        placeholder="https://journal.example.com"
+                        value={data.activation.website}
+                        onChange={(event) => updateActivation('website', event.target.value)}
+                        placeholder="https://blog.envoyou.com (opsional)"
                         className="ui-control ui-input h-11"
                       />
                     </WizardField>
-                  </div>
-                )}                 {step === 'editorial_profile' && (
-                  <div className="space-y-6">
-                    <WizardField
-                      label="Editorial brand"
-                      icon={WandSparkles}
-                      hint={`${data.editorialProfile.brandName.length} / 80`}
-                    >
-                      <Input
-                        type="text"
-                        value={data.editorialProfile.brandName}
-                        onChange={(event) => updateProfile('brandName', event.target.value)}
-                        placeholder={data.organization.publicationName || 'Publication brand'}
-                        className="ui-control ui-input h-11"
-                      />
-                    </WizardField>
-                    <WizardField
-                      label="Positioning"
-                      icon={Sparkles}
-                      hint={`${data.editorialProfile.positioning.length} / 1000`}
-                    >
-                      <Textarea
-                        value={data.editorialProfile.positioning}
-                        onChange={(event) => updateProfile('positioning', event.target.value)}
-                        placeholder="What makes this publication unique, and what insights are promised to the readers?"
-                        className="ui-control ui-textarea min-h-28 leading-6"
-                      />
-                    </WizardField>
-                    <WizardField
-                      label="Primary audience"
-                      icon={Eye}
-                      hint={`${data.editorialProfile.audience.length} / 1000`}
-                    >
-                      <Textarea
-                        value={data.editorialProfile.audience}
-                        onChange={(event) => updateProfile('audience', event.target.value)}
-                        placeholder="Decision makers, operators, and professional readers..."
-                        className="ui-control ui-textarea min-h-24 leading-6"
-                      />
-                    </WizardField>
-                    <div className="space-y-6">
-                      <WizardField label="Article Categories" icon={BookOpenText} hint="Select the topics your publication will cover">
-                        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 max-h-[380px] overflow-y-auto pr-2 border border-[var(--border)] bg-[var(--surface-2)]/30 rounded-2xl p-4">
-                          {PREDEFINED_CATEGORIES.map((pillarObj) => (
-                            <div key={pillarObj.pillar} className="space-y-2">
-                              <h3 className="text-xs font-bold text-primary font-mono uppercase tracking-wider">
-                                {pillarObj.pillar}
-                              </h3>
-                              <div className="space-y-1.5 pl-1">
-                                {pillarObj.items.map((cat) => {
-                                  const checked = data.editorialProfile.categories.includes(cat);
-                                  return (
-                                    <label key={cat} className="flex items-start gap-2.5 cursor-pointer text-xs group py-0.5">
-                                      <input
-                                        type="checkbox"
-                                        checked={checked}
-                                        onChange={() => handleToggleCategory(cat)}
-                                        className="mt-0.5 rounded border-[var(--border)] text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
-                                      />
-                                      <span className={`leading-tight ${checked ? 'text-[var(--foreground)] font-medium' : 'text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]'}`}>
-                                        {cat}
-                                      </span>
-                                    </label>
-                                  );
-                                })}
+
+                    <WizardField label="Tujuan Utama (Primary Goal)" icon={Sparkles}>
+                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        {GOALS.map((goal) => {
+                          const active = data.activation.primaryGoal === goal.id;
+                          const GoalIcon = goal.icon;
+                          return (
+                            <button
+                              key={goal.id}
+                              type="button"
+                              onClick={() => updateActivation('primaryGoal', goal.id)}
+                              className={`rounded-2xl border p-4 text-left transition select-none flex flex-col justify-between h-32 cursor-pointer ${
+                                active
+                                  ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]'
+                                  : 'border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)]'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <GoalIcon className={`h-5 w-5 ${active ? 'text-primary' : 'text-[var(--muted-foreground)]'}`} />
+                                {active && <CheckCircle2 className="h-4 w-4 text-[var(--success)]" />}
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      </WizardField>
-
-                      <WizardField label="Article Types" icon={FileText} hint="Select the formats you want EAI to support">
-                        <div className="grid gap-4 md:grid-cols-2 max-h-[340px] overflow-y-auto pr-2 border border-[var(--border)] bg-[var(--surface-2)]/30 rounded-2xl p-4">
-                          {PREDEFINED_ARTICLE_TYPES.map((typeObj) => {
-                            const checked = (data.editorialProfile.articleTypes || []).includes(typeObj.name);
-                            return (
-                              <label
-                                key={typeObj.name}
-                                className={`flex items-start gap-3 rounded-xl border p-3.5 text-left cursor-pointer transition select-none group ${
-                                  checked
-                                    ? 'border-[var(--primary)]/30 bg-[var(--primary)]/5 text-[var(--foreground)] shadow-sm'
-                                    : 'border-[var(--border)] hover:bg-[var(--surface-2)] text-[var(--foreground)]'
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() => handleToggleArticleType(typeObj.name)}
-                                  className="mt-0.5 rounded border-[var(--border)] text-primary focus:ring-primary h-4 w-4 cursor-pointer"
-                                />
-                                <div className="min-w-0">
-                                  <div className={`text-xs font-bold ${checked ? 'text-primary' : 'text-[var(--foreground)]'}`}>
-                                    {typeObj.name}
-                                  </div>
-                                  <p className="mt-1 text-[11px] leading-relaxed text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]/90">
-                                    {typeObj.description}
-                                  </p>
-                                </div>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </WizardField>
-
-                      <WizardField label="Tone" hint="One tone attribute per line" icon={WandSparkles}>
-                        <textarea
-                          value={joinList(data.editorialProfile.tone)}
-                          onChange={(event) => updateProfile('tone', splitList(event.target.value))}
-                          placeholder={'Professional\nStrategic\nConversational'}
-                          className="ui-control ui-textarea min-h-24"
-                        />
-                      </WizardField>
-                    </div>
-                  </div>
-                )}
-
-                {step === 'editorial_rules' && (
-                  <div className="space-y-6">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {(['standard', 'strict'] as const).map((policy) => (
-                        <button
-                          key={policy}
-                          type="button"
-                          onClick={() => updateProfile('sourcePolicy', policy)}
-                          className={`rounded-2xl border p-5 text-left transition cursor-pointer ${
-                            data.editorialProfile.sourcePolicy === policy
-                              ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]'
-                              : 'border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)]'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <ShieldCheck className="h-5 w-5 text-primary" />
-                            {data.editorialProfile.sourcePolicy === policy && (
-                              <CheckCircle2 className="h-4 w-4 text-[var(--success)]" />
-                            )}
-                          </div>
-                          <div className="mt-5 font-display text-xl capitalize text-[var(--foreground)]">{policy}</div>
-                          <p className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
-                            {policy === 'strict'
-                              ? 'Verification and source fidelity are treated as a stricter gate.'
-                              : 'Platform guardrails remain active with standard editorial tolerance.'}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                    <WizardField label="Article structure" hint="One step per line" icon={FileText}>
-                      <Textarea
-                        value={joinList(data.editorialProfile.articleStructure)}
-                        onChange={(event) => updateProfile('articleStructure', splitList(event.target.value))}
-                        className="ui-control ui-textarea min-h-36"
-                      />
-                    </WizardField>
-                    <WizardField label="Additional prohibited patterns" hint="Optional, one pattern per line" icon={CircleAlert} optional>
-                      <Textarea
-                        value={joinList(data.editorialProfile.additionalProhibitedPatterns)}
-                        onChange={(event) => updateProfile('additionalProhibitedPatterns', splitList(event.target.value))}
-                        placeholder={'Specific generic phrases\nSpecific competitor mentions'}
-                        className="ui-control ui-textarea min-h-28"
-                      />
-                    </WizardField>
-                    <WizardField
-                      label="Custom instructions"
-                      icon={WandSparkles}
-                      optional
-                      hint={`Optional • ${(data.editorialProfile.customInstructions || '').length} / 2000`}
-                    >
-                      <Textarea
-                        value={data.editorialProfile.customInstructions || ''}
-                        onChange={(event) => updateProfile('customInstructions', event.target.value)}
-                        placeholder="Organization-specific editorial rules..."
-                        className="ui-control ui-textarea min-h-28"
-                      />
-                    </WizardField>
-                    <div className="grid gap-5 md:grid-cols-2">
-                      <WizardField
-                        label="Public article base URL"
-                        icon={Link2}
-                        optional
-                        hint={`Optional • ${(data.editorialProfile.internalLinkBaseUrl || '').length} / 300`}
-                      >
-                        <Input
-                          type="url"
-                          value={data.editorialProfile.internalLinkBaseUrl || ''}
-                          onChange={(event) => updateProfile('internalLinkBaseUrl', event.target.value)}
-                          placeholder="https://journal.example.com/posts"
-                          className="ui-control ui-input h-11"
-                        />
-                      </WizardField>
-                      <WizardField label="Trusted internal-link domains" hint="One domain per line" icon={Globe2} optional>
-                        <Textarea
-                          value={joinList(data.editorialProfile.internalLinkDomains)}
-                          onChange={(event) => updateProfile('internalLinkDomains', splitList(event.target.value))}
-                          placeholder="journal.example.com"
-                          className="ui-control ui-textarea min-h-24"
-                        />
-                      </WizardField>
-                    </div>
-                  </div>
-                )}
-
-                {step === 'cms_connection' && (
-                  <div className="space-y-6">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {[
-                        { key: 'eai-rest-v1' as const, title: 'EAI REST Adapter', body: 'For CMS supporting the EAI catalog contract and import.' },
-                        { key: 'none' as const, title: 'Connect Later', body: 'Activate the editorial workspace now without automatic export.' },
-                      ].map((adapter) => (
-                        <button
-                          key={adapter.key}
-                          type="button"
-                          onClick={() => updateCms('adapterKey', adapter.key)}
-                          className={`rounded-2xl border p-5 text-left transition cursor-pointer ${
-                            data.cms.adapterKey === adapter.key
-                              ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]'
-                              : 'border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)]'
-                          }`}
-                        >
-                          <DatabaseZap className="h-5 w-5 text-primary" />
-                          <div className="mt-5 text-sm font-bold text-[var(--foreground)]">{adapter.title}</div>
-                          <p className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">{adapter.body}</p>
-                        </button>
-                      ))}
-                    </div>
-
-                    {data.cms.adapterKey === 'eai-rest-v1' && (
-                      <div className="space-y-5 rounded-3xl border border-[var(--border)] bg-[var(--surface-1)] p-5 md:p-6 shadow-sm">
-                        <WizardField
-                          label="Connection name"
-                          icon={DatabaseZap}
-                          hint={`${data.cms.name.length} / 100`}
-                        >
-                          <Input
-                            type="text"
-                            value={data.cms.name}
-                            onChange={(event) => updateCms('name', event.target.value)}
-                            placeholder="Production CMS"
-                            className="ui-control ui-input h-11"
-                          />
-                        </WizardField>
-                        <WizardField
-                          label="CMS base URL"
-                          icon={Link2}
-                          hint={`${data.cms.baseUrl.length} / 300`}
-                        >
-                          <Input
-                            type="url"
-                            value={data.cms.baseUrl}
-                            onChange={(event) => updateCms('baseUrl', event.target.value)}
-                            placeholder="https://cms.example.com"
-                            className="ui-control ui-input h-11"
-                          />
-                        </WizardField>
-                        <WizardField
-                          label="Shared secret"
-                          hint={hasStoredCredential ? 'Encrypted credentials already stored' : `${cmsSecret.length} / 500`}
-                          icon={KeyRound}
-                        >
-                          <Input
-                            type="password"
-                            value={cmsSecret}
-                            onChange={(event) => {
-                              setCmsSecret(event.target.value);
-                              updateCms('verified', false);
-                            }}
-                            placeholder={hasStoredCredential ? '••••••••••••••••' : 'CMS shared secret'}
-                            className="ui-control ui-input h-11 font-mono"
-                          />
-                        </WizardField>
-                        <button
-                          type="button"
-                          onClick={() => void testCms()}
-                          disabled={testingCms || !data.cms.baseUrl || !data.cms.name}
-                          className="w-full ui-btn ui-btn-surface h-11 border border-[var(--border)] relative z-10"
-                        >
-                          {testingCms ? <Loader2 className="animate-spin" /> : <DatabaseZap />}
-                          {testingCms ? 'Testing connection...' : 'Test Connection'}
-                        </button>
-                        {data.cms.verified && (
-                          <div className="rounded-2xl border border-[var(--success)]/20 bg-[var(--success)]/8 p-4">
-                            <div className="flex items-center gap-2 text-xs font-bold text-[var(--success)]">
-                              <CheckCircle2 className="h-4 w-4" />
-                              Catalog endpoint verified
-                            </div>
-                            {cmsSample.length > 0 && (
-                              <div className="mt-3 space-y-2">
-                                {cmsSample.map((post) => (
-                                  <div key={post.slug} className="truncate font-mono text-[10px] text-[var(--muted-foreground)]">
-                                    /{post.slug} · {post.title}
-                                  </div>
-                                ))}
+                              <div>
+                                <div className="text-xs font-bold">{goal.label}</div>
+                                <p className="mt-1 text-[10px] leading-normal text-[var(--muted-foreground)]">
+                                  {goal.desc}
+                                </p>
                               </div>
-                            )}
-                          </div>
-                        )}
+                            </button>
+                          );
+                        })}
                       </div>
-                    )}
+                    </WizardField>
+
+                    <WizardField label="Bahasa Utama" icon={Globe2}>
+                      <select
+                        value={data.activation.defaultLanguage}
+                        onChange={(event) => updateActivation('defaultLanguage', event.target.value)}
+                        className="w-full h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--foreground)] outline-none focus:border-primary cursor-pointer"
+                      >
+                        <option value="auto">Auto-detect (Otomatis)</option>
+                        <option value="en">English</option>
+                        <option value="id">Bahasa Indonesia</option>
+                      </select>
+                    </WizardField>
                   </div>
                 )}
 
-                {step === 'review' && (
-                  <div className="space-y-5">
-                    <ReviewCard
-                      icon={Building2}
-                      label="Organization"
-                      title={data.organization.name}
-                      detail={`${data.organization.publicationName} · /${data.organization.slug}`}
-                    />
-                    <ReviewCard
-                      icon={WandSparkles}
-                      label="Editorial identity"
-                      title={data.editorialProfile.brandName}
-                      detail={`${cleanList(data.editorialProfile.categories).length} categories · ${data.editorialProfile.sourcePolicy} source policy`}
-                    />
-                    <ReviewCard
-                      icon={DatabaseZap}
-                      label="CMS delivery"
-                      title={data.cms.adapterKey === 'none' ? 'Connect later' : data.cms.name}
-                      detail={data.cms.adapterKey === 'none' ? 'Export adapter not configured' : `${data.cms.baseUrl} · catalog verified`}
-                    />
-                    <div className="rounded-3xl border border-[var(--warning)]/20 bg-[var(--warning)]/8 p-5">
-                      <div className="flex items-start gap-3">
-                        <LockKeyhole className="mt-0.5 h-5 w-5 text-[var(--warning)]" />
-                        <div>
-                          <div className="text-sm font-bold text-[var(--foreground)]">Activation is immutable</div>
-                          <p className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
-                            Activation creates EditorialProfile v1. Subsequent changes will always create a new version and not overwrite this snapshot.
-                          </p>
+                {step === 'discovery' && (
+                  <div className="flex flex-col items-center justify-center py-10 space-y-8">
+                    <div className="relative">
+                      <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-primary relative z-10">
+                        <Loader2 className="h-10 w-10 animate-spin" />
+                      </div>
+                    </div>
+
+                    <div className="w-full max-w-md space-y-3.5 bg-[var(--surface-2)]/60 border border-[var(--border)] p-6 rounded-3xl backdrop-blur-xl">
+                      <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary text-center">
+                        AI Scanning Progress
+                      </h3>
+                      <div className="space-y-3 pt-3">
+                        {dynamicLoadingCopy.map((phase, idx) => (
+                          <div key={idx} className="flex items-center gap-3 text-xs leading-normal">
+                            <span className={`flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] ${
+                              phase.complete
+                                ? 'bg-[var(--success)]/10 text-[var(--success)]'
+                                : loadingPhase === idx
+                                  ? 'bg-primary/20 text-primary animate-pulse'
+                                  : 'bg-[var(--surface-3)] text-[var(--muted-foreground)]'
+                            }`}>
+                              {phase.complete ? <Check className="size-3" /> : idx + 1}
+                            </span>
+                            <span className={phase.complete ? 'text-[var(--foreground)]' : loadingPhase === idx ? 'text-primary font-medium' : 'text-[var(--muted-foreground)]'}>
+                              {phase.text}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {step === 'review' && data.editorialProfile && (
+                  <div className="space-y-6">
+                    <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xl overflow-hidden">
+                      <div className="h-1.5 bg-gradient-to-r from-[var(--primary)] via-sky-400 to-[var(--success)]" />
+                      <div className="p-6 md:p-8 space-y-6">
+                        <div className="flex justify-between items-start gap-4">
+                          <div>
+                            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary">
+                              Editorial DNA Profile v1
+                            </span>
+                            {isEditing ? (
+                              <div className="mt-3">
+                                <label className="block text-[10px] font-mono text-[var(--muted-foreground)] uppercase mb-1">Brand Name</label>
+                                <Input
+                                  value={data.editorialProfile.brandName}
+                                  onChange={(e) => updateProfile('brandName', e.target.value)}
+                                  className="h-10 text-xl font-bold font-display"
+                                />
+                              </div>
+                            ) : (
+                              <h2 className="mt-2 font-display text-3xl leading-tight text-[var(--foreground)]">
+                                {data.editorialProfile.brandName}
+                              </h2>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setIsEditing(!isEditing)}
+                              className="ui-btn ui-btn-muted text-xs gap-1.5 px-3 h-8 border border-[var(--border)]"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              {isEditing ? 'Done' : 'Edit'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void runDiscovery()}
+                              className="ui-btn ui-btn-muted text-xs gap-1.5 px-3 h-8 border border-[var(--border)] text-primary hover:bg-primary/5"
+                              disabled={discovering}
+                            >
+                              <RefreshCw className={`w-3.5 h-3.5 ${discovering ? 'animate-spin' : ''}`} />
+                              Regenerate
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-5 border-t border-[var(--border)] pt-5">
+                          <div>
+                            <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-[var(--muted-foreground)] block mb-1.5">
+                              Positioning
+                            </span>
+                            {isEditing ? (
+                              <Textarea
+                                value={data.editorialProfile.positioning}
+                                onChange={(e) => updateProfile('positioning', e.target.value)}
+                                className="min-h-20 text-xs leading-normal"
+                              />
+                            ) : (
+                              <p className="text-xs leading-6 text-[var(--muted-foreground)]">
+                                {data.editorialProfile.positioning}
+                              </p>
+                            )}
+                          </div>
+
+                          <div>
+                            <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-[var(--muted-foreground)] block mb-1.5">
+                              Target Audience
+                            </span>
+                            {isEditing ? (
+                              <Textarea
+                                value={data.editorialProfile.audience}
+                                onChange={(e) => updateProfile('audience', e.target.value)}
+                                className="min-h-16 text-xs leading-normal"
+                              />
+                            ) : (
+                              <p className="text-xs leading-6 text-[var(--muted-foreground)]">
+                                {data.editorialProfile.audience}
+                              </p>
+                            )}
+                          </div>
+
+                          <div>
+                            <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-[var(--muted-foreground)] block mb-2">
+                              Topics & Categories
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {data.editorialProfile.categories.map((cat) => (
+                                <span
+                                  key={cat}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[var(--surface-2)] text-[var(--foreground)] border border-[var(--border)] group"
+                                >
+                                  {cat}
+                                  {isEditing && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleCategory(cat)}
+                                      className="hover:text-red-500 font-bold ml-0.5"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+
+                            {isEditing && (
+                              <div className="mt-3">
+                                <label className="block text-[10px] font-mono text-[var(--muted-foreground)] uppercase mb-1">Add categories</label>
+                                <div className="max-h-28 overflow-y-auto border border-[var(--border)] bg-[var(--surface-2)] p-2.5 rounded-xl flex flex-wrap gap-1.5">
+                                  {PREDEFINED_CATEGORIES.map((cat) => {
+                                    const active = data.editorialProfile?.categories.includes(cat);
+                                    return (
+                                      <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => handleToggleCategory(cat)}
+                                        className={`px-2 py-0.5 rounded-lg text-[9px] border transition ${
+                                          active
+                                            ? 'bg-primary/10 border-primary/40 text-primary'
+                                            : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
+                                        }`}
+                                      >
+                                        {cat}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-[var(--muted-foreground)] block mb-2">
+                              Writing Style & Tone
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {data.editorialProfile.tone.map((tn) => (
+                                <span
+                                  key={tn}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[var(--primary)]/10 text-primary border border-primary/20 capitalize"
+                                >
+                                  {tn}
+                                  {isEditing && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleTone(tn)}
+                                      className="hover:text-red-500 font-bold ml-0.5"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+
+                            {isEditing && (
+                              <div className="mt-3 space-y-2">
+                                <label className="block text-[10px] font-mono text-[var(--muted-foreground)] uppercase">Quick Add Tone</label>
+                                <div className="flex flex-wrap gap-1 bg-[var(--surface-2)] p-2 rounded-xl border border-[var(--border)]">
+                                  {['professional', 'clear', 'analytical', 'conversational', 'bold', 'data-driven', 'insightful', 'strategic', 'academic'].map((tn) => {
+                                    const active = data.editorialProfile?.tone.includes(tn);
+                                    return (
+                                      <button
+                                        key={tn}
+                                        type="button"
+                                        onClick={() => handleToggleTone(tn)}
+                                        className={`px-2 py-0.5 rounded-lg text-[9px] border transition capitalize ${
+                                          active
+                                            ? 'bg-primary/10 border-primary/40 text-primary'
+                                            : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
+                                        }`}
+                                      >
+                                        {tn}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <Input
+                                  placeholder="Type custom tone and press Enter..."
+                                  onKeyDown={handleAddCustomTone}
+                                  className="h-9 text-xs"
+                                />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -874,80 +754,83 @@ export function OnboardingWizard() {
 
             <div className="mt-10 flex items-center justify-between border-t border-[var(--border)] pt-6">
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => void goBack()}
-                  disabled={currentIndex === 0 || saving || activating || skipping}
-                  className="ui-btn ui-btn-muted text-sm gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void skipOnboarding()}
-                  disabled={saving || activating || skipping}
-                  className="ui-btn ui-btn-muted text-xs opacity-60 hover:opacity-100 font-normal underline underline-offset-4 gap-1.5"
-                >
-                  {skipping ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-                  Use defaults
-                </button>
+                {step === 'review' ? (
+                  <button
+                    type="button"
+                    onClick={() => void goBack()}
+                    disabled={saving || activating}
+                    className="ui-btn ui-btn-muted text-sm gap-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void skipOnboarding()}
+                    disabled={saving || activating}
+                    className="ui-btn ui-btn-muted text-xs opacity-60 hover:opacity-100 font-normal underline underline-offset-4 gap-1.5"
+                  >
+                    Use defaults
+                  </button>
+                )}
               </div>
+              
               {step === 'review' ? (
                 <button
                   type="button"
                   onClick={() => void activateWorkspace()}
-                  disabled={activating || saving || skipping}
+                  disabled={activating || saving}
                   className="ui-btn ui-btn-primary h-11 px-6 shadow-xl shadow-[var(--primary)]/15 text-sm gap-2"
                 >
                   {activating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
                   {activating ? 'Activating...' : 'Activate Workspace'}
                 </button>
-              ) : (
+              ) : step === 'activation' ? (
                 <button
                   type="button"
                   onClick={() => void goNext()}
-                  disabled={saving || skipping}
+                  disabled={saving}
                   className="ui-btn ui-btn-primary h-11 px-6 shadow-xl shadow-[var(--primary)]/15 text-sm gap-2"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                   {saving ? 'Saving...' : 'Continue'}
                 </button>
+              ) : (
+                <div className="h-11" /> // space placeholder for discovery loading
               )}
             </div>
           </div>
         </section>
 
+        {/* Live Editorial DNA Preview Sidebar */}
         <aside className="hidden border-l border-[var(--border)] p-8 lg:block">
           <div className="sticky top-24">
             <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--muted-foreground)]">
-              Live editorial signature
+              Live DNA preview
             </div>
             <div className="mt-5 overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--card)] shadow-2xl shadow-black/10 dark:shadow-black/50">
               <div className="h-1 bg-gradient-to-r from-[var(--primary)] via-sky-400 to-[var(--success)]" />
               <div className="p-6">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-primary">
-                    Profile v1 preview
+                    Workspace DNA
                   </span>
                   <Sparkles className="h-4 w-4 text-[var(--gold)]" />
                 </div>
-                <h2 className="mt-8 font-display text-3xl leading-tight text-[var(--foreground)]">
-                  {editorialPreview.brand}
+                <h2 className="mt-8 font-display text-3xl leading-tight text-[var(--foreground)] truncate">
+                  {data.activation.workspaceName || activeOrganization?.name || 'Your Brand'}
                 </h2>
-                <p className="mt-4 text-xs leading-6 text-[var(--muted-foreground)]">
-                  {editorialPreview.positioning}
-                </p>
                 <div className="mt-7 space-y-3 border-t border-[var(--border)] pt-5">
-                  <SignatureRow label="Audience" value={data.editorialProfile.audience || 'Not defined'} />
-                  <SignatureRow label="Source" value={data.editorialProfile.sourcePolicy} />
-                  <SignatureRow label="CMS" value={data.cms.adapterKey === 'none' ? 'Later' : 'Connected'} />
+                  <SignatureRow label="Goal" value={data.activation.primaryGoal.replace('_', ' ')} />
+                  <SignatureRow label="Language" value={data.activation.defaultLanguage} />
+                  <SignatureRow label="Website" value={data.activation.website ? 'Provided' : 'None'} />
                 </div>
               </div>
             </div>
             <div className="mt-5 flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-[11px] leading-5 text-[var(--muted-foreground)]">
               <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--success)]" />
-              Core factual and verification guardrails stay locked by EAI.
+              Core factual integrity guardrails stay locked automatically by EAI.
             </div>
           </div>
         </aside>
@@ -971,7 +854,7 @@ function WizardField({
 }) {
   return (
     <label className="block">
-      <div className="mb-2 flex items-center justify-between gap-3">
+      <div className="mb-2 flex items-center justify-between gap-3 font-medium">
         <span className="flex items-center gap-2 text-xs font-semibold text-[var(--foreground)]">
           <Icon className="h-3.5 w-3.5 text-primary" />
           {label}
@@ -982,31 +865,6 @@ function WizardField({
       </div>
       {children}
     </label>
-  );
-}
-
-function ReviewCard({
-  icon: Icon,
-  label,
-  title,
-  detail,
-}: {
-  icon: typeof Building2;
-  label: string;
-  title: string;
-  detail: string;
-}) {
-  return (
-    <div className="flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-5">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--primary)]/10 text-[var(--primary)]">
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0">
-        <div className="font-mono text-[8px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">{label}</div>
-        <div className="mt-1 truncate text-sm font-bold text-[var(--foreground)]">{title || 'Not configured'}</div>
-        <div className="mt-1 truncate text-xs text-[var(--muted-foreground)]">{detail}</div>
-      </div>
-    </div>
   );
 }
 
