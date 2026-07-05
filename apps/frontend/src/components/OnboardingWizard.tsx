@@ -1,7 +1,7 @@
 'use client';
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -74,6 +74,17 @@ const PREDEFINED_CATEGORIES = [
   'Society & Culture'
 ];
 
+const PREDEFINED_ARTICLE_TYPES = [
+  'News & Trend Analysis',
+  'Opinion / Op-Ed',
+  'In-Depth Guide / Explainer',
+  'How-To / Tutorial',
+  'Case Study',
+  'Listicle',
+  'Review & Comparison',
+  'Interview / Q&A',
+];
+
 export function OnboardingWizard() {
   const router = useRouter();
   const [data, setData] = useState<OnboardingData>(() => structuredClone(DEFAULT_ONBOARDING_DATA));
@@ -87,6 +98,7 @@ export function OnboardingWizard() {
   // Loading dynamic micro-copy stages
   const [loadingPhase, setLoadingPhase] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
+  const discoverCancelledRef = useRef(false);
 
   const currentIndex = STEPS.findIndex((item) => item.id === step);
   const currentStep = STEPS[currentIndex] || STEPS[0];
@@ -140,6 +152,7 @@ export function OnboardingWizard() {
   };
 
   const runDiscovery = async () => {
+    discoverCancelledRef.current = false;
     setDiscovering(true);
     setLoadingPhase(0);
     setStep('discovery');
@@ -157,6 +170,12 @@ export function OnboardingWizard() {
       });
       const result = await response.json();
       clearInterval(interval);
+
+      if (discoverCancelledRef.current) {
+        console.log('[ONBOARDING] Discovery response ignored because it was cancelled.');
+        return;
+      }
+
       if (!response.ok) throw new Error(result.error || 'Discovery failed.');
 
       // Complete phases immediately
@@ -169,11 +188,13 @@ export function OnboardingWizard() {
 
       // Wait a bit for the animation to look complete before moving to review
       setTimeout(() => {
+        if (discoverCancelledRef.current) return;
         setStep('review');
         setDiscovering(false);
       }, 800);
 
     } catch (error) {
+      if (discoverCancelledRef.current) return;
       clearInterval(interval);
       toast.error(error instanceof Error ? error.message : 'Discovery failed. Loading defaults.');
       
@@ -210,6 +231,7 @@ export function OnboardingWizard() {
       }));
 
       setTimeout(() => {
+        if (discoverCancelledRef.current) return;
         setStep('review');
         setDiscovering(false);
       }, 1000);
@@ -308,6 +330,15 @@ export function OnboardingWizard() {
       ? current.filter((item) => item !== category)
       : [...current, category];
     updateProfile('categories', next);
+  };
+
+  const handleToggleArticleType = (articleType: string) => {
+    if (!data.editorialProfile) return;
+    const current = data.editorialProfile.articleTypes || [];
+    const next = current.includes(articleType)
+      ? current.filter((item) => item !== articleType)
+      : [...current, articleType];
+    updateProfile('articleTypes', next);
   };
 
   const handleToggleTone = (tone: string) => {
@@ -555,6 +586,23 @@ export function OnboardingWizard() {
                         ))}
                       </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        discoverCancelledRef.current = true;
+                        setStep('activation');
+                        setDiscovering(false);
+                        try {
+                          await saveDraft('activation');
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="px-6 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all font-medium font-mono"
+                    >
+                      Batal & Kembali
+                    </button>
                   </div>
                 )}
 
@@ -607,55 +655,55 @@ export function OnboardingWizard() {
 
                         <div className="grid gap-5 border-t border-[var(--border)] pt-5">
                           <div>
-                            <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-[var(--muted-foreground)] block mb-1.5">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2">
                               Positioning
                             </span>
                             {isEditing ? (
                               <Textarea
                                 value={data.editorialProfile.positioning}
                                 onChange={(e) => updateProfile('positioning', e.target.value)}
-                                className="min-h-20 text-xs leading-normal"
+                                className="min-h-24 text-sm leading-normal"
                               />
                             ) : (
-                              <p className="text-xs leading-6 text-[var(--muted-foreground)]">
+                              <p className="text-sm leading-6 text-[var(--foreground)]">
                                 {data.editorialProfile.positioning}
                               </p>
                             )}
                           </div>
 
                           <div>
-                            <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-[var(--muted-foreground)] block mb-1.5">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2">
                               Target Audience
                             </span>
                             {isEditing ? (
                               <Textarea
                                 value={data.editorialProfile.audience}
                                 onChange={(e) => updateProfile('audience', e.target.value)}
-                                className="min-h-16 text-xs leading-normal"
+                                className="min-h-20 text-sm leading-normal"
                               />
                             ) : (
-                              <p className="text-xs leading-6 text-[var(--muted-foreground)]">
+                              <p className="text-sm leading-6 text-[var(--foreground)]">
                                 {data.editorialProfile.audience}
                               </p>
                             )}
                           </div>
 
                           <div>
-                            <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-[var(--muted-foreground)] block mb-2">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2.5">
                               Topics & Categories
                             </span>
                             <div className="flex flex-wrap gap-1.5">
                               {data.editorialProfile.categories.map((cat) => (
                                 <span
                                   key={cat}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[var(--surface-2)] text-[var(--foreground)] border border-[var(--border)] group"
+                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--surface-2)] text-[var(--foreground)] border border-[var(--border)] group"
                                 >
                                   {cat}
                                   {isEditing && (
                                     <button
                                       type="button"
                                       onClick={() => handleToggleCategory(cat)}
-                                      className="hover:text-red-500 font-bold ml-0.5"
+                                      className="hover:text-red-500 font-bold ml-0.5 text-xs"
                                     >
                                       ×
                                     </button>
@@ -691,21 +739,71 @@ export function OnboardingWizard() {
                           </div>
 
                           <div>
-                            <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-[var(--muted-foreground)] block mb-2">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2.5">
+                              Article Types
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {(data.editorialProfile.articleTypes || []).map((type) => (
+                                <span
+                                  key={type}
+                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--surface-2)] text-[var(--foreground)] border border-[var(--border)] group"
+                                >
+                                  {type}
+                                  {isEditing && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleArticleType(type)}
+                                      className="hover:text-red-500 font-bold ml-0.5 text-xs"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+
+                            {isEditing && (
+                              <div className="mt-3">
+                                <label className="block text-[10px] font-mono text-[var(--muted-foreground)] uppercase mb-1">Add Article Types</label>
+                                <div className="max-h-28 overflow-y-auto border border-[var(--border)] bg-[var(--surface-2)] p-2.5 rounded-xl flex flex-wrap gap-1.5">
+                                  {PREDEFINED_ARTICLE_TYPES.map((type) => {
+                                    const active = data.editorialProfile?.articleTypes?.includes(type);
+                                    return (
+                                      <button
+                                        key={type}
+                                        type="button"
+                                        onClick={() => handleToggleArticleType(type)}
+                                        className={`px-2 py-0.5 rounded-lg text-[9px] border transition ${
+                                          active
+                                            ? 'bg-primary/10 border-primary/40 text-primary'
+                                            : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
+                                        }`}
+                                      >
+                                        {type}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2.5">
                               Writing Style & Tone
                             </span>
                             <div className="flex flex-wrap gap-1.5">
                               {data.editorialProfile.tone.map((tn) => (
                                 <span
                                   key={tn}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[var(--primary)]/10 text-primary border border-primary/20 capitalize"
+                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--primary)]/10 text-primary border border-primary/20 capitalize"
                                 >
                                   {tn}
                                   {isEditing && (
                                     <button
                                       type="button"
                                       onClick={() => handleToggleTone(tn)}
-                                      className="hover:text-red-500 font-bold ml-0.5"
+                                      className="hover:text-red-500 font-bold ml-0.5 text-xs"
                                     >
                                       ×
                                     </button>

@@ -53,9 +53,35 @@ function cleanHtml(html: string): string {
   return matches.join('\n');
 }
 
-async function scrapeWebsiteWithTimeout(url: string, timeoutMs: number = 8000): Promise<string> {
+async function scrapeWebsiteWithTimeout(url: string, _timeoutMs: number = 8000): Promise<string> {
+  // 1. Try Jina Reader API first (free, returns clean markdown for modern JS/CSR sites and bypasses Cloudflare)
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 4500); // 4.5 seconds timeout for Jina
+
+    const jinaUrl = `https://r.jina.ai/${url}`;
+    const jinaRes = await fetch(jinaUrl, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'text/plain',
+      },
+    });
+    clearTimeout(id);
+
+    if (jinaRes.ok) {
+      const text = await jinaRes.text();
+      if (text && text.trim().length > 50) {
+        console.log(`[ONBOARDING_SCRAPER] Successfully scraped via Jina Reader: ${url} (${text.length} chars)`);
+        return text.slice(0, 10000);
+      }
+    }
+  } catch (jinaErr) {
+    console.warn('[ONBOARDING_SCRAPER] Jina Reader failed, falling back to basic fetch:', jinaErr);
+  }
+
+  // 2. Fallback: Direct basic fetch & clean HTML regex parser
   const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
+  const id = setTimeout(() => controller.abort(), 3500); // 3.5 seconds timeout for direct fetch
 
   try {
     const response = await fetch(url, {
@@ -288,15 +314,7 @@ router.post('/discover', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Workspace Name is required' });
     }
 
-    // Rate Limiting per-user check in Prisma to avoid abuse
-    const requestCount = await prisma.onboardingDraft.findUnique({
-      where: { userId },
-      select: { updatedAt: true },
-    });
 
-    if (requestCount && Date.now() - new Date(requestCount.updatedAt).getTime() < 3000) {
-      return res.status(429).json({ error: 'Too many requests. Please wait before running discovery again.' });
-    }
 
     let scrapedText = '';
     if (website && website.trim()) {
@@ -342,7 +360,7 @@ Default Language: ${defaultLanguage}
 ${scrapedText ? `Scraped Website Content:\n${scrapedText}` : 'No website provided or scraping failed.'}
 `;
 
-      const response = await gemini.models.generateContent({
+      const llmPromise = gemini.models.generateContent({
         model: 'gemini-3.5-flash',
         contents: promptContent,
         config: {
@@ -352,6 +370,12 @@ ${scrapedText ? `Scraped Website Content:\n${scrapedText}` : 'No website provide
           responseMimeType: 'application/json',
         },
       });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Gemini API call timed out after 10000ms')), 10000)
+      );
+
+      const response = await Promise.race([llmPromise, timeoutPromise]);
 
       const rawText = response.text ? response.text.trim() : '';
       if (!rawText) throw new Error('Empty response from LLM');
@@ -390,7 +414,7 @@ ${scrapedText ? `Scraped Website Content:\n${scrapedText}` : 'No website provide
         defaultLanguage,
       };
     } catch (err) {
-      console.error('LLM Discovery analysis failed, using programmatic fallback:', err);
+      console.error('Failed to generate editorial DNA with Gemini, falling back to defaults:', err);
       generatedProfile = getFallbackProfile(workspaceName, primaryGoal, defaultLanguage);
     }
 

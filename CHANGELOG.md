@@ -6,6 +6,22 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **AI-First Onboarding Redesign**: Overhauled the user onboarding wizard flow, reducing it from 5 complex system-config screens to 3 interactive minimal stages (`activation`, `discovery`, and `review`).
+- **Automated Editorial DNA Extraction**: Integrated automated scraping and AI synthesis via Jina Reader API and Gemini 3.5 Flash to automatically extract brand names, positioning statements, target audiences, topics/categories, tones, and article types based on user website content.
+- **DNA Review & Live Editing Interface**: Added interactive pill tags and text editors inside the DNA Review wizard screen, allowing users to preview, add, edit, or remove categories, writing tones, and article types before finalizing activation.
+- **Onboarding Discovery Cancel Safety**: Added a "Batal & Kembali" (Cancel & Go Back) option on the discovery loading screen to safely abort hanging network requests, reset the onboarding state back to `'activation'` in the database, and return to the form screen.
+- **Article Types Wizard Representation**: Added full frontend support for displaying and configuring predefined and AI-generated article types directly inside the DNA review UI.
+
+### Changed
+- **DNA Review Visual Overhaul**: Increased font sizing, text contrast, tag paddings, and label weights across the DNA Review page elements to improve overall visual hierarchy and readability on large displays.
+- **Prioritized Jina Reader Scraping**: Re-engineered the website scraper backend utility to try the Jina Reader API first (with a 4.5s timeout) before falling back to local raw HTML fetch, aligning onboarding scraper behaviors with the strategist module.
+
+### Fixed
+- **Onboarding Rate Limiter Elimination**: Removed the database `updatedAt`-based rate limiter check on `/discover` endpoint to prevent race conditions with preceding draf saving calls triggering instant false 429 timeouts.
+- **Clerk Signup Active Session Lag**: Implemented Clerk session header propagation (`x-clerk-org-id`, `x-clerk-org-slug`, `x-clerk-org-role`) from Edge middleware to backend auth handler, bypassing Clerk JWT claims delay during the first signup organization creation.
+- **Discovery Infinite Loading Protection**: Added a strict 10-second `Promise.race` timeout to the Gemini API content generation call in the backend onboarding route, preventing infinite loading screens and triggering a safe, language-aware fallback.
+
 ## [2.1.0] - 2026-07-05
 
 ### Added

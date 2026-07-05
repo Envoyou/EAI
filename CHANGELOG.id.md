@@ -6,6 +6,22 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Desain Ulang Onboarding Berbasis AI (AI-First Onboarding)**: Merombak total alur penyambutan pengguna (onboarding wizard) dari 5 langkah konfigurasi sistem yang rumit menjadi hanya 3 langkah minimalis interaktif (`activation`, `discovery`, dan `review`).
+- **Ekstraksi DNA Editorial Otomatis**: Mengintegrasikan sistem pengikisan (*scraping*) dan sintesis AI otomatis via Jina Reader API dan Gemini 3.5 Flash untuk mengenali nama brand, rumusan positioning, target audiens, topik kategori, nada bahasa, serta jenis artikel langsung dari konten website pengguna.
+- **Antarmuka Tinjauan & Edit DNA Langsung**: Menambahkan dukungan tag-pill interaktif dan editor teks langsung di dalam layar peninjauan DNA, memungkinkan pengguna untuk meninjau, menambah, mengedit, atau menghapus kategori, gaya nada tulis, dan tipe artikel sebelum aktivasi.
+- **Fitur Pembatalan Aman Discovery**: Menambahkan tombol "Batal & Kembali" pada layar loading radar Discovery untuk membatalkan request jaringan yang menggantung secara aman, mereset status draf onboarding kembali ke `'activation'` di database, dan mengembalikan tampilan ke form awal.
+- **Visualisasi Tipe Artikel (Article Types)**: Menambahkan dukungan antarmuka peninjauan dan penyuntingan tipe artikel (`articleTypes`) bawaan dan hasil prediksi AI secara visual saat onboarding.
+
+### Changed
+- **Peningkatan Visual & Keterbacaan Tinjauan DNA**: Memperbesar ukuran teks konten (Positioning dan Target Audiens) dari `text-xs` menjadi `text-sm` serta mempertegas label kategori dan nada tulis untuk meningkatkan hierarki visual pada layar resolusi besar.
+- **Prioritas Scraping Jina Reader API**: Mengubah alur pengikisan konten website di backend onboarding untuk memprioritaskan Jina Reader API (timeout 4.5 detik) sebelum beralih ke parser HTML mentah bawaan demi menjaga konsistensi dengan fitur riset strategist.
+
+### Fixed
+- **Penghapusan Rate Limiter Onboarding**: Menghilangkan pemeriksaan pembatasan laju (*rate limiter*) berbasis timestamp `updatedAt` pada endpoint `/discover` untuk menghindari kondisi balapan (*race condition*) dengan perintah simpan draf sebelumnya yang memicu salah deteksi error 429.
+- **Pencegahan Lag Sesi Clerk Saat Pendaftaran**: Meneruskan informasi sesi organisasi Clerk aktif (`x-clerk-org-id`, `x-clerk-org-slug`, `x-clerk-org-role`) dari Edge middleware ke backend auth demi mengatasi keterlambatan propagasi token JWT Clerk sesaat setelah pembuatan organisasi/pendaftaran akun baru.
+- **Proteksi Loading Tanpa Akhir Discovery**: Menyematkan batas timeout `Promise.race` ketat selama 10 detik pada pemanggilan API Gemini di backend onboarding, mencegah radar loading berputar selamanya saat koneksi Google API terblokir/mengalami gangguan.
+
 ## [2.1.0] - 2026-07-05
 
 ### Added

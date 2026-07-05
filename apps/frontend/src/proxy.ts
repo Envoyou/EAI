@@ -36,9 +36,9 @@ export default clerkMiddleware(async (auth, request) => {
   const isApiRoute = pathname.startsWith('/api/');
 
   if (isApiRoute) {
+    const authObj = await auth();
     const token = await (async () => {
       try {
-        const authObj = await auth();
         return await authObj.getToken();
       } catch {
         return null;
@@ -53,6 +53,16 @@ export default clerkMiddleware(async (auth, request) => {
     const headers = new Headers(request.headers);
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    if (authObj.orgId) {
+      headers.set('x-clerk-org-id', authObj.orgId);
+    }
+    if (authObj.orgSlug) {
+      headers.set('x-clerk-org-slug', authObj.orgSlug);
+    }
+    if (authObj.orgRole) {
+      headers.set('x-clerk-org-role', authObj.orgRole);
     }
 
     return NextResponse.rewrite(targetUrl, {

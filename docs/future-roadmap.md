@@ -48,8 +48,18 @@ Fase ini memperluas evaluasi editorial dan menghubungkan EAI dengan sistem publi
     *   Memindai klaim data, persentase, statistik, dan nama lembaga dalam draf.
     *   Menandai setiap klaim yang tidak dilengkapi dengan sumber referensi yang jelas.
     *   Final Quality Gate mencegah angka, entitas, URL, atau atribusi motif baru lolos tanpa dukungan sumber.
-3.  **Integrasi CMS WordPress, Ghost, dan Contentful** (Sebagian diimplementasikan hingga Unreleased):
-    *   EAI sudah memiliki adapter CMS, onboarding koneksi terenkripsi, verifikasi koneksi, dan export artikel Publish Ready sebagai draft.
+3.  **Integrasi CMS WordPress, Ghost, dan Contentful (Membangun antarmuka koneksi CMS yang kita pindahkan ke halaman Settings & Integrations)**:
+    *   *Fokus Pengembangan Utama*:
+        *   **Katalog Adapter Visual**: Antarmuka yang rapi untuk memilih konektor CMS. Untuk versi awal kita akan mengaktifkan `eai-rest-v1`, yang nantinya bisa diekspansi ke integrasi native (misal: WordPress, Webflow, Ghost).
+        *   **Manajemen Kredensial**: Form aman untuk memasukkan Connection Name, CMS Base URL, dan Shared Secret.
+        *   **Sistem Test Connection Real-time**: Mekanisme validasi dengan feedback instan (sukses/gagal beserta pesan error) untuk memastikan EAI bisa berkomunikasi dengan API CMS pengguna sebelum data disimpan.
+        *   **Status Koneksi & Log**: Indikator visual (Active/Disconnected) di halaman integrasi, serta log riwayat pengiriman artikel untuk memudahkan pemantauan dan debugging.
+    *   *Pertimbangan & Detail Teknis*:
+        *   **Enkripsi Kredensial at Rest**: Mengamankan Shared Secret dan API key CMS di database menggunakan enkripsi AES-256-gcm dengan kunci `CMS_CREDENTIALS_ENCRYPTION_KEY`.
+        *   **Background Job Queue (BullMQ)**: Mengalirkan proses ekspor konten dan transfer media/gambar melalui antrean BullMQ secara asinkron untuk mencegah latensi lambat dan timeout HTTP request di frontend.
+        *   **Whitelisting IP VPS EAI**: Menyediakan panduan IP outbound VPS EAI bagi pengguna yang membatasi akses CMS mereka di balik Cloudflare WAF atau firewall lokal.
+        *   **Two-way Reference**: Menyimpan referensi balik `externalPostId` dan `externalEditUrl` setelah ekspor sukses guna mempermudah akses langsung ke editor draf CMS target.
+    *   Fitur ini akan menjadi fondasi penting untuk menjadikan EAI sebagai pusat komando editorial yang sesungguhnya.
     *   Plugin atau extension untuk menjalankan evaluasi langsung dari dalam editor CMS masih direncanakan.
     *   Adapter WordPress, Ghost, dan Contentful generik masih perlu dikembangkan di luar adapter REST Envoyou saat ini.
 

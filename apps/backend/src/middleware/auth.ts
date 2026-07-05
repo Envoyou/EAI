@@ -31,9 +31,9 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     // Set auth context on request
     req.auth = {
       userId: payload.sub,
-      orgId: (payload.org_id as string) || null,
-      orgSlug: (payload.org_slug as string) || null,
-      orgRole: (payload.org_role as string) || null,
+      orgId: (req.headers['x-clerk-org-id'] as string) || (payload.org_id as string) || null,
+      orgSlug: (req.headers['x-clerk-org-slug'] as string) || (payload.org_slug as string) || null,
+      orgRole: (req.headers['x-clerk-org-role'] as string) || (payload.org_role as string) || null,
     };
 
     next();
