@@ -846,58 +846,124 @@ router.post('/generate-draft-from-notes', async (req, res) => {
       return `NOTE ${i + 1}:\n${cleanContent}\n${sourcesText}`;
     }).join('\n\n---\n\n');
 
+    // --- Preprocessing: detect if input contains multiple topic briefs (blueprint) ---
+    const briefMatches = notesText.match(/(?:###\s*\d+\.\s*Topic Brief|Rekomendasi Judul|Topic Brief:|##\s*Topic Brief)/gi);
+    const hasMultipleBriefs = briefMatches && briefMatches.length > 1;
+    const isBlueprint = /Blueprint Editorial|Audit Performa|Matriks Kontribusi|Strategi SEO|Hub-and-Spoke|Pipeline Konten/i.test(notesText);
+
+    if (hasMultipleBriefs || isBlueprint) {
+      // Send a hint event so the frontend can prompt the user to select a topic
+      res.write(`data: ${JSON.stringify({
+        type: "blueprint_detected",
+        message: "Multiple article topics detected in notes. The AI will pick the first complete topic brief to generate the draft.",
+        topicCount: briefMatches?.length || 0,
+      })}\n\n`);
+    }
+
     const systemInstruction = `
-You are an expert editorial writer. Your role is to synthesize raw research notes into a cohesive first draft of an article.
-You must strictly follow the editorial brand guidelines and rules.
-You are a strictly grounded assistant limited to the information provided in the RAW RESEARCH NOTES.
-In your answers, rely ONLY on the facts that are directly mentioned in that context. You must not access or utilize your own knowledge or common sense to answer. Treat the provided context as the absolute limit of truth.
+<role>
+You are an article writing specialist. Your sole function is to produce publication-ready first drafts from editorial briefs and research notes.
+</role>
 
-WRITING CONSTRAINTS:
-1. Target length: approximately 600–800 words (around 4–6 paragraphs).
-2. Synthesize the notes into a flowing narrative, not a bullet-point summary.
-3. Maintain the requested tone, Target Audience, and Writing Instructions from the ARTICLE METADATA.
-4. Do NOT output bullet points unless strictly necessary for a list.
-5. Do NOT include any meta-commentary (e.g., "Here is your draft") or headings like "Draft:". Just output the draft content directly.
-6. Output language: Follow the specific target language requested in the ARTICLE METADATA, or default to the language of the research notes.
+<cognitive_framework>
+Before writing, you MUST process the input through these three stages internally:
 
-CRITICAL CITATION RULES:
+STAGE 1 — IDENTIFY: Scan the input and determine what kind of content it contains.
+- If it contains MULTIPLE article topics/outlines → SELECT exactly ONE to write about. Choose the first complete topic brief you find.
+- If it contains performance audits, strategy sections, SEO plans, or meta-commentary → IGNORE them completely. They are NOT article material.
+- If it contains exactly ONE article outline or topic brief → USE it directly.
+- If it contains raw research facts/notes (not an outline) → SYNTHESIZE them into an article.
+
+STAGE 2 — EXTRACT: From the selected topic, extract:
+- The recommended title (use as the article's H1 headline)
+- The angle/perspective (guides your tone and framing)
+- The structure outline (use as the article skeleton — each point becomes a section)
+- Any source URLs provided (for citations)
+- Any key facts, data points, or statistics mentioned
+
+STAGE 3 — EXPAND: Transform the outline into a full article.
+- Each structure point becomes 1-2 paragraphs of substantive prose.
+- Use your knowledge to add relevant examples, context, and explanations that support each section.
+- Maintain the specified angle throughout the entire article.
+- Integrate source URLs using hybrid citation style (see citation rules below).
+</cognitive_framework>
+
+<absolute_prohibitions>
+These outputs are NEVER acceptable. If you produce any of these, you have FAILED the task:
+1. ❌ Meta-analysis: "Berdasarkan audit performa...", "Evaluasi menunjukkan...", "Strategi ke depan...", "Pembaca sangat tertarik pada..."
+2. ❌ Blueprint rephrase: Restating the editorial brief as narrative without expanding it into an actual article.
+3. ❌ Multi-topic summary: Covering multiple article ideas or pillars in one output.
+4. ❌ Strategy document: Discussing SEO tactics, distribution plans, audience analysis, or content calendars.
+5. ❌ Bullet-point outlines: The output must be flowing prose paragraphs, not structured notes or bullet lists.
+</absolute_prohibitions>
+
+<writing_spec>
+- Output format: Start with the article title as an H1 (# Title), followed by flowing prose body paragraphs.
+- Length: 600–800 words (4–6 paragraphs minimum of substantive prose).
+- Tone: Match the angle specified in the topic brief (e.g., practical-strategic, macro-geopolitical, critical/contrarian).
+- Language: Follow the Output Language specified in the ARTICLE METADATA. If not specified, use the language of the input material.
+- Paragraphs: Keep paragraphs relatively short (2-4 sentences) for readability.
+- Structure: Clear introduction/hook → logical body sections → strategic conclusion or takeaway.
+</writing_spec>
+
+<citation_rules>
 - Use a Hybrid Citation Style (Verbal Attribution + Contextual Hyperlinking).
 - First mention of a source: Introduce the source naturally in the sentence and hyperlink the source name (e.g., "Menurut [studi terbaru dari Apple](url), apel berwarna merah.").
 - Subsequent mentions: Do not repeat the source name. Simply hyperlink the relevant keyword or data point contextually (e.g., "Warna ini [disebabkan oleh antosianin](url).").
-- Do NOT place bare links or titles at the end of a sentence. Integrate the markdown links seamlessly into the narrative text.
-- Use ONLY the source URLs provided in the raw research notes. Do NOT invent URLs.
-- Do NOT wrap the markdown link in any extra parentheses or brackets outside of the standard markdown syntax.
+- Do NOT place bare links or titles at the end of a sentence. Integrate markdown links seamlessly into the narrative text.
+- Use ONLY the source URLs provided in the input material. Do NOT invent or hallucinate URLs.
+- Do NOT wrap markdown links in extra parentheses or brackets outside standard markdown syntax.
+</citation_rules>
+
+<self_check>
+After writing, verify your output against this checklist:
+□ Did I write about ONE specific article topic? (not multiple topics, not strategy)
+□ Did I start with the article title as an H1 (# Title)?
+□ Did I expand each outline point into substantive paragraphs with real content?
+□ Did I avoid ALL meta-commentary, audit language, strategy discussion, and blueprint terminology?
+□ Is the output a complete, flowing article that could be published after editorial polishing?
+□ Did I use ONLY the source URLs provided in the input?
+
+If ANY answer is NO, rewrite before outputting.
+</self_check>
 `.trim();
 
     const basePrompt = `
-<context>
-[ARTICLE METADATA]
+<input_material>
+${notesText}
+</input_material>
+
+<metadata>
 Category: ${metadata?.category || 'General'}
 Type: ${metadata?.type || 'Article'}
 Target Audience: ${metadata?.targetAudience || 'General Audience'}
-Output Language: ${metadata?.outputLanguage || 'Follow the language of the research notes.'}
+Output Language: ${metadata?.outputLanguage || 'Follow the language of the input material.'}
 Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and engaging tone.'}
-[/ARTICLE METADATA]
+</metadata>
 
-[RAW RESEARCH NOTES]
-${notesText}
-[/RAW RESEARCH NOTES]
-</context>
+<instruction>
+Process the input_material through the cognitive framework stages (IDENTIFY → EXTRACT → EXPAND).
 
-<task>
-Write a cohesive, engaging initial draft for an article using ONLY the raw research notes as your factual basis.
-</task>
+CRITICAL: If the input contains performance audits, strategy sections, or multiple article topics, pick exactly ONE article topic and write ONLY that article. IGNORE all meta-commentary, audit data, SEO plans, and distribution strategy — they are NOT article content.
 
-<example>
-EXAMPLE OF CORRECT HYBRID CITATION:
-If the note says:
-"NOTE 1:
-Apples are red due to anthocyanins.
-Sources: https://apple.com/color"
+Your output must be a single, complete article draft ready for editorial review. Start with the article title as H1, then write the full body.
+</instruction>
 
-Your draft MUST output:
-"Sebuah [studi dari Apple Color](https://apple.com/color) menunjukkan bahwa apel pada umumnya berwarna merah. Warna cerah ini secara biologis [disebabkan oleh keberadaan antosianin](https://apple.com/color) pada kulit buah."
-</example>`;
+<example_output>
+# Bukan Pengganti Manusia, Tapi Rekan Kerja Mandiri: Panduan Membangun Tim AI Agent Pertama Anda di 2026
+
+Dunia kerja sedang berada di titik belok yang belum pernah terjadi sebelumnya. Jika selama dua tahun terakhir kita sibuk belajar menulis prompt yang sempurna, tahun 2026 membawa paradigma yang sama sekali berbeda: AI tidak lagi menunggu perintah kita.
+
+Alih-alih menjadi asisten pasif yang hanya merespons, AI kini mulai bekerja secara otonom di latar belakang. Konsep ini dikenal sebagai agentic workflow — sebuah sistem di mana AI tidak hanya menjawab pertanyaan, tetapi juga mengambil inisiatif, membuat keputusan, dan menyelesaikan rangkaian tugas kompleks tanpa campur tangan manusia di setiap langkahnya.
+
+Untuk memahami cara kerja AI agent, kita perlu melihat tiga komponen utamanya: memori, perencanaan, dan alat kerja. Memori memungkinkan AI mengingat konteks dari interaksi sebelumnya. Perencanaan memberinya kemampuan memecah tugas besar menjadi langkah-langkah kecil yang bisa dieksekusi. Sementara alat kerja — seperti akses ke internet, kalkulator, atau database — memberinya tangan untuk benar-benar bertindak, bukan sekadar berbicara.
+
+Dalam praktiknya, agentic workflow memungkinkan skenario yang sebelumnya mustahil. Bayangkan sebuah rantai otomatisasi: AI Riset mengumpulkan data dari puluhan sumber, AI Penulis mengolahnya menjadi naskah, lalu AI Editor memeriksa konsistensi dan kualitas — semuanya berjalan dalam satu alur tanpa henti. Manusia cukup memberikan arahan di awal dan meninjau hasil akhir.
+
+Tentu saja, transisi ini tidak berarti manusia menjadi tidak relevan. Sebaliknya, peran kita bergeser dari operator menjadi arsitek. Kita tidak lagi sibuk menulis prompt demi prompt, melainkan merancang sistem, menentukan tujuan, dan memastikan output tetap selaras dengan nilai-nilai yang kita pegang. Ini adalah evolusi, bukan penggantian.
+
+Tahun 2026 akan menjadi tahun di mana agentic workflow mulai diadopsi secara luas. Perusahaan yang mampu membangun tim hybrid — manusia dan AI agent yang bekerja berdampingan — akan memiliki keunggulan kompetitif yang signifikan. Pertanyaannya bukan lagi apakah AI akan mengambil alih pekerjaan kita, melainkan seberapa cepat kita bisa beradaptasi untuk bekerja bersama mereka.
+</example_output>`;
 
     const prompt = composeEditorialPrompt(basePrompt, profile);
 

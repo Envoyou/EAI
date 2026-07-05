@@ -945,6 +945,8 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
             if (data.type === 'text') {
               currentDraft += data.chunk;
               setDraft(currentDraft);
+            } else if (data.type === 'blueprint_detected') {
+              toast.info(data.message || 'Multiple topics detected — generating draft from the first topic.');
             } else if (data.type === 'error') {
               toast.error(data.message);
             }
