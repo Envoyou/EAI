@@ -74,7 +74,7 @@ export default function StatusBar({
       {/* Loading indicator */}
       {(isLoading || isStreaming || isRefining) && (
         <span
-          className="status-loading ui-badge ui-badge-primary max-sm:hidden"
+          className="status-loading ui-badge ui-badge-primary hidden sm:inline-flex"
           aria-live="polite"
           aria-label={isRefining ? "Refining draft" : "Analyzing draft"}
         >
@@ -86,7 +86,7 @@ export default function StatusBar({
       {/* Final-draft readiness */}
       {readiness && !isLoading && (
         <span
-          className={`status-verdict ui-badge max-sm:hidden ${readinessBadgeClass(readiness)}`}
+          className={`status-verdict ui-badge hidden sm:inline-flex ${readinessBadgeClass(readiness)}`}
           aria-label={`Editorial readiness: ${readiness.replace('_', ' ')}`}
         >
           <ReadinessIcon readiness={readiness} />
@@ -97,7 +97,7 @@ export default function StatusBar({
       {/* Word count */}
       {wordCount > 0 && (
         <span
-          className="status-wordcount text-[11px] font-medium text-[var(--muted-foreground)] max-sm:hidden"
+          className="status-wordcount text-[11px] font-medium text-[var(--muted-foreground)] hidden sm:inline"
           aria-label={`${wordCount} words`}
         >
           {wordCount.toLocaleString()} words
@@ -106,7 +106,7 @@ export default function StatusBar({
 
       {/* Char count */}
       <span
-        className={`status-charcount text-[11px] font-medium max-sm:hidden ${isOverLimit ? 'text-[var(--error)]' : 'text-[var(--muted-foreground)]'}`}
+        className={`status-charcount text-[11px] font-medium hidden sm:inline ${isOverLimit ? 'text-[var(--error)]' : 'text-[var(--muted-foreground)]'}`}
         aria-label={`${charCount} of ${charLimit} characters`}
         aria-live={isOverLimit ? 'assertive' : 'off'}
       >
@@ -115,7 +115,7 @@ export default function StatusBar({
 
       {/* Shortcut hint */}
       {!isLoading && !isStreaming && !isRefining && activeTab === 'draft' && (
-        <span className="status-shortcut ui-badge ui-badge-muted max-sm:hidden" aria-label="Press Ctrl+Enter to refine">
+        <span className="status-shortcut ui-badge ui-badge-muted hidden sm:inline-flex" aria-label="Press Ctrl+Enter to refine">
           <kbd
             className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[12px] font-mono border-none"
             style={{
@@ -132,42 +132,46 @@ export default function StatusBar({
 
       {/* Layout Swap Trigger */}
       {onToggleLayoutReversed && (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                onClick={onToggleLayoutReversed}
-                className={`ide-statusbar-item hover:bg-[var(--surface-2)] transition-colors rounded-sm px-1.5 ml-1 max-sm:hidden ${layoutReversed ? 'text-[var(--primary)]' : ''}`}
-                aria-label="Swap panel positions"
-              >
-                <ArrowLeftRight className="w-3.5 h-3.5" />
-              </button>
-            }
-          />
-          <TooltipContent side="top" className="text-xs">
-            {layoutReversed ? 'Layout: AI left · Document right (click to reset)' : 'Layout: Document left · AI right (click to swap)'}
-          </TooltipContent>
-        </Tooltip>
+        <div className="hidden sm:inline-flex">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  onClick={onToggleLayoutReversed}
+                  className={`ide-statusbar-item hover:bg-[var(--surface-2)] transition-colors rounded-sm px-1.5 ml-1 ${layoutReversed ? 'text-[var(--primary)]' : ''}`}
+                  aria-label="Swap panel positions"
+                >
+                  <ArrowLeftRight className="w-3.5 h-3.5" />
+                </button>
+              }
+            />
+            <TooltipContent side="top" className="text-xs">
+              {layoutReversed ? 'Layout: AI left · Document right (click to reset)' : 'Layout: Document left · AI right (click to swap)'}
+            </TooltipContent>
+          </Tooltip>
+        </div>
       )}
 
       {/* Shortcuts Trigger */}
       {onOpenShortcuts && (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                onClick={onOpenShortcuts}
-                className="status-shortcuts-button ide-statusbar-item hover:bg-[var(--surface-2)] transition-colors rounded-sm px-1.5 ml-1 max-sm:hidden"
-                aria-label="View Keyboard Shortcuts"
-              >
-                <Keyboard className="w-3.5 h-3.5" />
-              </button>
-            }
-          />
-          <TooltipContent side="top" className="text-xs">
-            Keyboard Shortcuts (?)
-          </TooltipContent>
-        </Tooltip>
+        <div className="hidden sm:inline-flex">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  onClick={onOpenShortcuts}
+                  className="status-shortcuts-button ide-statusbar-item hover:bg-[var(--surface-2)] transition-colors rounded-sm px-1.5 ml-1"
+                  aria-label="View Keyboard Shortcuts"
+                >
+                  <Keyboard className="w-3.5 h-3.5" />
+                </button>
+              }
+            />
+            <TooltipContent side="top" className="text-xs">
+              Keyboard Shortcuts (?)
+            </TooltipContent>
+          </Tooltip>
+        </div>
       )}
     </div>
   );

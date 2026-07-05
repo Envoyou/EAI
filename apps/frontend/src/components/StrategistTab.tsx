@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
-import { ArrowUp, Loader2, Copy, Bookmark, Download, RotateCcw, FileText, Paperclip, X, Globe, Plus } from 'lucide-react';
+import { ArrowUp, Loader2, Copy, Bookmark, Download, RotateCcw, FileText, Paperclip, X, Globe, Plus, MessageSquare } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useUser } from '@clerk/nextjs';
@@ -155,7 +155,7 @@ export default function StrategistTab({
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-3 py-2">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8">
-            <FileText className="w-8 h-8 text-[var(--primary)]/30 mb-3" />
+            <MessageSquare className="w-8 h-8 text-[var(--primary)]/30 mb-3" />
             <p className="text-xs text-[var(--muted-foreground)] font-medium mb-1">
               Hi {user?.firstName || 'there'}
             </p>
@@ -441,7 +441,11 @@ export default function StrategistTab({
                 >
                   <SelectValue placeholder="Mode" />
                 </SelectTrigger>
-                <SelectContent className="bg-[var(--surface-1)] border border-[var(--border)] rounded-lg p-1 min-w-[130px] z-50">
+                <SelectContent 
+                  side="top"
+                  sideOffset={8}
+                  className="bg-[var(--surface-1)] border border-[var(--border)] rounded-lg p-1 min-w-[130px] z-50"
+                >
                   <SelectItem value="fast" className="text-[10px] cursor-pointer rounded py-1.5 pl-2 pr-8 hover:bg-[var(--surface-2)]">Fast Mode</SelectItem>
                   <SelectItem value="deep" className="text-[10px] cursor-pointer rounded py-1.5 pl-2 pr-8 hover:bg-[var(--surface-2)]">Deep Research</SelectItem>
                 </SelectContent>

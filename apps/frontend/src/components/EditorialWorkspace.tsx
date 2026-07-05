@@ -11,7 +11,7 @@ import type { PanelTab } from '@/components/PanelTabBar';
 import AICopilotPanel from '@/components/AICopilotPanel';
 import ShortcutsModal from '@/components/ShortcutsModal';
 import { AnalysisResult, ArticleMetadata, EditorialProcessStage, EditorialReadiness, ResponseMode, FeedbackItem, ResearchNote, Attachment } from '@eai/shared';
-import { Loader2, RotateCcw, Sparkles, Megaphone, Lock, Menu, Zap, Rocket, Cloud, CloudUpload } from 'lucide-react';
+import { Loader2, RotateCcw, Sparkles, Megaphone, Lock, Menu, Zap, Rocket, Cloud, CloudUpload, History, FileEdit } from 'lucide-react';
 import { MotionConfig } from 'framer-motion';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -206,6 +206,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PanelTab>('draft');
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileViewTab, setMobileViewTab] = useState<'history' | 'editor' | 'copilot'>('editor');
   const [isLoaded, setIsLoaded] = useState(false);
   const [hoveredFeedbackIndex, setHoveredFeedbackIndex] = useState<number | null>(null);
   const [activeFeedbackIndex, setActiveFeedbackIndex] = useState<number | null>(null);
@@ -559,6 +560,9 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     setProcessStartedAt(Date.now());
     // Switch to final tab immediately when loading starts
     setActiveTab('refined');
+    if (isMobile) {
+      setMobileViewTab('copilot');
+    }
 
     try {
       const requestMetadata: ArticleMetadata = {
@@ -724,6 +728,9 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     setProcessStartedAt(Date.now());
     draftChunkBufferRef.current = '';
     setAnalysis(prev => ({ ...prev, polishedDraft: '', readiness: undefined, changes: [], feedback: [], flags: [], score: undefined, verdict: undefined }));
+    if (isMobile) {
+      setMobileViewTab('copilot');
+    }
 
     try {
       const requestMetadata: ArticleMetadata = {
@@ -1507,29 +1514,157 @@ return (
         )}
       </header>
 
-      {/* ── Body: Three Column Layout ── */}
+      {/* ── Body: Three Column Layout or Mobile Tab View ── */}
       <div className="flex flex-1 min-h-0 overflow-hidden relative">
-        {/* Mobile Backdrop Drawer Close Trigger */}
-        {isMobile && (sidebarOpen || rightPanelOpen) && (
-          <button
-            type="button"
-            onClick={() => {
-              setSidebarOpen(false);
-              setRightPanelOpen(false);
-            }}
-            className="fixed inset-0 z-[90] border-none outline-none cursor-pointer"
-            style={{
-              background: 'rgba(9, 13, 22, 0.42)',
-              backdropFilter: 'blur(3px)',
-            }}
-            aria-label="Close menus"
-          />
-        )}
-        <ThreeColumnLayout
-          leftPanelOpen={sidebarOpen && !isDemoMode}
-          rightPanelOpen={rightPanelOpen}
-          reversed={layoutReversed}
-          leftPanel={
+        {isMobile ? (
+          <div className="flex flex-col flex-1 min-h-0 pb-16 relative bg-[var(--background)] mobile-workspace-container">
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {mobileViewTab === 'history' && !isDemoMode && (
+                <DocumentHistoryPanel
+                  onSelect={loadHistory}
+                  onNew={handleNewDraft}
+                  activeId={activeHistoryId}
+                  refreshTrigger={refreshTrigger}
+                  onToggle={() => {}}
+                  isDemoMode={isDemoMode}
+                />
+              )}
+              {mobileViewTab === 'editor' && (
+                <EditorCanvas
+                  draft={draft}
+                  onDraftChange={setDraft}
+                  metadata={metadata}
+                  onMetadataChange={setMetadata}
+                  analysis={analysis}
+                  sourceDraft={sourceDraft}
+                  editorialOptions={editorialOptions}
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                  hasResult={hasResult}
+                  sidebarOpen={sidebarOpen}
+                  onToggleSidebar={() => setSidebarOpen(p => !p)}
+                  showFeedbackSidebar={showFeedbackSidebar}
+                  onToggleFeedbackSidebar={() => {
+                    if (rightPanelOpen) {
+                      setRightPanelOpen(false);
+                    } else {
+                      setRightPanelOpen(true);
+                      setRightPanelTab('feedback');
+                    }
+                  }}
+                  showNotesSidebar={showNotesSidebar}
+                  onToggleNotesSidebar={() => {
+                    if (rightPanelOpen) {
+                      setRightPanelOpen(false);
+                    } else {
+                      setRightPanelOpen(true);
+                      setRightPanelTab('notes');
+                    }
+                  }}
+                  hasNotes={hasNotes}
+                  isDemoMode={isDemoMode}
+                  wordCount={wordCount}
+                  charCount={charCount}
+                  charLimit={MAX_TEXT_LENGTH}
+                  hoveredFeedbackIndex={hoveredFeedbackIndex}
+                  activeFeedbackIndex={activeFeedbackIndex}
+                  onActiveFeedbackChange={setActiveFeedbackIndex}
+                  isStreaming={isStreaming}
+                  isRefining={isRefining}
+                  processStage={processStage}
+                  processStartedAt={processStartedAt}
+                  onAnalyze={handleAnalyze}
+                  onRefineAgain={handleRefineAgain}
+                  onReanalyze={handleReanalyze}
+                  onAddNewMetadataOption={handleAddNewCategoryOrType}
+                  onOpenShortcuts={() => setIsShortcutModalOpen(true)}
+                  layoutReversed={layoutReversed}
+                  onToggleLayoutReversed={() => setLayoutReversed(p => !p)}
+                />
+              )}
+              {mobileViewTab === 'copilot' && (
+                <AICopilotPanel
+                  key={activeHistoryId || 'new'}
+                  activeTab={rightPanelTab}
+                  onTabChange={setRightPanelTab}
+                  activeHistoryId={activeHistoryId}
+                  onStrategistComplete={(topic, outline, draft, notes, wizardAttachments) => {
+                    setDraft(draft || outline || topic);
+                    if (notes && notes.length > 0) handleNotesChange(notes);
+                    if (wizardAttachments && wizardAttachments.length > 0) setAttachments(wizardAttachments);
+                  }}
+                  feedbackResult={hasResult || analysis.status === 'loading' ? analysis : null}
+                  feedbackTitle={analysis.generatedMetadata?.title as string | undefined}
+                  onApplyFix={handleApplyFix}
+                  onApplyAll={handleApplyAllFixes}
+                  hoveredFeedbackIndex={hoveredFeedbackIndex}
+                  onHoveredFeedbackChange={setHoveredFeedbackIndex}
+                  activeFeedbackIndex={activeFeedbackIndex}
+                  onActiveFeedbackChange={setActiveFeedbackIndex}
+                  isProcessing={isStreaming || isRefining}
+                  processStage={processStage}
+                  processStartedAt={processStartedAt}
+                  isRefining={isRefining}
+                  onAcceptFeedback={handleAcceptFeedback}
+                  onRemoveFeedbackAddition={(idx) => handleTargetedFix(idx, 'remove')}
+                  onAddFeedbackSource={handleAddFeedbackSource}
+                  onMarkFeedbackVerified={handleMarkFeedbackVerified}
+                  onFixFeedbackWithEAI={(idx) => handleTargetedFix(idx, 'fix')}
+                  isTargetedFixing={isTargetedFixing}
+                  researchNotes={researchNotes}
+                  onNotesChange={handleNotesChange}
+                  onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
+                  isGeneratingDraft={isGeneratingDraftFromNotes}
+                  onInsertToDraft={(text) => { setDraft(prev => prev + text); }}
+                />
+              )}
+            </div>
+
+            {/* Bottom Tab Bar Navigation for Mobile */}
+            <div className="fixed bottom-0 left-0 right-0 h-16 border-t border-[var(--border)] bg-[var(--surface-1)] flex items-center justify-around z-[100] px-4 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+              {!isDemoMode && (
+                <button
+                  onClick={() => setMobileViewTab('history')}
+                  className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer ${
+                    mobileViewTab === 'history'
+                      ? 'text-[var(--primary)] font-semibold'
+                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                  }`}
+                >
+                  <History className="w-5 h-5" />
+                  <span>History</span>
+                </button>
+              )}
+              <button
+                onClick={() => setMobileViewTab('editor')}
+                className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer ${
+                  mobileViewTab === 'editor'
+                    ? 'text-[var(--primary)] font-semibold'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                <FileEdit className="w-5 h-5" />
+                <span>Editor</span>
+              </button>
+              <button
+                onClick={() => setMobileViewTab('copilot')}
+                className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer ${
+                  mobileViewTab === 'copilot'
+                    ? 'text-[var(--primary)] font-semibold'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                <Sparkles className="w-5 h-5" />
+                <span>AI Copilot</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <ThreeColumnLayout
+            leftPanelOpen={sidebarOpen && !isDemoMode}
+            rightPanelOpen={rightPanelOpen}
+            reversed={layoutReversed}
+            leftPanel={
               !isDemoMode ? (
                 <DocumentHistoryPanel
                   onSelect={loadHistory}
@@ -1556,81 +1691,82 @@ return (
                 feedbackTitle={analysis.generatedMetadata?.title as string | undefined}
                 onApplyFix={handleApplyFix}
                 onApplyAll={handleApplyAllFixes}
-              hoveredFeedbackIndex={hoveredFeedbackIndex}
-              onHoveredFeedbackChange={setHoveredFeedbackIndex}
-              activeFeedbackIndex={activeFeedbackIndex}
-              onActiveFeedbackChange={setActiveFeedbackIndex}
-              isProcessing={isStreaming || isRefining}
-              processStage={processStage}
-              processStartedAt={processStartedAt}
-              isRefining={isRefining}
-              onAcceptFeedback={handleAcceptFeedback}
-              onRemoveFeedbackAddition={(idx) => handleTargetedFix(idx, 'remove')}
-              onAddFeedbackSource={handleAddFeedbackSource}
-              onMarkFeedbackVerified={handleMarkFeedbackVerified}
-              onFixFeedbackWithEAI={(idx) => handleTargetedFix(idx, 'fix')}
-              isTargetedFixing={isTargetedFixing}
-              researchNotes={researchNotes}
-              onNotesChange={handleNotesChange}
-              onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
-              isGeneratingDraft={isGeneratingDraftFromNotes}
-              onInsertToDraft={(text) => { setDraft(prev => prev + text); }}
-            />
-          }
-          centerPanel={
-            <EditorCanvas
-              draft={draft}
-              onDraftChange={setDraft}
-              metadata={metadata}
-              onMetadataChange={setMetadata}
-              analysis={analysis}
-              sourceDraft={sourceDraft}
-              editorialOptions={editorialOptions}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              hasResult={hasResult}
-              sidebarOpen={sidebarOpen}
-              onToggleSidebar={() => setSidebarOpen(p => !p)}
-              showFeedbackSidebar={showFeedbackSidebar}
-              onToggleFeedbackSidebar={() => {
-                if (rightPanelOpen) {
-                  setRightPanelOpen(false);
-                } else {
-                  setRightPanelOpen(true);
-                  setRightPanelTab('feedback');
-                }
-              }}
-              showNotesSidebar={showNotesSidebar}
-              onToggleNotesSidebar={() => {
-                if (rightPanelOpen) {
-                  setRightPanelOpen(false);
-                } else {
-                  setRightPanelOpen(true);
-                  setRightPanelTab('notes');
-                }
-              }}
-              hasNotes={hasNotes}
-              isDemoMode={isDemoMode}
-              wordCount={wordCount}
-              charCount={charCount}
-              charLimit={MAX_TEXT_LENGTH}
-              hoveredFeedbackIndex={hoveredFeedbackIndex}
-              activeFeedbackIndex={activeFeedbackIndex}
-              onActiveFeedbackChange={setActiveFeedbackIndex}
-              isStreaming={isStreaming}
-              isRefining={isRefining}
-              processStage={processStage}
-              processStartedAt={processStartedAt}
-              onAnalyze={handleAnalyze}
-              onRefineAgain={handleRefineAgain}
-              onReanalyze={handleReanalyze}
-              onAddNewMetadataOption={handleAddNewCategoryOrType}
-              onOpenShortcuts={() => setIsShortcutModalOpen(true)}
-              layoutReversed={layoutReversed}
-              onToggleLayoutReversed={() => setLayoutReversed(p => !p)}
-            />
-          }
-        />
+                hoveredFeedbackIndex={hoveredFeedbackIndex}
+                onHoveredFeedbackChange={setHoveredFeedbackIndex}
+                activeFeedbackIndex={activeFeedbackIndex}
+                onActiveFeedbackChange={setActiveFeedbackIndex}
+                isProcessing={isStreaming || isRefining}
+                processStage={processStage}
+                processStartedAt={processStartedAt}
+                isRefining={isRefining}
+                onAcceptFeedback={handleAcceptFeedback}
+                onRemoveFeedbackAddition={(idx) => handleTargetedFix(idx, 'remove')}
+                onAddFeedbackSource={handleAddFeedbackSource}
+                onMarkFeedbackVerified={handleMarkFeedbackVerified}
+                onFixFeedbackWithEAI={(idx) => handleTargetedFix(idx, 'fix')}
+                isTargetedFixing={isTargetedFixing}
+                researchNotes={researchNotes}
+                onNotesChange={handleNotesChange}
+                onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
+                isGeneratingDraft={isGeneratingDraftFromNotes}
+                onInsertToDraft={(text) => { setDraft(prev => prev + text); }}
+              />
+            }
+            centerPanel={
+              <EditorCanvas
+                draft={draft}
+                onDraftChange={setDraft}
+                metadata={metadata}
+                onMetadataChange={setMetadata}
+                analysis={analysis}
+                sourceDraft={sourceDraft}
+                editorialOptions={editorialOptions}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                hasResult={hasResult}
+                sidebarOpen={sidebarOpen}
+                onToggleSidebar={() => setSidebarOpen(p => !p)}
+                showFeedbackSidebar={showFeedbackSidebar}
+                onToggleFeedbackSidebar={() => {
+                  if (rightPanelOpen) {
+                    setRightPanelOpen(false);
+                  } else {
+                    setRightPanelOpen(true);
+                    setRightPanelTab('feedback');
+                  }
+                }}
+                showNotesSidebar={showNotesSidebar}
+                onToggleNotesSidebar={() => {
+                  if (rightPanelOpen) {
+                    setRightPanelOpen(false);
+                  } else {
+                    setRightPanelOpen(true);
+                    setRightPanelTab('notes');
+                  }
+                }}
+                hasNotes={hasNotes}
+                isDemoMode={isDemoMode}
+                wordCount={wordCount}
+                charCount={charCount}
+                charLimit={MAX_TEXT_LENGTH}
+                hoveredFeedbackIndex={hoveredFeedbackIndex}
+                activeFeedbackIndex={activeFeedbackIndex}
+                onActiveFeedbackChange={setActiveFeedbackIndex}
+                isStreaming={isStreaming}
+                isRefining={isRefining}
+                processStage={processStage}
+                processStartedAt={processStartedAt}
+                onAnalyze={handleAnalyze}
+                onRefineAgain={handleRefineAgain}
+                onReanalyze={handleReanalyze}
+                onAddNewMetadataOption={handleAddNewCategoryOrType}
+                onOpenShortcuts={() => setIsShortcutModalOpen(true)}
+                layoutReversed={layoutReversed}
+                onToggleLayoutReversed={() => setLayoutReversed(p => !p)}
+              />
+            }
+          />
+        )}
       </div>
 
       <ShortcutsModal

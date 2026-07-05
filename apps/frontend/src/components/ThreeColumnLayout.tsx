@@ -106,7 +106,7 @@ export default function ThreeColumnLayout({
       <Panel
         key={`${firstPanelId}-${firstPanelOpen}`}
         id={firstPanelId}
-        className={firstPanelClass}
+        className={`${firstPanelClass} ${firstPanelOpen ? 'is-open' : ''}`}
         data-open={firstPanelOpen}
         defaultSize={firstPanelOpen ? `${firstDefaultSize}%` : '0%'}
         minSize={firstPanelOpen ? '15%' : '0%'}
@@ -134,7 +134,7 @@ export default function ThreeColumnLayout({
       <Panel
         key={`${lastPanelId}-${lastPanelOpen}`}
         id={lastPanelId}
-        className={lastPanelClass}
+        className={`${lastPanelClass} ${lastPanelOpen ? 'is-open' : ''}`}
         data-open={lastPanelOpen}
         defaultSize={lastPanelOpen ? `${lastDefaultSize}%` : '0%'}
         minSize={lastPanelOpen ? '15%' : '0%'}

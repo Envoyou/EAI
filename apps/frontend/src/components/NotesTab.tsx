@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, ChevronDown, ChevronUp, FileEdit, Wand2 } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Notebook, Wand2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
@@ -39,10 +39,10 @@ export default function NotesTab({
   if (researchNotes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
-        <FileEdit className="w-10 h-10 text-[var(--primary)]/30 mb-3" />
+        <Notebook className="w-10 h-10 text-[var(--primary)]/30 mb-3" />
         <p className="text-xs text-[var(--muted-foreground)] font-medium mb-1">Research Notes</p>
         <p className="text-xs text-[var(--muted-foreground)]/70">
-          Save research notes from the AI Strategist or add your own.
+          Your research notes will appear here as you interact with the content strategist in Chat with EAI. You can generate a draft from your notes or insert them into your current draft.
         </p>
       </div>
     );
@@ -195,7 +195,7 @@ export default function NotesTab({
                             }}
                             className="text-[10px] font-medium ui-btn ui-btn-outline ui-btn-xs"
                           >
-                            <FileEdit className="w-3 h-3 mr-1" />
+                            <Notebook className="w-3 h-3 mr-1" />
                             Insert to Draft
                           </button>
                         </div>

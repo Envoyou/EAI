@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, MessageCircle, Notebook } from 'lucide-react';
+import { MessageCircle, Notebook, MessagesSquare } from 'lucide-react';
 import StrategistTab from '@/components/StrategistTab';
 import FeedbackTab from '@/components/FeedbackTab';
 import NotesTab from '@/components/NotesTab';
@@ -42,7 +42,7 @@ interface AICopilotPanelProps {
 }
 
 const TABS: { key: RightTab; label: string; icon: React.ReactNode }[] = [
-  { key: 'strategist', label: 'Strategist', icon: <Sparkles className="w-3.5 h-3.5" /> },
+  { key: 'strategist', label: 'Chat with EAI', icon: <MessagesSquare className="w-3.5 h-3.5" /> },
   { key: 'feedback', label: 'Feedback', icon: <MessageCircle className="w-3.5 h-3.5" /> },
   { key: 'notes', label: 'Notes', icon: <Notebook className="w-3.5 h-3.5" /> },
 ];
@@ -151,7 +151,7 @@ export default function AICopilotPanel({
             <MessageCircle className="w-10 h-10 text-[var(--primary)]/30 mb-3" />
             <p className="text-xs text-[var(--muted-foreground)] font-medium mb-1">Editorial Feedback</p>
             <p className="text-xs text-[var(--muted-foreground)]/70">
-              Run &ldquo;Refine Draft&rdquo; to see editorial feedback here.
+              Your content will be analyzed and feedback will be provided here once the analysis is complete.
             </p>
           </div>
         );

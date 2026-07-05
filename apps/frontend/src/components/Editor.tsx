@@ -399,7 +399,7 @@ const [isWritingManually, setIsWritingManually] = useState(false);
               Start your article
             </h3>
             <p className="text-sm text-[var(--muted-foreground)] mb-6 leading-relaxed text-pretty">
-              Write or paste an existing draft to get started.
+              Write or paste an existing draft to get started. You can also chat with EAI to brainstorm ideas, refine your draft, and get editorial feedback.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               <button

@@ -123,7 +123,7 @@ export function AppSidebarShell({
       </div>
 
       {/* BOTTOM SECTION */}
-      <div className="shrink-0 flex flex-col px-3 py-3 gap-1">
+      <div className="shrink-0 flex flex-col px-3 py-3 max-sm:pb-20 gap-1">
         <SidebarItem
           icon={Settings}
           label="Settings"

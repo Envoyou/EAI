@@ -256,20 +256,20 @@ export default function FeedbackPanel({
       {/* ── Header ── */}
       <div className="ui-panel-header px-4 py-3">
         {/* Row 1: title + verdict + focus toggle */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-start justify-between gap-3">
+          <div className="min-w-0">
             <p className="mb-0.5 text-[11px] font-medium text-[var(--muted-foreground)]">
               Editorial Review
             </p>
             <h2
-              className="truncate text-[13px] font-semibold text-[var(--foreground)]"
+              className="text-[13px] font-semibold text-[var(--foreground)] break-words whitespace-normal"
               title={title}
             >
               {title || 'Untitled Draft'}
             </h2>
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
             {(readiness || result.verdict) && (
               <span className={`ui-badge ui-badge-xs tracking-wide ${readinessClass}`}>
                 {readinessLabel}
@@ -350,9 +350,9 @@ export default function FeedbackPanel({
               </div>
               <ul className="space-y-2 px-3 pb-3 pt-2">
                 {result.changes.map((change, index) => (
-                  <li key={index} className="flex gap-2 text-xs leading-relaxed ui-muted">
+                  <li key={index} className="flex gap-2 text-xs leading-relaxed ui-muted min-w-0">
                     <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--success)]" />
-                    <span>{change}</span>
+                    <span className="flex-1 min-w-0 break-words whitespace-pre-wrap">{change}</span>
                   </li>
                 ))}
               </ul>
@@ -373,7 +373,7 @@ export default function FeedbackPanel({
                   className="flex min-w-0 flex-1 items-center gap-2 border-0 bg-transparent text-left text-xs font-semibold text-[var(--foreground)] cursor-pointer hover:bg-[var(--surface-2)] px-2 py-1.5 -ml-2 rounded-md transition-colors"
                 >
                   <Wand2 className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">SEO Metadata</span>
+                  <span className="flex-1 min-w-0 break-words whitespace-normal text-left">SEO Metadata</span>
                   {isSEOExpanded ? <ChevronUp className="ml-auto w-4 h-4" /> : <ChevronDown className="ml-auto w-4 h-4" />}
                 </button>
                 <div className="ml-2 flex items-center gap-1">
@@ -411,7 +411,7 @@ export default function FeedbackPanel({
                             <CopyButton text={value} label={label} onCopy={handleCopy} />
                           </div>
                           <div
-                            className={`ui-card-soft px-3.5 py-2.5 break-words text-[var(--foreground)] opacity-85 ${mono ? 'font-mono text-[11px] break-all' : ''} ${italic ? 'italic' : ''}`}
+                            className={`ui-card-soft px-3.5 py-2.5 break-words whitespace-pre-wrap text-[var(--foreground)] opacity-85 ${mono ? 'font-mono text-[11px] break-all' : ''} ${italic ? 'italic' : ''}`}
                           >
                             {value}
                           </div>
@@ -526,7 +526,7 @@ export default function FeedbackPanel({
                     {isResolved && <CheckCircle2  className="w-4 h-4 shrink-0" style={{ color: 'var(--success)' }} />}
                     {!isResolved && item.status === 'warning' && <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: 'var(--warning)' }} />}
                     {!isResolved && item.status === 'fail'    && <AlertCircle   className="w-4 h-4 shrink-0" style={{ color: 'var(--error)'   }} />}
-                    <span className="truncate text-xs font-semibold ui-text">
+                    <span className="text-xs font-semibold ui-text break-words whitespace-normal flex-1 min-w-0">
                       {item.category}
                     </span>
                     {!isExpanded && item.message && (
@@ -572,7 +572,7 @@ export default function FeedbackPanel({
                             <FileSearch className="w-3.5 h-3.5" />
                             {verificationMeta ? 'Flagged claim' : 'Target text'}
                           </span>
-                          <p className="text-xs leading-relaxed break-words font-mono text-[var(--foreground)] opacity-90">
+                          <p className="text-xs leading-relaxed break-words whitespace-pre-wrap font-mono text-[var(--foreground)] opacity-90">
                             {item.targetText}
                           </p>
                         </div>
@@ -593,7 +593,7 @@ export default function FeedbackPanel({
                           >
                             <Wand2 className="w-3.5 h-3.5" /> Suggestion
                           </span>
-                          <p className="text-xs italic leading-relaxed text-[var(--foreground)] opacity-90">
+                          <p className="text-xs italic leading-relaxed break-words whitespace-pre-wrap text-[var(--foreground)] opacity-90">
                             {item.suggestion}
                           </p>
                         </div>
@@ -612,7 +612,7 @@ export default function FeedbackPanel({
                             <div>
                               <span className="text-[12px] font-bold uppercase tracking-wider mb-1 block" style={{ color: 'var(--error)' }}>Before</span>
                               <p
-                                className="rounded-md px-3 py-2 text-xs line-through break-words font-mono border-none"
+                                className="rounded-md px-3 py-2 text-xs line-through break-words whitespace-pre-wrap font-mono border-none"
                                 style={{
                                   background: 'rgba(248,113,113,0.06)',
                                   color: 'var(--muted-foreground)',
@@ -625,7 +625,7 @@ export default function FeedbackPanel({
                             <div>
                               <span className="text-[12px] font-bold uppercase tracking-wider mb-1 block" style={{ color: 'var(--success)' }}>After</span>
                               <p
-                                className="rounded-md px-3 py-2 text-xs break-words font-mono border-none"
+                                className="rounded-md px-3 py-2 text-xs break-words whitespace-pre-wrap font-mono border-none"
                                 style={{
                                   background: 'rgba(74,222,128,0.06)',
                                   color: 'var(--foreground)',

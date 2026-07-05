@@ -1,6 +1,6 @@
 'use client';
 
-import { FileEdit, FileDiff, PanelRight, PanelLeft } from 'lucide-react';
+import { FileEdit, FileCheck, PanelRight, PanelLeft } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export type PanelTab = 'draft' | 'refined';
@@ -33,7 +33,7 @@ const TABS: { key: PanelTab; label: string; icon: React.ReactNode; description: 
   {
     key: 'refined',
     label: 'Refined Draft',
-    icon: <FileDiff className="w-4 h-4" />,
+    icon: <FileCheck className="w-4 h-4" />,
     description: 'Polished publication draft',
   },
 ];
@@ -68,7 +68,7 @@ export default function PanelTabBar({
     <div className="ide-tabbar" role="tablist" aria-label="Editor Panels">
       {/* Left Sidebar Toggle Button */}
       {(onToggleHistorySidebar || layoutReversed) && (
-        <div className="flex items-center px-2 mr-1 border-r border-[var(--border)]">
+        <div className="flex items-center px-2 mr-1 border-r border-[var(--border)] max-sm:hidden">
           <Tooltip>
             <TooltipTrigger
               render={
@@ -162,7 +162,7 @@ export default function PanelTabBar({
 
       {/* Right Sidebar Toggle Button for Feedback */}
       {activeTab === 'refined' && hasResult && (onToggleFeedbackSidebar || layoutReversed) && (
-        <div className="pr-3 flex items-center">
+        <div className="pr-3 flex items-center max-sm:hidden">
           <Tooltip>
             <TooltipTrigger
               render={
@@ -189,7 +189,7 @@ export default function PanelTabBar({
 
       {/* Right Sidebar Toggle Button for Notes Studio */}
       {activeTab === 'draft' && (onToggleNotesSidebar || layoutReversed) && (
-        <div className="pr-3 flex items-center">
+        <div className="pr-3 flex items-center max-sm:hidden">
           <Tooltip>
             <TooltipTrigger
               render={

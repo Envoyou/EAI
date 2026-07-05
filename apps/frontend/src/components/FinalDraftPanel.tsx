@@ -240,37 +240,37 @@ export default function FinalDraftPanel({
 
     return {
       p: ({ children }: { children?: React.ReactNode }) => (
-        <p className="mb-5 leading-[1.85] text-[16.5px] text-foreground/90 font-serif" style={{ fontFamily: 'var(--font-serif)' }}>
+        <p className="mb-5 leading-[1.85] text-[16px] text-foreground/90 font-sans" style={{ fontFamily: 'var(--font-sans)' }}>
           {applyHighlights(children)}
         </p>
       ),
       li: ({ children }: { children?: React.ReactNode }) => (
-        <li className="mb-2 leading-[1.85] text-[16.5px] text-foreground/90 font-serif" style={{ fontFamily: 'var(--font-serif)' }}>
+        <li className="mb-2 leading-[1.85] text-[16px] text-foreground/90 font-sans" style={{ fontFamily: 'var(--font-sans)' }}>
           {applyHighlights(children)}
         </li>
       ),
       h1: ({ children }: { children?: React.ReactNode }) => (
-        <h1 className="text-3xl font-bold tracking-tight mt-10 mb-4 font-serif text-[var(--foreground)]" style={{ fontFamily: 'var(--font-serif)' }}>
+        <h1 className="text-3xl font-bold tracking-tight mt-10 mb-4 font-sans text-[var(--foreground)]" style={{ fontFamily: 'var(--font-sans)' }}>
           {applyHighlights(children)}
         </h1>
       ),
       h2: ({ children }: { children?: React.ReactNode }) => (
-        <h2 className="text-2xl font-semibold tracking-tight mt-8 mb-3 font-serif text-[var(--foreground)]" style={{ fontFamily: 'var(--font-serif)' }}>
+        <h2 className="text-2xl font-semibold tracking-tight mt-8 mb-3 font-sans text-[var(--foreground)]" style={{ fontFamily: 'var(--font-sans)' }}>
           {applyHighlights(children)}
         </h2>
       ),
       h3: ({ children }: { children?: React.ReactNode }) => (
-        <h3 className="text-xl font-medium tracking-tight mt-6 mb-2 font-serif text-[var(--foreground)]" style={{ fontFamily: 'var(--font-serif)' }}>
+        <h3 className="text-xl font-medium tracking-tight mt-6 mb-2 font-sans text-[var(--foreground)]" style={{ fontFamily: 'var(--font-sans)' }}>
           {applyHighlights(children)}
         </h3>
       ),
       ul: ({ children }: { children?: React.ReactNode }) => (
-        <ul className="list-disc pl-6 mb-5 space-y-2 text-[16.5px] text-foreground/90 font-serif" style={{ fontFamily: 'var(--font-serif)' }}>
+        <ul className="list-disc pl-6 mb-5 space-y-2 text-[16px] text-foreground/90 font-sans" style={{ fontFamily: 'var(--font-sans)' }}>
           {children}
         </ul>
       ),
       ol: ({ children }: { children?: React.ReactNode }) => (
-        <ol className="list-decimal pl-6 mb-5 space-y-2 text-[16.5px] text-foreground/90 font-serif" style={{ fontFamily: 'var(--font-serif)' }}>
+        <ol className="list-decimal pl-6 mb-5 space-y-2 text-[16px] text-foreground/90 font-sans" style={{ fontFamily: 'var(--font-sans)' }}>
           {children}
         </ol>
       ),
@@ -283,6 +283,33 @@ export default function FinalDraftPanel({
         >
           {applyHighlights(children)}
         </a>
+      ),
+      table: ({ children }: { children?: React.ReactNode }) => (
+        <div className="overflow-x-auto my-5">
+          <table className="w-full border-collapse border border-[var(--border)] rounded-lg overflow-hidden text-[15px] font-sans">
+            {children}
+          </table>
+        </div>
+      ),
+      thead: ({ children }: { children?: React.ReactNode }) => (
+        <thead className="bg-[var(--surface-2)]">
+          {children}
+        </thead>
+      ),
+      th: ({ children }: { children?: React.ReactNode }) => (
+        <th className="bg-[var(--surface-2)] text-[var(--foreground)] font-semibold px-4 py-2.5 border border-[var(--border)] text-left font-sans">
+          {applyHighlights(children)}
+        </th>
+      ),
+      td: ({ children }: { children?: React.ReactNode }) => (
+        <td className="px-4 py-2 border border-[var(--border)] text-[var(--foreground)] font-sans">
+          {applyHighlights(children)}
+        </td>
+      ),
+      tr: ({ children }: { children?: React.ReactNode }) => (
+        <tr className="hover:bg-[var(--surface-2)]/50 odd:bg-transparent even:bg-[var(--surface-1)]">
+          {children}
+        </tr>
       ),
     };
   }, [feedback, activeFeedbackIndex, hoveredFeedbackIndex]);
@@ -910,12 +937,12 @@ export default function FinalDraftPanel({
             })}
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 py-6 md:px-12 md:py-8 bg-[var(--card)]">
+          <div className="flex-1 overflow-y-auto px-4 py-6 md:px-4 md:py-6 bg-[var(--card)]">
             {/* Preview Tab */}
             {displayTab === 'preview' && (
-              <article className="max-w-2xl mx-auto font-serif py-4 md:py-6">
+              <article className="max-w-[95%] mx-auto font-sans py-4 md:py-6">
                 {polishedDraft ? (
-                  <div className="text-[16.5px] leading-[1.85] text-foreground/90 select-text selection:bg-[var(--gold)]/30">
+                  <div className="text-[16px] leading-[1.85] text-foreground/90 select-text selection:bg-[var(--gold)]/30">
                     <ReactMarkdown
                       key={`md-${activeFeedbackIndex ?? 'n'}-${hoveredFeedbackIndex ?? 'n'}`}
                       remarkPlugins={[remarkGfm]}
@@ -992,7 +1019,7 @@ export default function FinalDraftPanel({
                         >
                           {segment.type === 'added' ? '+ Added Paragraph' : '− Removed Paragraph'}
                         </span>
-                        <p className="whitespace-pre-wrap break-words font-serif">{segment.text}</p>
+                        <p className="whitespace-pre-wrap break-words font-sans">{segment.text}</p>
                       </div>
                     ))
                 )}
