@@ -101,7 +101,7 @@ router.post('/', async (req: Request & { rawBody?: Buffer }, res) => {
   }
 
   if (eventType === 'user.created' || eventType === 'user.updated') {
-    const { id, email_addresses, first_name, last_name, image_url } = evt.data;
+    const { id, email_addresses, first_name, last_name, image_url, last_sign_in_at } = evt.data;
     
     if (!id) {
       return res.status(400).send('Error -- Missing user ID');
@@ -157,6 +157,7 @@ router.post('/', async (req: Request & { rawBody?: Buffer }, res) => {
         email,
         name: name || null,
         imageUrl: image_url || null,
+        lastSignInAt: last_sign_in_at ? new Date(last_sign_in_at) : null,
         ...(shouldDenyTrial ? { trialUsed: true } : {}),
       },
       create: {
@@ -164,6 +165,7 @@ router.post('/', async (req: Request & { rawBody?: Buffer }, res) => {
         email,
         name: name || null,
         imageUrl: image_url || null,
+        lastSignInAt: last_sign_in_at ? new Date(last_sign_in_at) : null,
         trialUsed: shouldDenyTrial,
       },
     });

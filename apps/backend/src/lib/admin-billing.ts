@@ -327,3 +327,119 @@ export const adjustOrganizationCredits = async (
 }, {
   isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
 });
+
+const calculatePersonalBalance = async (
+  client: Prisma.TransactionClient | typeof prisma,
+  userId: string
+): Promise<BillingBalance> => {
+  const [subscription, transactions] = await Promise.all([
+    client.subscription.findUnique({
+      where: { userId },
+      select: {
+        status: true,
+        currentPeriodEnd: true,
+      },
+    }),
+    client.creditTransaction.groupBy({
+      by: ['bucket'],
+      where: { userId, organizationId: null },
+      _sum: { amount: true },
+    }),
+  ]);
+
+  const trial = transactions.find((item) => item.bucket === 'trial')?._sum.amount ?? 0;
+  const addon = transactions.find((item) => item.bucket === 'addon')?._sum.amount ?? 0;
+  const subscriptionIsActive = Boolean(
+    subscription?.status === 'active' && subscription.currentPeriodEnd > new Date()
+  );
+  const subscriptionBalance = subscriptionIsActive
+    ? transactions.find((item) => item.bucket === 'subscription')?._sum.amount ?? 0
+    : 0;
+
+  return {
+    total: Math.max(0, trial + addon + subscriptionBalance),
+    trial,
+    subscription: subscriptionBalance,
+    addon,
+  };
+};
+
+export const adjustPersonalCredits = async (
+  actor: BillingAdminActor,
+  targetUserId: string,
+  input: Omit<ManualAdjustmentInput, 'organizationId'>
+) => prisma.$transaction(async (tx) => {
+  const user = await tx.user.findFirst({
+    where: { id: targetUserId },
+    select: { id: true }
+  });
+  if (!user) {
+    throw new Error('User not found.');
+  }
+
+  const adjustmentGroupKey = `manual:${input.idempotencyKey}`;
+  const existing = await tx.creditTransaction.findFirst({
+    where: { adjustmentGroupKey },
+    select: { id: true },
+  });
+  if (existing) {
+    return {
+      duplicate: true,
+      balance: await calculatePersonalBalance(tx, targetUserId),
+    };
+  }
+
+  const balance = await calculatePersonalBalance(tx, targetUserId);
+  if (input.direction === 'deduct' && input.amount > balance.total) {
+    throw new Error(`Cannot deduct ${input.amount} credits from a balance of ${balance.total}.`);
+  }
+
+  const commonData = {
+    userId: targetUserId,
+    organizationId: null,
+    type: 'manual_adjustment' as const,
+    adjustmentReason: input.reason,
+    adjustmentGroupKey,
+    ticketReference: input.ticketReference,
+    externalTicketId: input.externalTicketId,
+    externalTicketUrl: input.externalTicketUrl,
+    performedByUserId: actor.userId,
+    performedByEmail: actor.email,
+  };
+
+  if (input.direction === 'add') {
+    await tx.creditTransaction.create({
+      data: {
+        ...commonData,
+        bucket: 'addon',
+        amount: input.amount,
+        idempotencyKey: `${adjustmentGroupKey}:addon`,
+        description: `Manual credit addition: ${input.reason}`,
+      },
+    });
+  } else {
+    const deductionPlan = planCreditDeduction(balance, input.amount);
+    for (const entry of deductionPlan.deductions) {
+      await tx.creditTransaction.create({
+        data: {
+          ...commonData,
+          bucket: entry.bucket,
+          amount: entry.amount,
+          idempotencyKey: `${adjustmentGroupKey}:${entry.bucket}`,
+          description: `Manual credit deduction: ${input.reason}`,
+        },
+      });
+    }
+
+    if (deductionPlan.remaining > 0) {
+      throw new Error('The available credit buckets changed during this adjustment. Please retry.');
+    }
+  }
+
+  return {
+    duplicate: false,
+    balance: await calculatePersonalBalance(tx, targetUserId),
+  };
+}, {
+  isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+});

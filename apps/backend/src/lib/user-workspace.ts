@@ -63,6 +63,7 @@ export const ensureCurrentUserRecord = async (userId: string) => {
       email,
       name: [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || null,
       imageUrl: clerkUser.imageUrl || null,
+      lastSignInAt: clerkUser.lastSignInAt ? new Date(clerkUser.lastSignInAt) : null,
     },
   });
 
