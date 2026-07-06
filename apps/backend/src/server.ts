@@ -25,6 +25,9 @@ import storageRouter from './routes/storage';
 const app = express();
 const port = process.env.PORT || 5001;
 
+// Trust upstream reverse proxies (like Railway edge proxy / Cloudflare)
+app.set('trust proxy', true);
+
 // CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
