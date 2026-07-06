@@ -6,6 +6,8 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
+const SelectOpenContext = React.createContext(false);
+
 function Select<Value, Multiple extends boolean | undefined = false>({
   defaultOpen = false,
   open: controlledOpen,
@@ -37,16 +39,18 @@ function Select<Value, Multiple extends boolean | undefined = false>({
   }, [controlledOpen, open])
 
   return (
-    <SelectPrimitive.Root
-      {...props}
-      open={open}
-      onOpenChange={(nextOpen, eventDetails) => {
-        if (controlledOpen === undefined) {
-          setUncontrolledOpen(nextOpen)
-        }
-        onOpenChange?.(nextOpen, eventDetails)
-      }}
-    />
+    <SelectOpenContext.Provider value={open}>
+      <SelectPrimitive.Root
+        {...props}
+        open={open}
+        onOpenChange={(nextOpen, eventDetails) => {
+          if (controlledOpen === undefined) {
+            setUncontrolledOpen(nextOpen)
+          }
+          onOpenChange?.(nextOpen, eventDetails)
+        }}
+      />
+    </SelectOpenContext.Provider>
   )
 }
 
@@ -113,8 +117,15 @@ function SelectContent({
     SelectPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger" | "positionMethod"
   >) {
+  const open = React.useContext(SelectOpenContext);
+
   return (
     <SelectPrimitive.Portal>
+      {/* Mobile Backdrop overlay (only rendered when open) */}
+      {open && (
+        <div className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-xs md:hidden animate-in fade-in duration-200" />
+      )}
+
       <SelectPrimitive.Positioner
         side={side}
         sideOffset={sideOffset}
@@ -122,16 +133,23 @@ function SelectContent({
         alignOffset={alignOffset}
         alignItemWithTrigger={alignItemWithTrigger}
         positionMethod={positionMethod}
-        className="isolate z-50"
+        className="isolate z-50 max-md:!fixed max-md:!bottom-0 max-md:!left-0 max-md:!right-0 max-md:!top-auto max-md:!transform-none max-md:!w-full max-md:!max-w-none max-md:!z-[150]"
       >
         <SelectPrimitive.Popup
           data-slot="select-content"
           data-align-trigger={alignItemWithTrigger}
-          className={cn("relative isolate z-50 max-h-(--available-height) w-(--anchor-width) min-w-[max(var(--anchor-width),220px)] origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95", className )}
+          className={cn(
+            "relative isolate z-50 max-h-(--available-height) w-(--anchor-width) min-w-[max(var(--anchor-width),220px)] origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            "max-md:!w-full max-md:!min-w-0 max-md:!h-auto max-md:!max-h-[80vh] max-md:!rounded-t-2xl max-md:!rounded-b-none max-md:!border-t max-md:!border-[var(--border)] max-md:bg-[var(--surface-1)] max-md:!shadow-2xl max-md:px-4 max-md:pt-2 max-md:pb-8 max-md:animate-in max-md:slide-in-from-bottom max-md:duration-300",
+            className
+          )}
           {...props}
         >
+          {/* Drag handle */}
+          <div className="w-12 h-1.5 bg-[var(--border)] rounded-full mx-auto my-2 opacity-60 md:hidden shrink-0" />
+
           <SelectScrollUpButton />
-          <SelectPrimitive.List>{children}</SelectPrimitive.List>
+          <SelectPrimitive.List className="flex flex-col gap-0.5">{children}</SelectPrimitive.List>
           <SelectScrollDownButton />
         </SelectPrimitive.Popup>
       </SelectPrimitive.Positioner>
@@ -162,6 +180,7 @@ function SelectItem({
       data-slot="select-item"
       className={cn(
         "relative flex w-full cursor-default items-center gap-1.5 rounded-full py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        "max-md:py-3 max-md:px-4 max-md:rounded-xl max-md:text-sm",
         className
       )}
       {...props}

@@ -47,27 +47,36 @@ export default function GeneralSettingsPage() {
           title="Appearance"
           description="Choose a light, dark, or system-matched workspace."
         >
-          <div className="ui-segmented">
-            {[
-              { value: 'light' as ThemeMode, label: 'Light', icon: Sun },
-              { value: 'dark' as ThemeMode, label: 'Dark', icon: Moon },
-              { value: 'system' as ThemeMode, label: 'System', icon: Settings2 },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => updateTheme(item.value)}
-                  data-active={settings.themeMode === item.value}
-                  className="ui-segmented-item !px-3 !py-2 !text-xs"
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
+          <Select
+            value={settings.themeMode}
+            onValueChange={(val) => {
+              if (val) updateTheme(val as ThemeMode);
+            }}
+          >
+            <SelectTrigger className="ui-control ui-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="light">
+                <div className="flex items-center gap-2">
+                  <Sun className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span>Light</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="dark">
+                <div className="flex items-center gap-2">
+                  <Moon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span>Dark</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="system">
+                <div className="flex items-center gap-2">
+                  <Settings2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span>System</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </SettingRow>
 
         <SettingRow

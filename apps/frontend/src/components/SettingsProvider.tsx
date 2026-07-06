@@ -31,6 +31,7 @@ export type WorkspaceConfig = {
     creditsRemaining: number;
     subscriptionStatus: string;
   };
+  isAdmin: boolean;
 };
 
 type SettingsContextValue = {

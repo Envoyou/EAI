@@ -95,9 +95,9 @@ export function WorkspacePageShell({
               >
                 <Menu className="h-4 w-4" />
               </button>
-              <span className="text-sm font-semibold text-[var(--foreground)]">Workspace</span>
-              <span className="text-[11px] text-[var(--muted-foreground)]">/</span>
-              <span className="truncate text-[13px] font-medium text-[var(--muted-foreground)]">
+              <span className="hidden sm:inline text-sm font-semibold text-[var(--foreground)]">Workspace</span>
+              <span className="hidden sm:inline text-[11px] text-[var(--muted-foreground)]">/</span>
+              <span className="truncate text-xs sm:text-[13px] font-medium text-[var(--muted-foreground)] max-w-[120px] sm:max-w-none">
                 {title}
               </span>
             </div>

@@ -3,7 +3,7 @@
 import React from 'react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
-import { useUser, UserButton } from '@clerk/nextjs';
+import { useUser, UserButton, OrganizationSwitcher } from '@clerk/nextjs';
 import { FilePenLine, LayoutDashboard, Moon, Settings, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -97,6 +97,24 @@ export function AppSidebarShell({
             Expand sidebar
           </TooltipContent>
         </Tooltip>
+
+        {isLoaded && user && sidebarOpen && !isDemoMode && (
+          <div className="px-2 mb-2 mt-1 animate-in fade-in duration-200">
+            <OrganizationSwitcher
+              hidePersonal={false}
+              afterCreateOrganizationUrl="/workspace"
+              afterLeaveOrganizationUrl="/workspace"
+              afterSelectOrganizationUrl="/workspace"
+              afterSelectPersonalUrl="/workspace"
+              appearance={{
+                elements: {
+                  rootBox: 'w-full',
+                  organizationSwitcherTrigger: 'w-full justify-between bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)] border border-[var(--border)] rounded-full px-3 py-1.5 text-xs font-semibold shadow-xs',
+                }
+              }}
+            />
+          </div>
+        )}
 
         <SidebarItem
           icon={FilePenLine}

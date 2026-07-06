@@ -12,15 +12,28 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **DNA Review & Live Editing Interface**: Added interactive pill tags and text editors inside the DNA Review wizard screen, allowing users to preview, add, edit, or remove categories, writing tones, and article types before finalizing activation.
 - **Onboarding Discovery Cancel Safety**: Added a "Batal & Kembali" (Cancel & Go Back) option on the discovery loading screen to safely abort hanging network requests, reset the onboarding state back to `'activation'` in the database, and return to the form screen.
 - **Article Types Wizard Representation**: Added full frontend support for displaying and configuring predefined and AI-generated article types directly inside the DNA review UI.
+- **Sidebar Organization Switcher**: Integrated Clerk's `OrganizationSwitcher` inside the main application sidebar (`AppSidebarShell`), enabling seamless tenant switching directly from the navigation pane when expanded.
+- **Mobile-Friendly Select Component**: Enhanced the `Select` component (`ui/select.tsx`) to support a bottom-sheet drawer pattern on mobile viewports ($\le 768$px) with a semi-transparent backdrop, drag handle, and slide-up transition.
+- **Mobile Custom Date Picker**: Added a responsive, mobile-specific date range layout in `DashboardLayoutShell` for the custom date range option.
+- **Workspace Admin Configuration**: Added `isAdmin` field to the backend workspace configuration (`/api/workspace/config`) and updated frontend `SettingsProvider` / `WorkspaceConfig` types to track user organization role privilege.
 
 ### Changed
 - **DNA Review Visual Overhaul**: Increased font sizing, text contrast, tag paddings, and label weights across the DNA Review page elements to improve overall visual hierarchy and readability on large displays.
 - **Prioritized Jina Reader Scraping**: Re-engineered the website scraper backend utility to try the Jina Reader API first (with a 4.5s timeout) before falling back to local raw HTML fetch, aligning onboarding scraper behaviors with the strategist module.
+- **Admin Settings Gating**:
+  - Gated the Workspace Settings page (`/settings/workspace`) to allow administrator-only access; non-admin users are automatically redirected to General Settings.
+  - Optimized `PublicationProvider` to bypass fetching the editorial profile when the user is not an administrator, avoiding redundant request errors.
+- **Citations Collapsible List in Strategist Chat**: Updated cited sources rendering in `StrategistTab` to display up to 3 sources by default with an interactive expand/collapse toggle ("Show All" / "+X more") to prevent chat stream clutter.
+- **Strategist Chat UI Polish**: Styled the strategist input controls (attachments, search toggle, send buttons) with rounded-full geometry and custom border/background transition feedback.
+- **Theme Selection Selector**: Replaced the segmented button theme picker in General Settings with the custom mobile-friendly `Select` component for unified UI controls.
+- **Workspace Panel Labeling**: Updated the right-hand panel trigger label in the main workspace from "AI Copilot" to "EAI Chat".
 
 ### Fixed
 - **Onboarding Rate Limiter Elimination**: Removed the database `updatedAt`-based rate limiter check on `/discover` endpoint to prevent race conditions with preceding draf saving calls triggering instant false 429 timeouts.
 - **Clerk Signup Active Session Lag**: Implemented Clerk session header propagation (`x-clerk-org-id`, `x-clerk-org-slug`, `x-clerk-org-role`) from Edge middleware to backend auth handler, bypassing Clerk JWT claims delay during the first signup organization creation.
 - **Discovery Infinite Loading Protection**: Added a strict 10-second `Promise.race` timeout to the Gemini API content generation call in the backend onboarding route, preventing infinite loading screens and triggering a safe, language-aware fallback.
+- **Autosave Recovery**: Implemented error handling for autosave actions in `EditorialWorkspace` to detect unauthorized or missing history IDs (`403`/`404` errors) and automatically clear/reset the active history ID state, preventing persistent failed save attempts.
+- **Responsive Header Layout**: Adjusted `WorkspacePageShell` top bar typography and breadcrumbs to prevent text overlap on smaller screens.
 
 ## [2.1.0] - 2026-07-05
 

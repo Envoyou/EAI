@@ -12,15 +12,28 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Antarmuka Tinjauan & Edit DNA Langsung**: Menambahkan dukungan tag-pill interaktif dan editor teks langsung di dalam layar peninjauan DNA, memungkinkan pengguna untuk meninjau, menambah, mengedit, atau menghapus kategori, gaya nada tulis, dan tipe artikel sebelum aktivasi.
 - **Fitur Pembatalan Aman Discovery**: Menambahkan tombol "Batal & Kembali" pada layar loading radar Discovery untuk membatalkan request jaringan yang menggantung secara aman, mereset status draf onboarding kembali ke `'activation'` di database, dan mengembalikan tampilan ke form awal.
 - **Visualisasi Tipe Artikel (Article Types)**: Menambahkan dukungan antarmuka peninjauan dan penyuntingan tipe artikel (`articleTypes`) bawaan dan hasil prediksi AI secara visual saat onboarding.
+- **Pengalih Organisasi di Sidebar (Sidebar Organization Switcher)**: Mengintegrasikan komponen `OrganizationSwitcher` milik Clerk langsung di dalam bilah menu utama (`AppSidebarShell`), mempermudah pengguna untuk beralih antar-organisasi langsung dari sidebar saat terbuka.
+- **Desain Mobile-Friendly untuk Select**: Meningkatkan komponen `Select` (`ui/select.tsx`) agar secara otomatis merender mode laci bawah (*bottom-sheet*) pada perangkat mobile ($\le 768$px) lengkap dengan overlay latar buram (*backdrop*), handle seret (*drag handle*), dan animasi usap ke atas (*slide-up*).
+- **Pemilih Tanggal Kustom Mobile**: Menambahkan tata letak pemilih tanggal kustom responsif khusus mobile pada `DashboardLayoutShell`.
+- **Konfigurasi Administrator Workspace**: Menambahkan status `isAdmin` pada data konfigurasi workspace di backend (`/api/workspace/config`) serta memperbarui tipe data `SettingsProvider` di frontend untuk mengenali tingkat kewenangan pengguna.
 
 ### Changed
 - **Peningkatan Visual & Keterbacaan Tinjauan DNA**: Memperbesar ukuran teks konten (Positioning dan Target Audiens) dari `text-xs` menjadi `text-sm` serta mempertegas label kategori dan nada tulis untuk meningkatkan hierarki visual pada layar resolusi besar.
 - **Prioritas Scraping Jina Reader API**: Mengubah alur pengikisan konten website di backend onboarding untuk memprioritaskan Jina Reader API (timeout 4.5 detik) sebelum beralih ke parser HTML mentah bawaan demi menjaga konsistensi dengan fitur riset strategist.
+- **Pembatasan Akses Pengaturan Admin**:
+  - Membatasi halaman Pengaturan Workspace (`/settings/workspace`) khusus untuk peran Administrator; pengguna biasa secara otomatis dialihkan ke Pengaturan Umum.
+  - Memperbarui `PublicationProvider` untuk melewati pengambilan data profil editorial jika pengguna tidak memiliki hak akses administrator guna menghindari kegagalan panggilan API di latar belakang.
+- **Daftar Sitasi Lipat di Strategist Chat**: Memperbarui penampilan sumber referensi yang dirujuk di `StrategistTab` untuk membatasi tampilan maksimal 3 item sumber, dilengkapi tombol ekspansi ("Show All" / "+X more") untuk menghemat ruang chat.
+- **Penyelarasan Desain Input Chat**: Mengubah tombol kontrol input chat (lampiran file, pencarian web, tombol kirim) menjadi bentuk lingkaran penuh (`rounded-full`) dengan efek hover yang diperhalus.
+- **Dropdown Pemilihan Tema**: Menggantikan kontrol pemilih tema (segmented control) di Pengaturan Umum dengan komponen `Select` baru yang lebih ramah perangkat mobile.
+- **Pelabelan Panel Chat Workspace**: Mengubah nama label tombol pemicu panel kanan workspace dari "AI Copilot" menjadi "EAI Chat".
 
 ### Fixed
 - **Penghapusan Rate Limiter Onboarding**: Menghilangkan pemeriksaan pembatasan laju (*rate limiter*) berbasis timestamp `updatedAt` pada endpoint `/discover` untuk menghindari kondisi balapan (*race condition*) dengan perintah simpan draf sebelumnya yang memicu salah deteksi error 429.
 - **Pencegahan Lag Sesi Clerk Saat Pendaftaran**: Meneruskan informasi sesi organisasi Clerk aktif (`x-clerk-org-id`, `x-clerk-org-slug`, `x-clerk-org-role`) dari Edge middleware ke backend auth demi mengatasi keterlambatan propagasi token JWT Clerk sesaat setelah pembuatan organisasi/pendaftaran akun baru.
 - **Proteksi Loading Tanpa Akhir Discovery**: Menyematkan batas timeout `Promise.race` ketat selama 10 detik pada pemanggilan API Gemini di backend onboarding, mencegah radar loading berputar selamanya saat koneksi Google API terblokir/mengalami gangguan.
+- **Pemulihan Otomatis Autosave**: Mengimplementasikan penanganan error autosave pada `EditorialWorkspace` untuk mengenali respon `403` atau `404` (misal akibat ID riwayat tidak valid atau telah dihapus) dan secara otomatis mereset `activeHistoryId` aktif untuk mencegah kegagalan penyimpanan berulang.
+- **Responsivitas Header Workspace**: Menyesuaikan tipografi dan breadcrumbs di header `WorkspacePageShell` agar teks tidak saling tumpang tindih pada layar berukuran kecil.
 
 ## [2.1.0] - 2026-07-05
 

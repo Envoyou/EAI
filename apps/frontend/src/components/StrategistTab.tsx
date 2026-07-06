@@ -193,55 +193,55 @@ export default function StrategistTab({
                             </ReactMarkdown>
                           </div>
 
-                           {/* Search Sources/Citations */}
-                           {msg.payload?.sources && msg.payload.sources.length > 0 && (
-                             <div className="mt-2 p-1.5 bg-[var(--surface-2)] rounded-lg border border-[var(--border)] text-[10px] animate-fade-in">
-                               <button
-                                 type="button"
-                                 onClick={() => toggleSources(msg.id)}
-                                 className="w-full flex items-center justify-between font-semibold text-[var(--muted-foreground)] mb-1 hover:text-[var(--foreground)] transition-colors cursor-pointer border-none bg-transparent p-0 text-[10px]"
-                               >
-                                 <div className="flex items-center gap-1 select-none">
-                                   <Globe className="w-3 h-3 text-[var(--primary)] shrink-0" />
-                                   <span>Source ({msg.payload.sources.length})</span>
-                                 </div>
-                                 <span className="text-[9px] text-[var(--primary)] font-medium">
-                                   {expandedSources[msg.id] ? 'Hide' : 'Show All'}
-                                 </span>
-                               </button>
-                               <div className="flex flex-wrap gap-1 mt-1">
-                                 {msg.payload.sources
-                                   .slice(0, expandedSources[msg.id] ? undefined : 3)
-                                   .map((src, i) => (
-                                     <a
-                                       key={i}
-                                       href={src.url}
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--surface-3)] hover:bg-[var(--surface-4)] text-[var(--foreground)] hover:text-[var(--primary)] transition-colors border border-[var(--border)] no-underline text-[9px]"
-                                       title={src.title || src.url}
-                                     >
-                                       <span className="font-medium max-w-[120px] truncate">
-                                         {src.title || src.domain || 'Link'}
-                                       </span>
-                                     </a>
-                                   ))}
-                                 
-                                 {!expandedSources[msg.id] && msg.payload.sources.length > 3 && (
-                                   <button
-                                     type="button"
-                                     onClick={() => toggleSources(msg.id)}
-                                     className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] transition-colors border border-[var(--primary)]/20 cursor-pointer font-semibold text-[9px]"
-                                   >
-                                     +{msg.payload.sources.length - 3} more
-                                   </button>
-                                 )}
-                               </div>
-                             </div>
-                           )}
+                          {/* Search Sources/Citations */}
+                          {msg.payload?.sources && msg.payload.sources.length > 0 && (
+                            <div className="mt-2 p-1.5 bg-[var(--surface-2)] rounded-lg border border-[var(--border)] text-[10px] animate-fade-in">
+                              <button
+                                type="button"
+                                onClick={() => toggleSources(msg.id)}
+                                className="w-full flex items-center justify-between font-semibold text-[var(--muted-foreground)] mb-1 hover:text-[var(--foreground)] transition-colors cursor-pointer border-none bg-transparent p-0 text-[10px]"
+                              >
+                                <div className="flex items-center gap-1 select-none">
+                                  <Globe className="w-3 h-3 text-[var(--primary)] shrink-0" />
+                                  <span>Source ({msg.payload.sources.length})</span>
+                                </div>
+                                <span className="text-[9px] text-[var(--primary)] font-medium">
+                                  {expandedSources[msg.id] ? 'Hide' : 'Show All'}
+                                </span>
+                              </button>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {msg.payload.sources
+                                  .slice(0, expandedSources[msg.id] ? undefined : 3)
+                                  .map((src, i) => (
+                                    <a
+                                      key={i}
+                                      href={src.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--surface-3)] hover:bg-[var(--surface-4)] text-[var(--foreground)] hover:text-[var(--primary)] transition-colors border border-[var(--border)] no-underline text-[9px]"
+                                      title={src.title || src.url}
+                                    >
+                                      <span className="font-medium max-w-[120px] truncate">
+                                        {src.title || src.domain || 'Link'}
+                                      </span>
+                                    </a>
+                                  ))}
+
+                                {!expandedSources[msg.id] && msg.payload.sources.length > 3 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSources(msg.id)}
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] transition-colors border border-[var(--primary)]/20 cursor-pointer font-semibold text-[9px]"
+                                  >
+                                    +{msg.payload.sources.length - 3} more
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Actions */}
-                          <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1 mt-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                             <Tooltip>
                               <TooltipTrigger
                                 render={
@@ -379,7 +379,7 @@ export default function StrategistTab({
             accept=".pdf,.csv,.txt"
             className="hidden"
           />
-          
+
           <textarea
             ref={textareaRef}
             value={chatInput}
@@ -400,7 +400,7 @@ export default function StrategistTab({
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer border-none bg-transparent"
+                      className="w-7 h-7 shrink-0 aspect-square flex items-center justify-center rounded-full hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer border-none bg-transparent"
                     >
                       <Paperclip className="w-3.5 h-3.5" />
                     </button>
@@ -418,11 +418,10 @@ export default function StrategistTab({
                     <button
                       type="button"
                       onClick={() => setEnableSearch(!enableSearch)}
-                      className={`flex items-center justify-center w-7 h-7 rounded-lg border transition-colors cursor-pointer ${
-                        enableSearch
+                      className={`flex items-center justify-center w-7 h-7 shrink-0 aspect-square rounded-full border transition-colors cursor-pointer ${enableSearch
                           ? 'border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)]'
                           : 'border-[var(--border)] bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-3)]'
-                      }`}
+                        }`}
                     >
                       <Globe className="w-3.5 h-3.5" />
                     </button>
@@ -432,12 +431,14 @@ export default function StrategistTab({
                   {enableSearch ? 'Disable Web Search' : 'Enable Web Search'}
                 </TooltipContent>
               </Tooltip>
+            </div>
 
-              {/* Select Research Mode Trigger */}
-              <Select value={researchMode} onValueChange={(val) => { if (val) setResearchMode(val); }}>
+            <div className="flex items-center gap-1.5">
+              {/* Select Research Mode */}
+              <Select value={researchMode} onValueChange={(val) => { if (val) setResearchMode(val as 'fast' | 'deep'); }}>
                 <SelectTrigger
                   size="sm"
-                  className="h-7 border border-[var(--border)] bg-transparent hover:bg-[var(--surface-3)] text-[var(--foreground)] hover:text-[var(--foreground)] text-[10px] font-semibold rounded-lg px-2 flex items-center gap-1 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[var(--border)]"
+                  className="h-7 border border-[var(--border)] bg-transparent hover:bg-[var(--surface-3)] text-[var(--foreground)] hover:text-[var(--foreground)] text-[10px] font-semibold !rounded-full px-3 flex items-center gap-1 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[var(--border)] [&_svg]:max-md:hidden"
                 >
                   <SelectValue placeholder="Mode" />
                 </SelectTrigger>
@@ -450,20 +451,20 @@ export default function StrategistTab({
                   <SelectItem value="deep" className="text-[10px] cursor-pointer rounded py-1.5 pl-2 pr-8 hover:bg-[var(--surface-2)]">Deep Research</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
 
-            {/* Send Button */}
-            <button
-              onClick={() => handleSend()}
-              disabled={(!chatInput.trim() && !uploadedAttachment) || isTyping}
-              className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--primary)] text-white dark:text-black disabled:opacity-30 transition-opacity cursor-pointer border-none"
-            >
-              {isTyping ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <ArrowUp className="w-3.5 h-3.5" />
-              )}
-            </button>
+              {/* Send Button */}
+              <button
+                onClick={() => handleSend()}
+                disabled={(!chatInput.trim() && !uploadedAttachment) || isTyping}
+                className="w-7 h-7 shrink-0 aspect-square flex items-center justify-center rounded-full bg-[var(--primary)] text-white dark:text-black disabled:opacity-30 transition-opacity cursor-pointer border-none"
+              >
+                {isTyping ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <ArrowUp className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

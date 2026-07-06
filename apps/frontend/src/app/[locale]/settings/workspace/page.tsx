@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { Link } from '@/i18n/routing';
+import React, { useEffect } from 'react';
+import { Link, useRouter } from '@/i18n/routing';
 import { SlidersHorizontal, Loader2, CreditCard } from 'lucide-react';
 import { useSettings } from '@/components/SettingsProvider';
 import { SettingSection, SettingRow } from '@/components/SettingsUI';
@@ -9,6 +9,21 @@ import { PRICING_ENABLED } from '@eai/shared';
 
 export default function WorkspaceSettingsPage() {
   const { workspace, loadingWorkspace } = useSettings();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loadingWorkspace && workspace && !workspace.isAdmin) {
+      router.replace('/settings/general');
+    }
+  }, [workspace, loadingWorkspace, router]);
+
+  if (loadingWorkspace || !workspace || !workspace.isAdmin) {
+    return (
+      <div className="flex h-40 items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--muted-foreground)]" />
+      </div>
+    );
+  }
 
   return (
     <>

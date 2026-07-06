@@ -65,7 +65,7 @@ export function DashboardLayoutShell({ children, isSuperAdmin }: { children: Rea
           </Select>
 
           {timeRange === 'custom' && (
-            <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="hidden sm:flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
               <input
                 type="date"
                 value={customStartDate}
@@ -141,6 +141,31 @@ export function DashboardLayoutShell({ children, isSuperAdmin }: { children: Rea
           <h2>Editorial Quality &amp; Performance Overview</h2>
           <p>Track and optimize the quality of your publication&apos;s refined drafts.</p>
         </div>
+
+        {/* Mobile Custom Date Range Inputs */}
+        {timeRange === 'custom' && (
+          <div className="sm:hidden flex items-center gap-2 mb-6 p-3 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl w-fit animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-semibold text-[var(--muted-foreground)] uppercase">Start Date</span>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="px-2.5 py-1.5 text-xs border border-[var(--border)] bg-[var(--surface-1)] rounded-lg text-foreground focus:outline-none"
+              />
+            </div>
+            <span className="text-[10px] text-muted-foreground mt-4 shrink-0">to</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-semibold text-[var(--muted-foreground)] uppercase">End Date</span>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="px-2.5 py-1.5 text-xs border border-[var(--border)] bg-[var(--surface-1)] rounded-lg text-foreground focus:outline-none"
+              />
+            </div>
+          </div>
+        )}
         
         {children}
       </div>

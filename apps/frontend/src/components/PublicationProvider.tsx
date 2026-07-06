@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 import { EditorialProfileConfig } from '@eai/shared/server';
 import { useSettingsAction } from '@/components/SettingsActionProvider';
+import { useSettings } from '@/components/SettingsProvider';
 
 export interface ProfileVersion {
   id: string;
@@ -49,6 +50,7 @@ const PublicationContext = createContext<PublicationContextValue | null>(null);
 export function PublicationProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { registerAction, unregisterAction } = useSettingsAction();
+  const { workspace, loadingWorkspace } = useSettings();
   
   const [data, setData] = useState<ProfileResponse | null>(null);
   const [form, setForm] = useState<Partial<EditorialProfileConfig>>({});
@@ -57,6 +59,13 @@ export function PublicationProvider({ children }: { children: React.ReactNode })
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
+    if (loadingWorkspace) return;
+    if (!workspace || !workspace.isAdmin) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoading(false);
+      return;
+    }
+
     const fetchProfile = async () => {
       try {
         const res = await fetch('/api/admin/editorial-profile', { cache: 'no-store' });
@@ -71,7 +80,7 @@ export function PublicationProvider({ children }: { children: React.ReactNode })
       }
     };
     fetchProfile();
-  }, []);
+  }, [workspace, loadingWorkspace]);
 
   const updateField = useCallback(<K extends keyof EditorialProfileConfig>(
     key: K,

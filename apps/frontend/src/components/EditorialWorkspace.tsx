@@ -306,7 +306,13 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
             }
           }),
         });
-        if (!response.ok) {
+        if (response.status === 403 || response.status === 404) {
+          console.warn('Autosave failed because history ID is unauthorized or not found. Resetting active history ID.');
+          setActiveHistoryId(null);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('eai-active-history-id');
+          }
+        } else if (!response.ok) {
           console.error('Failed to autosave draft to cloud');
         }
       } catch (err: unknown) {
@@ -1657,7 +1663,7 @@ return (
                 }`}
               >
                 <Sparkles className="w-5 h-5" />
-                <span>AI Copilot</span>
+                <span>EAI Chat</span>
               </button>
             </div>
           </div>

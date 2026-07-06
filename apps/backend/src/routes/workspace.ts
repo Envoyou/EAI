@@ -52,6 +52,7 @@ router.get('/config', requireAuth, async (req, res) => {
     return res.json({
       organization: workspace.organization,
       plan: workspace.plan,
+      isAdmin: workspace.isAdmin,
       capabilities: {
         cmsExport: profile.profileKey === 'envoyou' || Boolean(cmsConnection),
       },
