@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Plus, FileText, Loader2, Search, Trash2, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { AppSidebarShell } from '@/components/AppSidebarShell';
 
@@ -401,19 +402,25 @@ export default function DocumentHistoryPanel({
                                 />
                               ) : (
                                 <div className="flex items-center gap-2">
-                                  <span
-                                    className={`text-[13px] leading-tight truncate flex-1 min-w-0 cursor-default ${
-                                      isActive ? 'font-semibold text-[var(--foreground)]' : 'font-medium text-[var(--foreground)]'
-                                    }`}
-                                    onDoubleClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditingId(item.id);
-                                      setEditTitleValue(displayTitle);
-                                    }}
-                                    title="Double-click to edit title"
-                                  >
-                                    {displayTitle}
-                                  </span>
+                                  <Tooltip>
+                                    <TooltipTrigger
+                                      render={
+                                        <span
+                                          className={`text-[13px] leading-tight truncate flex-1 min-w-0 cursor-default ${
+                                            isActive ? 'font-semibold text-[var(--foreground)]' : 'font-medium text-[var(--foreground)]'
+                                          }`}
+                                          onDoubleClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingId(item.id);
+                                            setEditTitleValue(displayTitle);
+                                          }}
+                                        >
+                                          {displayTitle}
+                                        </span>
+                                      }
+                                    />
+                                    <TooltipContent>Double-click to edit title</TooltipContent>
+                                  </Tooltip>
                                 </div>
                               )}
                               <div className="flex items-center gap-2 mt-1">

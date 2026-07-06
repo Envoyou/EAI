@@ -11,6 +11,7 @@ import {
 import { motion, Variants, AnimatePresence } from 'framer-motion';
 import { canAutoApplyFeedback } from '@eai/shared';
 import { toast } from 'sonner';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import EditorialProgress from '@/components/EditorialProgress';
 
 interface FeedbackPanelProps {
@@ -855,28 +856,40 @@ export default function FeedbackPanel({
                                     </div>
                                   </div>
                                   <div className="flex shrink-0 items-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        handleCopy(item.verifiedSource!, 'Source URL');
-                                      }}
-                                      className="ui-btn ui-btn-muted ui-btn-icon !h-7 !w-7 rounded-md border-emerald-500/20 bg-emerald-950/30 text-emerald-100 hover:bg-emerald-900/45"
-                                      title="Copy source URL"
-                                    >
-                                      <Copy className="h-3.5 w-3.5" />
-                                    </button>
+                                    <Tooltip>
+                                      <TooltipTrigger
+                                        render={
+                                          <button
+                                            type="button"
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              handleCopy(item.verifiedSource!, 'Source URL');
+                                            }}
+                                            className="ui-btn ui-btn-muted ui-btn-icon !h-7 !w-7 rounded-md border-emerald-500/20 bg-emerald-950/30 text-emerald-100 hover:bg-emerald-900/45"
+                                          >
+                                            <Copy className="h-3.5 w-3.5" />
+                                          </button>
+                                        }
+                                      />
+                                      <TooltipContent>Copy source URL</TooltipContent>
+                                    </Tooltip>
                                     {sourceDisplay.isUrl && (
-                                      <a
-                                        href={item.verifiedSource}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        onClick={(event) => event.stopPropagation()}
-                                        className="ui-btn ui-btn-muted ui-btn-icon !h-7 !w-7 rounded-md border-emerald-500/20 bg-emerald-950/30 text-emerald-100 hover:bg-emerald-900/45"
-                                        title="Open source"
-                                      >
-                                        <ExternalLink className="h-3.5 w-3.5" />
-                                      </a>
+                                      <Tooltip>
+                                        <TooltipTrigger
+                                          render={
+                                            <a
+                                              href={item.verifiedSource}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              onClick={(event) => event.stopPropagation()}
+                                              className="ui-btn ui-btn-muted ui-btn-icon !h-7 !w-7 rounded-md border-emerald-500/20 bg-emerald-950/30 text-emerald-100 hover:bg-emerald-900/45"
+                                            >
+                                              <ExternalLink className="h-3.5 w-3.5" />
+                                            </a>
+                                          }
+                                        />
+                                        <TooltipContent>Open source</TooltipContent>
+                                      </Tooltip>
                                     )}
                                   </div>
                                 </div>

@@ -35,6 +35,7 @@ import {
   SelectContent,
   SelectItem
 } from '@/components/ui/select';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Menu } from '@base-ui/react/menu';
 
 const generateIdempotencyKey = () => {
@@ -326,11 +327,11 @@ export function UserDirectory() {
 
   if (error) {
     return (
-      <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/5 text-rose-500">
-        <AlertCircle className="h-8 w-8 mb-3 opacity-80" />
+      <div className="ui-alert ui-alert-danger flex flex-col items-center justify-center min-h-[300px] text-center p-6">
+        <AlertCircle className="h-8 w-8 mb-3 opacity-90" />
         <p className="font-semibold">Failed to load directory</p>
-        <p className="text-sm opacity-80 mt-1">{error}</p>
-        <button type="button" onClick={fetchUsers} className="mt-4 px-4 py-2 bg-rose-500 text-white rounded-lg text-xs font-semibold hover:bg-rose-600 transition-colors">
+        <p className="text-sm opacity-90 mt-1">{error}</p>
+        <button type="button" onClick={fetchUsers} className="ui-btn ui-btn-danger mt-4 text-xs font-semibold">
           Retry Loading
         </button>
       </div>
@@ -525,14 +526,20 @@ export function UserDirectory() {
                           </div>
                           <div className="text-xs text-[var(--muted-foreground)] mt-0.5 font-mono flex items-center gap-1.5">
                             <span>{user.email}</span>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(user.email, `${user.id}-email`)}
-                              className="opacity-0 group-hover:opacity-100 hover:text-[var(--primary)] transition-opacity p-0.5 cursor-pointer"
-                              title="Copy email"
-                            >
-                              {copiedText === `${user.id}-email` ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    type="button"
+                                    onClick={() => copyToClipboard(user.email, `${user.id}-email`)}
+                                    className="opacity-0 group-hover:opacity-100 hover:text-[var(--primary)] transition-opacity p-0.5 cursor-pointer"
+                                  >
+                                    {copiedText === `${user.id}-email` ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                                  </button>
+                                }
+                              />
+                              <TooltipContent>Copy email</TooltipContent>
+                            </Tooltip>
                           </div>
                         </div>
                       </div>
@@ -556,8 +563,8 @@ export function UserDirectory() {
                         <div>
                           <span className={`ui-badge text-[10px] uppercase font-bold py-0.5 px-2 ${
                             user.plan.toLowerCase() !== 'free'
-                              ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                              : 'ui-badge-surface border border-[var(--border)]'
+                              ? 'ui-badge-warning'
+                              : 'ui-badge-surface'
                           }`}>
                             {user.plan}
                           </span>
@@ -585,14 +592,20 @@ export function UserDirectory() {
                           </div>
                           <div className="text-[11px] text-[var(--muted-foreground)] mt-0.5 font-mono flex items-center gap-1.5">
                             <span className="truncate max-w-[120px]">{user.organization.slug}</span>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(user.organization!.id, `${user.id}-org`)}
-                              className="opacity-0 group-hover:opacity-100 hover:text-[var(--primary)] transition-opacity p-0.5 cursor-pointer"
-                              title="Copy Org ID"
-                            >
-                              {copiedText === `${user.id}-org` ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    type="button"
+                                    onClick={() => copyToClipboard(user.organization!.id, `${user.id}-org`)}
+                                    className="opacity-0 group-hover:opacity-100 hover:text-[var(--primary)] transition-opacity p-0.5 cursor-pointer"
+                                  >
+                                    {copiedText === `${user.id}-org` ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                                  </button>
+                                }
+                              />
+                              <TooltipContent>Copy Org ID</TooltipContent>
+                            </Tooltip>
                           </div>
                         </div>
                       ) : (
@@ -931,7 +944,7 @@ export function UserDirectory() {
                           <div className="text-lg font-bold text-[var(--foreground)] flex items-center gap-2">
                             <span>{detailsData.user.name || 'Unnamed User'}</span>
                             {detailsData.user.isBanned && (
-                              <span className="bg-red-500/10 text-red-500 text-xs font-bold py-0.5 px-2 rounded-full uppercase border border-red-500/20">
+                              <span className="ui-badge ui-badge-danger text-xs font-bold uppercase">
                                 Banned
                               </span>
                             )}

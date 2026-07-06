@@ -28,6 +28,13 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DEFAULT_ONBOARDING_DATA, type OnboardingData, type OnboardingStep } from '@eai/shared';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const STEPS: Array<{
   id: OnboardingStep;
@@ -541,15 +548,19 @@ export function OnboardingWizard() {
                     </WizardField>
 
                     <WizardField label="Bahasa Utama" icon={Globe2}>
-                      <select
+                      <Select
                         value={data.activation.defaultLanguage}
-                        onChange={(event) => updateActivation('defaultLanguage', event.target.value)}
-                        className="w-full h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--foreground)] outline-none focus:border-primary cursor-pointer"
+                        onValueChange={(value) => { if (value !== null) updateActivation('defaultLanguage', value); }}
                       >
-                        <option value="auto">Auto-detect (Otomatis)</option>
-                        <option value="en">English</option>
-                        <option value="id">Bahasa Indonesia</option>
-                      </select>
+                        <SelectTrigger className="w-full h-11 rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">Auto-detect (Otomatis)</SelectItem>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="id">Bahasa Indonesia</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </WizardField>
                   </div>
                 )}

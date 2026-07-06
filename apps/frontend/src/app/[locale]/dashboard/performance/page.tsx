@@ -16,11 +16,11 @@ export default function PerformancePage() {
   };
 
   const renderProgressCard = (label: string, value: number) => {
-    const colorClass = value >= 80 
-      ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20 dark:border-emerald-500/30' 
+    const badgeClass = value >= 80 
+      ? 'ui-badge-success' 
       : value >= 60 
-        ? 'text-amber-500 bg-amber-500/10 border-amber-500/20 dark:border-amber-500/30' 
-        : 'text-slate-500 bg-slate-500/10 border-slate-200 dark:border-slate-800';
+        ? 'ui-badge-warning' 
+        : 'ui-badge-muted';
         
     const barColorClass = value >= 80 
       ? 'bg-emerald-500' 
@@ -32,7 +32,7 @@ export default function PerformancePage() {
       <div className="surface-card surface-card-hover p-5">
         <div className="flex justify-between items-center text-xs">
           <span className="font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colorClass}`}>
+          <span className={`ui-badge ui-badge-xs ${badgeClass}`}>
             {value}%
           </span>
         </div>

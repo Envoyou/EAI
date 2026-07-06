@@ -1003,6 +1003,12 @@
   color: var(--muted-foreground);
 }
 
+.ui-badge-surface {
+  background: var(--surface-3);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
 .ui-badge-primary {
   background: color-mix(in srgb, var(--primary) 10%, transparent);
   border-color: color-mix(in srgb, var(--primary) 18%, transparent);

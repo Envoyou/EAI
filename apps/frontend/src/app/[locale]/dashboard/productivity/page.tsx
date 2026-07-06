@@ -41,10 +41,10 @@ export default function ProductivityPage() {
                     if (user.logsCount >= 2) {
                       if (user.readyRate >= 85) {
                         statusLabel = 'Top Performer';
-                        badgeClass = 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20 dark:border-emerald-500/30';
+                        badgeClass = 'ui-badge-success';
                       } else if (user.readyRate < 60 || user.avgRevisions >= 3) {
                         statusLabel = 'Coaching Suggested';
-                        badgeClass = 'text-amber-500 bg-amber-500/10 border-amber-500/20 dark:border-amber-500/30';
+                        badgeClass = 'ui-badge-warning';
                       }
                     }
 
@@ -73,7 +73,7 @@ export default function ProductivityPage() {
                         </td>
                         <td className="py-4 text-center text-foreground font-medium">{user.avgRevisions}x</td>
                         <td className="py-4 text-right pr-2">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}`}>
+                          <span className={`ui-badge ui-badge-xs ${badgeClass}`}>
                             {statusLabel}
                           </span>
                         </td>

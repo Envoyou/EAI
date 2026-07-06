@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 import { EAILogo } from '@/components/EAILogo';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Skeleton } from '@/components/ui/skeleton';
 import { storeThemePreference } from '@/lib/preferences';
 import { SidebarItem } from '@/components/ui/sidebar-item';
 
@@ -187,7 +188,7 @@ export function AppSidebarShell({
               </div>
             )
           ) : (
-            <div className="w-7 h-7 rounded-full bg-[var(--surface-3)] animate-pulse shrink-0" />
+            <Skeleton className="w-7 h-7 rounded-full shrink-0" />
           )}
 
           <div
@@ -211,7 +212,7 @@ export function AppSidebarShell({
                 </span>
               )
             ) : (
-              <div className="h-4 w-20 bg-[var(--surface-3)] animate-pulse rounded" />
+              <Skeleton className="h-4 w-20 rounded" />
             )}
           </div>
         </div>

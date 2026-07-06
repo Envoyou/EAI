@@ -1,7 +1,14 @@
 'use client';
 
-import { CheckCircle2, LifeBuoy, Loader2, Mail, Send } from 'lucide-react';
+import { AlertCircle, CheckCircle2, LifeBuoy, Loader2, Mail, Send } from 'lucide-react';
 import { FormEvent, useState } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const categories = [
   'Billing and credits',
@@ -16,6 +23,7 @@ export function SupportForm() {
   const [submitting, setSubmitting] = useState(false);
   const [ticketNumber, setTicketNumber] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [category, setCategory] = useState<string>(categories[0]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -27,7 +35,7 @@ export function SupportForm() {
     const payload = {
       name: String(form.get('name') || ''),
       email: String(form.get('email') || ''),
-      category: String(form.get('category') || ''),
+      category: category,
       subject: String(form.get('subject') || ''),
       message: String(form.get('message') || ''),
       orderReference: String(form.get('orderReference') || ''),
@@ -112,15 +120,16 @@ export function SupportForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <label className="text-sm font-semibold">
           Category
-          <select
-            name="category"
-            className="ui-control ui-select mt-2 h-11"
-            defaultValue={categories[0]}
-          >
-            {categories.map((category) => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
+          <Select value={category} onValueChange={(value) => { if (value !== null) setCategory(value); }}>
+            <SelectTrigger className="mt-2 h-11 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
         <label className="text-sm font-semibold">
           Order or invoice reference
@@ -167,11 +176,14 @@ export function SupportForm() {
       </p>
 
       {error && (
-        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-700 dark:text-rose-300">
-          {error}{' '}
-          <a href="mailto:support@envoyou.com" className="font-semibold underline">
-            Email support@envoyou.com
-          </a>
+        <div className="ui-alert ui-alert-danger text-sm">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <div>
+            {error}{' '}
+            <a href="mailto:support@envoyou.com" className="font-semibold underline">
+              Email support@envoyou.com
+            </a>
+          </div>
         </div>
       )}
 

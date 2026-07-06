@@ -158,13 +158,13 @@ export default function ValidationDashboardPage() {
     const target = metric.target;
     
     if (metric.isReverse) {
-      if (current <= target) return { color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 dark:border-emerald-500/30', label: 'Met' };
-      if (current <= target * 1.5) return { color: 'bg-amber-500/10 text-amber-500 border-amber-500/20 dark:border-amber-500/30', label: 'Developing' };
-      return { color: 'bg-rose-500/10 text-rose-500 border-rose-500/20 dark:border-rose-500/30', label: 'At Risk' };
+      if (current <= target) return { badgeClass: 'ui-badge-success', label: 'Met' };
+      if (current <= target * 1.5) return { badgeClass: 'ui-badge-warning', label: 'Developing' };
+      return { badgeClass: 'ui-badge-danger', label: 'At Risk' };
     } else {
-      if (current >= target) return { color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 dark:border-emerald-500/30', label: 'Met' };
-      if (current >= target * 0.7) return { color: 'bg-amber-500/10 text-amber-500 border-amber-500/20 dark:border-amber-500/30', label: 'Developing' };
-      return { color: 'bg-rose-500/10 text-rose-500 border-rose-500/20 dark:border-rose-500/30', label: 'At Risk' };
+      if (current >= target) return { badgeClass: 'ui-badge-success', label: 'Met' };
+      if (current >= target * 0.7) return { badgeClass: 'ui-badge-warning', label: 'Developing' };
+      return { badgeClass: 'ui-badge-danger', label: 'At Risk' };
     }
   };
 
@@ -328,7 +328,7 @@ export default function ValidationDashboardPage() {
                     <div key={key} className="space-y-1.5">
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-semibold text-muted-foreground uppercase tracking-wider">{metric.label}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${status.color}`}>
+                        <span className={`ui-badge ui-badge-xs ${status.badgeClass}`}>
                           {status.label}
                         </span>
                       </div>
@@ -369,7 +369,7 @@ export default function ValidationDashboardPage() {
                     <div key={key} className="space-y-1.5">
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-semibold text-muted-foreground uppercase tracking-wider">{metric.label}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${status.color}`}>
+                        <span className={`ui-badge ui-badge-xs ${status.badgeClass}`}>
                           {status.label}
                         </span>
                       </div>
@@ -417,7 +417,7 @@ export default function ValidationDashboardPage() {
                             </span>
                           )}
                         </span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${status.color}`}>
+                        <span className={`ui-badge ui-badge-xs ${status.badgeClass}`}>
                           {status.label}
                         </span>
                       </div>
@@ -458,7 +458,7 @@ export default function ValidationDashboardPage() {
                     <div key={key} className="space-y-1.5">
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-semibold text-muted-foreground uppercase tracking-wider">{metric.label}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${status.color}`}>
+                        <span className={`ui-badge ui-badge-xs ${status.badgeClass}`}>
                           {status.label}
                         </span>
                       </div>

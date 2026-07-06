@@ -113,7 +113,7 @@ export function SelectedValuesPanel({
           </span>
         </div>
         {customCount > 0 && (
-          <span className="shrink-0 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 font-mono text-[8px] uppercase tracking-wider text-amber-500">
+          <span className="ui-badge ui-badge-warning font-mono text-[8px] uppercase tracking-wider shrink-0">
             {customCount} custom
           </span>
         )}

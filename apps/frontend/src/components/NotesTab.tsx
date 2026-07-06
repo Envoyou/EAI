@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, ChevronDown, ChevronUp, Notebook, Wand2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ResearchNote, Attachment } from '@/lib/hooks/useContentStrategist';
@@ -101,18 +102,24 @@ export default function NotesTab({
           return (
             <div key={note.id} className="relative bg-[var(--background)] border border-[var(--border)] rounded-lg p-2.5 group shadow-sm hover:shadow-md transition-shadow">
               {/* Delete button */}
-              <button
-                onClick={() => {
-                  const updated = researchNotes.filter(n => n.id !== note.id);
-                  onNotesChange(updated);
-                  if (expandedNoteId === note.id) setExpandedNoteId(null);
-                  toast.success('Note deleted');
-                }}
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all"
-                title="Delete note"
-              >
-                <X className="w-3 h-3" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      onClick={() => {
+                        const updated = researchNotes.filter(n => n.id !== note.id);
+                        onNotesChange(updated);
+                        if (expandedNoteId === note.id) setExpandedNoteId(null);
+                        toast.success('Note deleted');
+                      }}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  }
+                />
+                <TooltipContent>Delete note</TooltipContent>
+              </Tooltip>
 
               {/* Note header */}
               <div className="flex items-center gap-1.5 pr-5">

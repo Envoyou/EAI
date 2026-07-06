@@ -377,14 +377,20 @@ export default function HistorySidebar({
                           </span>
                         </button>
 
-                        <button
-                          onClick={e => { e.stopPropagation(); setItemToDelete(item.id); }}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full transition-[opacity,background-color,color] border-none cursor-pointer bg-transparent opacity-0 group-hover:opacity-100 hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                          aria-label="Delete draft"
-                          title="Delete draft"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <button
+                                onClick={e => { e.stopPropagation(); setItemToDelete(item.id); }}
+                                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full transition-[opacity,background-color,color] border-none cursor-pointer bg-transparent opacity-0 group-hover:opacity-100 hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                                aria-label="Delete draft"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            }
+                          />
+                          <TooltipContent>Delete draft</TooltipContent>
+                        </Tooltip>
                       </div>
                     );
                   })}
