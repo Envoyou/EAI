@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-07-06
+
 ### Added
 - **AI-First Onboarding Redesign**: Overhauled the user onboarding wizard flow, reducing it from 5 complex system-config screens to 3 interactive minimal stages (`activation`, `discovery`, and `review`).
 - **Automated Editorial DNA Extraction**: Integrated automated scraping and AI synthesis via Jina Reader API and Gemini 3.5 Flash to automatically extract brand names, positioning statements, target audiences, topics/categories, tones, and article types based on user website content.

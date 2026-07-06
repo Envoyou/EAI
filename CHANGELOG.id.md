@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-07-06
+
 ### Added
 - **Desain Ulang Onboarding Berbasis AI (AI-First Onboarding)**: Merombak total alur penyambutan pengguna (onboarding wizard) dari 5 langkah konfigurasi sistem yang rumit menjadi hanya 3 langkah minimalis interaktif (`activation`, `discovery`, dan `review`).
 - **Ekstraksi DNA Editorial Otomatis**: Mengintegrasikan sistem pengikisan (*scraping*) dan sintesis AI otomatis via Jina Reader API dan Gemini 3.5 Flash untuk mengenali nama brand, rumusan positioning, target audiens, topik kategori, nada bahasa, serta jenis artikel langsung dari konten website pengguna.
