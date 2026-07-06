@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
 import { createClerkClient } from '@clerk/backend';
+import { sendEmail } from '@/lib/email';
 import {
   adjustOrganizationCredits,
   adjustPersonalCredits,
@@ -767,21 +768,75 @@ router.post('/users/:id/resend-invite', requireAuth, async (req, res) => {
     const targetUserId = req.params.id;
     const user = await prisma.user.findFirst({
       where: { id: targetUserId },
-      select: { email: true }
+      select: { email: true, name: true }
     });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+
+    const { customSubject, customMessage } = req.body;
+    const subject = customSubject || 'Lanjutkan Pendaftaran Anda di Envoyou AI';
     
+    // Default message template if none provided
+    const messageBody = customMessage || `Halo ${user.name || 'User'},\n\nSilakan klik tautan di bawah ini untuk melanjutkan pendaftaran dan masuk ke workspace Envoyou AI Anda.`;
+
+    const host = req.get('host') || 'eai.envoyou.com';
+    // Use the official app URL as the primary target
+    const appUrl = host.includes('localhost') || host.includes('127.0.0.1')
+      ? `${req.protocol}://${host}/login`
+      : 'https://eai.envoyou.com/login';
+
+    const textContent = `${messageBody}\n\nLanjutkan ke Workspace: ${appUrl}\n\nSalam,\nTim Envoyou`;
+    
+    const htmlContent = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded-lg;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h2 style="color: #0d87cf; margin: 0;">Envoyou AI</h2>
+          <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b;">Editorial Intelligence</span>
+        </div>
+        <div style="font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-line;">
+          ${messageBody}
+        </div>
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${appUrl}" style="background-color: #0d87cf; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block;">Lanjutkan ke Workspace</a>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+        <div style="font-size: 11px; color: #64748b; text-align: center;">
+          Email ini dikirim dari Envoyou AI. Jika Anda tidak merasa mendaftar, silakan abaikan email ini.
+        </div>
+      </div>
+    `;
+
+    // 1. Sync invitation state with Clerk without sending Clerk's default automated email
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
     const redirectUrl = process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
-      ? `${req.protocol}://${req.get('host')}${process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL}`
+      ? `${req.protocol}://${host}${process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL}`
       : undefined;
 
-    await clerk.invitations.createInvitation({
-      emailAddress: user.email,
-      redirectUrl,
+    try {
+      await clerk.invitations.createInvitation({
+        emailAddress: user.email,
+        redirectUrl,
+        ignoreExisting: true,
+        notify: false, // Prevents Clerk from sending its own automated email
+      });
+    } catch (clerkErr) {
+      const errObj = clerkErr as { errors?: { longMessage?: string }[]; message?: string };
+      const errMsg = errObj?.errors?.[0]?.longMessage || errObj?.message || String(clerkErr);
+      console.warn(`[ADMIN_USER_RESEND_INVITE] Clerk invitation registry sync skipped/failed (non-blocking): ${errMsg}`);
+    }
+
+    // 2. Send custom business email via Mailgun API / custom email helper
+    const sent = await sendEmail({
+      to: user.email,
+      subject,
+      text: textContent,
+      html: htmlContent,
     });
+
+    if (!sent) {
+      return res.status(500).json({ error: 'Failed to deliver invitation email' });
+    }
 
     return res.json({ success: true });
   } catch (error) {

@@ -111,8 +111,13 @@ export function UserDirectory() {
   // UI Interactive States
   const [activeDropdownUserId, setActiveDropdownUserId] = useState<string | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
-  const [activeModal, setActiveModal] = useState<'adjust-credits' | 'view-details' | 'ban-confirm' | null>(null);
+  const [activeModal, setActiveModal] = useState<'adjust-credits' | 'view-details' | 'ban-confirm' | 'send-invite' | null>(null);
   const [selectedUser, setSelectedUser] = useState<DirectoryUser | null>(null);
+
+  // Custom Invitation Email States
+  const [inviteSubject, setInviteSubject] = useState('');
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [sendingInvite, setSendingInvite] = useState(false);
 
   // Modal loaded data
   const [detailsData, setDetailsData] = useState<{
@@ -309,19 +314,38 @@ export function UserDirectory() {
     }
   };
 
-  // Resend Invite Handler
-  const handleResendInvite = async (user: DirectoryUser) => {
+  // Trigger Custom Invite Modal
+  const triggerResendInviteModal = (user: DirectoryUser) => {
+    setSelectedUser(user);
+    setInviteSubject('Lanjutkan Pendaftaran Anda di Envoyou AI');
+    setInviteMessage(`Halo ${user.name || 'User'},\n\nSilakan klik tombol di bawah ini untuk melanjutkan pendaftaran dan masuk ke workspace Envoyou AI Anda. Kami telah menambahkan bonus 50 kredit gratis ke akun Anda untuk langsung dicoba!`);
+    setActiveModal('send-invite');
+  };
+
+  // Submit Custom Invite Email
+  const handleSendInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+    setSendingInvite(true);
     try {
-      const res = await fetch(`/api/admin/users/${user.id}/resend-invite`, {
+      const res = await fetch(`/api/admin/users/${selectedUser.id}/resend-invite`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customSubject: inviteSubject,
+          customMessage: inviteMessage,
+        })
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Failed to resend invitation');
+        throw new Error(data.error || 'Failed to send invitation');
       }
-      toast.success('Onboarding invite successfully resent via Clerk');
+      toast.success('Onboarding invite email sent successfully via Envoyou');
+      setActiveModal(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setSendingInvite(false);
     }
   };
 
@@ -664,11 +688,11 @@ export function UserDirectory() {
 
                                 {!user.organization && !user.onboardingDraft && (
                                   <Menu.Item
-                                    onClick={() => handleResendInvite(user)}
+                                    onClick={() => triggerResendInviteModal(user)}
                                     className="w-full px-4 py-2 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-2)] flex items-center gap-2 border-b border-[var(--border)]/30 cursor-pointer outline-none"
                                   >
                                     <Mail className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
-                                    <span>Resend Invite</span>
+                                    <span>Send Custom Invite</span>
                                   </Menu.Item>
                                 )}
 
@@ -1158,6 +1182,73 @@ export function UserDirectory() {
           </div>
         </div>
       )}
+      {/* Modal 4: Send Custom Invite Email Dialog */}
+      {activeModal === 'send-invite' && selectedUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl w-full max-w-md overflow-hidden shadow-2xl animate-scale-up">
+            <div className="border-b border-[var(--border)] bg-[var(--surface-2)] p-4 flex items-center justify-between">
+              <h4 className="font-bold flex items-center gap-2">
+                <Mail className="h-5 w-5 text-[var(--muted-foreground)]" />
+                <span>Send Custom Invite</span>
+              </h4>
+              <button type="button" onClick={() => setActiveModal(null)} className="p-1 rounded-md hover:bg-[var(--surface-3)] transition-colors text-[var(--muted-foreground)] cursor-pointer">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSendInviteSubmit} className="p-5 flex flex-col gap-4 text-sm">
+              <div className="bg-zinc-800/10 dark:bg-zinc-100/5 p-3 rounded-lg border border-[var(--border)]">
+                <div className="font-semibold">{selectedUser.name || 'Unnamed User'}</div>
+                <div className="text-xs text-[var(--muted-foreground)] mt-0.5">{selectedUser.email}</div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase text-[var(--muted-foreground)] mb-1">
+                  Email Subject
+                </label>
+                <input
+                  type="text"
+                  value={inviteSubject}
+                  onChange={(e) => setInviteSubject(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] focus:outline-none focus:border-[var(--primary)] text-[var(--foreground)]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase text-[var(--muted-foreground)] mb-1">
+                  Message Content
+                </label>
+                <textarea
+                  rows={6}
+                  value={inviteMessage}
+                  onChange={(e) => setInviteMessage(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] focus:outline-none focus:border-[var(--primary)] text-[var(--foreground)] resize-none"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="ui-btn ui-btn-outline ui-btn-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendingInvite}
+                  className="ui-btn ui-btn-primary ui-btn-sm"
+                >
+                  {sendingInvite ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send Invitation'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
 
       {/* Mobile Bottom Sheet */}
       {activeDropdownUserId && (
@@ -1220,11 +1311,11 @@ export function UserDirectory() {
                   {!u.organization && !u.onboardingDraft && (
                     <button
                       type="button"
-                      onClick={() => { handleResendInvite(u); setActiveDropdownUserId(null); }}
+                      onClick={() => { triggerResendInviteModal(u); setActiveDropdownUserId(null); }}
                       className="w-full flex items-center gap-3 py-3 px-4 rounded-xl text-sm font-medium text-[var(--foreground)] hover:bg-[var(--surface-2)] active:bg-[var(--surface-3)] cursor-pointer border-none bg-transparent transition-colors text-left"
                     >
                       <Mail className="h-4 w-4 text-[var(--muted-foreground)]" />
-                      <span>Resend Invite</span>
+                      <span>Send Custom Invite</span>
                     </button>
                   )}
 
