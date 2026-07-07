@@ -111,6 +111,31 @@ export default function StrategistTab({
     }
   };
 
+  const downloadConversation = () => {
+    if (messages.length === 0) {
+      toast.error('No messages in this chat session.');
+      return;
+    }
+
+    const conversationMarkdown = messages
+      .map((msg) => {
+        const roleName = msg.role === 'user' ? 'User' : 'AI Strategist';
+        return `### **${roleName}**\n\n${msg.content}\n\n---\n`;
+      })
+      .join('\n');
+
+    const blob = new Blob([conversationMarkdown], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `eai-strategist-chat-${new Date().toISOString().slice(0, 10)}.md`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Conversation downloaded successfully.');
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Chat Settings & Controls */}
@@ -128,6 +153,27 @@ export default function StrategistTab({
               <FileText className="w-3 h-3" />
               <span>View Report</span>
             </button>
+          )}
+
+          {/* Download Chat Button */}
+          {messages.length > 0 && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    onClick={downloadConversation}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] font-medium cursor-pointer border border-[var(--border)] text-[10px]"
+                  >
+                    <Download className="w-3 h-3 text-[var(--primary)] shrink-0" />
+                    <span>Download</span>
+                  </button>
+                }
+              />
+              <TooltipContent side="bottom" className="text-xs">
+                Download entire conversation history as Markdown
+              </TooltipContent>
+            </Tooltip>
           )}
 
           {/* New Chat Button */}

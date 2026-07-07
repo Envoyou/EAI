@@ -324,6 +324,37 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, allNotes, uploadedAttachment ? [uploadedAttachment] : []);
   }, [currentPlan, savedNotes, uploadedAttachment, onComplete, updateSavedNotes]);
 
+  const handleSaveToNotesOnly = useCallback(() => {
+    if (!currentPlan) return;
+
+    const sourcesMapped = (currentPlan.sources || []).map((url: string) => {
+      let domain = 'Source';
+      try { domain = new URL(url).hostname.replace('www.', ''); } catch {}
+      return { url, domain };
+    });
+
+    const blueprintNote: ResearchNote = {
+      id: `blueprint-${generateId()}`,
+      content: [
+        `# Blueprint: ${currentPlan.angle}`,
+        `**Audience:** ${currentPlan.audience}`,
+        `**SEO Intent:** ${currentPlan.seoIntent || 'N/A'}`,
+        `**Hook:** ${currentPlan.hook}`,
+        `\n## Outline`,
+        currentPlan.outline,
+        `\n## Draft`,
+        currentPlan.draft,
+      ].join('\n'),
+      sources: sourcesMapped,
+      savedAt: new Date().toISOString(),
+    };
+
+    const allNotes = [...savedNotes, blueprintNote];
+    updateSavedNotes(allNotes);
+    toast.success('Blueprint successfully saved to Notes!');
+    setCurrentPlan(null);
+  }, [currentPlan, savedNotes, updateSavedNotes]);
+
   const generatePlan = useCallback(async (recommendationText: string, history: ChatMessage[]) => {
     setIsTyping(true);
     const assistantMsgId = generateId();
@@ -352,11 +383,41 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           });
         }
       }
+      let displayContent = data.reply || "";
+      if (data.plan) {
+        const plan = data.plan;
+        displayContent += `\n\n### **Blueprint Preview**\n`;
+        displayContent += `* **Angle**: ${plan.angle || 'N/A'}\n`;
+        displayContent += `* **Audience**: ${plan.audience || 'N/A'}\n`;
+        if (plan.hook) {
+          displayContent += `* **Hook**: *"${plan.hook}"*\n`;
+        }
+        displayContent += `\n`;
+        
+        if (plan.outline) {
+          displayContent += `### **Proposed Outline**\n${plan.outline}\n\n`;
+        }
+        
+        if (plan.sources && plan.sources.length > 0) {
+          displayContent += `### **Sources**\n`;
+          plan.sources.forEach((src: string, index: number) => {
+            let domain = 'Source';
+            try { domain = new URL(src).hostname.replace('www.', ''); } catch {}
+            displayContent += `${index + 1}. [${domain}](${src})\n`;
+          });
+          displayContent += `\n`;
+        }
+
+        if (plan.draft) {
+          displayContent += `### **Draft Preview**\n${plan.draft}\n`;
+        }
+      }
+
       setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
         id: assistantMsgId,
         role: 'assistant',
         type: 'text',
-        content: data.reply,
+        content: displayContent,
         payload: { suggestions: data.suggestions }
       } : m));
     } catch {
@@ -645,6 +706,11 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       return;
     }
 
+    if (textToSend === 'Save to Notes' && currentPlan) {
+      handleSaveToNotesOnly();
+      return;
+    }
+
     if (!forcedText) setChatInput('');
     setIsTyping(true);
     setShowAttachMenu(false);
@@ -659,8 +725,8 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     const updatedMessages = [...messages, newMsg];
     setMessages(updatedMessages);
 
-    const DRAFT_INTENT_PATTERN = /\b(buat(kan)?|tulis(kan)?|generate|write|create|bikin)\b.{0,30}\bdraft\b|\bdraft\b.{0,20}\bartikel\b/i;
-    if (DRAFT_INTENT_PATTERN.test(messageText) || messageText.toLowerCase().startsWith('draft')) {
+    const DRAFT_INTENT_PATTERN = /\b(buat(kan)?|tulis(kan)?|generate|write|create|bikin)\b.{0,30}\b(draft|blueprint|plan|roadmap)\b|\b(draft|blueprint|plan|roadmap)\b.{0,25}\bartikel\b/i;
+    if (DRAFT_INTENT_PATTERN.test(messageText) || messageText.toLowerCase().startsWith('draft') || messageText.toLowerCase().startsWith('blueprint')) {
       generatePlan(messageText, updatedMessages);
       return;
     }
@@ -778,7 +844,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     } finally {
       setIsTyping(false);
     }
-  }, [chatInput, messages, currentPlan, savedNotes, researchMode, uploadedAttachment, enableSearch, handleProceedToEditor, generatePlan, fetchCredits]);
+  }, [chatInput, messages, currentPlan, savedNotes, researchMode, uploadedAttachment, enableSearch, handleProceedToEditor, handleSaveToNotesOnly, generatePlan, fetchCredits]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);

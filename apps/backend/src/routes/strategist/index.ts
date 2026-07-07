@@ -226,31 +226,100 @@ const FAST_MODE_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_COPILOT_FAST_MAX_T
 const FAST_MODE_TEMPERATURE = Number(process.env.GEMINI_COPILOT_FAST_TEMPERATURE) || 0.35;
 
 const getStrategistSystemPrompt = () => {
-  const timezone = 'Asia/Jakarta';
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date());
-
-  const currentYear = parts.find((part) => part.type === 'year')?.value || new Date().getFullYear().toString();
-  const month = parts.find((part) => part.type === 'month')?.value || '01';
-  const day = parts.find((part) => part.type === 'day')?.value || '01';
-  const currentDate = `${currentYear}-${month}-${day}`;
-
   return `
-<role>
+## Role
 You are a Senior Content Strategist and SEO Editorial Specialist. You possess deep expertise in blending high-quality journalism with data-driven SEO optimization (leveraging GA4, GSC, Ahrefs, and Semrush).
 Your role is to analyze data, identify trends, and propose actionable editorial strategies.
-</role>
 
-<constraints>
-- Output style: concise, data-driven, and highly structured. Avoid fluff or generic introductory text.
-- Never write full articles — only provide research notes, content brief outlines, and strategic recommendations.
-- Focus on practical, actionable advice that bridges editorial quality with search visibility.
-- For time-sensitive user queries that require up-to-date information, the current time context is: ${currentDate} (${timezone}) (${currentYear}).
-</constraints>
+## General Constraints
+1. Focus exclusively on content strategy, data analysis, SEO briefs, outlines, and research notes. Do not write full-length consumer-facing articles.
+2. Maintain a highly structured, data-driven, and direct tone. Never use generic opening fluff (e.g., "Sure, I can help you with that!").
+3. Ground all factual assertions quantitatively: cite specific metrics, values, and names directly from the context. Crucially, only ground data-analysis findings and traffic audits quantitatively. When creating content outlines, writing blueprints, or proposing article topics, use clean, professional article titles without appending performance metrics (like clicks, views, or CTRs) to the titles.
+4. Output must be formatted in clean Markdown using headings (## and ###), tables, bold text (**Text**), bullet lists, and horizontal rules (---) for readability.
+5. Do not write URLs in your responses; citations will be appended automatically by the system.
+6. Language: Always respond in the same language used by the user in their query (e.g., if the user asks in Indonesian, respond in Indonesian; if in English, respond in English), unless explicitly instructed otherwise.
+
+## Suggestion Constraints
+You must end EVERY response with exactly 3 clickable follow-up suggestions in the following exact format as the very last line of the output:
+[SUGGESTIONS: Suggestion A | Suggestion B | Suggestion C]
+
+## Grounding & Knowledge Cutoff Constraints
+1. Factual Grounding: Do not invent, extrapolate, or simulate statistical facts, percentages, views, clicks, or any specific numerical values. If a fact or number is not present in the provided context (<attached_file>, <scraped_url_content>, or \`google_search\` output), you MUST state: "Data is not available in the current context."
+2. Temporal Cutoff: Compare the dynamic "Today's Date" provided in the \`<context>\` with your internal training knowledge cutoff. You do not know real-world events, statistics, or updates that occurred after your knowledge cutoff up to the current date unless they are retrieved via the \`google_search\` tool or provided in attached files. Do not extrapolate, simulate, or guess facts or statistics for any dates beyond your cutoff.
+3. Proactive Search & Tool Invocation: You MUST proactively use the \`google_search\` tool to gather factual grounding whenever the user asks to analyze, outline, brainstorm, or draft content regarding recent trends, news, or topics that require post-cutoff details. Do not wait for the user to explicitly command you to "search" or "find data on the internet". Automatically trigger the search tool if you lack verified factual details in the provided context for any event, statistic, or policy occurring after your knowledge cutoff up to the current date. If the search tool is not available in the tools list and you cannot answer accurately, politely inform the user that Web Search is disabled and they should enable it in the chat interface.
+
+## Reasoning Scaffolding (CoT)
+Before generating your final response, write down a brief mental analysis inside <thinking> tags. In this block:
+1. Identify the query intent (e.g., trend query, data analysis, tool fallback).
+2. Determine if overrides apply (e.g., attached document, scraped URL).
+3. Outline the markdown sections to build.
+4. Draft the exactly 3 follow-up suggestions matching the context.
+Output your final content strategist response outside the <thinking> block.
+
+## Examples
+<example id="1">
+Input:
+<context>
+Today's Date: 2026-07-07 (Asia/Jakarta)
+user: apa itu SEO dan bagaimana cara kerjanya?
+</context>
+Output:
+<thinking>
+1. Intent: Quick factual query about SEO.
+2. Overrides: None.
+3. Structure: 2-3 sentences explanation of SEO and its mechanics.
+4. Suggestions: 3 clickable queries about SEO strategy.
+</thinking>
+Search Engine Optimization (SEO) adalah proses mengoptimalkan situs web untuk meningkatkan visibilitasnya saat orang mencari produk atau layanan terkait bisnis Anda di mesin pencari. Proses ini bekerja dengan mengoptimalkan elemen on-page (seperti konten dan struktur HTML) serta membangun otoritas off-page (seperti link-building) agar crawler mesin pencari dapat mengindeks dan menilai relevansi situs secara optimal.
+
+[SUGGESTIONS: Bagaimana cara riset keyword? | Apa perbedaan On-Page dan Off-Page SEO? | Cara mengukur kesuksesan SEO menggunakan GSC]
+</example>
+
+<example id="2">
+Input:
+<context>
+Today's Date: 2026-07-07 (Asia/Jakarta)
+<attached_file>
+<filename>perf_report.csv</filename>
+<type>text/csv</type>
+<content>
+Page,Clicks,Impressions
+/blog/ai-tools,150,2000
+/blog/nextjs-guide,85,900
+/blog/seo-tips,210,4000
+</content>
+</attached_file>
+user: Berikan analisis ringkas dari performa blog kami.
+</context>
+Output:
+<thinking>
+1. Intent: CSV performance analysis.
+2. Overrides: Document override applies. Relax length limits. Ground claims with metrics.
+3. Structure: Multi-section report using tables and headings.
+4. Suggestions: Dynamic, specific queries based on csv data.
+</thinking>
+## Analisis Performa Konten
+
+Berdasarkan data performa yang terlampir pada \`perf_report.csv\`, berikut adalah analisis performa artikel blog Anda:
+
+### Ringkasan Metrik Utama
+---
+| Halaman | Clicks | Impressions | CTR (%) |
+| :--- | :---: | :---: | :---: |
+| \`/blog/seo-tips\` | **210** | 4,000 | 5.25% |
+| \`/blog/ai-tools\` | 150 | 2,000 | **7.50%** |
+| \`/blog/nextjs-guide\` | 85 | 900 | 9.44% |
+
+### Temuan Utama
+* **Otoritas Tertinggi**: Halaman \`/blog/seo-tips\` mencatat klik tertinggi (**210 klik**) dan impresi terbanyak (**4,000 impresi**), menjadikannya pilar utama lalu lintas saat ini.
+* **Efisiensi CTR Terbaik**: Halaman \`/blog/nextjs-guide\` memiliki efisiensi klik tertinggi dengan CTR mencapai **9.44%**, meskipun impresinya masih rendah (**900 impresi**). Halaman ini sangat potensial jika didorong distribusinya.
+
+### Rekomendasi Aksi
+1. **Optimasi Impresi**: Tingkatkan impresi untuk \`/blog/nextjs-guide\` dengan menambahkan internal link dari artikel \`/blog/seo-tips\`.
+2. **Kembangkan Topik SEO**: Buat sub-topik baru seputar SEO untuk memperluas jangkauan kata kunci pada kategori \`/blog/seo-tips\`.
+
+[SUGGESTIONS: Rekomendasi sub-topik untuk perluasan kategori SEO | Cara meningkatkan impresi artikel Next.js | Analisis mengapa CTR Next.js lebih tinggi]
+</example>
 `.trim();
 };
 
@@ -271,8 +340,8 @@ router.post('/analyze-data', async (req, res) => {
 
     const interaction = await gemini.interactions.create({
       model: MODEL,
-      input: inputPrompt,
-      system_instruction: getStrategistSystemPrompt() + "\n\n<instructions>\nKeep your responses concise, insightful, and engaging.\n</instructions>",
+      input: inputPrompt + "\n\n<instructions>\nKeep your responses concise, insightful, and engaging.\n</instructions>",
+      system_instruction: getStrategistSystemPrompt(),
     });
 
     res.json({ reply: interaction.output_text });
@@ -298,8 +367,8 @@ router.post('/greet', async (req, res) => {
 
     const interaction = await gemini.interactions.create({
       model: MODEL,
-      input: "<task>\nGreet the user to EAI Research Copilot. Introduce yourself as a Thinking Partner. Be concise, friendly, and offer to analyze their blog data, research trends, or brainstorm content.\n</task>",
-      system_instruction: getStrategistSystemPrompt() + "\n\n<instructions>\nAlways provide 3-4 dynamic, clickable suggestion options.\n</instructions>",
+      input: "<task>\nGreet the user to EAI Research Copilot. Introduce yourself as a Thinking Partner. Be concise, friendly, and offer to analyze their blog data, research trends, or brainstorm content.\n</task>\n\n<instructions>\nAlways provide 3-4 dynamic, clickable suggestion options.\n</instructions>",
+      system_instruction: getStrategistSystemPrompt(),
       response_format: { type: "text", mime_type: "application/json", schema: chatSchema }
     });
 
@@ -386,7 +455,20 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
       return { role: m.role, content: [{ type: 'text', text }] };
     });
 
-    let contextPrompt = `<context>\n`;
+    const timezone = 'Asia/Jakarta';
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+
+    const currentYear = parts.find((part) => part.type === 'year')?.value || new Date().getFullYear().toString();
+    const month = parts.find((part) => part.type === 'month')?.value || '01';
+    const day = parts.find((part) => part.type === 'day')?.value || '01';
+    const currentDate = `${currentYear}-${month}-${day}`;
+
+    let contextPrompt = `<context>\nToday's Date: ${currentDate} (${timezone})\n`;
     if (notesSummary) {
       contextPrompt += `${notesSummary}\n`;
     }
@@ -420,9 +502,12 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
         activeHistoryId || undefined
       );
 
+      // Place static instructions first for prompt prefix caching optimization
+      const deepModeInput = `<instructions>\nCRITICAL INSTRUCTION: YOU ARE IN DEEP RESEARCH MODE. Use Google Search thoroughly to gather facts, synthesize a comprehensive report, and ensure all claims are backed by credible sources.\n</instructions>\n\n=== DYNAMIC CONTEXT & HISTORY ===\n${contextPrompt}`;
+
       const interaction = await gemini.interactions.create({
         model: RESEARCH_MODEL,
-        input: contextPrompt + "\n\n<instructions>\nCRITICAL INSTRUCTION: YOU ARE IN DEEP RESEARCH MODE. Use Google Search thoroughly to gather facts, synthesize a comprehensive report, and ensure all claims are backed by credible sources.\n</instructions>",
+        input: deepModeInput,
         system_instruction: getStrategistSystemPrompt(),
         tools: [{ type: "google_search" }],
         background: true
@@ -450,6 +535,10 @@ Your task: answer the user's question with focused, actionable insights. Use ric
 2. Ground all your factual claims. The system will automatically append citations, so do NOT manually type URLs in your response.
 3. End with exactly 3 short, clickable follow-up suggestions in this format:
 [SUGGESTIONS: Suggestion 1 | Suggestion 2 | Suggestion 3]
+Ensure these suggestions are action-oriented and guide the user through the logical editorial workflow:
+   - If brainstorming/analyzing: suggest next research topics.
+   - If a specific topic/outline is identified and agreed: the first suggestion MUST invite the user to generate the blueprint (e.g., "Generate Blueprint for [Topic Name]").
+   - If reviewing research: suggest starting the draft or outline refinement in the editor.
 4. Leverage the full power of Markdown to structure your response. Use:
    - Headers (e.g., ## for main sections, ### for sub-sections) to establish a clear hierarchy.
    - Bullet points (*) and bold text (**Text**) for list items.
@@ -487,10 +576,13 @@ If you cannot fetch it or the tool fails, politely ask the user to copy and past
       finalFastModeInstruction += `
 \n<document_mode_override>
 CRITICAL: A file is attached to this request.
-1. Prioritize analyzing the data/text inside <attached_file> over web search. Do NOT use Google Search unless the user asks for external information.
-2. Treat the query as a research request regardless of phrasing: length constraints and short sentence restrictions are relaxed. Continue using rich Markdown formatting (headings like ###, bold labels, bullet points, and tables) to present your analysis cleanly and make it highly readable.
-3. Ground all claims quantitatively: ALWAYS cite specific data points (exact numbers, titles, or values) from the attached file rather than generalizing into categories. Do not just say "topic X performed best" — say "Article Y had Z views, the highest among the dataset."
-4. Under the [SUGGESTIONS: ...] block, the 3 follow-up suggestions MUST refer back to specific data points or invite deeper analysis of the attached file (e.g., comparing metrics, asking about outliers, or specific topics) rather than being generic follow-up questions.
+1. Scope of Analysis: Prioritize analyzing the data/text inside <attached_file> ONLY if the user's query is directly asking for performance audits, data summaries, or findings from the attached document. If the query shifts to researching facts, finding data for a new article, or planning/drafting, do NOT force analysis of the attached file.
+2. Web Search & Fact Grounding: If the user asks for data, statistics, or research materials to write a new article, you MUST use Google Search to find real-world statistics, quantitative data, and expert sources. Do NOT reference internal blog performance metrics (views, clicks, impressions) from the attached file as factual content for the new article draft.
+3. Quantified Claims: Ground all claims quantitatively by citing specific data points (exact numbers, titles, or values) from the attached file when auditing traffic, but do not append these metrics to article titles in outlines, lists, or blueprints.
+4. Editorial Progression & Suggestions: Under the [SUGGESTIONS: ...] block, the 3 follow-up suggestions must guide the user dynamically based on the current discussion state:
+   - If the user is analyzing the file: suggest further data audits or performance comparisons.
+   - If the user has identified a solid topic: suggest generating the blueprint (e.g., "Generate Blueprint for [Topic Name]").
+   - If the user is reviewing research materials: suggest next steps for drafting or outline refinement.
 </document_mode_override>
 `;
     }
@@ -500,11 +592,14 @@ CRITICAL: A file is attached to this request.
     if (isSearchEnabled) fastTools.push({ type: 'google_search' });
     if (hasUrlInMessage) fastTools.push({ type: 'url_context' });
 
+    // Place static instructions first for prompt prefix caching optimization
+    const cacheFriendlyInput = `${finalFastModeInstruction}\n\n=== DYNAMIC CONTEXT & HISTORY ===\n${contextPrompt}`;
+
     const stream = await gemini.interactions.create({
       model: MODEL,
-      input: contextPrompt,
+      input: cacheFriendlyInput,
       tools: fastTools.length > 0 ? fastTools : undefined,
-      system_instruction: getStrategistSystemPrompt() + finalFastModeInstruction,
+      system_instruction: getStrategistSystemPrompt(),
       stream: true,
       generation_config: {
         max_output_tokens: FAST_MODE_MAX_OUTPUT_TOKENS,
@@ -515,6 +610,9 @@ CRITICAL: A file is attached to this request.
     let finalOutputText = "";
     const sources: string[] = [];
     const globalAnnotations: { type?: string; url?: string; title?: string; start_index?: number; end_index?: number }[] = [];
+
+    let isInsideThinking = false;
+    let streamBuffer = "";
 
     for await (const event of stream) {
         if (event.event_type === "step.start") {
@@ -532,8 +630,58 @@ CRITICAL: A file is attached to this request.
             }
         } else if (event.event_type === "step.delta") {
             if (event.delta?.type === "text" && event.delta.text) {
-                finalOutputText += event.delta.text;
-                res.write(`data: ${JSON.stringify({ type: "text", chunk: event.delta.text })}\n\n`);
+                streamBuffer += event.delta.text;
+
+                while (streamBuffer.length > 0) {
+                    if (!isInsideThinking) {
+                        const thinkingIndex = streamBuffer.indexOf('<thinking>');
+                        if (thinkingIndex !== -1) {
+                            // Send everything before <thinking>
+                            const before = streamBuffer.slice(0, thinkingIndex);
+                            if (before) {
+                                finalOutputText += before;
+                                res.write(`data: ${JSON.stringify({ type: "text", chunk: before })}\n\n`);
+                            }
+                            isInsideThinking = true;
+                            streamBuffer = streamBuffer.slice(thinkingIndex + '<thinking>'.length);
+                        } else {
+                            // Check for partial tag at the end of the buffer (e.g. "<", "<t", "<th", etc.)
+                            const openBracketIndex = streamBuffer.lastIndexOf('<');
+                            if (openBracketIndex !== -1 && '<thinking>'.startsWith(streamBuffer.slice(openBracketIndex))) {
+                                // Send everything before the partial tag
+                                const before = streamBuffer.slice(0, openBracketIndex);
+                                if (before) {
+                                    finalOutputText += before;
+                                    res.write(`data: ${JSON.stringify({ type: "text", chunk: before })}\n\n`);
+                                }
+                                streamBuffer = streamBuffer.slice(openBracketIndex);
+                                break; // Wait for more data
+                            } else {
+                                // No partial tag, send everything
+                                finalOutputText += streamBuffer;
+                                res.write(`data: ${JSON.stringify({ type: "text", chunk: streamBuffer })}\n\n`);
+                                streamBuffer = "";
+                            }
+                        }
+                    } else {
+                        const closeThinkingIndex = streamBuffer.indexOf('</thinking>');
+                        if (closeThinkingIndex !== -1) {
+                            isInsideThinking = false;
+                            streamBuffer = streamBuffer.slice(closeThinkingIndex + '</thinking>'.length);
+                        } else {
+                            // Check for partial close tag at the end of the buffer (e.g. "</", "</t", "</th", etc.)
+                            const openBracketIndex = streamBuffer.lastIndexOf('<');
+                            if (openBracketIndex !== -1 && '</thinking>'.startsWith(streamBuffer.slice(openBracketIndex))) {
+                                streamBuffer = streamBuffer.slice(openBracketIndex);
+                                break; // Wait for more data to complete the close tag
+                            } else {
+                                // Discard the entire buffer since we are inside thinking and no partial close tag is at the end
+                                streamBuffer = "";
+                                break;
+                            }
+                        }
+                    }
+                }
             } else if (event.delta?.type === "text_annotation_delta" && event.delta.annotations) {
                 globalAnnotations.push(...event.delta.annotations);
             }
@@ -636,6 +784,11 @@ CRITICAL: A file is attached to this request.
             res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
         }
     }
+
+    if (streamBuffer && !isInsideThinking) {
+        finalOutputText += streamBuffer;
+        res.write(`data: ${JSON.stringify({ type: "text", chunk: streamBuffer })}\n\n`);
+    }
     
     res.end();
   } catch (error) {
@@ -690,8 +843,6 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
     }
 
     const prompt = `
-      ${getStrategistSystemPrompt()}
-
       <context>
       The user wants to generate a final blueprint based on the following recommendation:
       "${recommendation}"
@@ -702,7 +853,7 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
 
       <instructions>
       Write a brief, conversational summary in the 'reply' field explaining the blueprint to the user.
-      Provide exactly two suggestions in the 'suggestions' array: "Proceed to Editor" and "Revise Blueprint".
+      Provide exactly three suggestions in the 'suggestions' array: "Proceed to Editor", "Save to Notes", and "Revise Blueprint".
       Output the detailed blueprint in the 'plan' object.
       </instructions>
 
@@ -721,7 +872,7 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       Schema:
       {
         "reply": "string",
-        "suggestions": ["Proceed to Editor", "Revise Blueprint"],
+        "suggestions": ["Proceed to Editor", "Save to Notes", "Revise Blueprint"],
         "plan": {
           "angle": "string",
           "audience": "string",
@@ -760,6 +911,7 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
     const interaction = await gemini.interactions.create({
       model: MODEL,
       input: prompt,
+      system_instruction: getStrategistSystemPrompt(),
       tools: [{ type: "google_search" }],
       response_format: { type: "text", mime_type: "application/json", schema: planSchema },
       generation_config: {
@@ -773,7 +925,46 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
         throw new Error("No output from model");
     }
 
-    const data = parseJsonResponse(interaction.output_text);
+    const data = parseJsonResponse(interaction.output_text) as {
+      reply?: string;
+      suggestions?: string[];
+      plan?: {
+        angle?: string;
+        audience?: string;
+        hook?: string;
+        outline?: string;
+        seoIntent?: string;
+        sources?: string[];
+        draft?: string;
+      };
+    };
+    
+    // Resolve any Google Vertex AI Search grounding redirect URLs in the plan sources list, draft, and reply
+    if (data.plan && Array.isArray(data.plan.sources)) {
+      const resolvedSources: string[] = [];
+      for (const u of data.plan.sources) {
+        if (typeof u === 'string' && u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
+          try {
+            const res = await fetch(u, { method: 'HEAD', redirect: 'manual' });
+            const loc = res.headers.get('location');
+            const realUrl = loc || u;
+            resolvedSources.push(realUrl);
+            if (typeof data.plan.draft === 'string') {
+              data.plan.draft = data.plan.draft.replaceAll(u, realUrl);
+            }
+            if (typeof data.reply === 'string') {
+              data.reply = data.reply.replaceAll(u, realUrl);
+            }
+          } catch (_e) {
+            resolvedSources.push(u);
+          }
+        } else {
+          resolvedSources.push(u);
+        }
+      }
+      data.plan.sources = resolvedSources;
+    }
+
     res.json(data);
   } catch (error) {
     console.error('Error in generate-plan:', error);
