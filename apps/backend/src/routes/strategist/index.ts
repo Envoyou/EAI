@@ -7,6 +7,7 @@ import { parseJsonResponse } from '@eai/shared';
 import { verifyToken } from '@clerk/backend';
 import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
 import { prisma } from '@/lib/db';
+import { requireAuth } from '../../middleware/auth';
 
 /**
  * Resolve the internal Prisma Organization UUID for billing purposes.
@@ -236,7 +237,7 @@ Your role is to analyze data, identify trends, and propose actionable editorial 
 2. Maintain a highly structured, data-driven, and direct tone. Never use generic opening fluff (e.g., "Sure, I can help you with that!").
 3. Ground all factual assertions quantitatively: cite specific metrics, values, and names directly from the context. Crucially, only ground data-analysis findings and traffic audits quantitatively. When creating content outlines, writing blueprints, or proposing article topics, use clean, professional article titles without appending performance metrics (like clicks, views, or CTRs) to the titles.
 4. Output must be formatted in clean Markdown using headings (## and ###), tables, bold text (**Text**), bullet lists, and horizontal rules (---) for readability.
-5. Do not write URLs in your responses; citations will be appended automatically by the system.
+5. Do not write URLs in your responses; citations will be appended automatically by the system. Instead, use the [cite: X] format to reference your grounding sources.
 6. Language: Always respond in the same language used by the user in their query (e.g., if the user asks in Indonesian, respond in Indonesian; if in English, respond in English), unless explicitly instructed otherwise.
 
 ## Suggestion Constraints
@@ -247,6 +248,7 @@ You must end EVERY response with exactly 3 clickable follow-up suggestions in th
 1. Factual Grounding: Do not invent, extrapolate, or simulate statistical facts, percentages, views, clicks, or any specific numerical values. If a fact or number is not present in the provided context (<attached_file>, <scraped_url_content>, or \`google_search\` output), you MUST state: "Data is not available in the current context."
 2. Temporal Cutoff: Compare the dynamic "Today's Date" provided in the \`<context>\` with your internal training knowledge cutoff. You do not know real-world events, statistics, or updates that occurred after your knowledge cutoff up to the current date unless they are retrieved via the \`google_search\` tool or provided in attached files. Do not extrapolate, simulate, or guess facts or statistics for any dates beyond your cutoff.
 3. Proactive Search & Tool Invocation: You MUST proactively use the \`google_search\` tool to gather factual grounding whenever the user asks to analyze, outline, brainstorm, or draft content regarding recent trends, news, or topics that require post-cutoff details. Do not wait for the user to explicitly command you to "search" or "find data on the internet". Automatically trigger the search tool if you lack verified factual details in the provided context for any event, statistic, or policy occurring after your knowledge cutoff up to the current date. If the search tool is not available in the tools list and you cannot answer accurately, politely inform the user that Web Search is disabled and they should enable it in the chat interface.
+4. Citations: When using facts retrieved from Google Search, you MUST place inline citation placeholders (e.g., [cite: 1], [cite: 2]) in your output text to mark which search results support those facts.
 
 ## Reasoning Scaffolding (CoT)
 Before generating your final response, write down a brief mental analysis inside <thinking> tags. In this block:
@@ -390,7 +392,7 @@ router.post('/greet', async (req, res) => {
  */
 router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 'Too many requests. Please try again later.' }), async (req, res) => {
   try {
-    const { messages, mode, notesSummary, attachments, enableSearch, activeHistoryId } = req.body;
+    const { messages, mode, notesSummary, attachments, enableSearch, activeHistoryId, sessionId } = req.body;
     
     const isSearchEnabled = mode !== 'deep' && enableSearch !== false;
     const requiredCredits = mode === 'deep' ? 5 : (isSearchEnabled ? 1 : 0);
@@ -422,12 +424,75 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
       (req as Request & { resolvedOrgId?: string | null }).resolvedOrgId = internalOrgId;
     }
 
+    const chatInput = messages[messages.length - 1].content;
+
+    // Resolve brand editorial profile for tenant context
+    let profile = null;
+    if (req.auth && req.auth.userId) {
+      try {
+        const internalOrgId = await resolveInternalOrgId(req.auth.orgId, req.auth.userId);
+        profile = await resolveEditorialProfileForUser(req.auth.userId, internalOrgId);
+      } catch (err) {
+        console.warn('[CHAT_WARNING] Failed to resolve brand profile:', err);
+      }
+    }
+
+    // Resilient Session & Message Creation for Authenticated Users
+    let dbSessionId = sessionId;
+    if (req.auth && req.auth.userId) {
+      if (!dbSessionId || dbSessionId === 'new') {
+        const firstMsg = chatInput.slice(0, 40).trim() || 'Percakapan Baru';
+        const title = firstMsg.length >= 40 ? `${firstMsg}...` : firstMsg;
+        const internalOrgId = await resolveInternalOrgId(req.auth.orgId, req.auth.userId);
+
+        try {
+          const newSession = await prisma.chatSession.create({
+            data: {
+              userId: req.auth.userId,
+              organizationId: internalOrgId,
+              title,
+            }
+          });
+          dbSessionId = newSession.id;
+        } catch (dbErr) {
+          console.error('[CHAT_DB_ERROR] Failed to create chat session:', dbErr);
+        }
+      } else {
+        try {
+          await prisma.chatSession.update({
+            where: { id: dbSessionId },
+            data: { updatedAt: new Date() }
+          });
+        } catch (dbErr) {
+          console.warn('[CHAT_DB_WARNING] Failed to touch session updated date:', dbErr);
+        }
+      }
+
+      if (dbSessionId) {
+        try {
+          await prisma.chatMessage.create({
+            data: {
+              sessionId: dbSessionId,
+              role: 'user',
+              type: 'text',
+              content: chatInput,
+            }
+          });
+        } catch (dbErr) {
+          console.error('[CHAT_DB_ERROR] Failed to save user message:', dbErr);
+        }
+      }
+    }
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
 
-    const chatInput = messages[messages.length - 1].content;
+    // Send the initialized/resolved session ID immediately to the frontend
+    if (dbSessionId) {
+      res.write(`data: ${JSON.stringify({ type: "session_init", sessionId: dbSessionId })}\n\n`);
+    }
 
     // Detect if the user's message contains a URL and scrape it server-side
     const URL_REGEX = /https?:\/\/[^\s"'<>]+/i;
@@ -468,7 +533,23 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
     const day = parts.find((part) => part.type === 'day')?.value || '01';
     const currentDate = `${currentYear}-${month}-${day}`;
 
+    let brandContext = '';
+    if (profile && profile.config) {
+      const p = profile.config;
+      brandContext = `<brand_profile>\n`;
+      brandContext += `Brand Name: ${p.brandName || 'Envoyou'}\n`;
+      if (p.positioning) brandContext += `Positioning: ${p.positioning}\n`;
+      if (p.audience) brandContext += `Target Audience: ${p.audience}\n`;
+      if (p.categories && p.categories.length > 0) brandContext += `Content Categories: ${p.categories.join(', ')}\n`;
+      if (p.tone && p.tone.length > 0) brandContext += `Tone of Voice: ${p.tone.join(', ')}\n`;
+      if (p.internalLinkBaseUrl) brandContext += `Website Base URL: ${p.internalLinkBaseUrl}\n`;
+      brandContext += `</brand_profile>\n`;
+    }
+
     let contextPrompt = `<context>\nToday's Date: ${currentDate} (${timezone})\n`;
+    if (brandContext) {
+      contextPrompt += brandContext;
+    }
     if (notesSummary) {
       contextPrompt += `${notesSummary}\n`;
     }
@@ -782,6 +863,23 @@ CRITICAL: A file is attached to this request.
                 res.write(`data: ${JSON.stringify({ type: "sources", sources: uniqueSourcesData })}\n\n`);
             }
             res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
+
+            // Resilient DB write for the Assistant response
+            if (dbSessionId && outputToSend) {
+                try {
+                    await prisma.chatMessage.create({
+                        data: {
+                            sessionId: dbSessionId,
+                            role: 'assistant',
+                            type: 'text',
+                            content: outputToSend,
+                            payload: uniqueSourcesData.length > 0 ? { sources: uniqueSourcesData } : undefined
+                        }
+                    });
+                } catch (dbErr) {
+                    console.error('[CHAT_DB_ERROR] Failed to save assistant message:', dbErr);
+                }
+            }
         }
     }
 
@@ -825,7 +923,7 @@ router.get('/chat/status/:id', async (req, res) => {
  */
 router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, message: 'Too many requests. Please try again later.' }), async (req, res) => {
   try {
-    const { recommendation, history } = req.body;
+    const { recommendation, history, sessionId } = req.body;
 
     let chatHistory = "";
     if (history && Array.isArray(history)) {
@@ -872,53 +970,26 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       Schema:
       {
         "reply": "string",
-        "suggestions": ["Proceed to Editor", "Save to Notes", "Revise Blueprint"],
+        "suggestions": ["string"],
         "plan": {
           "angle": "string",
           "audience": "string",
           "hook": "string",
           "outline": "string",
           "seoIntent": "string",
-          "sources": ["url1", "url2"],
+          "sources": ["string"],
           "draft": "string"
         }
       }
       </output_format>
     `;
 
-    const planSchema = {
-      type: "object",
-      properties: {
-        reply: { type: "string" },
-        suggestions: { type: "array", items: { type: "string" } },
-        plan: {
-          type: "object",
-          properties: {
-            angle: { type: "string" },
-            audience: { type: "string" },
-            hook: { type: "string" },
-            outline: { type: "string" },
-            seoIntent: { type: "string" },
-            sources: { type: "array", items: { type: "string" } },
-            draft: { type: "string" }
-          },
-          required: ["angle", "audience", "hook", "outline", "seoIntent", "sources", "draft"]
-        }
-      },
-      required: ["reply", "suggestions", "plan"]
-    };
-
     const interaction = await gemini.interactions.create({
       model: MODEL,
       input: prompt,
       system_instruction: getStrategistSystemPrompt(),
       tools: [{ type: "google_search" }],
-      response_format: { type: "text", mime_type: "application/json", schema: planSchema },
-      generation_config: {
-        max_output_tokens: 8192,
-        thinking_level: "low",
-        ...getGeminiSamplingConfig(MODEL, 0.5),
-      }
+      response_mime_type: 'application/json',
     });
     
     if (!interaction.output_text) {
@@ -963,6 +1034,65 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
         }
       }
       data.plan.sources = resolvedSources;
+    }
+
+    // Save to database if session is active
+    if (req.auth && req.auth.userId && sessionId && sessionId !== 'new') {
+      try {
+        // 1. Save user message
+        await prisma.chatMessage.create({
+          data: {
+            sessionId,
+            role: 'user',
+            type: 'text',
+            content: recommendation,
+          }
+        });
+
+        // 2. Reconstruct displayContent to match frontend representation
+        let displayContent = data.reply || "";
+        if (data.plan) {
+          const plan = data.plan;
+          displayContent += `\n\n### **Blueprint Preview**\n`;
+          displayContent += `* **Angle**: ${plan.angle || 'N/A'}\n`;
+          displayContent += `* **Audience**: ${plan.audience || 'N/A'}\n`;
+          if (plan.hook) {
+            displayContent += `* **Hook**: *"${plan.hook}"*\n`;
+          }
+          displayContent += `\n`;
+          
+          if (plan.outline) {
+            displayContent += `### **Proposed Outline**\n${plan.outline}\n\n`;
+          }
+          
+          if (plan.sources && plan.sources.length > 0) {
+            displayContent += `### **Sources**\n`;
+            plan.sources.forEach((src: string, index: number) => {
+              let domain = 'Source';
+              try { domain = new URL(src).hostname.replace('www.', ''); } catch { /* ignore invalid URL */ }
+              displayContent += `${index + 1}. [${domain}](${src})\n`;
+            });
+            displayContent += `\n`;
+          }
+
+          if (plan.draft) {
+            displayContent += `### **Draft Preview**\n${plan.draft}\n`;
+          }
+        }
+
+        // 3. Save assistant message
+        await prisma.chatMessage.create({
+          data: {
+            sessionId,
+            role: 'assistant',
+            type: 'text',
+            content: displayContent,
+            payload: data.suggestions ? { suggestions: data.suggestions } : undefined,
+          }
+        });
+      } catch (dbErr) {
+        console.error('[CHAT_DB_ERROR] Failed to save generate-plan messages:', dbErr);
+      }
     }
 
     res.json(data);
@@ -1191,6 +1321,122 @@ Tahun 2026 akan menjadi tahun di mana agentic workflow mulai diadopsi secara lua
       res.write(`data: ${JSON.stringify({ type: "error", message: "Stream failed" })}\n\n`);
       res.end();
     }
+  }
+});
+
+/**
+ * 5. Chat History & Session Management
+ */
+router.get('/sessions', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth!.userId;
+    const limit = Math.min(Number(req.query.limit) || 50, 100);
+    const offset = Number(req.query.offset) || 0;
+
+    const sessions = await prisma.chatSession.findMany({
+      where: { userId },
+      take: limit,
+      skip: offset,
+      orderBy: [
+        { isPinned: 'desc' },
+        { updatedAt: 'desc' }
+      ],
+      select: {
+        id: true,
+        title: true,
+        isPinned: true,
+        createdAt: true,
+        updatedAt: true,
+        messages: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+          select: { content: true }
+        }
+      }
+    });
+
+    res.json({ sessions });
+  } catch (error) {
+    console.error('Error fetching chat sessions:', error);
+    res.status(500).json({ error: 'Failed to fetch sessions' });
+  }
+});
+
+router.get('/sessions/:id', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth!.userId;
+    const sessionId = req.params.id;
+
+    const session = await prisma.chatSession.findFirst({
+      where: { id: sessionId, userId },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' }
+        }
+      }
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Chat session not found' });
+    }
+
+    res.json({ session });
+  } catch (error) {
+    console.error('Error fetching chat session details:', error);
+    res.status(500).json({ error: 'Failed to fetch session details' });
+  }
+});
+
+router.patch('/sessions/:id', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth!.userId;
+    const sessionId = req.params.id;
+    const { title, isPinned } = req.body;
+
+    const session = await prisma.chatSession.findFirst({
+      where: { id: sessionId, userId }
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Chat session not found' });
+    }
+
+    const updated = await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: {
+        title: typeof title === 'string' ? title.trim() : undefined,
+        isPinned: typeof isPinned === 'boolean' ? isPinned : undefined
+      }
+    });
+
+    res.json({ session: updated });
+  } catch (error) {
+    console.error('Error updating chat session:', error);
+    res.status(500).json({ error: 'Failed to update session' });
+  }
+});
+
+router.delete('/sessions/:id', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth!.userId;
+    const sessionId = req.params.id;
+
+    const session = await prisma.chatSession.findFirst({
+      where: { id: sessionId, userId }
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Chat session not found' });
+    }
+
+    await prisma.chatSession.delete({
+      where: { id: sessionId }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting chat session:', error);
+    res.status(500).json({ error: 'Failed to delete session' });
   }
 });
 

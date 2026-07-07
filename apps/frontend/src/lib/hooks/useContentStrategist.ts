@@ -1,8 +1,10 @@
 'use client';
+/* eslint-disable react-hooks/exhaustive-deps, react-hooks/set-state-in-effect */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
 import { generateId, extractDynamicSuggestions } from '@/lib/strategist-utils';
+import { useUser } from '@clerk/nextjs';
 
 export type SignalData = {
   topic: string;
@@ -57,6 +59,15 @@ export type ChatMessage = {
   };
 };
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+  messages?: ChatMessage[];
+}
+
 interface UseContentStrategistOptions {
   onComplete: (topic: string, outline: string, draft: string, notes: ResearchNote[], attachments: Attachment[]) => void;
   notes?: ResearchNote[];
@@ -68,6 +79,11 @@ const MAX_NOTES = 10;
 const SESSION_KEY = 'eai_research_notes';
 
 export function useContentStrategist({ onComplete, notes, onNotesChange, documentId = 'new' }: UseContentStrategistOptions) {
+  const { user } = useUser();
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [isSessionsLoading, setIsSessionsLoading] = useState(false);
+
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -97,6 +113,169 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       return sessionStorage.getItem(`eai_strategist_deep_research_${documentId}`);
     } catch { return null; }
   });
+  const [uploadedAttachment, setUploadedAttachment] = useState<Attachment | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = sessionStorage.getItem('eai_strategist_attachment');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
+
+  // For unauthenticated/demo users, default to 'new' session to skip landing list
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !user) {
+      setCurrentSessionId('new');
+    }
+  }, [user]);
+
+  const loadSessions = useCallback(async () => {
+    if (!user) return;
+    setIsSessionsLoading(true);
+    try {
+      const res = await fetch('/api/strategist/sessions?limit=50');
+      if (res.ok) {
+        const data = await res.json();
+        setSessions(data.sessions || []);
+      }
+    } catch (err) {
+      console.error('Failed to load chat sessions:', err);
+    } finally {
+      setIsSessionsLoading(false);
+    }
+  }, [user, setSessions, setIsSessionsLoading]);
+
+  useEffect(() => {
+    if (user) {
+      loadSessions();
+    }
+  }, [user, loadSessions]);
+
+  const selectSession = useCallback(async (sessionId: string) => {
+    if (!user) return;
+    setIsTyping(true);
+    try {
+      const res = await fetch(`/api/strategist/sessions/${sessionId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.session) {
+          setCurrentSessionId(sessionId);
+          setMessages(data.session.messages || []);
+        } else {
+          toast.error('Gagal memuat sesi chat');
+        }
+      } else {
+        toast.error('Gagal memuat sesi chat');
+      }
+    } catch (err) {
+      console.error('Error loading session:', err);
+      toast.error('Terjadi kesalahan saat memuat chat');
+    } finally {
+      setIsTyping(false);
+    }
+  }, [user, setCurrentSessionId, setMessages, setIsTyping]);
+
+  const renameSession = useCallback(async (sessionId: string, newTitle: string) => {
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
+
+    // Optimistic UI update
+    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, title: trimmed } : s));
+
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/strategist/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: trimmed })
+      });
+      if (!res.ok) {
+        toast.error('Gagal mengubah nama sesi');
+        loadSessions(); // revert on failure
+      } else {
+        toast.success('Nama sesi berhasil diubah');
+      }
+    } catch (err) {
+      console.error('Error renaming session:', err);
+      loadSessions(); // revert
+    }
+  }, [user, loadSessions, setSessions]);
+
+  const togglePinSession = useCallback(async (sessionId: string) => {
+    let targetPinned = false;
+    setSessions(prev => {
+      const updated = prev.map(s => {
+        if (s.id === sessionId) {
+          targetPinned = !s.isPinned;
+          return { ...s, isPinned: targetPinned };
+        }
+        return s;
+      });
+      return [...updated].sort((a, b) => {
+        if (a.isPinned !== b.isPinned) {
+          return a.isPinned ? -1 : 1;
+        }
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      });
+    });
+
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/strategist/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPinned: targetPinned })
+      });
+      if (!res.ok) {
+        toast.error('Gagal mengubah status sematan');
+        loadSessions(); // revert
+      }
+    } catch (err) {
+      console.error('Error pinning session:', err);
+      loadSessions(); // revert
+    }
+  }, [user, loadSessions, setSessions]);
+
+  const deleteSession = useCallback(async (sessionId: string) => {
+    // Optimistic UI update
+    setSessions(prev => prev.filter(s => s.id !== sessionId));
+    if (currentSessionId === sessionId) {
+      setCurrentSessionId(null);
+      setMessages([]);
+    }
+
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/strategist/sessions/${sessionId}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) {
+        toast.error('Gagal menghapus sesi chat');
+        loadSessions(); // revert
+      } else {
+        toast.success('Sesi chat berhasil dihapus');
+      }
+    } catch (err) {
+      console.error('Error deleting session:', err);
+      loadSessions(); // revert
+    }
+  }, [user, currentSessionId, loadSessions, setSessions, setCurrentSessionId, setMessages]);
+
+  const startNewChat = useCallback(() => {
+    setCurrentSessionId('new');
+    setMessages([]);
+    setCurrentPlan(null);
+    setDeepResearchReport(null);
+    setUploadedAttachment(null);
+    setChatInput('');
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(`eai_strategist_messages_${documentId}`);
+      sessionStorage.removeItem(`eai_strategist_current_plan_${documentId}`);
+      sessionStorage.removeItem(`eai_strategist_sources_${documentId}`);
+      sessionStorage.removeItem(`eai_strategist_deep_research_${documentId}`);
+    }
+  }, [documentId, setCurrentSessionId, setMessages, setCurrentPlan, setDeepResearchReport, setUploadedAttachment, setChatInput]);
+
+
 
   // Persist messages when they change
   useEffect(() => {
@@ -162,13 +341,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     }
   }, [onNotesChange, savedNotes]);
 
-  const [uploadedAttachment, setUploadedAttachment] = useState<Attachment | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const stored = sessionStorage.getItem('eai_strategist_attachment');
-      return stored ? JSON.parse(stored) : null;
-    } catch { return null; }
-  });
+
 
   useEffect(() => {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(savedNotes));
@@ -364,7 +537,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       const res = await fetch('/api/strategist/generate-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recommendation: recommendationText, history }),
+        body: JSON.stringify({ recommendation: recommendationText, history, sessionId: currentSessionId }),
       });
 
       if (!res.ok) throw new Error('Plan generation failed');
@@ -695,7 +868,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       const msg = err instanceof Error ? err.message : 'Failed to attach file';
       toast.error(msg, { id: loadingToast });
     }
-  }, []);
+  }, [setUploadedAttachment]);
 
   const handleSend = useCallback(async (forcedText?: string) => {
     const textToSend = forcedText ?? chatInput;
@@ -758,6 +931,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           notesSummary,
           attachments: uploadedAttachment ? [uploadedAttachment] : [],
           enableSearch,
+          sessionId: currentSessionId,
         }),
       });
 
@@ -797,7 +971,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
               const dataStr = line.trim().slice(6);
               try {
                 const data = JSON.parse(dataStr);
-                if (data.type === 'deep_research_started') {
+                if (data.type === 'session_init') {
+                  setCurrentSessionId(data.sessionId);
+                  loadSessions();
+                } else if (data.type === 'deep_research_started') {
                   setActiveDeepResearchId(data.interaction_id);
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, status: "Deep Research in progress..." } } : m));
                 } else if (data.type === 'status') {
@@ -844,17 +1021,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     } finally {
       setIsTyping(false);
     }
-  }, [chatInput, messages, currentPlan, savedNotes, researchMode, uploadedAttachment, enableSearch, handleProceedToEditor, handleSaveToNotesOnly, generatePlan, fetchCredits]);
-
-  const clearMessages = useCallback(() => {
-    setMessages([]);
-    setCurrentPlan(null);
-    setChatInput('');
-    sessionStorage.removeItem(`eai_strategist_messages_${documentId}`);
-    sessionStorage.removeItem(`eai_strategist_current_plan_${documentId}`);
-    sessionStorage.removeItem(`eai_strategist_sources_${documentId}`);
-    sessionStorage.removeItem(`eai_strategist_deep_research_${documentId}`);
-  }, [documentId]);
+  }, [chatInput, messages, currentPlan, savedNotes, researchMode, uploadedAttachment, enableSearch, handleProceedToEditor, handleSaveToNotesOnly, generatePlan, fetchCredits, currentSessionId, loadSessions, setMessages, setCurrentSessionId, setActiveDeepResearchId, setResearchMode]);
 
   return {
     messages,
@@ -870,7 +1037,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     setUploadedAttachment,
     currentPlan,
     handleProceedToEditor,
-    clearMessages,
+
     quickDraftMode,
     openQuickDraft,
     closeQuickDraft,
@@ -910,5 +1077,15 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     showResearchMenu,
     setShowResearchMenu,
     generatePlan,
+    currentSessionId,
+    setCurrentSessionId,
+    sessions,
+    isSessionsLoading,
+    loadSessions,
+    selectSession,
+    renameSession,
+    togglePinSession,
+    deleteSession,
+    startNewChat,
   };
 }

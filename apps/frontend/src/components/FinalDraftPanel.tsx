@@ -786,14 +786,22 @@ export default function FinalDraftPanel({
             </Popover.Root>
 
             {onFocusToggle && (
-              <button
-                onClick={onFocusToggle}
-                className="ui-btn ui-btn-muted ui-btn-icon"
-                title={isFocused ? 'Restore Split View' : 'Focus Panel'}
-                aria-label={isFocused ? 'Restore split view' : 'Focus refined draft'}
-              >
-                {isFocused ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-              </button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      onClick={onFocusToggle}
+                      className="ui-btn ui-btn-muted ui-btn-icon"
+                      aria-label={isFocused ? 'Restore split view' : 'Focus refined draft'}
+                    >
+                      {isFocused ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                    </button>
+                  }
+                />
+                <TooltipContent side="bottom" className="text-xs">
+                  {isFocused ? 'Restore Split View' : 'Focus Panel'}
+                </TooltipContent>
+              </Tooltip>
             )}
             </div>
           )}

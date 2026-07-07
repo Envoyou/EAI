@@ -5,6 +5,8 @@ import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { storeThemePreference } from "@/lib/preferences"
 
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const mounted = React.useSyncExternalStore(
@@ -24,20 +26,28 @@ export function ThemeToggle() {
   }
 
   return (
-    <button
-      onClick={toggleTheme}
-      className="
-        relative w-8 h-8 flex items-center justify-center rounded-md
-        text-[var(--muted-foreground)] hover:text-[var(--foreground)]
-        hover:bg-[var(--surface-2)]
-        transition-all duration-200
-        focus-visible:outline focus-visible:outline-[var(--gold)]
-      "
-      title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
-      aria-label="Toggle theme"
-    >
-      <Sun className="h-[15px] w-[15px] rotate-0 scale-100 transition-all duration-200 dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute h-[15px] w-[15px] rotate-90 scale-0 transition-all duration-200 dark:rotate-0 dark:scale-100" />
-    </button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            onClick={toggleTheme}
+            className="
+              relative w-8 h-8 flex items-center justify-center rounded-md
+              text-[var(--muted-foreground)] hover:text-[var(--foreground)]
+              hover:bg-[var(--surface-2)]
+              transition-all duration-200
+              focus-visible:outline focus-visible:outline-[var(--gold)]
+            "
+            aria-label="Toggle theme"
+          >
+            <Sun className="h-[15px] w-[15px] rotate-0 scale-100 transition-all duration-200 dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-[15px] w-[15px] rotate-90 scale-0 transition-all duration-200 dark:rotate-0 dark:scale-100" />
+          </button>
+        }
+      />
+      <TooltipContent side="bottom" className="text-xs">
+        {theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+      </TooltipContent>
+    </Tooltip>
   )
 }

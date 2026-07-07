@@ -118,7 +118,15 @@ export default function AICopilotPanel({
             researchMode={strategist.researchMode}
             setResearchMode={strategist.setResearchMode}
             deepResearchReport={strategist.deepResearchReport}
-            clearMessages={strategist.clearMessages}
+            currentSessionId={strategist.currentSessionId}
+            setCurrentSessionId={strategist.setCurrentSessionId}
+            sessions={strategist.sessions}
+            isSessionsLoading={strategist.isSessionsLoading}
+            selectSession={strategist.selectSession}
+            renameSession={strategist.renameSession}
+            togglePinSession={strategist.togglePinSession}
+            deleteSession={strategist.deleteSession}
+            startNewChat={strategist.startNewChat}
           />
         );
       case 'feedback':

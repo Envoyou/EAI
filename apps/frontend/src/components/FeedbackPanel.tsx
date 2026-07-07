@@ -75,14 +75,22 @@ const BENIGN_DISPLAY_FLAG_PATTERN =
 
 /* --- Copy Button --- */
 const CopyButton = ({ text, label, onCopy }: { text: string; label: string; onCopy: (text: string, label: string) => void }) => (
-  <button
-    onClick={() => onCopy(text, label)}
-    className="ml-2 ui-btn ui-btn-muted ui-btn-icon !h-7 !w-7 rounded-md"
-    title={`Copy ${label}`}
-    aria-label={`Copy ${label}`}
-  >
-    <Copy className="w-3.5 h-3.5" />
-  </button>
+  <Tooltip>
+    <TooltipTrigger
+      render={
+        <button
+          onClick={() => onCopy(text, label)}
+          className="ml-2 ui-btn ui-btn-muted ui-btn-icon !h-7 !w-7 rounded-md"
+          aria-label={`Copy ${label}`}
+        >
+          <Copy className="w-3.5 h-3.5" />
+        </button>
+      }
+    />
+    <TooltipContent side="top" className="text-xs">
+      {`Copy ${label}`}
+    </TooltipContent>
+  </Tooltip>
 );
 
 const getSourceDisplay = (source: string) => {
@@ -282,14 +290,22 @@ export default function FeedbackPanel({
               </span>
             )}
             {onFocusToggle && (
-              <button
-                onClick={onFocusToggle}
-                className="ui-btn ui-btn-muted ui-btn-icon !h-[30px] !w-[30px]"
-                title={isFocused ? 'Restore Split View' : 'Focus Panel'}
-                aria-label={isFocused ? 'Restore split view' : 'Focus editorial review'}
-              >
-                {isFocused ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-              </button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      onClick={onFocusToggle}
+                      className="ui-btn ui-btn-muted ui-btn-icon !h-[30px] !w-[30px]"
+                      aria-label={isFocused ? 'Restore split view' : 'Focus editorial review'}
+                    >
+                      {isFocused ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                    </button>
+                  }
+                />
+                <TooltipContent side="bottom" className="text-xs">
+                  {isFocused ? 'Restore Split View' : 'Focus Panel'}
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
         </div>

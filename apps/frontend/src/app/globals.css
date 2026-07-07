@@ -425,6 +425,8 @@
 .strategist-prose h2,
 .strategist-prose h3,
 .strategist-prose h4 {
+  font-family: var(--font-sans) !important;
+  font-weight: 600 !important;
   margin-top: 1rem !important;
   margin-bottom: 0.4rem !important;
 }
@@ -786,7 +788,7 @@
   justify-content: center;
   gap: 6px;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: 9999px;
   padding: 8px 14px;
   cursor: pointer;
   font-weight: 600;

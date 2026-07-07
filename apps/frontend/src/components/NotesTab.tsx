@@ -55,7 +55,7 @@ export default function NotesTab({
       <div className="px-3 py-2.5 flex items-center justify-between border-b border-[var(--border)] shrink-0 bg-[var(--surface-2)]">
         <span className="text-xs font-semibold text-[var(--foreground)] flex items-center gap-2">
           Research Notes
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--primary) 12%, transparent)', color: 'var(--primary)' }}>
+          <span className="ui-badge ui-badge-primary ui-badge-xs font-bold">
             {researchNotes.length}
           </span>
         </span>
@@ -100,7 +100,7 @@ export default function NotesTab({
           })();
 
           return (
-            <div key={note.id} className="relative bg-[var(--background)] border border-[var(--border)] rounded-lg p-2.5 group shadow-sm hover:shadow-md transition-shadow">
+            <div key={note.id} className="relative bg-[var(--background)] border border-[var(--border)] rounded-lg p-2.5 group shadow-sm hover:shadow-md hover:bg-[var(--surface-2)]/60 transition-all">
               {/* Delete button */}
               <Tooltip>
                 <TooltipTrigger
@@ -112,7 +112,7 @@ export default function NotesTab({
                         if (expandedNoteId === note.id) setExpandedNoteId(null);
                         toast.success('Note deleted');
                       }}
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all"
+                      className="absolute top-2 right-2 md:opacity-0 md:group-hover:opacity-100 opacity-80 p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -122,11 +122,15 @@ export default function NotesTab({
               </Tooltip>
 
               {/* Note header */}
-              <div className="flex items-center gap-1.5 pr-5">
+              <div 
+                onClick={() => setExpandedNoteId(isExpanded ? null : note.id)}
+                className="flex items-center gap-1.5 pr-5 cursor-pointer select-none"
+              >
                 {onGenerateDraft && (
                   <input
                     type="checkbox"
                     checked={!unselectedNoteIds.includes(note.id)}
+                    onClick={(e) => e.stopPropagation()}
                     onChange={(e) => {
                       if (e.target.checked) {
                         setUnselectedNoteIds(prev => prev.filter(id => id !== note.id));
@@ -137,19 +141,14 @@ export default function NotesTab({
                     className="w-3 h-3 shrink-0 rounded border border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer bg-[var(--surface-1)]"
                   />
                 )}
-                <button
-                  type="button"
-                  onClick={() => setExpandedNoteId(isExpanded ? null : note.id)}
-                  aria-expanded={isExpanded}
-                  className="flex min-w-0 flex-1 items-center gap-1.5 border-0 bg-transparent text-left cursor-pointer hover:bg-[var(--surface-2)] px-1 py-0.5 rounded transition-colors"
-                >
+                <div className="flex min-w-0 flex-1 items-center gap-1.5 px-1 py-0.5 rounded">
                   <span className="text-[10px] font-semibold text-[var(--primary)] uppercase tracking-wider">Note {idx + 1}</span>
                   {note.sources.length > 0 && (
                     <span className="text-[10px] text-[var(--muted-foreground)]">· {note.sources.length} src</span>
                   )}
                   <span className="text-[10px] text-[var(--muted-foreground)] ml-auto">{relativeTime}</span>
                   {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0" />}
-                </button>
+                </div>
               </div>
 
               <AnimatePresence>
@@ -176,7 +175,7 @@ export default function NotesTab({
                               href={src.url}
                               target="_blank"
                               rel="noreferrer"
-                              className="flex items-center gap-1 text-[9px] bg-[var(--surface-2)] border border-[var(--border)] rounded-full px-1.5 py-0.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                              className="ui-badge ui-badge-surface ui-badge-xs flex items-center gap-1 hover:text-[var(--foreground)] transition-colors"
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={`https://www.google.com/s2/favicons?domain=${src.domain}&sz=16`} className="w-2.5 h-2.5 rounded-full" alt="" />
