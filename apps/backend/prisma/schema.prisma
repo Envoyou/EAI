@@ -83,6 +83,8 @@ model Organization {
   name      String
   publicationName String?
   domain    String?
+  npwp      String?
+  billingAddress String?
   aiProviderOverride String?
   isActive  Boolean  @default(true)
   onboardingStatus OnboardingStatus @default(completed)

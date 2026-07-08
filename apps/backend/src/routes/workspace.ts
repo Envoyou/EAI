@@ -146,4 +146,50 @@ router.put('/config', requireAuth, async (req, res) => {
   }
 });
 
+// PUT /api/workspace/billing-details
+router.put('/billing-details', requireAuth, async (req, res) => {
+  try {
+    const { userId, orgId, orgSlug, orgRole } = req.auth!;
+    const workspace = await getWorkspaceState(userId, {
+      clerkOrganizationId: orgId,
+      clerkOrganizationSlug: orgSlug,
+      clerkOrganizationRole: orgRole,
+    });
+
+    if (!workspace) {
+      return res.status(404).json({ error: 'Workspace not found.' });
+    }
+
+    if (!workspace.organizationId) {
+      return res.status(400).json({ error: 'Billing details can only be managed for organization workspaces.' });
+    }
+
+    if (!workspace.isAdmin) {
+      return res.status(403).json({ error: 'Only workspace administrators can edit billing details.' });
+    }
+
+    const { name, npwp, billingAddress } = req.body;
+
+    const updatedOrg = await prisma.organization.update({
+      where: { id: workspace.organizationId },
+      data: {
+        name: typeof name === 'string' ? name.trim() : undefined,
+        npwp: typeof npwp === 'string' ? npwp.trim() || null : undefined,
+        billingAddress: typeof billingAddress === 'string' ? billingAddress.trim() || null : undefined,
+      },
+      select: {
+        id: true,
+        name: true,
+        npwp: true,
+        billingAddress: true,
+      },
+    });
+
+    return res.json({ success: true, organization: updatedOrg });
+  } catch (error) {
+    console.error('[WORKSPACE_BILLING_DETAILS_PUT]', error);
+    return res.status(500).json({ error: 'Failed to update organization billing details.' });
+  }
+});
+
 export default router;

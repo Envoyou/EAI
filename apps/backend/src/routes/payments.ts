@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
-import { getPaymentGateway, getPlanCreditsGranted, PLANS } from '@/lib/payment';
+import { getPaymentGateway, getPlanCreditsGranted, PLANS, getPlanPeriodEnd } from '@/lib/payment';
 import type { PaymentProvider } from '@/lib/payments/types';
 import { processVerifiedPaymentEvent } from '@/lib/payment-processing';
 import { getWorkspaceState } from '@/lib/user-workspace';
@@ -195,6 +195,33 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
       timeStyle: 'short',
       timeZone: 'Asia/Jakarta',
     }).format(order.paidAt || order.createdAt);
+
+    const startDate = order.paidAt || order.createdAt;
+    let periodText = '';
+    if (plan && plan.billingMonths > 0) {
+      const endDate = getPlanPeriodEnd(plan, startDate);
+      const startStr = new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZone: 'Asia/Jakarta' }).format(startDate);
+      const endStr = new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZone: 'Asia/Jakarta' }).format(endDate);
+      periodText = `Period: ${startStr} – ${endStr}`;
+    } else {
+      periodText = 'One-time credit top-up (No expiration)';
+    }
+
+    const priceUsd = plan?.priceUsd || 0;
+    const rateUsed = priceUsd > 0 ? Math.round(order.amountIdr / priceUsd) : 0;
+    const rateNote = priceUsd > 0 ? `Billed as $${priceUsd} USD. Exchange Rate: 1 USD = Rp ${rateUsed.toLocaleString('id-ID')}` : '';
+
+    const formatPaymentType = (type: string | null) => {
+      if (!type) return 'N/A';
+      const mapping: Record<string, string> = {
+        bank_transfer: 'Bank Transfer',
+        credit_card: 'Credit Card',
+        gopay: 'GoPay',
+        qris: 'QRIS',
+        shopeepay: 'ShopeePay',
+      };
+      return mapping[type.toLowerCase()] || type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
 
     const subtotal = Math.round(order.amountIdr / 1.11);
     const taxAmount = order.amountIdr - subtotal;
@@ -443,6 +470,7 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
               <h1>INVOICE</h1>
               <p>Invoice No: <span class="invoice-id">${order.id}</span></p>
               <p>Date: ${dateStr}</p>
+              <p style="margin: 4px 0; font-size: 13px; color: #64748b;"><strong>Paid via:</strong> ${order.provider === 'midtrans' ? 'Midtrans' : 'Doku'} - ${formatPaymentType(order.paymentType)}</p>
               <div class="status-badge">PAID</div>
             </div>
           </div>
@@ -463,13 +491,12 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
               <h3>TO</h3>
               <p class="company-name">${workspace?.name || 'Workspace Member'}</p>
               ${workspace?.organization ? `<p><strong>Company:</strong> ${workspace.organization.name}</p>` : ''}
+              ${workspace?.organization?.npwp ? `<p><strong>NPWP:</strong> ${workspace.organization.npwp}</p>` : ''}
               <p><strong>Email:</strong> ${workspace?.email || 'N/A'}</p>
               <p style="margin-top: 8px;"><strong>Billing Address:</strong></p>
               <p>
-                ${workspace?.organization ? `${workspace.organization.name}, ` : ''}
-                ${workspace?.organization?.domain || 'Indonesia'}
+                ${workspace?.organization?.billingAddress || 'Indonesia'}
               </p>
-              <p style="font-size: 12px; color: #94a3b8; margin-top: 4px;">(Billing address registered via ${order.paymentType || order.provider || 'Midtrans'})</p>
             </div>
           </div>
 
@@ -485,7 +512,8 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
                 <tr>
                   <td>
                     <strong>${planName} Plan</strong><br>
-                    <span style="font-size: 12px; color: #64748b;">Subscription renewal/credit allocation for workspace.</span>
+                    <span style="font-size: 12px; color: #64748b;">${periodText}</span><br>
+                    ${rateNote ? `<span style="font-size: 11px; color: #94a3b8;">${rateNote}</span>` : ''}
                   </td>
                   <td class="amount-col">Rp ${subtotal.toLocaleString('id-ID')}</td>
                 </tr>

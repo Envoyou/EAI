@@ -9,6 +9,7 @@ import PricingCheckoutButton from '@/components/PricingCheckoutButton';
 import PaymentStatusBanner from '@/components/PaymentStatusBanner';
 import { getAllFeatureFlags } from '@eai/shared/server';
 import { getApiUrl } from '@/lib/api-url';
+import BillingDetailsForm from '@/components/BillingDetailsForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -258,6 +259,21 @@ export default async function BillingSettingsPage() {
           </div>
         </div>
       </SettingSection>
+
+      {workspace?.organization && (
+        <SettingSection
+          id="billing-details"
+          title="B2B Billing Details"
+          description="Manage official billing information and Tax ID (NPWP) for corporate invoices."
+        >
+          <div className="mt-4 surface-card p-6 md:p-8">
+            <BillingDetailsForm
+              organization={workspace.organization}
+              isAdmin={workspace.isAdmin}
+            />
+          </div>
+        </SettingSection>
+      )}
 
       <SettingSection id="payments" title="Recent Payments" description="Latest checkout activity for this workspace.">
         <div className="mt-4 overflow-hidden surface-card surface-card-md">
