@@ -6,6 +6,15 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-07-08
+
+### Added
+- **Manual Subscription Plan Override (Inject Plan)**: Menambahkan fitur penimpaan paket subscription manual di sistem penagihan admin internal. Ini memungkinkan administrator mengubah paket subscription (Starter, Starter Yearly, Pro, Pro Yearly, Team, Team Yearly) dengan durasi hari tertentu, mencatat tiket Zoho Desk, mereset sisa saldo kredit subscription (`cycle_reset`), dan mengalokasikan kredit plan baru.
+- **Modular Workspace Context & Brand Alignment**: Mengekstrak helper modular `apps/backend/src/lib/ai/workspace-context.ts` untuk memfasilitasi rendering XML `<workspace_context>` dan menyuntikkan instruksi kepatuhan brand dinamis (`<agent_instruction>`) di seluruh pipeline AI (Chat Strategist, SEO Optimizer, Fact-Checker, dan Targeted Fix).
+
+### Changed
+- **UI Billing Admin Tabbed Layout**: Merestrukturisasi panel kanan Admin Billing dari form tunggal menjadi panel tabbed (Adjust Credits & Override Plan) menggunakan custom Base UI select dan modal konfirmasi aksi.
+
 ## [3.0.0] - 2026-07-06
 
 ### Added

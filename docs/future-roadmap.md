@@ -27,10 +27,11 @@ Fase ini meningkatkan stabilitas sistem dan membantu tim memantau kualitas serta
 4.  ~~**Streaming respons AI dan progress editorial**~~ (Diimplementasikan hingga v0.26.0):
     *   Endpoint analisis dan AI Draft mengirim respons bertahap melalui NDJSON.
     *   UI menampilkan progress review, rewrite, quality gate, SEO, serta potongan draf saat tersedia.
-5.  ~~**Administrasi kredit internal**~~ (Diimplementasikan pada Unreleased):
+5.  ~~**Administrasi kredit internal & Penimpaan Paket Subscription**~~ (Diimplementasikan pada Unreleased):
     *   Owner dan super-admin dapat mencari customer berdasarkan email atau organization melalui `/admin/billing`.
     *   Add/deduct credit dicatat sebagai ledger `manual_adjustment` pada organization aktif dengan idempotency key dan konfirmasi eksplisit.
-    *   Audit menyimpan pelaku, waktu, target organization, jumlah, alasan, dan referensi tiket tanpa mengubah saldo secara langsung.
+    *   Mampu melakukan **penimpaan paket subscription secara manual** (Plan Override) untuk mengubah plan aktif, menyetel durasi hari khusus, mereset sisa saldo kredit, dan mengalokasikan kredit plan baru secara aman dalam satu transaksi database.
+    *   Audit menyimpan pelaku, waktu, target organization, jumlah/paket, alasan, dan referensi tiket.
     *   Referensi support dapat diverifikasi secara read-only ke Zoho Desk dan disimpan bersama external ticket ID serta URL audit.
 6.  **Admin UI AI Provider (Pengaturan Model AI)**:
     *   Membangun halaman Admin UI di sisi frontend (`/settings/system/ai-config`) untuk memungkinkan administrator non-teknis mengganti *AI Provider* dan *Model* secara instan (Gemini, Groq, OpenRouter) tanpa perlu mengakses server VPS.

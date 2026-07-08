@@ -6,6 +6,15 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-07-08
+
+### Added
+- **Manual Subscription Plan Override (Inject Plan)**: Added manual subscription plan override capability to the internal admin billing interface. Allows super-admins/owners to change subscription plans (Starter, Starter Yearly, Pro, Pro Yearly, Team, Team Yearly) for custom durations, verify Zoho Desk tickets, reset existing subscription credit balances (`cycle_reset`), and allocate new package credits.
+- **Modular Workspace Context & Brand Alignment**: Extracted a unified helper (`apps/backend/src/lib/ai/workspace-context.ts`) to compose structured workspace XML payloads (`<workspace_context>`) and dynamic brand instructions (`<agent_instruction>`) across all AI endpoints (Chat Strategist, SEO Optimizer, Fact-Checker, Targeted Fix).
+
+### Changed
+- **UI Billing Admin Tabbed Layout**: Restructured the right side card of the Admin Billing dashboard into tabs (Adjust Credits vs Override Plan) using the custom portal-rendered Select component and confirmation action modals.
+
 ## [3.0.0] - 2026-07-06
 
 ### Added
