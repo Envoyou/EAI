@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { auth } from '@clerk/nextjs/server';
 import { getWorkspaceState, toClerkOrganizationContext } from '@/lib/user-workspace';
 import { getPlanCheckoutDisclosure, PLANS, type CheckoutDisclosure } from '@eai/shared';
@@ -33,11 +33,13 @@ export default async function PricingPage() {
         </p>
       </div>
 
-      <PricingGrid
-        workspace={workspace}
-        disclosures={disclosures}
-        billingEnabled={billingEnabled}
-      />
+      <Suspense fallback={<div className="h-96 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl" />}>
+        <PricingGrid
+          workspace={workspace}
+          disclosures={disclosures}
+          billingEnabled={billingEnabled}
+        />
+      </Suspense>
     </div>
   );
 }

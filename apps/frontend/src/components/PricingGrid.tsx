@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import PricingCheckoutButton from './PricingCheckoutButton';
 import type { CheckoutDisclosure } from '@eai/shared';
 
@@ -12,7 +13,25 @@ interface PricingGridProps {
 }
 
 export default function PricingGrid({ workspace, disclosures, billingEnabled }: PricingGridProps) {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const searchParams = useSearchParams();
+  const planParam = searchParams.get('plan');
+
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(() => {
+    if (planParam && (planParam.endsWith('_yearly') || planParam.includes('yearly'))) {
+      return 'yearly';
+    }
+    return 'monthly';
+  });
+
+  useEffect(() => {
+    if (planParam) {
+      if (planParam.endsWith('_yearly') || planParam.includes('yearly')) {
+        setBillingCycle('yearly');
+      } else {
+        setBillingCycle('monthly');
+      }
+    }
+  }, [planParam]);
 
   // Normalize the active subscription to a base tier (strips `org:` prefix and `_yearly` suffix).
   const activeTier = (workspace?.plan?.activePlan ?? 'free')
@@ -111,6 +130,7 @@ export default function PricingGrid({ workspace, disclosures, billingEnabled }: 
             current={activeTier === 'starter'}
             disclosure={disclosures[billingCycle === 'monthly' ? 'starter' : 'starter_yearly']}
             billingEnabled={billingEnabled}
+            autoCheckout={planParam === (billingCycle === 'monthly' ? 'starter' : 'starter_yearly')}
           />
         </div>
 
@@ -141,6 +161,7 @@ export default function PricingGrid({ workspace, disclosures, billingEnabled }: 
             current={activeTier === 'pro'}
             disclosure={disclosures[billingCycle === 'monthly' ? 'pro' : 'pro_yearly']}
             billingEnabled={billingEnabled}
+            autoCheckout={planParam === (billingCycle === 'monthly' ? 'pro' : 'pro_yearly')}
           />
         </div>
 
@@ -168,6 +189,7 @@ export default function PricingGrid({ workspace, disclosures, billingEnabled }: 
             current={activeTier === 'team'}
             disclosure={disclosures[billingCycle === 'monthly' ? 'team' : 'team_yearly']}
             billingEnabled={billingEnabled}
+            autoCheckout={planParam === (billingCycle === 'monthly' ? 'team' : 'team_yearly')}
           />
         </div>
       </section>

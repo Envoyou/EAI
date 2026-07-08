@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Loader2, ArrowRight, Check, X } from 'lucide-react';
 import type { CheckoutDisclosure } from '@eai/shared';
@@ -14,6 +14,7 @@ interface PricingCheckoutButtonProps {
   current?: boolean;
   disclosure: CheckoutDisclosure;
   billingEnabled: boolean;
+  autoCheckout?: boolean;
 }
 
 export default function PricingCheckoutButton({
@@ -24,9 +25,16 @@ export default function PricingCheckoutButton({
   current = false,
   disclosure,
   billingEnabled,
+  autoCheckout = false,
 }: PricingCheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const [confirming, setConfirming] = useState(autoCheckout);
+
+  useEffect(() => {
+    if (autoCheckout && !current) {
+      setConfirming(true);
+    }
+  }, [autoCheckout, current]);
 
   const createCheckout = async () => {
     if (current) return;
@@ -45,7 +53,7 @@ export default function PricingCheckoutButton({
 
       if (!response.ok) {
         if (response.status === 401) {
-          window.location.href = '/login?redirect_url=/pricing';
+          window.location.href = `/login?redirect_url=/pricing?plan=${planId}`;
           return;
         }
         const contentType = response.headers.get('content-type') || '';
