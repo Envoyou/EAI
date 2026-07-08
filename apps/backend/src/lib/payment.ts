@@ -135,7 +135,7 @@ export const getPaymentUsdToIdrRate = () => {
 
 export const getPaymentTaxLabel = () =>
   process.env.PAYMENT_TAX_LABEL?.trim() ||
-  'Tax is not separately itemized in the displayed checkout amount.';
+  'Includes 11% VAT (PPN). A detailed tax invoice will be issued upon successful payment.';
 
 export const getPlanAmountIdr = (plan: PlanDetails) =>
   Math.round(plan.priceUsd * getPaymentUsdToIdrRate());
