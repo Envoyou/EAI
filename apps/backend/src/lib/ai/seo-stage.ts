@@ -15,7 +15,7 @@ import {
   groq,
   openrouter,
 } from './provider-runtime';
-import { buildEditorialUserContent } from './prompt-context';
+import { composeWorkspaceContext } from './workspace-context';
 
 export const runSeoStage = async ({
   provider,
@@ -23,7 +23,7 @@ export const runSeoStage = async ({
   article,
   metadata,
   editorialProfile,
-  systemInstruction,
+  systemInstruction: baseSystemInstruction,
   telemetry,
 }: {
   provider: AiProvider;
@@ -34,11 +34,38 @@ export const runSeoStage = async ({
   systemInstruction: string;
   telemetry: AiTelemetryCollector;
 }): Promise<SeoMetadataOutput> => {
-  const contents = buildEditorialUserContent({
-    metadata,
-    data: { article },
-    task: 'Create SEO metadata for the article and reply only with JSON matching the schema.',
+  const timezone = editorialProfile.config.timezone || 'Asia/Jakarta';
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+
+  const currentYear = parts.find((part) => part.type === 'year')?.value || new Date().getFullYear().toString();
+  const month = parts.find((part) => part.type === 'month')?.value || '01';
+  const day = parts.find((part) => part.type === 'day')?.value || '01';
+  const currentDate = `${currentYear}-${month}-${day}`;
+
+  const { xml: workspaceXml, agentInstruction } = composeWorkspaceContext({
+    today: currentDate,
+    timezone,
+    profileConfig: editorialProfile.config,
   });
+
+  const systemInstruction = `${baseSystemInstruction}\n\n${agentInstruction}`;
+
+  const contents = [
+    workspaceXml,
+    '<article_draft>',
+    article,
+    '</article_draft>',
+    '',
+    '<task>',
+    'Create SEO metadata for the article and reply only with JSON matching the schema.',
+    '</task>'
+  ].join('\n');
+
   const startedAt = Date.now();
 
   if (provider === 'groq') {

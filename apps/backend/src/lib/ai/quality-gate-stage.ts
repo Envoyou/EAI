@@ -22,9 +22,9 @@ import {
   openrouter,
 } from './provider-runtime';
 import {
-  buildEditorialUserContent,
   withInputBoundaryPolicy,
 } from './prompt-context';
+import { composeWorkspaceContext } from './workspace-context';
 
 const detectLanguage = (text: string): 'id' | 'en' => {
   const clean = text.toLowerCase();
@@ -77,16 +77,41 @@ const runFinalQualityGate = async ({
   ) => string;
   attempt?: number;
 }): Promise<{ result: FinalQualityGateOutput; modelName: string }> => {
-  const contents = buildEditorialUserContent({
-    metadata,
-    data: {
-      sourceDraft: originalDraft,
-      trustedInternalUrls,
-      trustedInternalDomains,
-      finalDraft,
-    },
-    task: 'Evaluate finalDraft as the primary quality gate object. Use sourceDraft only to compare changes and source fidelity.',
+  const timezone = editorialProfile.config.timezone || 'Asia/Jakarta';
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+
+  const currentYear = parts.find((part) => part.type === 'year')?.value || new Date().getFullYear().toString();
+  const month = parts.find((part) => part.type === 'month')?.value || '01';
+  const day = parts.find((part) => part.type === 'day')?.value || '01';
+  const currentDate = `${currentYear}-${month}-${day}`;
+
+  const { xml: workspaceXml, agentInstruction } = composeWorkspaceContext({
+    today: currentDate,
+    timezone,
+    profileConfig: editorialProfile.config,
   });
+
+  const contents = [
+    workspaceXml,
+    '<article_draft>',
+    finalDraft,
+    '</article_draft>',
+    '',
+    '<original_draft>',
+    originalDraft,
+    '</original_draft>',
+    '',
+    trustedInternalUrls.length > 0 ? `<trusted_internal_urls>\n${trustedInternalUrls.join('\n')}\n</trusted_internal_urls>\n` : '',
+    trustedInternalDomains.length > 0 ? `<trusted_internal_domains>\n${trustedInternalDomains.join('\n')}\n</trusted_internal_domains>\n` : '',
+    '<task>',
+    'Evaluate finalDraft as the primary quality gate object. Use sourceDraft only to compare changes and source fidelity.',
+    '</task>'
+  ].filter(Boolean).join('\n');
 
   let parsed: unknown;
   let modelName: string;
@@ -100,12 +125,12 @@ const runFinalQualityGate = async ({
       model: modelName,
       contents,
       config: {
-        systemInstruction: withInputBoundaryPolicy(composeEditorialPrompt(
+        systemInstruction: `${withInputBoundaryPolicy(composeEditorialPrompt(
           getFinalQualityGatePrompt(metadata, editorialProfile.config, {
             includeTextSchema: false,
           }),
           editorialProfile
-        )),
+        ))}\n\n${agentInstruction}`,
         ...getGeminiSamplingConfig(modelName, 0.15),
         candidateCount: 1,
         maxOutputTokens: 4000,
@@ -130,10 +155,10 @@ const runFinalQualityGate = async ({
       messages: [
         {
           role: 'system',
-          content: withInputBoundaryPolicy(composeEditorialPrompt(
+          content: `${withInputBoundaryPolicy(composeEditorialPrompt(
             getFinalQualityGatePrompt(metadata, editorialProfile.config),
             editorialProfile
-          )),
+          ))}\n\n${agentInstruction}`,
         },
         { role: 'user', content: contents },
       ],
@@ -158,10 +183,10 @@ const runFinalQualityGate = async ({
       messages: [
         {
           role: 'system',
-          content: withInputBoundaryPolicy(composeEditorialPrompt(
+          content: `${withInputBoundaryPolicy(composeEditorialPrompt(
             getFinalQualityGatePrompt(metadata, editorialProfile.config),
             editorialProfile
-          )),
+          ))}\n\n${agentInstruction}`,
         },
         { role: 'user', content: contents },
       ],

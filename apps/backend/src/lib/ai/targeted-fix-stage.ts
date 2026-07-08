@@ -16,9 +16,9 @@ import {
   openrouter,
 } from './provider-runtime';
 import {
-  buildEditorialUserContent,
   withInputBoundaryPolicy,
 } from './prompt-context';
+import { composeWorkspaceContext } from './workspace-context';
 
 export const runTargetedFixStage = async ({
   provider,
@@ -39,20 +39,52 @@ export const runTargetedFixStage = async ({
   metadata?: ArticleMetadata;
   editorialProfile: EditorialProfileSnapshot;
 }): Promise<{ replacementText: string; modelName: string }> => {
-  const systemInstruction = withInputBoundaryPolicy(composeEditorialPrompt(
+  const timezone = editorialProfile.config.timezone || 'Asia/Jakarta';
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+
+  const currentYear = parts.find((part) => part.type === 'year')?.value || new Date().getFullYear().toString();
+  const month = parts.find((part) => part.type === 'month')?.value || '01';
+  const day = parts.find((part) => part.type === 'day')?.value || '01';
+  const currentDate = `${currentYear}-${month}-${day}`;
+
+  const { xml: workspaceXml, agentInstruction } = composeWorkspaceContext({
+    today: currentDate,
+    timezone,
+    profileConfig: editorialProfile.config,
+  });
+
+  const systemInstruction = `${withInputBoundaryPolicy(composeEditorialPrompt(
     getTargetedFixPrompt(metadata, editorialProfile.config),
     editorialProfile
-  ));
-  const contents = buildEditorialUserContent({
-    metadata,
-    data: {
-      article,
-      targetText,
-      feedback,
-      editorInstruction,
-    },
-    task: 'Based on the preceding article context, return only a concise replacement for targetText that resolves the feedback and follows editorInstruction.',
-  });
+  ))}\n\n${agentInstruction}`;
+
+  const contents = [
+    workspaceXml,
+    '<article_draft>',
+    article,
+    '</article_draft>',
+    '',
+    '<target_text>',
+    targetText,
+    '</target_text>',
+    '',
+    '<feedback>',
+    feedback,
+    '</feedback>',
+    '',
+    '<editor_instruction>',
+    editorInstruction,
+    '</editor_instruction>',
+    '',
+    '<task>',
+    'Based on the preceding article context, return only a concise replacement for targetText that resolves the feedback and follows editorInstruction.',
+    '</task>'
+  ].join('\n');
 
   let replacementText: string;
   let modelName: string;
