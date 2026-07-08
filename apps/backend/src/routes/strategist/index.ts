@@ -975,7 +975,6 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       input: prompt,
       system_instruction: getStrategistSystemPrompt(),
       tools: [{ type: "google_search" }],
-      response_mime_type: 'application/json',
     });
     
     if (!interaction.output_text) {
