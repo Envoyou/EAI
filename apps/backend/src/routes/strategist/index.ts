@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { gemini, getGeminiSamplingConfig } from '@/lib/ai/provider-runtime';
+import { composeWorkspaceContext } from '@/lib/ai/workspace-context';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { composeEditorialPrompt, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
@@ -533,26 +534,11 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
     const day = parts.find((part) => part.type === 'day')?.value || '01';
     const currentDate = `${currentYear}-${month}-${day}`;
 
-    const workspaceContext = {
-      metadata: {
-        today: currentDate,
-        timezone,
-      },
-      editorialProfile: profile?.config ? {
-        status: 'Loaded',
-        brandName: profile.config.brandName,
-        positioning: profile.config.positioning,
-        audience: profile.config.audience,
-        tone: profile.config.tone,
-        categories: profile.config.categories,
-        website: profile.config.internalLinkBaseUrl,
-        primaryGoal: profile.config.primaryGoal,
-        defaultLanguage: profile.config.defaultLanguage,
-        customInstructions: profile.config.customInstructions,
-      } : {
-        status: 'Not Configured'
-      },
-      notes: notesSummary || null,
+    const { xml: workspaceXml, agentInstruction } = composeWorkspaceContext({
+      today: currentDate,
+      timezone,
+      profileConfig: profile?.config ?? null,
+      notesSummary,
       attachment: (attachments && Array.isArray(attachments) && attachments[0]?.extractedText) ? {
         filename: attachments[0].filename,
         contentType: attachments[0].contentType,
@@ -566,66 +552,9 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
         role: m.role,
         text: m.content[0].text
       }))
-    };
+    });
 
-    let contextPrompt = `<workspace_context>\n`;
-    contextPrompt += `<current_date>\n`;
-    contextPrompt += `Today's Date: ${workspaceContext.metadata.today} (${workspaceContext.metadata.timezone})\n`;
-    contextPrompt += `</current_date>\n\n`;
-
-    // Editorial Profile
-    contextPrompt += `<editorial_profile>\n`;
-    contextPrompt += `Status: ${workspaceContext.editorialProfile.status}\n`;
-    if (workspaceContext.editorialProfile.status === 'Loaded' && profile?.config) {
-      const ep = workspaceContext.editorialProfile;
-      contextPrompt += `Brand Name: ${ep.brandName || 'Envoyou'}\n`;
-      if (ep.positioning) contextPrompt += `Positioning: ${ep.positioning}\n`;
-      if (ep.audience) contextPrompt += `Target Audience: ${ep.audience}\n`;
-      if (ep.categories && ep.categories.length > 0) contextPrompt += `Content Categories: ${ep.categories.join(', ')}\n`;
-      if (ep.tone && ep.tone.length > 0) contextPrompt += `Tone of Voice: ${ep.tone.join(', ')}\n`;
-      if (ep.website) contextPrompt += `Website Base URL: ${ep.website}\n`;
-      if (ep.primaryGoal) contextPrompt += `Primary Goal: ${ep.primaryGoal}\n`;
-      if (ep.defaultLanguage) contextPrompt += `Preferred Language: ${ep.defaultLanguage}\n`;
-      if (ep.customInstructions) contextPrompt += `Custom Brand Guidelines: ${ep.customInstructions}\n`;
-    }
-    contextPrompt += `</editorial_profile>\n\n`;
-
-    // Notes
-    if (workspaceContext.notes) {
-      contextPrompt += `<session_notes>\n`;
-      contextPrompt += `${workspaceContext.notes}\n`;
-      contextPrompt += `</session_notes>\n\n`;
-    }
-
-    // Attachment
-    if (workspaceContext.attachment) {
-      const att = workspaceContext.attachment;
-      const textLimit = 15000;
-      const truncatedText = att.content.slice(0, textLimit);
-      const truncationNotice = att.content.length > textLimit ? '\n[... content truncated at 15,000 characters ...]' : '';
-
-      contextPrompt += `<attached_file>\n`;
-      contextPrompt += `<filename>${att.filename}</filename>\n`;
-      contextPrompt += `<type>${att.contentType}</type>\n`;
-      contextPrompt += `<content>\n${truncatedText}${truncationNotice}\n</content>\n`;
-      contextPrompt += `</attached_file>\n\n`;
-    }
-
-    // Scraped Url
-    if (workspaceContext.scrapedUrl) {
-      contextPrompt += `<scraped_url_content url="${workspaceContext.scrapedUrl.url}">\n`;
-      contextPrompt += `${workspaceContext.scrapedUrl.content}\n`;
-      contextPrompt += `</scraped_url_content>\n\n`;
-    }
-
-    // History
-    if (workspaceContext.history.length > 0) {
-      contextPrompt += `<chat_history>\n`;
-      contextPrompt += workspaceContext.history.map((m: { role: string; text: string }) => `${m.role}: ${m.text}`).join('\n') + `\n`;
-      contextPrompt += `</chat_history>\n`;
-    }
-
-    contextPrompt += `</workspace_context>\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
+    const contextPrompt = `${workspaceXml}\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
 
     if (mode === 'deep') {
       const resolvedOrgId = (req as Request & { resolvedOrgId?: string | null }).resolvedOrgId ?? null;
@@ -639,7 +568,7 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
       );
 
       // Place static instructions first for prompt prefix caching optimization
-      const deepModeInput = `<instructions>\nCRITICAL INSTRUCTION: YOU ARE IN DEEP RESEARCH MODE. Use Google Search thoroughly to gather facts, synthesize a comprehensive report, and ensure all claims are backed by credible sources.\n</instructions>\n\n<agent_instruction>\n1. Treat the editorial profile inside <workspace_context> as the default working context.\n2. If the Editorial Profile status is "Loaded", align all outline/report generation with the brand name, tone, audience, and preferred language specified.\n3. If "Not Configured", fallback to standard comprehensive content strategy guidelines.\n</agent_instruction>\n\n=== DYNAMIC CONTEXT & HISTORY ===\n${contextPrompt}`;
+      const deepModeInput = `<instructions>\nCRITICAL INSTRUCTION: YOU ARE IN DEEP RESEARCH MODE. Use Google Search thoroughly to gather facts, synthesize a comprehensive report, and ensure all claims are backed by credible sources.\n</instructions>\n\n${agentInstruction}\n\n=== DYNAMIC CONTEXT & HISTORY ===\n${contextPrompt}`;
 
       const interaction = await gemini.interactions.create({
         model: RESEARCH_MODEL,
@@ -664,11 +593,7 @@ CRITICAL: You are in FAST MODE — a professional content strategist.
 Your task: answer the user's question with focused, actionable insights. Use rich Markdown formatting (headings like ## and ###, horizontal dividers ---, bold labels **Label**:, bullet points, and tables) to make your output visually beautiful, structured, and easy to read.
 </instructions>
 
-<agent_instruction>
-1. Treat the editorial profile inside <workspace_context> as the default working context.
-2. If the Editorial Profile status is "Loaded", you MUST align all recommendations (topics, outlines, tone) with it. Only ignore or deviate from it if the user explicitly requests different branding or style.
-3. If the Editorial Profile status is "Not Configured", fallback to general high-quality, professional, and SEO-optimized content strategy guidelines.
-</agent_instruction>
+${agentInstruction}
 
 <constraints>
 1. Structure and Length:
