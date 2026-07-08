@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { ensureOrganizationTrialCredits, ensurePersonalTrialCredits } from '@/lib/trial-credits';
 import { normalizeProfileConfig } from '@eai/shared/server';
+import { PLANS } from '@/lib/payment';
 
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
@@ -176,6 +177,8 @@ export const getWorkspaceState = async (
   const workspaceUser = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      email: true,
+      name: true,
       role: true,
       organizationId: true,
       organization: {
@@ -265,6 +268,11 @@ export const getWorkspaceState = async (
 
   const creditsRemaining = Math.max(0, trialSum + addonSum + (activeSub ? subSum : 0));
 
+  const resolvedPlanId = activeSub?.plan ? activeSub.plan.replace('org:', '') : 'free';
+  const planDetails = PLANS[resolvedPlanId];
+  const subscriptionCreditsTotal = planDetails?.creditsPerMonth ?? 0;
+  const subscriptionCreditsRemaining = activeSub ? Math.max(0, subSum) : 0;
+
   return {
     ...workspaceUser,
     organizationId: activeOrganizationId,
@@ -280,6 +288,9 @@ export const getWorkspaceState = async (
       creditsRemaining,
       activePlan: activeSub?.plan || 'free',
       subscriptionStatus: activeSub?.status || 'none',
+      currentPeriodEnd: activeSub?.currentPeriodEnd || null,
+      subscriptionCreditsTotal,
+      subscriptionCreditsRemaining,
     },
   };
 };

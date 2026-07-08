@@ -12,6 +12,53 @@ import { getApiUrl } from '@/lib/api-url';
 
 export const dynamic = 'force-dynamic';
 
+function getStatusBadge(status: string) {
+  const normalized = status.toLowerCase();
+  switch (normalized) {
+    case 'paid':
+    case 'settlement':
+    case 'capture':
+      return {
+        label: 'Paid',
+        className: 'ui-badge-success',
+      };
+    case 'pending':
+    case 'challenge':
+      return {
+        label: 'Pending Payment',
+        className: 'ui-badge-warning',
+      };
+    case 'deny':
+    case 'denied':
+      return {
+        label: 'Denied',
+        className: 'ui-badge-danger',
+      };
+    case 'cancel':
+    case 'cancelled':
+      return {
+        label: 'Cancelled',
+        className: 'ui-badge-muted',
+      };
+    case 'expire':
+    case 'expired':
+      return {
+        label: 'Expired',
+        className: 'ui-badge-muted',
+      };
+    case 'creation_failed':
+      return {
+        label: 'Setup Failed',
+        className: 'ui-badge-danger',
+      };
+    default:
+      return {
+        label: status.toUpperCase(),
+        className: 'ui-badge-muted',
+      };
+  }
+}
+
 export default async function BillingSettingsPage() {
   const featureFlags = await getAllFeatureFlags();
   const billingEnabled = featureFlags.billing_checkout_enabled;
@@ -95,7 +142,7 @@ export default async function BillingSettingsPage() {
                 {workspace.plan.creditsRemaining.toLocaleString()} Credits
               </h3>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Active Plan: <span className="font-semibold capitalize text-primary-foreground">{workspace.plan.activePlan.replace('org:', '').replace('_yearly', '')}</span>
+                Active Plan: <span className="font-semibold text-foreground">{activePlanName}</span>
               </p>
             </div>
           </div>
@@ -128,6 +175,46 @@ export default async function BillingSettingsPage() {
                   ? `${activePlan.creditsPerMonth} editorial credits per month. ${activePlan.description}`
                   : 'This workspace is currently using free or trial credits.'}
               </p>
+              {workspace?.plan.subscriptionStatus === 'active' && workspace.plan.currentPeriodEnd && (
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <CalendarDays className="h-4 w-4 text-primary shrink-0" />
+                  <span>
+                    Active period ends on <strong>{formatDate(workspace.plan.currentPeriodEnd)}</strong>
+                  </span>
+                </div>
+              )}
+              {workspace?.plan.subscriptionStatus === 'active' && workspace.plan.subscriptionCreditsTotal > 0 && (
+                <div className="mt-4 space-y-2 border-t border-[var(--border)] pt-4">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground font-medium">Monthly Credit Usage</span>
+                    <span className="font-semibold text-foreground">
+                      {Math.max(0, workspace.plan.subscriptionCreditsTotal - workspace.plan.subscriptionCreditsRemaining)}{' '}
+                      / {workspace.plan.subscriptionCreditsTotal} Credits Used
+                    </span>
+                  </div>
+                  <div className="w-full bg-[var(--surface-2)] rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-primary h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.max(
+                            0,
+                            ((workspace.plan.subscriptionCreditsTotal - workspace.plan.subscriptionCreditsRemaining) /
+                              workspace.plan.subscriptionCreditsTotal) *
+                              100
+                          )
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  {workspace.plan.subscriptionCreditsRemaining === 0 && (
+                    <p className="text-[10px] text-amber-500 font-medium">
+                      Monthly plan credits exhausted. System is now consuming Add-on credit balance.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <Link href="/pricing" className="ui-btn ui-btn-surface ui-btn-sm no-underline">
@@ -182,7 +269,7 @@ export default async function BillingSettingsPage() {
                 const paid = payment.status === 'paid';
 
                 return (
-                  <div key={payment.id} className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+                  <div key={payment.id} className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center">
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/30 text-muted-foreground">
                         <Receipt className="h-4 w-4" />
@@ -202,9 +289,30 @@ export default async function BillingSettingsPage() {
                       <span className="text-xs font-semibold text-foreground">
                         {formatIdr(payment.amountIdr)}
                       </span>
-                      <span className={`ui-badge ui-badge-xs ${paid ? 'ui-badge-success' : 'ui-badge-warning'}`}>
-                        {paid ? 'Paid' : payment.status}
-                      </span>
+                      {(() => {
+                        const badge = getStatusBadge(payment.status);
+                        return (
+                          <span className={`ui-badge ui-badge-xs ${badge.className}`}>
+                            {badge.label}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <div className="flex items-center justify-end">
+                      {paid ? (
+                        <a
+                          href={`/api/payments/${payment.id}/invoice`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ui-btn ui-btn-outline ui-btn-xs flex items-center gap-1 no-underline text-xs"
+                          title="Download Invoice/Receipt"
+                        >
+                          <Receipt className="h-3.5 w-3.5" />
+                          <span>Receipt</span>
+                        </a>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground pr-2">—</span>
+                      )}
                     </div>
                   </div>
                 );

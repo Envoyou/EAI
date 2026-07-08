@@ -156,4 +156,136 @@ router.get('/recent', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/payments/:id/invoice
+router.get('/:id/invoice', requireAuth, async (req, res) => {
+  try {
+    const { userId, orgId, orgSlug, orgRole } = req.auth!;
+    const orderId = req.params.id;
+
+    const [order, workspace] = await Promise.all([
+      prisma.paymentOrder.findUnique({
+        where: { id: orderId },
+      }),
+      getWorkspaceState(userId, {
+        clerkOrganizationId: orgId,
+        clerkOrganizationSlug: orgSlug,
+        clerkOrganizationRole: orgRole,
+      }),
+    ]);
+
+    if (!order) {
+      return res.status(404).send('Payment order not found.');
+    }
+
+    const ownsOrder = order.organizationId
+      ? workspace?.organizationId === order.organizationId
+      : order.userId === userId;
+    if (!ownsOrder) {
+      return res.status(403).send('Forbidden');
+    }
+
+    if (order.status !== 'paid') {
+      return res.status(400).send('Invoice is only available for paid orders.');
+    }
+
+    const plan = PLANS[order.planId];
+    const planName = plan?.name || order.planId;
+    const dateStr = new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: 'Asia/Jakarta',
+    }).format(order.paidAt || order.createdAt);
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Invoice - ${order.id}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; margin: 40px; }
+          .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); font-size: 16px; line-height: 24px; }
+          .invoice-box table { width: 100%; line-height: inherit; text-align: left; border-collapse: collapse; }
+          .invoice-box table td { padding: 5px; vertical-align: top; }
+          .invoice-box table tr td:nth-child(2) { text-align: right; }
+          .invoice-box table tr.top table td { padding-bottom: 20px; }
+          .invoice-box table tr.top table td.title { font-size: 45px; line-height: 45px; color: #2563eb; font-weight: bold; }
+          .invoice-box table tr.information table td { padding-bottom: 40px; }
+          .invoice-box table tr.heading td { background: #eee; border-bottom: 1px solid #ddd; font-weight: bold; }
+          .invoice-box table tr.details td { padding-bottom: 20px; }
+          .invoice-box table tr.item td { border-bottom: 1px solid #eee; }
+          .invoice-box table tr.item.last td { border-bottom: none; }
+          .invoice-box table tr.total td:nth-child(2) { border-top: 2px solid #eee; font-weight: bold; }
+          .btn-print { display: block; max-width: 150px; margin: 20px auto; padding: 10px; background-color: #2563eb; color: #fff; text-align: center; border-radius: 5px; text-decoration: none; font-weight: bold; cursor: pointer; }
+          @media print { .btn-print { display: none; } }
+        </style>
+      </head>
+      <body>
+        <div class="invoice-box">
+          <table cellpadding="0" cellspacing="0">
+            <tr class="top">
+              <td colspan="2">
+                <table>
+                  <tr>
+                    <td class="title">Envoyou AI</td>
+                    <td>
+                      Invoice #: ${order.id}<br>
+                      Created: ${dateStr}<br>
+                      Status: PAID
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr class="information">
+              <td colspan="2">
+                <table>
+                  <tr>
+                    <td>
+                      Envoyou AI<br>
+                      support@envoyou.com
+                    </td>
+                    <td>
+                      Recipient:<br>
+                      ${workspace?.organization?.name || workspace?.name || 'Workspace Member'}<br>
+                      ${workspace?.email || ''}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr class="heading">
+              <td>Payment Method</td>
+              <td>Transaction ID</td>
+            </tr>
+            <tr class="details">
+              <td>${order.paymentType || order.provider || 'Midtrans'}</td>
+              <td>${order.transactionId || 'N/A'}</td>
+            </tr>
+            <tr class="heading">
+              <td>Item</td>
+              <td>Price</td>
+            </tr>
+            <tr class="item last">
+              <td>${planName} Subscription / Credit Top-up</td>
+              <td>Rp ${order.amountIdr.toLocaleString('id-ID')}</td>
+            </tr>
+            <tr class="total">
+              <td></td>
+              <td>Total: Rp ${order.amountIdr.toLocaleString('id-ID')}</td>
+            </tr>
+          </table>
+        </div>
+        <a class="btn-print" onclick="window.print()">Print Invoice</a>
+      </body>
+      </html>
+    `;
+    res.setHeader('Content-Type', 'text/html');
+    return res.send(html);
+  } catch (error) {
+    console.error('Invoice generation error:', error);
+    return res.status(500).send('Failed to generate invoice.');
+  }
+});
+
 export default router;

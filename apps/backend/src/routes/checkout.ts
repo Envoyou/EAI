@@ -58,7 +58,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     const email = user.emailAddresses[0]?.emailAddress;
     const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Customer';
-    const callbackUrl = new URL('/pricing', req.headers.origin || 'https://eai.envoyou.com').toString();
+    const callbackUrl = new URL('/settings/billing', req.headers.origin || 'https://eai.envoyou.com').toString();
 
     const checkoutData = await createCheckoutSession({
       planId: plan,

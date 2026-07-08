@@ -153,6 +153,11 @@ export class MidtransPaymentGateway implements PaymentGateway {
             name: input.itemName,
           },
         ],
+        callbacks: {
+          finish: input.callbackUrl,
+          unfinish: input.callbackUrl,
+          error: input.callbackUrl,
+        },
       }),
     });
     const payload: unknown = await response.json().catch(() => null);
