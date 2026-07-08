@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { FormEvent, type ReactNode, useState } from 'react';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 type Balance = {
   total: number;
@@ -116,6 +117,15 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
   const [verifyingTicket, setVerifyingTicket] = useState(false);
   const [pending, setPending] = useState<PendingAdjustment | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'credits' | 'plan'>('credits');
+  const [overridePlan, setOverridePlan] = useState('pro');
+  const [overrideDurationDays, setOverrideDurationDays] = useState('30');
+  const [pendingOverride, setPendingOverride] = useState<{
+    plan: string;
+    durationDays: number;
+    reason: string;
+    ticketReference: string;
+  } | null>(null);
 
   const runSearch = async (event: FormEvent) => {
     event.preventDefault();
@@ -252,6 +262,63 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Credit adjustment failed.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const prepareOverride = (event: FormEvent) => {
+    event.preventDefault();
+    if (!selected) return;
+
+    if (zohoDeskEnabled && !verifiedTicket) {
+      toast.error('Verify the Zoho Desk ticket before reviewing this plan override.');
+      return;
+    }
+
+    const duration = parseInt(overrideDurationDays, 10);
+    if (isNaN(duration) || duration <= 0) {
+      toast.error('Duration must be a positive integer.');
+      return;
+    }
+
+    setPendingOverride({
+      plan: overridePlan,
+      durationDays: duration,
+      reason: reason.trim(),
+      ticketReference: ticketReference.trim(),
+    });
+  };
+
+  const executeOverride = async () => {
+    if (!selected || !pendingOverride || submitting) return;
+    setSubmitting(true);
+
+    try {
+      const response = await fetch('/api/admin/billing/override-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: selected.id,
+          ...pendingOverride,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Plan override failed.');
+
+      setSelected(data.organization);
+      setResults((current) => current.map((organization) =>
+        organization.id === selected.id
+          ? { ...organization, balance: data.organization.balance, subscription: data.organization.subscription }
+          : organization
+      ));
+      setReason('');
+      setTicketReference('');
+      setVerifiedTicket(null);
+      setPendingOverride(null);
+      toast.success(`Plan overridden to ${overridePlan.replaceAll('_', ' ')} successfully.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Plan override failed.');
     } finally {
       setSubmitting(false);
     }
@@ -408,131 +475,289 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                   </div>
                 </div>
 
-                {/* Right side: Manual Adjustment Form (1/3 width on desktop) */}
-                <form onSubmit={prepareAdjustment} className="ui-card flex flex-col justify-between p-5">
-                  <div>
-                    <h3 className="font-bold">Manual adjustment</h3>
-                    <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                      Recorded as a `manual_adjustment` ledger entry.
-                    </p>
-
-                    <div className="mt-4 grid grid-cols-2 gap-2">
+                {/* Right side: Tabbed Panel for Manual Adjustment & Plan Override (1/3 width on desktop) */}
+                <div className="ui-card flex flex-col justify-between p-5">
+                  <div className="flex-1 flex flex-col">
+                    {/* Tab Switcher */}
+                    <div className="flex border-b border-[var(--border)] mb-4">
                       <button
                         type="button"
-                        onClick={() => setDirection('add')}
-                        className={`ui-btn ui-btn-sm ${direction === 'add' ? 'ui-btn-primary' : 'ui-btn-surface'}`}
+                        onClick={() => setActiveTab('credits')}
+                        className={`flex-1 pb-2 text-xs font-bold transition-all border-b-2 text-center cursor-pointer ${
+                          activeTab === 'credits'
+                            ? 'border-[var(--primary)] text-[var(--foreground)]'
+                            : 'border-transparent text-[var(--muted-foreground)]'
+                        }`}
                       >
-                        <PlusCircle className="h-4 w-4" />
-                        Add
+                        Adjust Credits
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDirection('deduct')}
-                        className={`ui-btn ui-btn-sm ${direction === 'deduct' ? 'ui-btn-danger bg-rose-500/10' : 'ui-btn-surface'}`}
+                        onClick={() => setActiveTab('plan')}
+                        className={`flex-1 pb-2 text-xs font-bold transition-all border-b-2 text-center cursor-pointer ${
+                          activeTab === 'plan'
+                            ? 'border-[var(--primary)] text-[var(--foreground)]'
+                            : 'border-transparent text-[var(--muted-foreground)]'
+                        }`}
                       >
-                        <MinusCircle className="h-4 w-4" />
-                        Deduct
+                        Override Plan
                       </button>
                     </div>
 
-                    <label className="mt-3 block text-xs font-semibold">
-                      Amount
-                      <input
-                        type="number"
-                        min="1"
-                        max="1000000"
-                        step="1"
-                        value={amount}
-                        onChange={(event) => setAmount(event.target.value)}
-                        className="ui-control ui-input mt-1.5"
-                        placeholder="100"
-                        required
-                      />
-                    </label>
+                    {activeTab === 'credits' ? (
+                      <form onSubmit={prepareAdjustment} className="flex-1 flex flex-col justify-between">
+                        <div>
+                          <h3 className="font-bold text-sm">Manual adjustment</h3>
+                          <p className="mt-1 text-xs text-[var(--muted-foreground)] mb-3">
+                            Recorded as a `manual_adjustment` ledger entry.
+                          </p>
 
-                    <label className="mt-3 block text-xs font-semibold">
-                      Reason
-                      <textarea
-                        value={reason}
-                        onChange={(event) => setReason(event.target.value)}
-                        className="ui-control ui-textarea mt-1.5 h-16 resize-none"
-                        placeholder="Customer support correction..."
-                        required
-                      />
-                    </label>
-
-                    <label className="mt-3 block text-xs font-semibold">
-                      {zohoDeskEnabled ? 'Zoho Desk ticket' : 'Ticket reference'}
-                      <div className="mt-1.5 flex gap-2">
-                        <div className="relative min-w-0 flex-1">
-                          <Ticket className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
-                          <input
-                            value={ticketReference}
-                            onChange={(event) => {
-                              setTicketReference(event.target.value);
-                              setVerifiedTicket(null);
-                            }}
-                            className="ui-control ui-input !pl-10 font-mono"
-                            placeholder={zohoDeskEnabled ? '1024 or ticket ID' : 'SUP-1024'}
-                            required
-                          />
-                        </div>
-                        {zohoDeskEnabled && (
-                          <button
-                            type="button"
-                            onClick={verifyTicket}
-                            disabled={verifyingTicket || !ticketReference.trim()}
-                            className="ui-btn ui-btn-surface ui-btn-sm shrink-0"
-                          >
-                            {verifyingTicket
-                              ? <Loader2 className="h-4 w-4 animate-spin" />
-                              : <ShieldCheck className="h-4 w-4" />}
-                            Verify
-                          </button>
-                        )}
-                      </div>
-                    </label>
-
-                    {zohoDeskEnabled && verifiedTicket && (
-                      <div className="mt-3 rounded-2xl bg-emerald-500/10 p-3 text-xs ring-1 ring-emerald-500/20">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="font-bold text-emerald-700 dark:text-emerald-300">
-                              Ticket #{verifiedTicket.ticketNumber} verified
-                            </p>
-                            <p className="mt-1 truncate font-semibold">{verifiedTicket.subject}</p>
-                            <p className="mt-1 text-[var(--muted-foreground)]">
-                              {[verifiedTicket.contactName, verifiedTicket.email, verifiedTicket.status]
-                                .filter(Boolean)
-                                .join(' · ')}
-                            </p>
-                          </div>
-                          {verifiedTicket.url && (
-                            <a
-                              href={verifiedTicket.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="ui-btn ui-btn-muted ui-btn-icon shrink-0"
-                              aria-label="Open ticket in Zoho Desk"
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setDirection('add')}
+                              className={`ui-btn ui-btn-sm ${direction === 'add' ? 'ui-btn-primary' : 'ui-btn-surface'}`}
                             >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
+                              <PlusCircle className="h-4 w-4" />
+                              Add
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDirection('deduct')}
+                              className={`ui-btn ui-btn-sm ${direction === 'deduct' ? 'ui-btn-danger bg-rose-500/10' : 'ui-btn-surface'}`}
+                            >
+                              <MinusCircle className="h-4 w-4" />
+                              Deduct
+                            </button>
+                          </div>
+
+                          <label className="mt-3 block text-xs font-semibold">
+                            Amount
+                            <input
+                              type="number"
+                              min="1"
+                              max="1000000"
+                              step="1"
+                              value={amount}
+                              onChange={(event) => setAmount(event.target.value)}
+                              className="ui-control ui-input mt-1.5"
+                              placeholder="100"
+                              required
+                            />
+                          </label>
+
+                          <label className="mt-3 block text-xs font-semibold">
+                            Reason
+                            <textarea
+                              value={reason}
+                              onChange={(event) => setReason(event.target.value)}
+                              className="ui-control ui-textarea mt-1.5 h-16 resize-none"
+                              placeholder="Customer support correction..."
+                              required
+                            />
+                          </label>
+
+                          <label className="mt-3 block text-xs font-semibold">
+                            {zohoDeskEnabled ? 'Zoho Desk ticket' : 'Ticket reference'}
+                            <div className="mt-1.5 flex gap-2">
+                              <div className="relative min-w-0 flex-1">
+                                <Ticket className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                                <input
+                                  value={ticketReference}
+                                  onChange={(event) => {
+                                    setTicketReference(event.target.value);
+                                    setVerifiedTicket(null);
+                                  }}
+                                  className="ui-control ui-input !pl-10 font-mono"
+                                  placeholder={zohoDeskEnabled ? '1024 or ticket ID' : 'SUP-1024'}
+                                  required
+                                />
+                              </div>
+                              {zohoDeskEnabled && (
+                                <button
+                                  type="button"
+                                  onClick={verifyTicket}
+                                  disabled={verifyingTicket || !ticketReference.trim()}
+                                  className="ui-btn ui-btn-surface ui-btn-sm shrink-0"
+                                >
+                                  {verifyingTicket
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <ShieldCheck className="h-4 w-4" />}
+                                  Verify
+                                </button>
+                              )}
+                            </div>
+                          </label>
+
+                          {zohoDeskEnabled && verifiedTicket && (
+                            <div className="mt-3 rounded-2xl bg-emerald-500/10 p-3 text-xs ring-1 ring-emerald-500/20">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="font-bold text-emerald-700 dark:text-emerald-300">
+                                    Ticket #{verifiedTicket.ticketNumber} verified
+                                  </p>
+                                  <p className="mt-1 truncate font-semibold">{verifiedTicket.subject}</p>
+                                  <p className="mt-1 text-[var(--muted-foreground)]">
+                                    {[verifiedTicket.contactName, verifiedTicket.email, verifiedTicket.status]
+                                      .filter(Boolean)
+                                      .join(' · ')}
+                                  </p>
+                                </div>
+                                {verifiedTicket.url && (
+                                  <a
+                                    href={verifiedTicket.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="ui-btn ui-btn-muted ui-btn-icon shrink-0"
+                                    aria-label="Open ticket in Zoho Desk"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
                           )}
                         </div>
-                      </div>
+
+                        <button
+                          type="submit"
+                          className={`ui-btn mt-5 w-full ${direction === 'add' ? 'ui-btn-primary' : 'ui-btn-outline'}`}
+                        >
+                          {direction === 'add' ? <PlusCircle className="h-4 w-4" /> : <MinusCircle className="h-4 w-4" />}
+                          Review {direction === 'add' ? 'addition' : 'deduction'}
+                        </button>
+                      </form>
+                    ) : (
+                      <form onSubmit={prepareOverride} className="flex-1 flex flex-col justify-between">
+                        <div>
+                          <h3 className="font-bold text-sm">Override Plan</h3>
+                          <p className="mt-1 text-xs text-[var(--muted-foreground)] mb-3">
+                            Manually change subscription package and reset credits.
+                          </p>
+
+                          <label className="block text-xs font-semibold">
+                            Select Plan
+                            <div className="mt-1.5">
+                              <Select
+                                value={overridePlan}
+                                onValueChange={(val) => {
+                                  if (val !== null) setOverridePlan(val);
+                                }}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="starter">Starter (50 credits/mo)</SelectItem>
+                                  <SelectItem value="starter_yearly">Starter Yearly (50 credits/mo)</SelectItem>
+                                  <SelectItem value="pro">Pro (100 credits/mo)</SelectItem>
+                                  <SelectItem value="pro_yearly">Pro Yearly (100 credits/mo)</SelectItem>
+                                  <SelectItem value="team">Team (300 credits/mo)</SelectItem>
+                                  <SelectItem value="team_yearly">Team Yearly (300 credits/mo)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </label>
+
+                          <label className="mt-3 block text-xs font-semibold">
+                            Duration (Days)
+                            <input
+                              type="number"
+                              min="1"
+                              max="3650"
+                              step="1"
+                              value={overrideDurationDays}
+                              onChange={(event) => setOverrideDurationDays(event.target.value)}
+                              className="ui-control ui-input mt-1.5"
+                              placeholder="30"
+                              required
+                            />
+                          </label>
+
+                          <label className="mt-3 block text-xs font-semibold">
+                            Reason
+                            <textarea
+                              value={reason}
+                              onChange={(event) => setReason(event.target.value)}
+                              className="ui-control ui-textarea mt-1.5 h-16 resize-none"
+                              placeholder="Enterprise manual contract..."
+                              required
+                            />
+                          </label>
+
+                          <label className="mt-3 block text-xs font-semibold">
+                            {zohoDeskEnabled ? 'Zoho Desk ticket' : 'Ticket reference'}
+                            <div className="mt-1.5 flex gap-2">
+                              <div className="relative min-w-0 flex-1">
+                                <Ticket className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                                <input
+                                  value={ticketReference}
+                                  onChange={(event) => {
+                                    setTicketReference(event.target.value);
+                                    setVerifiedTicket(null);
+                                  }}
+                                  className="ui-control ui-input !pl-10 font-mono"
+                                  placeholder={zohoDeskEnabled ? '1024 or ticket ID' : 'SUP-1024'}
+                                  required
+                                />
+                              </div>
+                              {zohoDeskEnabled && (
+                                <button
+                                  type="button"
+                                  onClick={verifyTicket}
+                                  disabled={verifyingTicket || !ticketReference.trim()}
+                                  className="ui-btn ui-btn-surface ui-btn-sm shrink-0"
+                                >
+                                  {verifyingTicket
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <ShieldCheck className="h-4 w-4" />}
+                                  Verify
+                                </button>
+                              )}
+                            </div>
+                          </label>
+
+                          {zohoDeskEnabled && verifiedTicket && (
+                            <div className="mt-3 rounded-2xl bg-emerald-500/10 p-3 text-xs ring-1 ring-emerald-500/20">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="font-bold text-emerald-700 dark:text-emerald-300">
+                                    Ticket #{verifiedTicket.ticketNumber} verified
+                                  </p>
+                                  <p className="mt-1 truncate font-semibold">{verifiedTicket.subject}</p>
+                                  <p className="mt-1 text-[var(--muted-foreground)]">
+                                    {[verifiedTicket.contactName, verifiedTicket.email, verifiedTicket.status]
+                                      .filter(Boolean)
+                                      .join(' · ')}
+                                  </p>
+                                </div>
+                                {verifiedTicket.url && (
+                                  <a
+                                    href={verifiedTicket.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="ui-btn ui-btn-muted ui-btn-icon shrink-0"
+                                    aria-label="Open ticket in Zoho Desk"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="ui-btn ui-btn-primary mt-5 w-full"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          Review plan override
+                        </button>
+                      </form>
                     )}
                   </div>
-
-                  <button
-                    type="submit"
-                    className={`ui-btn mt-5 w-full ${direction === 'add' ? 'ui-btn-primary' : 'ui-btn-danger bg-rose-500/10'}`}
-                  >
-                    {direction === 'add'
-                      ? <PlusCircle className="h-4 w-4" />
-                      : <MinusCircle className="h-4 w-4" />}
-                    Review {direction === 'add' ? 'addition' : 'deduction'}
-                  </button>
-                </form>
+                </div>
               </div>
 
               {/* Unified Credit Transaction & Audit History */}
@@ -692,6 +917,71 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Confirm {pending.direction}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {pendingOverride && selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className="ui-card w-full max-w-lg p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold">Confirm plan override</h2>
+                <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                  This manually overrides the organization&apos;s subscription package.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPendingOverride(null)}
+                disabled={submitting}
+                className="ui-btn ui-btn-muted ui-btn-icon"
+                aria-label="Close confirmation"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <dl className="mt-5 grid grid-cols-[140px_1fr] gap-x-4 gap-y-3 rounded-2xl bg-[var(--surface-2)] p-4 text-sm">
+              <dt className="text-[var(--muted-foreground)]">Workspace</dt>
+              <dd className="font-semibold">{selected.name}</dd>
+              <dt className="text-[var(--muted-foreground)]">Target plan</dt>
+              <dd className="font-bold text-[var(--primary)] capitalize">
+                {pendingOverride.plan.replaceAll('_', ' ')}
+              </dd>
+              <dt className="text-[var(--muted-foreground)]">Duration</dt>
+              <dd className="font-semibold">{pendingOverride.durationDays} Days</dd>
+              <dt className="text-[var(--muted-foreground)]">Ticket</dt>
+              <dd>
+                <span className="font-mono">#{pendingOverride.ticketReference}</span>
+                {verifiedTicket && (
+                  <span className="mt-1 block text-xs text-[var(--muted-foreground)]">
+                    {verifiedTicket.subject}
+                  </span>
+                )}
+              </dd>
+              <dt className="text-[var(--muted-foreground)]">Reason</dt>
+              <dd>{pendingOverride.reason}</dd>
+            </dl>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPendingOverride(null)}
+                disabled={submitting}
+                className="ui-btn ui-btn-surface"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeOverride}
+                disabled={submitting}
+                className="ui-btn ui-btn-primary"
+              >
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Confirm override
               </button>
             </div>
           </div>

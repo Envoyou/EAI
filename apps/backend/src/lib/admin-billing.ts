@@ -3,6 +3,7 @@ import { createClerkClient } from '@clerk/backend';
 
 import { prisma } from '@/lib/db';
 import { isOwnerUser } from '@eai/shared/server';
+import { getPlanCreditsGranted, PLANS } from './payment';
 import {
   type BillingBalance,
   isSuperAdminRole,
@@ -443,3 +444,117 @@ export const adjustPersonalCredits = async (
 }, {
   isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
 });
+
+export type SubscriptionOverrideInput = {
+  organizationId: string;
+  plan: string;
+  durationDays: number;
+  reason: string;
+  ticketReference: string;
+  externalTicketId?: string;
+  externalTicketUrl?: string | null;
+};
+
+export const overrideOrganizationSubscription = async (
+  actor: BillingAdminActor,
+  input: SubscriptionOverrideInput
+) => {
+  const org = await prisma.organization.findUnique({
+    where: { id: input.organizationId },
+    select: { id: true, name: true, clerkOrganizationId: true }
+  });
+  if (!org) {
+    throw new Error('Organization not found');
+  }
+
+  const plan = PLANS[input.plan];
+  if (!plan) {
+    throw new Error('Invalid plan ID');
+  }
+
+  const now = new Date();
+  const currentPeriodStart = now;
+  const currentPeriodEnd = new Date(now.getTime() + input.durationDays * 24 * 60 * 60 * 1000);
+
+  return prisma.$transaction(async (tx) => {
+    // 1. Upsert the subscription
+    const subscription = await tx.subscription.upsert({
+      where: { organizationId: input.organizationId },
+      create: {
+        id: `sub_manual_${Date.now()}`,
+        organizationId: input.organizationId,
+        plan: input.plan,
+        status: 'active',
+        currentPeriodStart,
+        currentPeriodEnd,
+      },
+      update: {
+        plan: input.plan,
+        status: 'active',
+        currentPeriodStart,
+        currentPeriodEnd,
+      }
+    });
+
+    // 2. Reset the remaining subscription credits
+    const subscriptionBalance = await tx.creditTransaction.aggregate({
+      where: {
+        organizationId: input.organizationId,
+        bucket: 'subscription',
+      },
+      _sum: { amount: true },
+    });
+    const currentBalance = subscriptionBalance._sum.amount ?? 0;
+
+    const groupKey = `sub_override_${Date.now()}`;
+
+    if (currentBalance > 0) {
+      await tx.creditTransaction.create({
+        data: {
+          organizationId: input.organizationId,
+          type: 'cycle_reset',
+          bucket: 'subscription',
+          amount: -currentBalance,
+          subscriptionId: subscription.id,
+          idempotencyKey: `reset:${groupKey}`,
+          description: `Reset remaining credits after manual override to ${plan.name} plan`,
+          adjustmentReason: input.reason,
+          adjustmentGroupKey: groupKey,
+          ticketReference: input.ticketReference,
+          externalTicketId: input.externalTicketId,
+          externalTicketUrl: input.externalTicketUrl,
+          performedByUserId: actor.userId,
+          performedByEmail: actor.email,
+          periodStart: currentPeriodStart,
+          periodEnd: currentPeriodEnd,
+        },
+      });
+    }
+
+    // 3. Allocate new subscription credits
+    const creditsToGrant = getPlanCreditsGranted(plan);
+    await tx.creditTransaction.create({
+      data: {
+        organizationId: input.organizationId,
+        type: plan.billingMonths === 12 ? 'yearly_monthly_allocation' : 'monthly_allocation',
+        bucket: 'subscription',
+        amount: creditsToGrant,
+        subscriptionId: subscription.id,
+        idempotencyKey: `allocation:${groupKey}`,
+        description: `Manual override credit allocation for ${plan.name} plan`,
+        adjustmentReason: input.reason,
+        adjustmentGroupKey: groupKey,
+        ticketReference: input.ticketReference,
+        externalTicketId: input.externalTicketId,
+        externalTicketUrl: input.externalTicketUrl,
+        performedByUserId: actor.userId,
+        performedByEmail: actor.email,
+        periodStart: currentPeriodStart,
+        periodEnd: currentPeriodEnd,
+        expiresAt: currentPeriodEnd,
+      },
+    });
+
+    return subscription;
+  });
+};

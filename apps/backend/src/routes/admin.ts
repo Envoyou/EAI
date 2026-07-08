@@ -10,6 +10,7 @@ import {
   adjustPersonalCredits,
   getBillingAdminActor,
   getBillingOrganizationDetail,
+  overrideOrganizationSubscription,
   searchBillingOrganizations,
 } from '@/lib/admin-billing';
 import { getZohoDeskTicket, isZohoDeskEnabled } from '@/lib/zoho-desk';
@@ -146,6 +147,58 @@ router.post('/billing', requireAuth, async (req, res) => {
     return res.status(isExpected ? 409 : 500).json({ error: message });
   }
 });
+
+const OverridePlanSchema = z.object({
+  organizationId: z.string().min(1).max(100),
+  plan: z.string().min(1).max(50),
+  durationDays: z.number().int().min(1).max(3650),
+  reason: z.string().trim().min(5).max(500),
+  ticketReference: z.string().trim().min(2).max(100),
+});
+
+// POST /api/admin/billing/override-plan
+router.post('/billing/override-plan', requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.auth!;
+    const actor = await getActor(userId);
+    if (!actor) {
+      return res.status(403).json({ error: 'Owner or super-admin access required' });
+    }
+
+    const parsed = OverridePlanSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: 'Invalid plan override request',
+        issues: parsed.error.flatten(),
+      });
+    }
+
+    const zohoTicket = isZohoDeskEnabled()
+      ? await getZohoDeskTicket(parsed.data.ticketReference)
+      : null;
+
+    const subscription = await overrideOrganizationSubscription(actor, {
+      ...parsed.data,
+      ticketReference: zohoTicket?.ticketNumber || parsed.data.ticketReference,
+      externalTicketId: zohoTicket?.id,
+      externalTicketUrl: zohoTicket?.url,
+    });
+
+    const organization = await getBillingOrganizationDetail(parsed.data.organizationId);
+
+    return res.json({
+      success: true,
+      subscription,
+      organization,
+      ticket: zohoTicket,
+    });
+  } catch (error) {
+    console.error('[ADMIN_BILLING_OVERRIDE_PLAN]', error);
+    const message = error instanceof Error ? error.message : 'Failed to override plan';
+    return res.status(500).json({ error: message });
+  }
+});
+
 // GET /api/admin/users
 router.get('/users', requireAuth, async (req, res) => {
   try {
