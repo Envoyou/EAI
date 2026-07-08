@@ -22,9 +22,13 @@ export async function processVerifiedPaymentEvent(
 
   if (
     transaction.orderId !== paymentOrder.id ||
-    transaction.amountIdr !== paymentOrder.amountIdr
+    transaction.amountIdr < paymentOrder.amountIdr
   ) {
     throw new Error('Payment verification mismatch');
+  }
+
+  if (transaction.amountIdr !== paymentOrder.amountIdr) {
+    console.warn(`[Payment Warning] Order amount mismatch (paid: ${transaction.amountIdr}, expected: ${paymentOrder.amountIdr}). Proceeding as paid amount is greater than or equal to expected.`);
   }
 
   const plan = PLANS[paymentOrder.planId];
