@@ -161,14 +161,14 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           setCurrentSessionId(sessionId);
           setMessages(data.session.messages || []);
         } else {
-          toast.error('Gagal memuat sesi chat');
+          toast.error('Failed to load chat session');
         }
       } else {
-        toast.error('Gagal memuat sesi chat');
+        toast.error('Failed to load chat session');
       }
     } catch (err) {
       console.error('Error loading session:', err);
-      toast.error('Terjadi kesalahan saat memuat chat');
+      toast.error('An error occurred while loading the chat');
     } finally {
       setIsTyping(false);
     }
@@ -189,10 +189,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         body: JSON.stringify({ title: trimmed })
       });
       if (!res.ok) {
-        toast.error('Gagal mengubah nama sesi');
+        toast.error('Failed to rename chat session');
         loadSessions(); // revert on failure
       } else {
-        toast.success('Nama sesi berhasil diubah');
+        toast.success('Chat session renamed successfully');
       }
     } catch (err) {
       console.error('Error renaming session:', err);
@@ -226,7 +226,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         body: JSON.stringify({ isPinned: targetPinned })
       });
       if (!res.ok) {
-        toast.error('Gagal mengubah status sematan');
+        toast.error('Failed to update pinned status');
         loadSessions(); // revert
       }
     } catch (err) {
@@ -249,10 +249,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         method: 'DELETE'
       });
       if (!res.ok) {
-        toast.error('Gagal menghapus sesi chat');
+        toast.error('Failed to delete chat session');
         loadSessions(); // revert
       } else {
-        toast.success('Sesi chat berhasil dihapus');
+        toast.success('Chat session deleted successfully');
       }
     } catch (err) {
       console.error('Error deleting session:', err);

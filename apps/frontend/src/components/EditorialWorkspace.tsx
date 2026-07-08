@@ -962,7 +962,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       toast.success('Draft generated successfully!');
     } catch (error) {
       console.error(error);
-      toast.error('Gagal men-generate draft');
+      toast.error('Failed to generate draft.');
     } finally {
       setIsGeneratingDraftFromNotes(false);
     }
