@@ -102,13 +102,35 @@ export const PLANS: Record<string, PlanDetails> = {
   },
 };
 
-const DEFAULT_USD_TO_IDR_RATE = 17779.3;
+const DEFAULT_USD_TO_IDR_RATE = 18000;
+let cachedRate = DEFAULT_USD_TO_IDR_RATE;
+let lastFetched = 0;
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
+async function revalidateRate() {
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    if (!res.ok) throw new Error('API response not OK');
+    const data = (await res.json()) as { rates?: { IDR?: number } };
+    const idrRate = data?.rates?.IDR;
+    if (typeof idrRate === 'number' && idrRate > 0) {
+      cachedRate = idrRate;
+    }
+  } catch {
+    // Fail silently in background
+  }
+}
 
 export const getPaymentUsdToIdrRate = () => {
+  if (Date.now() - lastFetched > CACHE_TTL) {
+    lastFetched = Date.now();
+    revalidateRate();
+  }
+
   const configured = Number(process.env.PAYMENT_USD_TO_IDR_RATE);
   return Number.isFinite(configured) && configured > 0
     ? configured
-    : DEFAULT_USD_TO_IDR_RATE;
+    : cachedRate;
 };
 
 export const getPaymentTaxLabel = () =>
