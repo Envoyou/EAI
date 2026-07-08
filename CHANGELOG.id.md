@@ -4,7 +4,11 @@ Semua perubahan penting pada proyek **Envoyou AI Editorial System** akan didokum
 
 Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/id/1.0.0/) dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.0.2] - 2026-07-09
+
+### Fixed
+- **Peta Error Ekspor Blog yang Toleran**: Menyelesaikan masalah kesalahan respon `502 Bad Gateway` yang menyesatkan saat melakukan ekspor draf dengan slug duplikat ke backend blog. Sistem sekarang memetakan respon status `409` (Conflict) dan pesan kesalahan "already exists" dari backend blog ke kode status `409 Conflict` yang tepat daripada melempar error gateway umum.
+- **Notifikasi Ekspor Berbahasa Inggris yang Profesional**: Meningkatkan pesan notifikasi dialog ekspor di frontend `FinalDraftPanel` untuk menampilkan pesan kesalahan berbahasa Inggris yang jelas, ramah, dan solutif berdasarkan kode status respon (misalnya, menjelaskan masalah slug URL duplikat, kegagalan autentikasi kredensial, dan masalah server blog offline).
 
 ## [3.0.1] - 2026-07-08
 

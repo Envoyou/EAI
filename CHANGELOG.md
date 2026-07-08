@@ -4,7 +4,11 @@ All notable changes to the **Envoyou AI Editorial System** project will be docum
 
 The format of this file is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.0.2] - 2026-07-09
+
+### Fixed
+- **Graceful Blog Export Error Mapping**: Resolved misleading "502 Bad Gateway" errors when exporting drafts with duplicate slugs to the blog backend. The system now maps the blog backend's `409` (Conflict) responses and "already exists" error messages to a proper `409 Conflict` status code instead of throwing a generic gateway error.
+- **Professional English Export Notifications**: Enhanced the frontend export notification dialog in `FinalDraftPanel` to display clear, friendly, and actionable English error messages based on response status codes (e.g., explaining duplicate URL slugs, authentication credentials failures, and blog server offline gateway issues).
 
 ## [3.0.1] - 2026-07-08
 

@@ -569,10 +569,31 @@ export default function FinalDraftPanel({
           duration: 8000,
         });
       } else {
-        if (result.error?.includes('category_not_found')) {
-          toast.error('Category not found in blog', { description: 'The AI-generated category does not match your blog taxonomy.', duration: 5000 });
+        const errorMsg = result.error || '';
+        if (errorMsg.includes('category_not_found')) {
+          toast.error('Category not found in blog', {
+            description: 'The AI-generated category does not match your blog taxonomy.',
+            duration: 5000,
+          });
+        } else if (response.status === 409 || errorMsg.toLowerCase().includes('already exists') || errorMsg.toLowerCase().includes('duplicate')) {
+          toast.error('Duplicate URL Slug', {
+            description: 'An article with the same URL slug already exists on your blog. Please update the slug in the metadata panel below and try again.',
+            duration: 8000,
+          });
+        } else if (response.status === 401 || errorMsg.toLowerCase().includes('unauthorized') || errorMsg.toLowerCase().includes('credentials')) {
+          toast.error('Authentication Failed', {
+            description: 'Could not authenticate with your blog. Please check your blog integration API keys or credentials.',
+            duration: 8000,
+          });
+        } else if (response.status === 502 || response.status === 504 || errorMsg.toLowerCase().includes('timeout') || errorMsg.toLowerCase().includes('bad gateway')) {
+          toast.error('Blog Server Offline', {
+            description: 'The blog server responded with a gateway error. Please verify that your blog backend service is online and accessible.',
+            duration: 8000,
+          });
         } else {
-          toast.error('Export failed', { description: result.error || 'An error occurred during export.' });
+          toast.error('Export Failed', {
+            description: result.error || 'An unexpected error occurred during export.',
+          });
         }
       }
     } catch {

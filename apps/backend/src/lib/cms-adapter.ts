@@ -182,6 +182,7 @@ export const createEaiRestAdapter = ({
         const statusCode =
           /unauthorized/i.test(message) ? 401 :
           /category_not_found|validation/i.test(message) ? 400 :
+          /already exists|conflict/i.test(message) || response.status === 409 ? 409 :
           502;
         throw new CmsAdapterError(message, statusCode, 'cms_export_failed');
       }
