@@ -7,8 +7,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [3.0.2] - 2026-07-09
 
 ### Fixed
-- **Graceful Blog Export Error Mapping**: Resolved misleading "502 Bad Gateway" errors when exporting drafts with duplicate slugs to the blog backend. The system now maps the blog backend's `409` (Conflict) responses and "already exists" error messages to a proper `409 Conflict` status code instead of throwing a generic gateway error.
-- **Professional English Export Notifications**: Enhanced the frontend export notification dialog in `FinalDraftPanel` to display clear, friendly, and actionable English error messages based on response status codes (e.g., explaining duplicate URL slugs, authentication credentials failures, and blog server offline gateway issues).
+- **Clearer Blog Export Error Notifications**: Redesigned the warning message system for failed article draft exports to your blog (such as WordPress or Ghost). Error messages are now presented in a friendly, professional English format with clear solutions, instead of confusing system error codes.
+- **Duplicate URL Slug Error Handling**: Fixed a system issue that triggered a "502 Bad Gateway" error when trying to export an article with a URL slug that has already been used on your blog. The system will now specifically notify you if the URL already exists, so you can simply change the article's title or URL slug before exporting again.
+- **Blog Connection Issue Detection**: The system can now accurately distinguish whether an export failure is caused by permission issues (incorrect password/token) or because your blog server is currently offline.
+
 
 ## [3.0.1] - 2026-07-08
 
