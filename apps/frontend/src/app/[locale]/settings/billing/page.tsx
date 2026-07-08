@@ -2,7 +2,7 @@ import React from 'react';
 import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import { getWorkspaceState, toClerkOrganizationContext } from '@/lib/user-workspace';
-import { getPlanCheckoutDisclosure, PLANS, type CheckoutDisclosure } from '@eai/shared';
+import { getPlanCheckoutDisclosure, PLANS, getFriendlyInvoiceNumber, type CheckoutDisclosure } from '@eai/shared';
 import { ArrowRight, CalendarDays, Coins, CreditCard, Receipt, Zap } from 'lucide-react';
 import { SettingSection } from '@/components/SettingsUI';
 import PricingCheckoutButton from '@/components/PricingCheckoutButton';
@@ -282,6 +282,7 @@ export default async function BillingSettingsPage() {
               {recentPayments.map((payment) => {
                 const planName = PLANS[payment.planId]?.name ?? payment.planId;
                 const paymentDate = payment.paidAt ?? payment.createdAt;
+                const friendlyInvoiceId = getFriendlyInvoiceNumber(payment.id, paymentDate);
                 const paid = payment.status === 'paid';
 
                 return (
@@ -293,7 +294,7 @@ export default async function BillingSettingsPage() {
                       <div className="min-w-0">
                         <p className="truncate text-xs font-semibold text-foreground">{planName}</p>
                         <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-                          {payment.id}
+                          {friendlyInvoiceId}
                         </p>
                       </div>
                     </div>

@@ -254,3 +254,9 @@ export async function createCheckoutSession(params: {
     throw error;
   }
 }
+
+export const getFriendlyInvoiceNumber = (orderId: string, createdAt: Date | string) => {
+  const year = new Date(createdAt).getFullYear();
+  const suffix = orderId.length >= 6 ? orderId.slice(-6).toUpperCase() : orderId.toUpperCase();
+  return `EAI-${year}-${suffix}`;
+};

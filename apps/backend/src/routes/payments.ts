@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
-import { getPaymentGateway, getPlanCreditsGranted, PLANS, getPlanPeriodEnd } from '@/lib/payment';
+import { getPaymentGateway, getPlanCreditsGranted, PLANS, getPlanPeriodEnd, getFriendlyInvoiceNumber } from '@/lib/payment';
 import type { PaymentProvider } from '@/lib/payments/types';
 import { processVerifiedPaymentEvent } from '@/lib/payment-processing';
 import { getWorkspaceState } from '@/lib/user-workspace';
@@ -196,6 +196,8 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
       timeZone: 'Asia/Jakarta',
     }).format(order.paidAt || order.createdAt);
 
+    const friendlyInvoiceId = getFriendlyInvoiceNumber(order.id, order.paidAt || order.createdAt);
+
     const startDate = order.paidAt || order.createdAt;
     let periodText = '';
     if (plan && plan.billingMonths > 0) {
@@ -231,7 +233,7 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Invoice - ${order.id}</title>
+        <title>Invoice - ${friendlyInvoiceId}</title>
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
           body {
@@ -468,7 +470,7 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
             </div>
             <div class="meta-box">
               <h1>INVOICE</h1>
-              <p>Invoice No: <span class="invoice-id">${order.id}</span></p>
+              <p>Invoice No: <span class="invoice-id">${friendlyInvoiceId}</span></p>
               <p>Date: ${dateStr}</p>
               <p style="margin: 4px 0; font-size: 13px; color: #64748b;"><strong>Paid via:</strong> ${order.provider === 'midtrans' ? 'Midtrans' : 'Doku'} - ${formatPaymentType(order.paymentType)}</p>
               <div class="status-badge">PAID</div>
@@ -481,11 +483,7 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
               <p class="company-name">EAI Editorial Intelligence</p>
               <p>Jl. Kh Wahid Hasyim, Banyuwangi</p>
               <p>Jawa Timur, 68482, Indonesia</p>
-              <p>Telp: +62 812 1637 5648</p>
-              <p>Email: support@envoyou.com</p>
               <p style="margin-top: 8px;">NPWP: 93.115.884.4-627.000</p>
-              <p>NIB: 1410240116491</p>
-              <p>PSE: 141024011649100010002</p>
             </div>
             <div class="details-col">
               <h3>TO</h3>
@@ -542,12 +540,19 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
             <p class="thank-you">Thank you for your business!</p>
             <p>This is a computer-generated invoice and requires no signature.</p>
             <p>If you have any questions, please contact support@envoyou.com</p>
-            <p>Product: <a href="https://eai.envoyou.com" target="_blank">eai.envoyou.com</a> | Main Site: <a href="https://www.envoyou.com" target="_blank">www.envoyou.com</a></p>
-            <div class="policy-links">
-              <a href="https://www.envoyou.com/terms" target="_blank">Terms of Service</a>
-              <a href="https://www.envoyou.com/privacy" target="_blank">Privacy Policy</a>
+            <p>Product: <a href="https://eai.envoyou.com" target="_blank">eai.envoyou.com</a> | Main Site: <a href="https://www.envoyou.com" target="_blank">www.envoyou.com</a> | Telp: +62 812 1637 5648</p>
+            <p>Registered in Indonesia — NIB: 1410240116491 | PSE: 141024011649100010002</p>
+            <div class="policy-links" style="margin-bottom: 20px;">
+              <a href="https://www.envoyou.com/terms" target="_blank">Terms of Service</a> |
+              <a href="https://www.envoyou.com/privacy" target="_blank">Privacy Policy</a> |
               <a href="https://www.envoyou.com/refund" target="_blank">Refund Policy</a>
             </div>
+            <p style="font-style: italic; color: #64748b; font-size: 11px; margin-top: 20px; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.5;">
+              "Build with the ambition of the world's best. Measure progress against who you were six months ago."
+            </p>
+            <p style="font-size: 10px; color: #94a3b8; margin-top: 25px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+              Powered by Envoyou
+            </p>
           </div>
         </div>
 

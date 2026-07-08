@@ -38,6 +38,33 @@ export const ensureCurrentUserRecord = async (userId: string) => {
   });
   if (existing) {
     await ensurePersonalTrialCredits(userId);
+
+    // Self-healing check: Sync user details from Clerk if last sync is > 5 minutes ago
+    const fiveMinutes = 5 * 60 * 1000;
+    if (Date.now() - new Date(existing.updatedAt).getTime() > fiveMinutes) {
+      try {
+        const clerkUser = await clerk.users.getUser(userId);
+        const email = clerkUser?.emailAddresses[0]?.emailAddress;
+        if (clerkUser && email) {
+          const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ');
+          const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+              email,
+              name: name || null,
+              imageUrl: clerkUser.imageUrl || null,
+              lastSignInAt: clerkUser.lastSignInAt ? new Date(clerkUser.lastSignInAt) : undefined,
+            },
+          });
+          existing.name = updatedUser.name;
+          existing.email = updatedUser.email;
+          existing.imageUrl = updatedUser.imageUrl;
+        }
+      } catch (err) {
+        console.warn(`[Clerk Sync Warning] Failed to background-sync user ${userId} from Clerk:`, err);
+      }
+    }
+
     return existing;
   }
 
