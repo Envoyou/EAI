@@ -30,6 +30,8 @@ export interface EditorialProfileConfig {
   customInstructions?: string;
   timezone?: string;
   allowedEditorialTerms?: AllowedEditorialTerm[];
+  primaryGoal?: 'grow_traffic' | 'publish_faster' | 'knowledge_base' | 'research' | 'documentation';
+  defaultLanguage?: 'en' | 'id' | 'auto';
 }
 
 export interface EditorialProfileSnapshot {

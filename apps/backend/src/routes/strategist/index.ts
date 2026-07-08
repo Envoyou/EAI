@@ -533,44 +533,99 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
     const day = parts.find((part) => part.type === 'day')?.value || '01';
     const currentDate = `${currentYear}-${month}-${day}`;
 
-    let brandContext = '';
-    if (profile && profile.config) {
-      const p = profile.config;
-      brandContext = `<brand_profile>\n`;
-      brandContext += `Brand Name: ${p.brandName || 'Envoyou'}\n`;
-      if (p.positioning) brandContext += `Positioning: ${p.positioning}\n`;
-      if (p.audience) brandContext += `Target Audience: ${p.audience}\n`;
-      if (p.categories && p.categories.length > 0) brandContext += `Content Categories: ${p.categories.join(', ')}\n`;
-      if (p.tone && p.tone.length > 0) brandContext += `Tone of Voice: ${p.tone.join(', ')}\n`;
-      if (p.internalLinkBaseUrl) brandContext += `Website Base URL: ${p.internalLinkBaseUrl}\n`;
-      brandContext += `</brand_profile>\n`;
+    const workspaceContext = {
+      metadata: {
+        today: currentDate,
+        timezone,
+      },
+      editorialProfile: profile?.config ? {
+        status: 'Loaded',
+        brandName: profile.config.brandName,
+        positioning: profile.config.positioning,
+        audience: profile.config.audience,
+        tone: profile.config.tone,
+        categories: profile.config.categories,
+        website: profile.config.internalLinkBaseUrl,
+        primaryGoal: profile.config.primaryGoal,
+        defaultLanguage: profile.config.defaultLanguage,
+        customInstructions: profile.config.customInstructions,
+      } : {
+        status: 'Not Configured'
+      },
+      notes: notesSummary || null,
+      attachment: (attachments && Array.isArray(attachments) && attachments[0]?.extractedText) ? {
+        filename: attachments[0].filename,
+        contentType: attachments[0].contentType,
+        content: attachments[0].extractedText,
+      } : null,
+      scrapedUrl: scrapedContent ? {
+        url: urlToScrape,
+        content: scrapedContent,
+      } : null,
+      history: history.map((m: { role: string, content: { text: string }[] }) => ({
+        role: m.role,
+        text: m.content[0].text
+      }))
+    };
+
+    let contextPrompt = `<workspace_context>\n`;
+    contextPrompt += `<current_date>\n`;
+    contextPrompt += `Today's Date: ${workspaceContext.metadata.today} (${workspaceContext.metadata.timezone})\n`;
+    contextPrompt += `</current_date>\n\n`;
+
+    // Editorial Profile
+    contextPrompt += `<editorial_profile>\n`;
+    contextPrompt += `Status: ${workspaceContext.editorialProfile.status}\n`;
+    if (workspaceContext.editorialProfile.status === 'Loaded' && profile?.config) {
+      const ep = workspaceContext.editorialProfile;
+      contextPrompt += `Brand Name: ${ep.brandName || 'Envoyou'}\n`;
+      if (ep.positioning) contextPrompt += `Positioning: ${ep.positioning}\n`;
+      if (ep.audience) contextPrompt += `Target Audience: ${ep.audience}\n`;
+      if (ep.categories && ep.categories.length > 0) contextPrompt += `Content Categories: ${ep.categories.join(', ')}\n`;
+      if (ep.tone && ep.tone.length > 0) contextPrompt += `Tone of Voice: ${ep.tone.join(', ')}\n`;
+      if (ep.website) contextPrompt += `Website Base URL: ${ep.website}\n`;
+      if (ep.primaryGoal) contextPrompt += `Primary Goal: ${ep.primaryGoal}\n`;
+      if (ep.defaultLanguage) contextPrompt += `Preferred Language: ${ep.defaultLanguage}\n`;
+      if (ep.customInstructions) contextPrompt += `Custom Brand Guidelines: ${ep.customInstructions}\n`;
+    }
+    contextPrompt += `</editorial_profile>\n\n`;
+
+    // Notes
+    if (workspaceContext.notes) {
+      contextPrompt += `<session_notes>\n`;
+      contextPrompt += `${workspaceContext.notes}\n`;
+      contextPrompt += `</session_notes>\n\n`;
     }
 
-    let contextPrompt = `<context>\nToday's Date: ${currentDate} (${timezone})\n`;
-    if (brandContext) {
-      contextPrompt += brandContext;
-    }
-    if (notesSummary) {
-      contextPrompt += `${notesSummary}\n`;
-    }
+    // Attachment
+    if (workspaceContext.attachment) {
+      const att = workspaceContext.attachment;
+      const textLimit = 15000;
+      const truncatedText = att.content.slice(0, textLimit);
+      const truncationNotice = att.content.length > textLimit ? '\n[... content truncated at 15,000 characters ...]' : '';
 
-    if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-      const attachment = attachments[0];
-      if (attachment && attachment.extractedText) {
-        const textLimit = 15000;
-        const text = attachment.extractedText;
-        const truncatedText = text.slice(0, textLimit);
-        const truncationNotice = text.length > textLimit ? '\n[... content truncated at 15,000 characters ...]' : '';
-
-        contextPrompt += `<attached_file>\n<filename>${attachment.filename}</filename>\n<type>${attachment.contentType}</type>\n<content>\n${truncatedText}${truncationNotice}\n</content>\n</attached_file>\n`;
-      }
+      contextPrompt += `<attached_file>\n`;
+      contextPrompt += `<filename>${att.filename}</filename>\n`;
+      contextPrompt += `<type>${att.contentType}</type>\n`;
+      contextPrompt += `<content>\n${truncatedText}${truncationNotice}\n</content>\n`;
+      contextPrompt += `</attached_file>\n\n`;
     }
 
-    if (scrapedContent) {
-      contextPrompt += `<scraped_url_content url="${urlToScrape}">\n${scrapedContent}\n</scraped_url_content>\n`;
+    // Scraped Url
+    if (workspaceContext.scrapedUrl) {
+      contextPrompt += `<scraped_url_content url="${workspaceContext.scrapedUrl.url}">\n`;
+      contextPrompt += `${workspaceContext.scrapedUrl.content}\n`;
+      contextPrompt += `</scraped_url_content>\n\n`;
     }
 
-    contextPrompt += `${history.map((m: { role: string, content: { text: string }[] }) => `${m.role}: ${m.content[0].text}`).join('\n')}\n</context>\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
+    // History
+    if (workspaceContext.history.length > 0) {
+      contextPrompt += `<chat_history>\n`;
+      contextPrompt += workspaceContext.history.map((m: { role: string; text: string }) => `${m.role}: ${m.text}`).join('\n') + `\n`;
+      contextPrompt += `</chat_history>\n`;
+    }
+
+    contextPrompt += `</workspace_context>\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
 
     if (mode === 'deep') {
       const resolvedOrgId = (req as Request & { resolvedOrgId?: string | null }).resolvedOrgId ?? null;
@@ -584,7 +639,7 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
       );
 
       // Place static instructions first for prompt prefix caching optimization
-      const deepModeInput = `<instructions>\nCRITICAL INSTRUCTION: YOU ARE IN DEEP RESEARCH MODE. Use Google Search thoroughly to gather facts, synthesize a comprehensive report, and ensure all claims are backed by credible sources.\n</instructions>\n\n=== DYNAMIC CONTEXT & HISTORY ===\n${contextPrompt}`;
+      const deepModeInput = `<instructions>\nCRITICAL INSTRUCTION: YOU ARE IN DEEP RESEARCH MODE. Use Google Search thoroughly to gather facts, synthesize a comprehensive report, and ensure all claims are backed by credible sources.\n</instructions>\n\n<agent_instruction>\n1. Treat the editorial profile inside <workspace_context> as the default working context.\n2. If the Editorial Profile status is "Loaded", align all outline/report generation with the brand name, tone, audience, and preferred language specified.\n3. If "Not Configured", fallback to standard comprehensive content strategy guidelines.\n</agent_instruction>\n\n=== DYNAMIC CONTEXT & HISTORY ===\n${contextPrompt}`;
 
       const interaction = await gemini.interactions.create({
         model: RESEARCH_MODEL,
@@ -608,6 +663,12 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
 CRITICAL: You are in FAST MODE — a professional content strategist.
 Your task: answer the user's question with focused, actionable insights. Use rich Markdown formatting (headings like ## and ###, horizontal dividers ---, bold labels **Label**:, bullet points, and tables) to make your output visually beautiful, structured, and easy to read.
 </instructions>
+
+<agent_instruction>
+1. Treat the editorial profile inside <workspace_context> as the default working context.
+2. If the Editorial Profile status is "Loaded", you MUST align all recommendations (topics, outlines, tone) with it. Only ignore or deviate from it if the user explicitly requests different branding or style.
+3. If the Editorial Profile status is "Not Configured", fallback to general high-quality, professional, and SEO-optimized content strategy guidelines.
+</agent_instruction>
 
 <constraints>
 1. Structure and Length:
