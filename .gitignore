@@ -34,7 +34,7 @@ docs/frontend/PRODUCTION_DATABASE_MIGRATIONS.md
 docs/frontend/ZOHO_DESK.md
 docs/PRODUCTION-VPS.md
 
-.agents/
+
 penyiapan_agent_coding.md
 skills-lock.json
 Alat_gemini
@@ -42,7 +42,6 @@ gemini_Deep_Research.md.md
 test_*.js
 test-*.js
 interaction_output.json
-AGENTS.md
 user_worflow_eai.md
 test_*.ts
 test-*.ts
