@@ -353,7 +353,7 @@ export default function StrategistTab({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto" ref={scrollRef} onScroll={handleScroll}>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden" ref={scrollRef} onScroll={handleScroll}>
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center p-6 text-[var(--muted-foreground)]">
                 <MessageSquare className="w-8 h-8 text-[var(--muted-foreground)] opacity-20 mb-3" />
@@ -381,7 +381,7 @@ export default function StrategistTab({
                       
                       return (
                         <div className="flex justify-start w-full">
-                          <div className="max-w-[95%] min-w-0 bg-[var(--background)] border border-[var(--border)] rounded-xl rounded-bl-sm p-2.5 shadow-sm">
+                          <div className="max-w-[95%] min-w-0 overflow-hidden bg-[var(--background)] border border-[var(--border)] rounded-xl rounded-bl-sm p-2.5 shadow-sm">
                             {msg.payload?.status ? (
                               <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)] px-1 py-1">
                                 <Loader2 className="w-3 h-3 animate-spin text-[var(--primary)]" />
