@@ -60,13 +60,6 @@ Refer to these resources for detailed architectural overviews, third-party integ
 * 📄 [Editorial Philosophy](./docs/frontend/editorial-philosophy.md) — Core concepts driving the Envoyou smart editorial workspace.
 * 📄 [Evaluation Benchmark](./docs/frontend/evaluation-benchmark.md) — Content quality benchmark and evaluation strategies for the AI system.
 
-### Regulatory & Legal Compliance
-* 📁 [Regulatory Documents Folder](./docs/complience/) — Official company documents including:
-  * [NIB EAI (PDF)](./docs/complience/NIB_EAI.pdf) — Business Identification Number.
-  * [NPWP Perorangan (PDF)](./docs/complience/NPWP_PERORANGAN.pdf) — Personal Tax Identification Number.
-  * [Pendaftaran PSE EAI (PDF)](./docs/complience/PSE_EAI.pdf) — PSE Registration Certificate.
-  * [Executive Brief Co-Founder (PDF)](./docs/complience/EAI_Executive_Brief_CoFounder.pdf) — Executive brief for the Co-Founder.
-
 ---
 
 ## 💡 AI Prompt Alignment & Brand Compliance Rules (Mandatory)
