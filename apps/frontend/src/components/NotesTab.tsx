@@ -15,6 +15,7 @@ interface NotesTabProps {
   attachments?: Attachment[];
   onGenerateDraft?: () => void;
   isGeneratingDraft?: boolean;
+  onCancelGenerateDraft?: () => void;
   onInsertToDraft?: (text: string) => void;
 }
 
@@ -23,6 +24,7 @@ export default function NotesTab({
   onNotesChange,
   onGenerateDraft,
   isGeneratingDraft = false,
+  onCancelGenerateDraft,
   onInsertToDraft,
 }: NotesTabProps) {
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
@@ -74,16 +76,19 @@ export default function NotesTab({
       {onGenerateDraft && (
         <div className="px-3 py-2 border-b border-[var(--border)] bg-[var(--surface-2)] shrink-0">
           <button
-            onClick={handleGenerateDraftFromNotes}
-            disabled={isGeneratingDraft}
-            className="w-full ui-btn ui-btn-primary ui-btn-sm flex justify-center gap-1.5 text-xs"
+            onClick={isGeneratingDraft ? onCancelGenerateDraft : handleGenerateDraftFromNotes}
+            className={`w-full ui-btn ui-btn-sm flex justify-center gap-1.5 text-xs ${
+              isGeneratingDraft
+                ? 'ui-btn-danger'
+                : 'ui-btn-primary'
+            }`}
           >
             {isGeneratingDraft ? (
-              <div className="w-3 h-3 border-2 border-current border-r-transparent rounded-full animate-spin" />
+              <X className="w-3.5 h-3.5 shrink-0" />
             ) : (
               <Wand2 className="w-3 h-3" />
             )}
-            {isGeneratingDraft ? 'Generating Draft...' : 'Generate Draft from Notes'}
+            {isGeneratingDraft ? 'Cancel Generation' : 'Generate Draft from Notes'}
           </button>
         </div>
       )}

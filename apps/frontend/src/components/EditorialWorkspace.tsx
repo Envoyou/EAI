@@ -23,6 +23,8 @@ import {
   applyDefaultMetadata,
   normalizeAppSettings,
 } from '@/lib/preferences';
+import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
+import { readWithTimeout } from '@/lib/stream-utils';
 
 
 /* ── Helpers ─────────────────────────────────────────── */
@@ -119,27 +121,12 @@ const calculateReadiness = (feedback: FeedbackItem[], originalReadiness?: Editor
   return 'needs_review';
 };
 
-const readWithTimeout = async (
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-  timeoutMs = 45000
-): Promise<ReadableStreamReadResult<Uint8Array>> => {
-  let timeoutId: NodeJS.Timeout | undefined;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new Error('Stream idle timeout: No response received from the server for 45 seconds.'));
-    }, timeoutMs);
-  });
-  try {
-    const result = await Promise.race([reader.read(), timeoutPromise]);
-    return result;
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
-};
+// readWithTimeout is now imported from stream-utils
 
 /* ── Page ─────────────────────────────────────────────── */
 export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) {
   const router = useRouter();
+  const directFetch = useDirectFetch();
   const [workspaceChecking, setWorkspaceChecking] = useState(true);
   const [editorialOptions, setEditorialOptions] = useState({
     brandName: 'Envoyou',
@@ -238,6 +225,20 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   const [isTargetedFixing, setIsTargetedFixing] = useState<number | null>(null);
   const [isSavingToCloud, setIsSavingToCloud] = useState(false);
   const [isGeneratingDraftFromNotes, setIsGeneratingDraftFromNotes] = useState(false);
+
+  const generateAbortControllerRef = useRef<AbortController | null>(null);
+  const analyzeAbortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (generateAbortControllerRef.current) {
+        generateAbortControllerRef.current.abort();
+      }
+      if (analyzeAbortControllerRef.current) {
+        analyzeAbortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleCloudSave = async () => {
     if (isDemoMode) return;
@@ -570,15 +571,19 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       setMobileViewTab('copilot');
     }
 
+    const controller = new AbortController();
+    analyzeAbortControllerRef.current = controller;
+
     try {
       const requestMetadata: ArticleMetadata = {
         ...metadata,
         strictness: editorialOptions.sourcePolicy === 'strict' ? 'strict' : 'balanced',
         outputLanguage: appSettings.outputLanguage,
       };
-      const response = await fetch('/api/analyze', {
+      const response = await directFetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           text: textToAnalyze,
           role: 'polish',
@@ -601,6 +606,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
 
       const decoder = new TextDecoder();
       let buffer = '';
+      let receivedComplete = false;
 
       while (true) {
         const { done, value } = await readWithTimeout(reader);
@@ -664,6 +670,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
               setAnalysis({ status: 'loading', readiness: undefined, changes: [], summary: '', polishedDraft: '', feedback: [], flags: [] });
               break;
             case 'complete': {
+              receivedComplete = true;
               setProcessStage('finalizing');
               const { analysisLogId, sourceRef } = event.data as { analysisLogId: string; sourceRef: string };
               setAnalysis(prev => ({ ...prev, status: 'success', analysisLogId, sourceRef }));
@@ -674,6 +681,15 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
           }
         }
       }
+
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      if (!receivedComplete) {
+        throw new Error('Connection lost. Please retry.');
+      }
+
       toast.success('Refinement Complete', { description: 'Final draft and editorial quality gate are ready.' });
       setRefreshTrigger(prev => prev + 1);
 
@@ -683,6 +699,10 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
         localStorage.setItem('eai-demo-refine-count', nextCount.toString());
       }
     } catch (error) {
+      if (controller.signal.aborted) {
+        console.log('Analysis aborted.');
+        return;
+      }
       const errorMsg = error instanceof Error ? error.message : 'An unexpected error occurred';
       setAnalysis({ status: 'error', errorMessage: errorMsg });
       toast.error('Analysis Failed', { description: errorMsg });
@@ -702,6 +722,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       }
       setIsStreaming(false);
       setProcessStartedAt(null);
+      analyzeAbortControllerRef.current = null;
     }
   };
 
@@ -738,15 +759,19 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       setMobileViewTab('copilot');
     }
 
+    const controller = new AbortController();
+    analyzeAbortControllerRef.current = controller;
+
     try {
       const requestMetadata: ArticleMetadata = {
         ...metadata,
         strictness: editorialOptions.sourcePolicy === 'strict' ? 'strict' : 'balanced',
         outputLanguage: appSettings.outputLanguage,
       };
-      const response = await fetch('/api/analyze', {
+      const response = await directFetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           text: currentDraft,
           mode: 'refine',
@@ -766,6 +791,8 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
 
       const decoder = new TextDecoder();
       let buffer = '';
+      let receivedComplete = false;
+
       while (true) {
         const { done, value } = await readWithTimeout(reader);
         if (done) break;
@@ -815,6 +842,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
             }); break;
             case 'flags': setAnalysis(prev => ({ ...prev, flags: event.data as string[] })); break;
             case 'complete': {
+              receivedComplete = true;
               setProcessStage('finalizing');
               const { analysisLogId, sourceRef } = event.data as { analysisLogId?: string; sourceRef?: string };
               if (analysisLogId) setAnalysis(prev => ({ ...prev, analysisLogId }));
@@ -825,6 +853,15 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
           }
         }
       }
+
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      if (!receivedComplete) {
+        throw new Error('Connection lost. Please retry.');
+      }
+
       toast.success('Draft refined!', { description: 'Your instruction has been applied.' });
       setRefreshTrigger(prev => prev + 1);
 
@@ -834,6 +871,10 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
         localStorage.setItem('eai-demo-refine-count', nextCount.toString());
       }
     } catch (error) {
+      if (controller.signal.aborted) {
+        console.log('Refinement aborted.');
+        return;
+      }
       const msg = error instanceof Error ? error.message : 'Refinement failed';
       toast.error('Refine Failed', { description: msg });
       // Restore original draft on failure
@@ -850,6 +891,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       }
       setIsRefining(false);
       setProcessStartedAt(null);
+      analyzeAbortControllerRef.current = null;
     }
   };
 
@@ -918,11 +960,16 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     setIsGeneratingDraftFromNotes(true);
     setDraft('');
     let currentDraft = '';
+    let receivedDone = false;
+
+    const controller = new AbortController();
+    generateAbortControllerRef.current = controller;
 
     try {
-      const response = await fetch('/api/strategist/generate-draft-from-notes', {
+      const response = await directFetch('/api/strategist/generate-draft-from-notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({ notes: notesToGenerate, metadata }),
       });
 
@@ -938,7 +985,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       let buffer = '';
 
       while (true) {
-        const { done, value: chunk } = await reader.read();
+        const { done, value: chunk } = await readWithTimeout(reader);
         if (done) break;
 
         buffer += decoder.decode(chunk, { stream: true });
@@ -955,16 +1002,41 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
               toast.info(data.message || 'Multiple topics detected — generating draft from the first topic.');
             } else if (data.type === 'error') {
               toast.error(data.message);
+            } else if (data.type === 'done') {
+              receivedDone = true;
             }
           }
         }
       }
+
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      if (!receivedDone) {
+        throw new Error('Connection lost. Please retry.');
+      }
+
       toast.success('Draft generated successfully!');
     } catch (error) {
+      if (controller.signal.aborted) {
+        console.log('Draft generation aborted by user.');
+        return;
+      }
       console.error(error);
-      toast.error('Failed to generate draft.');
+      toast.error(error instanceof Error ? error.message : 'Failed to generate draft.');
     } finally {
       setIsGeneratingDraftFromNotes(false);
+      generateAbortControllerRef.current = null;
+    }
+  };
+
+  const handleCancelGenerateDraft = () => {
+    if (generateAbortControllerRef.current) {
+      generateAbortControllerRef.current.abort();
+      generateAbortControllerRef.current = null;
+      setIsGeneratingDraftFromNotes(false);
+      toast.info('Draft generation cancelled');
     }
   };
 
@@ -1181,14 +1253,18 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     if (!item || !item.targetText || isTargetedFixing !== null) return;
     setIsTargetedFixing(index);
 
+    const controller = new AbortController();
+    analyzeAbortControllerRef.current = controller;
+
     try {
       const instruction = actionType === 'remove'
         ? 'Write a revised version of the text to completely remove or neutralize the editorial addition/novel framework or claim. Do NOT add new unverified claims, numbers, or frameworks.'
         : `Revise this sentence to fix the following editorial issue: ${item.message}.`;
 
-      const response = await fetch('/api/analyze', {
+      const response = await directFetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           text: analysis.polishedDraft || item.targetText,
           mode: 'fix_targeted',
@@ -1623,6 +1699,7 @@ return (
                   onNotesChange={handleNotesChange}
                   onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
                   isGeneratingDraft={isGeneratingDraftFromNotes}
+                  onCancelGenerateDraft={handleCancelGenerateDraft}
                   onInsertToDraft={(text) => { setDraft(prev => prev + text); }}
                 />
               )}
@@ -1717,6 +1794,7 @@ return (
                 onNotesChange={handleNotesChange}
                 onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
                 isGeneratingDraft={isGeneratingDraftFromNotes}
+                onCancelGenerateDraft={handleCancelGenerateDraft}
                 onInsertToDraft={(text) => { setDraft(prev => prev + text); }}
               />
             }

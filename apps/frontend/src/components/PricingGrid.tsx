@@ -26,6 +26,7 @@ export default function PricingGrid({ workspace, disclosures, billingEnabled }: 
   useEffect(() => {
     if (planParam) {
       if (planParam.endsWith('_yearly') || planParam.includes('yearly')) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setBillingCycle('yearly');
       } else {
         setBillingCycle('monthly');

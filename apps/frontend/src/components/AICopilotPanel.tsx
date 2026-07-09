@@ -37,6 +37,7 @@ interface AICopilotPanelProps {
   onNotesChange?: (notes: ResearchNote[]) => void;
   onGenerateDraftFromNotes?: () => void;
   isGeneratingDraft?: boolean;
+  onCancelGenerateDraft?: () => void;
   onInsertToDraft?: (text: string) => void;
   activeHistoryId?: string | null;
 }
@@ -73,6 +74,7 @@ export default function AICopilotPanel({
   onNotesChange,
   onGenerateDraftFromNotes,
   isGeneratingDraft,
+  onCancelGenerateDraft,
   onInsertToDraft,
   activeHistoryId,
 }: AICopilotPanelProps) {
@@ -170,6 +172,7 @@ export default function AICopilotPanel({
             onNotesChange={onNotesChange ?? (() => {})}
             onGenerateDraft={onGenerateDraftFromNotes}
             isGeneratingDraft={isGeneratingDraft}
+            onCancelGenerateDraft={onCancelGenerateDraft}
             onInsertToDraft={onInsertToDraft}
           />
         );

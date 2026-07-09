@@ -32,6 +32,7 @@ export default function PricingCheckoutButton({
 
   useEffect(() => {
     if (autoCheckout && !current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setConfirming(true);
     }
   }, [autoCheckout, current]);

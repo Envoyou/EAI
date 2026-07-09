@@ -1056,10 +1056,16 @@ router.post('/', async (req: Request, res) => {
     res.write(JSON.stringify({ type, data }) + '\n');
   };
 
+  let isDisconnected = false;
+  req.on('close', () => {
+    isDisconnected = true;
+    console.log('[analyze] Client closed connection.');
+  });
+
   // Start keep-alive heartbeat interval to prevent stream idle timeout
   const keepAliveInterval = setInterval(() => {
     sendEvent('ping', Date.now());
-  }, 15000);
+  }, 5000);
 
   const clearKeepAlive = () => {
     clearInterval(keepAliveInterval);
@@ -1374,6 +1380,7 @@ router.post('/', async (req: Request, res) => {
         });
 
         for await (const chunk of groqRefineStream) {
+          if (isDisconnected) break;
           refineUsage = chunk.x_groq?.usage ?? refineUsage;
           const partText = chunk.choices[0]?.delta?.content ?? '';
           refinedText += partText;
@@ -1413,6 +1420,7 @@ router.post('/', async (req: Request, res) => {
         });
 
         for await (const chunk of refineStream) {
+          if (isDisconnected) break;
           refineUsage = (chunk as OpenAiCompatibleChunk).usage ?? refineUsage;
           const partText = extractOpenRouterText(chunk);
           refinedText += partText;
@@ -1450,6 +1458,7 @@ router.post('/', async (req: Request, res) => {
         });
 
         for await (const chunk of refineStream) {
+          if (isDisconnected) break;
           refineUsage = chunk.usageMetadata ?? refineUsage;
           const partText = extractGeminiText(chunk);
           refinedText += partText;
@@ -1683,6 +1692,7 @@ router.post('/', async (req: Request, res) => {
           });
 
           for await (const chunk of rewriteStream) {
+            if (isDisconnected) break;
             rewriteUsage = chunk.usageMetadata ?? rewriteUsage;
             const partText = extractGeminiText(chunk);
             polishedText += partText;

@@ -145,6 +145,18 @@ router.post('/', async (req, res) => {
     res.write(JSON.stringify({ type, data }) + '\n');
   };
 
+  let isDisconnected = false;
+  req.on('close', () => {
+    isDisconnected = true;
+    console.log('[quick-draft] Client closed connection.');
+  });
+
+  const heartbeatInterval = setInterval(() => {
+    if (!res.writableEnded) {
+      sendEvent('heartbeat', { timestamp: Date.now() });
+    }
+  }, 5000);
+
   try {
     const {
       topic,
@@ -282,6 +294,7 @@ router.post('/', async (req, res) => {
       });
 
       for await (const chunk of draftStream) {
+        if (isDisconnected) break;
         const partText = extractGeminiText(chunk);
         draftText += partText;
         sendEvent('draft_chunk', partText);
@@ -299,6 +312,7 @@ router.post('/', async (req, res) => {
       });
 
       for await (const chunk of openRouterStream) {
+        if (isDisconnected) break;
         const partText = extractOpenRouterText(chunk);
         draftText += partText;
         sendEvent('draft_chunk', partText);
@@ -316,6 +330,7 @@ router.post('/', async (req, res) => {
       });
 
       for await (const chunk of groqStream) {
+        if (isDisconnected) break;
         const partText = chunk.choices[0]?.delta?.content || '';
         draftText += partText;
         sendEvent('draft_chunk', partText);
@@ -358,6 +373,8 @@ router.post('/', async (req, res) => {
     console.error('Quick draft generation error:', error);
     sendEvent('error', error instanceof Error ? error.message : String(error));
     res.end();
+  } finally {
+    clearInterval(heartbeatInterval);
   }
 });
 

@@ -1,10 +1,12 @@
 'use client';
 /* eslint-disable react-hooks/exhaustive-deps, react-hooks/set-state-in-effect */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { generateId, extractDynamicSuggestions } from '@/lib/strategist-utils';
 import { useUser } from '@clerk/nextjs';
+import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
+import { readWithTimeout } from '@/lib/stream-utils';
 
 export type SignalData = {
   topic: string;
@@ -80,7 +82,22 @@ const SESSION_KEY = 'eai_research_notes';
 
 export function useContentStrategist({ onComplete, notes, onNotesChange, documentId = 'new' }: UseContentStrategistOptions) {
   const { user } = useUser();
+  const directFetch = useDirectFetch();
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+
+  const chatAbortControllerRef = useRef<AbortController | null>(null);
+  const quickDraftAbortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (chatAbortControllerRef.current) {
+        chatAbortControllerRef.current.abort();
+      }
+      if (quickDraftAbortControllerRef.current) {
+        quickDraftAbortControllerRef.current.abort();
+      }
+    };
+  }, []);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isSessionsLoading, setIsSessionsLoading] = useState(false);
 
@@ -639,10 +656,17 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       }
     }]);
 
+    if (chatAbortControllerRef.current) {
+      chatAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    chatAbortControllerRef.current = controller;
+
     try {
-      const res = await fetch('/api/strategist/chat', {
+      const res = await directFetch('/api/strategist/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           messages: messagesBefore,
           mode: researchMode,
@@ -673,9 +697,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       let done = false;
       let currentContent = '';
       let buffer = '';
+      let receivedDone = false;
 
       while (!done) {
-        const { value, done: readerDone } = await reader.read();
+        const { value, done: readerDone } = await readWithTimeout(reader);
         done = readerDone;
         if (value) {
           buffer += decoder.decode(value, { stream: true });
@@ -703,11 +728,21 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                   if (data.sources && data.sources.length > 0) {
                     setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, sources: data.sources } } : m));
                   }
+                } else if (data.type === 'done') {
+                  receivedDone = true;
                 }
               } catch { /* skip */ }
             }
           }
         }
+      }
+
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      if (!receivedDone) {
+        throw new Error('Connection lost prematurely. Please retry.');
       }
 
       const sugMatch = currentContent.match(/\[SUGGESTIONS:\s*([\s\S]*?)\](?![^\]]*\])/);
@@ -724,11 +759,16 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       }
 
       fetchCredits();
-    } catch {
-      toast.error('Failed to rewrite message');
+    } catch (error) {
+      if (controller.signal.aborted) {
+        console.log('Chat stream aborted.');
+        return;
+      }
+      toast.error(error instanceof Error ? error.message : 'Failed to rewrite message');
       setMessages(prev => prev.filter(m => m.id !== assistantMsgId));
     } finally {
       setIsTyping(false);
+      chatAbortControllerRef.current = null;
     }
   }, [messages, savedNotes, researchMode, uploadedAttachment, enableSearch, fetchCredits]);
 
@@ -750,10 +790,17 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     if (!isOutlineMode && quickDraftOutline.trim()) body.outline = quickDraftOutline;
     if ((quickDraftMode === 'reference' || quickDraftMode === 'press_release') && quickDraftReference.trim()) body.referenceText = quickDraftReference;
 
+    if (quickDraftAbortControllerRef.current) {
+      quickDraftAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    quickDraftAbortControllerRef.current = controller;
+
     try {
-      const res = await fetch('/api/strategist/quick-draft', {
+      const res = await directFetch('/api/strategist/quick-draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify(body),
       });
 
@@ -768,9 +815,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       const decoder = new TextDecoder();
       let buf = '';
       let output = '';
+      let receivedComplete = false;
 
       while (true) {
-        const { done: rd, value } = await reader.read();
+        const { done: rd, value } = await readWithTimeout(reader);
         if (rd) break;
         buf += decoder.decode(value, { stream: true });
         const lines = buf.split('\n');
@@ -783,10 +831,20 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           if (event.type === 'draft_chunk') {
             output += event.data as string;
             setQuickDraftOutput(output);
+          } else if (event.type === 'complete') {
+            receivedComplete = true;
           } else if (event.type === 'error') {
             throw new Error(event.data as string);
           }
         }
+      }
+
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      if (!receivedComplete) {
+        throw new Error('Connection lost prematurely. Please retry.');
       }
 
       appendMessage({ role: 'user', type: 'text', content: `Quick draft request (${quickDraftMode.replace('_', ' ')}): ${quickDraftTopic}` });
@@ -811,11 +869,16 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
       closeQuickDraft();
     } catch (err: unknown) {
+      if (controller.signal.aborted) {
+        console.log('Quick draft aborted.');
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Quick draft failed';
       setQuickDraftError(message);
       toast.error(message);
     } finally {
       setIsGeneratingQuickDraft(false);
+      quickDraftAbortControllerRef.current = null;
     }
   }, [quickDraftTopic, quickDraftMode, quickDraftOutline, quickDraftReference, isGeneratingQuickDraft, appendMessage, closeQuickDraft]);
 
@@ -921,10 +984,17 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       payload: { status: researchMode === 'deep' ? 'Initiating Deep Research...' : 'Thinking...' }
     }]);
 
+    if (chatAbortControllerRef.current) {
+      chatAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    chatAbortControllerRef.current = controller;
+
     try {
-      const res = await fetch('/api/strategist/chat', {
+      const res = await directFetch('/api/strategist/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           messages: updatedMessages,
           mode: researchMode,
@@ -957,9 +1027,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       let done = false;
       let currentContent = '';
       let buf = '';
+      let receivedDone = false;
 
       while (!done) {
-        const { value, done: readerDone } = await reader.read();
+        const { value, done: readerDone } = await readWithTimeout(reader);
         done = readerDone;
         if (value) {
           buf += decoder.decode(value, { stream: true });
@@ -995,11 +1066,21 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                   if (data.sources && data.sources.length > 0) {
                     setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, sources: data.sources } } : m));
                   }
+                } else if (data.type === 'done') {
+                  receivedDone = true;
                 }
               } catch { /* skip */ }
             }
           }
         }
+      }
+
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      if (!receivedDone) {
+        throw new Error('Connection lost prematurely. Please retry.');
       }
 
       const sugMatch = currentContent.match(/\[SUGGESTIONS:\s*([\s\S]*?)\](?![^\]]*\])/);
@@ -1016,10 +1097,15 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       }
 
       fetchCredits();
-    } catch {
-      toast.error('Failed to send message');
+    } catch (error) {
+      if (controller.signal.aborted) {
+        console.log('Chat stream aborted.');
+        return;
+      }
+      toast.error(error instanceof Error ? error.message : 'Failed to send message');
     } finally {
       setIsTyping(false);
+      chatAbortControllerRef.current = null;
     }
   }, [chatInput, messages, currentPlan, savedNotes, researchMode, uploadedAttachment, enableSearch, handleProceedToEditor, handleSaveToNotesOnly, generatePlan, fetchCredits, currentSessionId, loadSessions, setMessages, setCurrentSessionId, setActiveDeepResearchId, setResearchMode]);
 

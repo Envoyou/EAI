@@ -392,6 +392,7 @@ router.post('/greet', async (req, res) => {
  * 2. Insight Conversation (Chat)
  */
 router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 'Too many requests. Please try again later.' }), async (req, res) => {
+  let heartbeatInterval: NodeJS.Timeout | undefined;
   try {
     const { messages, mode, notesSummary, attachments, enableSearch, activeHistoryId, sessionId } = req.body;
     
@@ -489,6 +490,18 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
+
+    let isDisconnected = false;
+    req.on('close', () => {
+      isDisconnected = true;
+      console.log('[chat] Client closed connection.');
+    });
+
+    heartbeatInterval = setInterval(() => {
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
+      }
+    }, 5000);
 
     // Send the initialized/resolved session ID immediately to the frontend
     if (dbSessionId) {
@@ -682,6 +695,10 @@ CRITICAL: A file is attached to this request.
     let streamBuffer = "";
 
     for await (const event of stream) {
+        if (isDisconnected) {
+            console.log('[chat] Aborting stream loop due to client disconnect.');
+            break;
+        }
         if (event.event_type === "step.start") {
             if (event.step?.type === "google_search_call") {
                 const queries = (event.step as { arguments?: { queries?: string[] } }).arguments?.queries;
@@ -883,6 +900,8 @@ CRITICAL: A file is attached to this request.
       res.write(`data: ${JSON.stringify({ type: "error", message: "Stream failed" })}\n\n`);
       res.end();
     }
+  } finally {
+    clearInterval(heartbeatInterval);
   }
 });
 
@@ -1091,6 +1110,7 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
  * 5. Generate Draft from Notes
  */
 router.post('/generate-draft-from-notes', async (req, res) => {
+  let heartbeatInterval: NodeJS.Timeout | undefined;
   try {
     let userId: string | null = null;
     let orgId: string | null = null;
@@ -1119,6 +1139,18 @@ router.post('/generate-draft-from-notes', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
+
+    let isDisconnected = false;
+    req.on('close', () => {
+      isDisconnected = true;
+      console.log('[generate-draft-from-notes] Client closed connection.');
+    });
+
+    heartbeatInterval = setInterval(() => {
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
+      }
+    }, 5000);
 
     if (!notes || notes.length === 0) {
       res.write(`data: ${JSON.stringify({ type: "error", message: "No notes provided" })}\n\n`);
@@ -1285,6 +1317,10 @@ Tahun 2026 akan menjadi tahun di mana agentic workflow mulai diadopsi secara lua
     });
 
     for await (const event of stream) {
+      if (isDisconnected) {
+        console.log('[generate-draft-from-notes] Aborting stream loop due to client disconnect.');
+        break;
+      }
       if (event.event_type === "step.delta" && event.delta?.type === "text" && event.delta.text) {
         res.write(`data: ${JSON.stringify({ type: "text", chunk: event.delta.text })}\n\n`);
       } else if (event.event_type === "interaction.completed") {
@@ -1306,6 +1342,8 @@ Tahun 2026 akan menjadi tahun di mana agentic workflow mulai diadopsi secara lua
       res.write(`data: ${JSON.stringify({ type: "error", message: "Stream failed" })}\n\n`);
       res.end();
     }
+  } finally {
+    clearInterval(heartbeatInterval);
   }
 });
 
