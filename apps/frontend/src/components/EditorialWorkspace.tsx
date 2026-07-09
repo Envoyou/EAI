@@ -1606,7 +1606,7 @@ return (
       <div className="flex flex-1 min-h-0 overflow-hidden relative">
         {isMobile ? (
           <div className="flex flex-col flex-1 min-h-0 pb-16 relative bg-[var(--background)] mobile-workspace-container">
-            <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden w-full max-w-full overflow-x-hidden">
               {mobileViewTab === 'history' && !isDemoMode && (
                 <DocumentHistoryPanel
                   onSelect={loadHistory}

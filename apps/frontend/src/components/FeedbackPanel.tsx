@@ -356,7 +356,7 @@ export default function FeedbackPanel({
       </div>
 
       {/* ── Scrollable Body ── */}
-      <div className="relative min-h-0 flex-1 overflow-y-auto p-3">
+      <div className="relative min-h-0 flex-1 overflow-y-auto p-3 w-full max-w-full overflow-x-hidden min-w-0">
         <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-3">
 
           {result.changes && result.changes.length > 0 && (
@@ -411,9 +411,9 @@ export default function FeedbackPanel({
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2, ease: 'easeInOut' }}
-                    className="overflow-hidden"
+                    className="overflow-hidden min-w-0 w-full"
                   >
-                    <div className="px-3 pb-3 pt-1 space-y-3 text-xs">
+                    <div className="px-3 pb-3 pt-1 space-y-3 text-xs min-w-0 w-full overflow-hidden">
                       {[
                         { label: 'Title',            value: result.generatedMetadata.title },
                         { label: 'Slug',             value: result.generatedMetadata.slug, mono: true },
@@ -519,7 +519,7 @@ export default function FeedbackPanel({
               <motion.div
                 variants={itemVariants}
                 key={index}
-                className={`feedback-check overflow-hidden cursor-pointer ${isActiveCard ? 'is-active' : ''}`}
+                className={`feedback-check overflow-hidden cursor-pointer min-w-0 w-full ${isActiveCard ? 'is-active' : ''}`}
                 style={{
                   background: bgColor,
                   borderLeftColor: borderColor,
@@ -564,10 +564,10 @@ export default function FeedbackPanel({
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.18, ease: 'easeInOut' }}
-                      className="overflow-hidden"
+                      className="overflow-hidden min-w-0 w-full"
                   >
-                    <div className="px-3 pb-3 pt-1 space-y-3">
-                      <p className="text-xs leading-relaxed whitespace-pre-wrap break-words text-[var(--foreground)] opacity-85 w-full max-w-full overflow-x-auto">
+                    <div className="px-3 pb-3 pt-1 space-y-3 min-w-0 w-full overflow-hidden">
+                      <p className="text-xs leading-relaxed whitespace-pre-wrap break-words text-[var(--foreground)] opacity-85 w-full">
                         {item.message}
                       </p>
 
@@ -581,7 +581,7 @@ export default function FeedbackPanel({
                       )}
 
                       {item.targetText && !showApplyFeature && (
-                        <div className="ui-card-soft px-4 py-3">
+                        <div className="ui-card-soft px-4 py-3 min-w-0 w-full">
                           <span
                             className="text-[12px] font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5"
                             style={{ color: verificationMeta ? 'var(--warning)' : 'var(--primary)' }}
@@ -589,35 +589,35 @@ export default function FeedbackPanel({
                             <FileSearch className="w-3.5 h-3.5" />
                             {verificationMeta ? 'Flagged claim' : 'Target text'}
                           </span>
-                          <p className="text-xs leading-relaxed break-words whitespace-pre-wrap font-mono text-[var(--foreground)] opacity-90 w-full max-w-full overflow-x-auto">
+                          <p className="text-xs leading-relaxed break-words whitespace-pre-wrap font-mono text-[var(--foreground)] opacity-90 w-full">
                             {item.targetText}
                           </p>
                         </div>
                       )}
 
                       {item.reason && (
-                        <div className="ui-card-soft px-4 py-3 text-xs ui-muted">
+                        <div className="ui-card-soft px-4 py-3 text-xs ui-muted break-words whitespace-pre-wrap min-w-0 w-full">
                           <span className="font-bold ui-text">Reason: </span>
                           {item.reason}
                         </div>
                       )}
 
                       {item.suggestion && !showApplyFeature && (
-                        <div className="ui-card-soft px-4 py-3.5">
+                        <div className="ui-card-soft px-4 py-3.5 min-w-0 w-full">
                           <span
                             className="text-[12px] font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5"
                             style={{ color: 'var(--primary)' }}
                           >
                             <Wand2 className="w-3.5 h-3.5" /> Suggestion
                           </span>
-                          <p className="text-xs italic leading-relaxed break-words whitespace-pre-wrap text-[var(--foreground)] opacity-90 w-full max-w-full overflow-x-auto">
+                          <p className="text-xs italic leading-relaxed break-words whitespace-pre-wrap text-[var(--foreground)] opacity-90 w-full">
                             {item.suggestion}
                           </p>
                         </div>
                       )}
 
                       {showApplyFeature && (
-                        <div className="ui-card overflow-hidden">
+                        <div className="ui-card overflow-hidden min-w-0 w-full">
                           <div className="px-3.5 py-2.5 bg-[var(--surface-2)]">
                             <span className="text-[12px] font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'var(--primary)' }}>
                               <ArrowRightCircle className="w-3.5 h-3.5" />
@@ -629,7 +629,7 @@ export default function FeedbackPanel({
                             <div>
                               <span className="text-[12px] font-bold uppercase tracking-wider mb-1 block" style={{ color: 'var(--error)' }}>Before</span>
                               <p
-                                className="rounded-md px-3 py-2 text-xs line-through break-words whitespace-pre-wrap font-mono border-none w-full max-w-full overflow-x-auto"
+                                className="rounded-md px-3 py-2 text-xs line-through break-words whitespace-pre-wrap font-mono border-none w-full"
                                 style={{
                                   background: 'rgba(248,113,113,0.06)',
                                   color: 'var(--muted-foreground)',
@@ -642,7 +642,7 @@ export default function FeedbackPanel({
                             <div>
                               <span className="text-[12px] font-bold uppercase tracking-wider mb-1 block" style={{ color: 'var(--success)' }}>After</span>
                               <p
-                                className="rounded-md px-3 py-2 text-xs break-words whitespace-pre-wrap font-mono border-none w-full max-w-full overflow-x-auto"
+                                className="rounded-md px-3 py-2 text-xs break-words whitespace-pre-wrap font-mono border-none w-full"
                                 style={{
                                   background: 'rgba(74,222,128,0.06)',
                                   color: 'var(--foreground)',

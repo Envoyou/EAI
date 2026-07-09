@@ -706,6 +706,9 @@
 }
 
 .feedback-check {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   border: 1px solid var(--border);
   border-left-width: 3px;
   border-radius: var(--radius-md);
