@@ -573,10 +573,10 @@ export default function FeedbackPanel({
 
                       {verificationMeta && (
                         <div
-                          className={`ui-badge ${verificationMeta.className}`}
+                          className={`ui-badge ${verificationMeta.className} whitespace-normal flex-wrap h-auto py-1.5`}
                         >
-                          {VerificationIcon && <VerificationIcon className="w-3.5 h-3.5" />}
-                          <span>Verification Status: {verificationMeta.label}</span>
+                          {VerificationIcon && <VerificationIcon className="w-3.5 h-3.5 shrink-0" />}
+                          <span className="break-words">Verification Status: {verificationMeta.label}</span>
                         </div>
                       )}
 
@@ -589,7 +589,7 @@ export default function FeedbackPanel({
                             <FileSearch className="w-3.5 h-3.5" />
                             {verificationMeta ? 'Flagged claim' : 'Target text'}
                           </span>
-                          <p className="text-xs leading-relaxed break-words whitespace-pre-wrap font-mono text-[var(--foreground)] opacity-90 w-full">
+                          <p className="text-xs leading-relaxed break-all whitespace-pre-wrap font-mono text-[var(--foreground)] opacity-90 w-full">
                             {item.targetText}
                           </p>
                         </div>
@@ -629,7 +629,7 @@ export default function FeedbackPanel({
                             <div>
                               <span className="text-[12px] font-bold uppercase tracking-wider mb-1 block" style={{ color: 'var(--error)' }}>Before</span>
                               <p
-                                className="rounded-md px-3 py-2 text-xs line-through break-words whitespace-pre-wrap font-mono border-none w-full"
+                                className="rounded-md px-3 py-2 text-xs line-through break-all whitespace-pre-wrap font-mono border-none w-full"
                                 style={{
                                   background: 'rgba(248,113,113,0.06)',
                                   color: 'var(--muted-foreground)',
@@ -642,7 +642,7 @@ export default function FeedbackPanel({
                             <div>
                               <span className="text-[12px] font-bold uppercase tracking-wider mb-1 block" style={{ color: 'var(--success)' }}>After</span>
                               <p
-                                className="rounded-md px-3 py-2 text-xs break-words whitespace-pre-wrap font-mono border-none w-full"
+                                className="rounded-md px-3 py-2 text-xs break-all whitespace-pre-wrap font-mono border-none w-full"
                                 style={{
                                   background: 'rgba(74,222,128,0.06)',
                                   color: 'var(--foreground)',
