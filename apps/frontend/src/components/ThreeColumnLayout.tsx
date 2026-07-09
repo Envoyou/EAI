@@ -106,7 +106,7 @@ export default function ThreeColumnLayout({
       <Panel
         key={`${firstPanelId}-${firstPanelOpen}`}
         id={firstPanelId}
-        className={`${firstPanelClass} ${firstPanelOpen ? 'is-open' : ''}`}
+        className={`${firstPanelClass} ${firstPanelOpen ? 'is-open' : ''} min-w-0`}
         data-open={firstPanelOpen}
         defaultSize={firstPanelOpen ? `${firstDefaultSize}%` : '0%'}
         minSize={firstPanelOpen ? '15%' : '0%'}
@@ -122,7 +122,7 @@ export default function ThreeColumnLayout({
       <Panel
         key="center-panel"
         id="center-panel"
-        className="workspace-center-panel"
+        className="workspace-center-panel min-w-0"
         defaultSize={`${100 - leftDefaultSize - rightDefaultSize}%`}
         minSize="30%"
       >
@@ -134,7 +134,7 @@ export default function ThreeColumnLayout({
       <Panel
         key={`${lastPanelId}-${lastPanelOpen}`}
         id={lastPanelId}
-        className={`${lastPanelClass} ${lastPanelOpen ? 'is-open' : ''}`}
+        className={`${lastPanelClass} ${lastPanelOpen ? 'is-open' : ''} min-w-0`}
         data-open={lastPanelOpen}
         defaultSize={lastPanelOpen ? `${lastDefaultSize}%` : '0%'}
         minSize={lastPanelOpen ? '15%' : '0%'}

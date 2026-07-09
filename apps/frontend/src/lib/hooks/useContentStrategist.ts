@@ -933,6 +933,14 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     }
   }, [setUploadedAttachment]);
 
+  const cancelChat = useCallback(() => {
+    if (chatAbortControllerRef.current) {
+      chatAbortControllerRef.current.abort();
+      chatAbortControllerRef.current = null;
+    }
+    setIsTyping(false);
+  }, []);
+
   const handleSend = useCallback(async (forcedText?: string) => {
     const textToSend = forcedText ?? chatInput;
     if (!textToSend.trim()) return;
@@ -1173,5 +1181,6 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     togglePinSession,
     deleteSession,
     startNewChat,
+    cancelChat,
   };
 }

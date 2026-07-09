@@ -261,7 +261,7 @@ export default function FeedbackPanel({
 
   /* ─── SUCCESS STATE ─── */
   return (
-    <div className="ui-panel h-full">
+    <div className="ui-panel h-full min-w-0 w-full overflow-hidden">
       {/* ── Header ── */}
       <div className="ui-panel-header px-4 py-3">
         {/* Row 1: title + verdict + focus toggle */}
@@ -313,7 +313,7 @@ export default function FeedbackPanel({
         {/* Row 2: Final-draft quality gate summary */}
         <div className="feedback-score-summary flex items-start gap-4 mt-3">
           {result.summary && (
-            <p className="text-xs leading-relaxed flex-1 text-[var(--foreground)] opacity-80">
+            <p className="text-xs leading-relaxed flex-1 text-[var(--foreground)] opacity-80 break-words whitespace-pre-wrap">
               {result.summary}
             </p>
           )}
@@ -479,7 +479,7 @@ export default function FeedbackPanel({
               </h4>
               <ul className="list-disc pl-4 space-y-1">
                 {visibleFlags.map((flag, i) => (
-                  <li key={i} className="text-xs leading-relaxed">{flag}</li>
+                  <li key={i} className="text-xs leading-relaxed break-words whitespace-pre-wrap">{flag}</li>
                 ))}
               </ul>
             </motion.div>
@@ -567,7 +567,7 @@ export default function FeedbackPanel({
                       className="overflow-hidden"
                   >
                     <div className="px-3 pb-3 pt-1 space-y-3">
-                      <p className="text-xs leading-relaxed whitespace-pre-wrap break-words text-[var(--foreground)] opacity-85">
+                      <p className="text-xs leading-relaxed whitespace-pre-wrap break-words text-[var(--foreground)] opacity-85 w-full max-w-full overflow-x-auto">
                         {item.message}
                       </p>
 
@@ -589,7 +589,7 @@ export default function FeedbackPanel({
                             <FileSearch className="w-3.5 h-3.5" />
                             {verificationMeta ? 'Flagged claim' : 'Target text'}
                           </span>
-                          <p className="text-xs leading-relaxed break-words whitespace-pre-wrap font-mono text-[var(--foreground)] opacity-90">
+                          <p className="text-xs leading-relaxed break-words whitespace-pre-wrap font-mono text-[var(--foreground)] opacity-90 w-full max-w-full overflow-x-auto">
                             {item.targetText}
                           </p>
                         </div>
@@ -610,7 +610,7 @@ export default function FeedbackPanel({
                           >
                             <Wand2 className="w-3.5 h-3.5" /> Suggestion
                           </span>
-                          <p className="text-xs italic leading-relaxed break-words whitespace-pre-wrap text-[var(--foreground)] opacity-90">
+                          <p className="text-xs italic leading-relaxed break-words whitespace-pre-wrap text-[var(--foreground)] opacity-90 w-full max-w-full overflow-x-auto">
                             {item.suggestion}
                           </p>
                         </div>
@@ -629,7 +629,7 @@ export default function FeedbackPanel({
                             <div>
                               <span className="text-[12px] font-bold uppercase tracking-wider mb-1 block" style={{ color: 'var(--error)' }}>Before</span>
                               <p
-                                className="rounded-md px-3 py-2 text-xs line-through break-words whitespace-pre-wrap font-mono border-none"
+                                className="rounded-md px-3 py-2 text-xs line-through break-words whitespace-pre-wrap font-mono border-none w-full max-w-full overflow-x-auto"
                                 style={{
                                   background: 'rgba(248,113,113,0.06)',
                                   color: 'var(--muted-foreground)',
@@ -642,7 +642,7 @@ export default function FeedbackPanel({
                             <div>
                               <span className="text-[12px] font-bold uppercase tracking-wider mb-1 block" style={{ color: 'var(--success)' }}>After</span>
                               <p
-                                className="rounded-md px-3 py-2 text-xs break-words whitespace-pre-wrap font-mono border-none"
+                                className="rounded-md px-3 py-2 text-xs break-words whitespace-pre-wrap font-mono border-none w-full max-w-full overflow-x-auto"
                                 style={{
                                   background: 'rgba(74,222,128,0.06)',
                                   color: 'var(--foreground)',

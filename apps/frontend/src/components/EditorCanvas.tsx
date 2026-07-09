@@ -55,6 +55,7 @@ interface EditorCanvasProps {
   onOpenShortcuts: () => void;
   layoutReversed?: boolean;
   onToggleLayoutReversed?: () => void;
+  isGeneratingDraft?: boolean;
 }
 
 export default function EditorCanvas({
@@ -93,6 +94,7 @@ export default function EditorCanvas({
   onOpenShortcuts,
   layoutReversed,
   onToggleLayoutReversed,
+  isGeneratingDraft = false,
 }: EditorCanvasProps) {
   const router = useRouter();
 
@@ -172,7 +174,7 @@ export default function EditorCanvas({
                 onChange={onDraftChange}
                 metadata={metadata}
                 onMetadataChange={onMetadataChange}
-                isLoading={analysis.status === 'loading'}
+                isLoading={analysis.status === 'loading' || isGeneratingDraft}
                 onAnalyze={onAnalyze}
                 categoryOptions={editorialOptions.categories}
                 articleTypeOptions={editorialOptions.articleTypes}

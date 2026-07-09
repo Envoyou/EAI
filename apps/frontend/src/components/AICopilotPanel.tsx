@@ -129,6 +129,7 @@ export default function AICopilotPanel({
             togglePinSession={strategist.togglePinSession}
             deleteSession={strategist.deleteSession}
             startNewChat={strategist.startNewChat}
+            onCancelChat={strategist.cancelChat}
           />
         );
       case 'feedback':
@@ -180,7 +181,7 @@ export default function AICopilotPanel({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[var(--surface-1)] border-l border-[var(--border)]">
+    <div className="flex flex-col h-full bg-[var(--surface-1)] border-l border-[var(--border)] min-w-0 w-full overflow-hidden">
       <div className="flex items-center justify-between border-b border-[var(--border)] px-1">
         <div className="flex items-center">
           {TABS.map((tab) => (

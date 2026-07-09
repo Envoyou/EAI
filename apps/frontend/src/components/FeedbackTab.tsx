@@ -26,7 +26,7 @@ interface FeedbackTabProps {
 
 export default function FeedbackTab(props: FeedbackTabProps) {
   return (
-    <div className="h-full overflow-hidden">
+    <div className="h-full overflow-hidden min-w-0 w-full">
       <FeedbackPanel
         {...props}
         isSidebarMode={true}

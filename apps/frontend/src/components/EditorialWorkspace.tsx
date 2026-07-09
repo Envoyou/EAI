@@ -567,6 +567,8 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     setProcessStartedAt(Date.now());
     // Switch to final tab immediately when loading starts
     setActiveTab('refined');
+    setRightPanelOpen(true);
+    setRightPanelTab('feedback');
     if (isMobile) {
       setMobileViewTab('copilot');
     }
@@ -755,6 +757,8 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
     setProcessStartedAt(Date.now());
     draftChunkBufferRef.current = '';
     setAnalysis(prev => ({ ...prev, polishedDraft: '', readiness: undefined, changes: [], feedback: [], flags: [], score: undefined, verdict: undefined }));
+    setRightPanelOpen(true);
+    setRightPanelTab('feedback');
     if (isMobile) {
       setMobileViewTab('copilot');
     }
@@ -1624,6 +1628,7 @@ return (
                   editorialOptions={editorialOptions}
                   activeTab={activeTab}
                   onTabChange={setActiveTab}
+                  isGeneratingDraft={isGeneratingDraftFromNotes}
                   hasResult={hasResult}
                   sidebarOpen={sidebarOpen}
                   onToggleSidebar={() => setSidebarOpen(p => !p)}
@@ -1809,6 +1814,7 @@ return (
                 editorialOptions={editorialOptions}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
+                isGeneratingDraft={isGeneratingDraftFromNotes}
                 hasResult={hasResult}
                 sidebarOpen={sidebarOpen}
                 onToggleSidebar={() => setSidebarOpen(p => !p)}

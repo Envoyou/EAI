@@ -1,7 +1,7 @@
 import { ArticleMetadata } from '@eai/shared';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Sparkles } from 'lucide-react';
+import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Sparkles, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { useState, useRef, useEffect } from 'react';
@@ -418,6 +418,15 @@ const [isWritingManually, setIsWritingManually] = useState(false);
           </div>
         ) : (
           <div className="relative flex-1 w-full overflow-y-auto" onClick={() => editor?.commands.focus()}>
+            {isLoading && !value && (
+              <div className="absolute inset-0 z-50 bg-[var(--surface-1)]/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 select-none">
+                <Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" />
+                <div className="text-center">
+                  <p className="text-xs font-bold text-[var(--foreground)]">EAI is Drafting...</p>
+                  <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">Synthesizing research notes and generating your content...</p>
+                </div>
+              </div>
+            )}
             {editor && <BubbleMenuAI editor={editor} />}
             <EditorContent editor={editor} className="w-full h-full" />
           </div>

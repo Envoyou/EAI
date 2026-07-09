@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
-import { ArrowUp, Loader2, Copy, Bookmark, Download, RotateCcw, FileText, Paperclip, X, Globe, Plus, MessageSquare, Pin, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { ArrowUp, Loader2, Copy, Bookmark, Download, RotateCcw, FileText, Paperclip, X, Globe, Plus, MessageSquare, Pin, Pencil, Trash2, MoreVertical, Square } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useUser } from '@clerk/nextjs';
@@ -40,6 +40,7 @@ interface StrategistTabProps {
   togglePinSession: (id: string) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
   startNewChat: () => void;
+  onCancelChat?: () => void;
 }
 
 export default function StrategistTab({
@@ -70,6 +71,7 @@ export default function StrategistTab({
   togglePinSession,
   deleteSession,
   startNewChat,
+  onCancelChat,
 }: StrategistTabProps) {
   const { user } = useUser();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -649,12 +651,17 @@ export default function StrategistTab({
                   </Select>
 
                   <button
-                    onClick={() => handleSend()}
-                    disabled={(!chatInput.trim() && !uploadedAttachment) || isTyping}
-                    className="ui-btn ui-btn-primary ui-btn-icon rounded-full disabled:opacity-30 cursor-pointer shrink-0"
+                    onClick={isTyping ? onCancelChat : () => handleSend()}
+                    disabled={!isTyping && !chatInput.trim() && !uploadedAttachment}
+                    className={`ui-btn ui-btn-icon rounded-full cursor-pointer shrink-0 ${
+                      isTyping
+                        ? 'ui-btn-danger'
+                        : 'ui-btn-primary disabled:opacity-30'
+                    }`}
+                    title={isTyping ? 'Cancel generation' : 'Send message'}
                   >
                     {isTyping ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Square className="w-3 h-3 fill-current" />
                     ) : (
                       <ArrowUp className="w-3.5 h-3.5" />
                     )}

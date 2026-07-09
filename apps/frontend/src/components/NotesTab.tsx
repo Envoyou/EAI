@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, ChevronDown, ChevronUp, Notebook, Wand2 } from 'lucide-react';
+import { Square, X, ChevronDown, ChevronUp, Notebook, Wand2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -84,12 +84,21 @@ export default function NotesTab({
             }`}
           >
             {isGeneratingDraft ? (
-              <X className="w-3.5 h-3.5 shrink-0" />
+              <Square className="w-3 h-3 fill-current shrink-0" />
             ) : (
               <Wand2 className="w-3 h-3" />
             )}
             {isGeneratingDraft ? 'Cancel Generation' : 'Generate Draft from Notes'}
           </button>
+          {isGeneratingDraft && (
+            <div className="mt-2 p-2.5 bg-[var(--primary)]/5 border border-[var(--primary)]/10 rounded-lg flex items-center gap-2.5">
+              <div className="w-3.5 h-3.5 border-2 border-[var(--primary)] border-r-transparent rounded-full animate-spin shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-[var(--foreground)] leading-none">EAI is Drafting...</p>
+                <p className="text-[9px] text-[var(--muted-foreground)] mt-1.5 leading-none">Synthesizing notes into a fresh draft...</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
