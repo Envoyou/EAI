@@ -10,6 +10,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Shallow and Deep Health Checks**: Implemented `/health` (shallow probe, returning in <5ms for process liveness) and `/api/health` (deep probe for dependency monitoring) endpoints.
 - **Parallel Dependency Verification**: The deep health check queries Database (Prisma/Postgres `SELECT 1`), Redis (`PING`), Clerk Auth (`/v1/instance`), Cloudflare R2 Storage (`HeadBucket`), active AI Providers (Gemini/OpenRouter/Groq API metadata keys), Midtrans (`healthcheck-ping-dummy`), and active email integrations in parallel.
 - **Resilient Timeout & Severity**: Configured a `3000ms` timeout per dependency to prevent blocking. Dependency errors are classified into critical (returns HTTP 503) and non-critical (returns HTTP 200 with `degraded` status) to avoid unnecessary alerts.
+- **User Journey Monitoring**: Added `/api/health/journey` to verify the end-to-end user workflows (Onboarding, Strategist Chat & Sessions, Workspace configuration, AI Analysis, In-Editor Actions, History retrieval, Exporting drafts, Payments and Checkout flows) in parallel, checking whether auth-protected routes are alive (expecting 401/403) and public routes are accessible (expecting 200).
+- **BullMQ Worker, Edge Config & Exchange Rate Checks**: Integrated active worker verification (checking worker counts and queue status) into `/api/health` as a critical dependency (in production), along with Vercel Edge Config (feature flags) and Exchange Rate API checks to ensure complete system liveness.
 - **System Monitoring Metadata**: Included version, git commit SHA, process uptime, startedAt timestamp, and individual service latencies in the health JSON payload for better debugging.
 
 ## [3.0.2] - 2026-07-09
