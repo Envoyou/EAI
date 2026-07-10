@@ -117,6 +117,7 @@ apps/backend/
 │       ├── analytics.ts      # GET /api/analytics — usage analytics
 │       ├── editor.ts         # /api/editor — editor state management
 │       ├── storage.ts        # /api/storage — R2 file storage
+│       ├── health.ts         # GET /health, /api/health — shallow & deep health checks
 │       ├── strategist/
 │       │   ├── index.ts      # /api/strategist — content strategy AI
 │       │   └── quick-draft.ts  # /api/strategist/quick-draft — quick draft gen
@@ -196,7 +197,7 @@ Master prompts for all stages live in `src/lib/prompts.ts`. Never write inline p
 Before submitting a PR for backend changes:
 - [ ] `npm run lint -- --filter=backend` passes with zero errors
 - [ ] `npm run build -- --filter=backend` compiles without TypeScript errors
-- [ ] New routes are protected by the Clerk auth middleware
+- [ ] New routes are protected by the Clerk auth middleware (except public endpoints like health check)
 - [ ] No plain-text credentials written to the database
 - [ ] Prisma schema changes accompanied by a migration file (`npx prisma migrate dev`)
 - [ ] AI prompt changes follow the caching structure (static instructions first, dynamic last)

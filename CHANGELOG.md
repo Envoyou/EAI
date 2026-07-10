@@ -4,6 +4,14 @@ All notable changes to the **Envoyou AI Editorial System** project will be docum
 
 The format of this file is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.3] - 2026-07-10
+
+### Added
+- **Shallow and Deep Health Checks**: Implemented `/health` (shallow probe, returning in <5ms for process liveness) and `/api/health` (deep probe for dependency monitoring) endpoints.
+- **Parallel Dependency Verification**: The deep health check queries Database (Prisma/Postgres `SELECT 1`), Redis (`PING`), Clerk Auth (`/v1/instance`), Cloudflare R2 Storage (`HeadBucket`), active AI Providers (Gemini/OpenRouter/Groq API metadata keys), Midtrans (`healthcheck-ping-dummy`), and active email integrations in parallel.
+- **Resilient Timeout & Severity**: Configured a `3000ms` timeout per dependency to prevent blocking. Dependency errors are classified into critical (returns HTTP 503) and non-critical (returns HTTP 200 with `degraded` status) to avoid unnecessary alerts.
+- **System Monitoring Metadata**: Included version, git commit SHA, process uptime, startedAt timestamp, and individual service latencies in the health JSON payload for better debugging.
+
 ## [3.0.2] - 2026-07-09
 
 ### Fixed

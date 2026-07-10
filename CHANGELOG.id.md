@@ -4,6 +4,14 @@ Semua perubahan penting pada proyek **Envoyou AI Editorial System** akan didokum
 
 Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/id/1.0.0/) dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.3] - 2026-07-10
+
+### Added
+- **Pemeriksaan Kesehatan Dangkal dan Mendalam (Health Check)**: Mengimplementasikan endpoint `/health` (shallow check, <5ms untuk deteksi liveness) dan `/api/health` (deep check untuk pemantauan dependency).
+- **Verifikasi Dependency Paralel**: Endpoint `/api/health` melakukan kueri secara paralel ke Database (Prisma/Postgres `SELECT 1`), Redis (`PING`), Clerk Auth (`/v1/instance`), Cloudflare R2 Storage (`HeadBucket`), API provider AI aktif (Gemini/OpenRouter/Groq), Midtrans (`healthcheck-ping-dummy`), dan sistem email (Mailgun/Resend).
+- **Timeout Tangguh & Severity**: Menerapkan batas waktu `3000ms` per dependency untuk mencegah endpoint hang. Layanan dikelompokkan menjadi kritis (mengembalikan HTTP 503) dan non-kritis (mengembalikan HTTP 200 dengan status `degraded`) untuk menghindari alarm palsu yang tidak perlu.
+- **Metrik Sistem**: Menyertakan informasi versi, git commit SHA, uptime proses, timestamp startup, dan latency detail per layanan pada respon JSON untuk memudahkan debugging.
+
 ## [3.0.2] - 2026-07-09
 
 ### Fixed

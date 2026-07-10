@@ -21,6 +21,7 @@ import strategistRouter from './routes/strategist';
 import strategistQuickDraftRouter from './routes/strategist/quick-draft';
 import editorRouter from './routes/editor';
 import storageRouter from './routes/storage';
+import healthRouter from './routes/health';
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -66,9 +67,7 @@ app.use(
 app.use(express.urlencoded({ extended: true }));
 
 // Health Check
-app.get(['/health', '/api/health'], (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+app.use(['/health', '/api/health'], healthRouter);
 
 // Register routers
 app.use('/api/workspace', workspaceRouter);
