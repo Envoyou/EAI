@@ -244,6 +244,30 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
         }),
         TIMEOUT_MS, 'Midtrans'
       );
+
+      // Fallback: If 401/403 on production, try sandbox in case it's a sandbox key without SB- prefix
+      if ((r.status === 401 || r.status === 403) && !isSandbox) {
+        try {
+          const fallbackBase = 'https://api.sandbox.midtrans.com';
+          const fallbackR = await withTimeout(
+            fetch(`${fallbackBase}/v2/healthcheck-ping-dummy/status`, {
+              headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
+            }),
+            TIMEOUT_MS, 'Midtrans Sandbox Fallback'
+          );
+          if (fallbackR.status === 404 || fallbackR.status === 200) {
+            return {
+              status: 'healthy',
+              critical: false,
+              latencyMs: Date.now() - t,
+              detail: 'sandbox mode (fallback)'
+            };
+          }
+        } catch {
+          // Ignore fallback error and proceed to handle the original error
+        }
+      }
+
       if (r.status === 404 || r.status === 200) {
         return {
           status: 'healthy',
