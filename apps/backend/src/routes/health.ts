@@ -11,9 +11,17 @@ const router = Router();
 const startedAt = new Date().toISOString();
 
 // Cache version and git commit to avoid reading filesystem/running process on every call
-let version = '3.0.2';
+let version = '3.0.3';
 try {
-  const packageJsonPath = path.join(__dirname, '../../package.json');
+  let packageJsonPath = path.join(process.cwd(), 'package.json');
+  if (!fs.existsSync(packageJsonPath)) {
+    // Fallback: search relative to __dirname (handles both src/routes/ and dist/ structures)
+    packageJsonPath = path.join(__dirname, '../package.json');
+    if (!fs.existsSync(packageJsonPath)) {
+      packageJsonPath = path.join(__dirname, '../../package.json');
+    }
+  }
+  
   if (fs.existsSync(packageJsonPath)) {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     version = packageJson.version;
