@@ -230,19 +230,28 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
   // I. Midtrans (dummy order lookup — 404 = credentials valid, server reachable)
   const checkMidtrans = async (): Promise<ServiceHealth> => {
     const t = Date.now();
-    if (!process.env.MIDTRANS_SERVER_KEY) return { status: 'not_configured', critical: false, latencyMs: 0 };
+    const serverKey = process.env.MIDTRANS_SERVER_KEY;
+    if (!serverKey) return { status: 'not_configured', critical: false, latencyMs: 0 };
     if (process.env.MIDTRANS_ENABLE_SIMULATOR === 'true') return { status: 'simulated', critical: false, latencyMs: 0 };
     try {
-      const isProduction = process.env.MIDTRANS_IS_PRODUCTION === 'true';
-      const base = isProduction ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com';
-      const auth = Buffer.from(`${process.env.MIDTRANS_SERVER_KEY}:`).toString('base64');
+      // Auto-detect sandbox mode if key starts with SB- or if IS_PRODUCTION is false
+      const isSandbox = serverKey.startsWith('SB-') || process.env.MIDTRANS_IS_PRODUCTION !== 'true';
+      const base = isSandbox ? 'https://api.sandbox.midtrans.com' : 'https://api.midtrans.com';
+      const auth = Buffer.from(`${serverKey}:`).toString('base64');
       const r = await withTimeout(
         fetch(`${base}/v2/healthcheck-ping-dummy/status`, {
           headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
         }),
         TIMEOUT_MS, 'Midtrans'
       );
-      if (r.status === 404 || r.status === 200) return { status: 'healthy', critical: false, latencyMs: Date.now() - t };
+      if (r.status === 404 || r.status === 200) {
+        return {
+          status: 'healthy',
+          critical: false,
+          latencyMs: Date.now() - t,
+          detail: isSandbox ? 'sandbox mode' : 'production mode'
+        };
+      }
       if (r.status === 401 || r.status === 403) throw new Error(`Midtrans auth failed (HTTP ${r.status})`);
       throw new Error(`Midtrans API responded with HTTP ${r.status}`);
     } catch (err) {
@@ -284,6 +293,22 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
   // K. Vercel Edge Config (Feature Flags)
   const checkEdgeConfig = async (): Promise<ServiceHealth> => {
     const t = Date.now();
+    const edgeConfigConnection = process.env.EDGE_CONFIG;
+    if (edgeConfigConnection) {
+      try {
+        // Query the connection string directly since it contains the read-only token
+        const r = await withTimeout(
+          fetch(edgeConfigConnection),
+          TIMEOUT_MS,
+          'Edge Config'
+        );
+        if (!r.ok) throw new Error(`Edge Config responded with HTTP ${r.status}`);
+        return { status: 'healthy', critical: false, latencyMs: Date.now() - t };
+      } catch (err) {
+        return { status: 'unhealthy', critical: false, error: err instanceof Error ? err.message : String(err), latencyMs: Date.now() - t };
+      }
+    }
+
     const edgeConfigId = process.env.EDGE_CONFIG_ID;
     const vercelToken = process.env.VERCEL_API_TOKEN;
     if (!edgeConfigId || !vercelToken) return { status: 'not_configured', critical: false, latencyMs: 0 };
