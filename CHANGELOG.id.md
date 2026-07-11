@@ -6,8 +6,21 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Peralihan Mode Editor Rich Text & Raw Markdown**: Mengimplementasikan tombol pengalih visual di panel editor untuk beralih antara mode Rich Text (Tiptap) dan Raw Markdown (tersinkronisasi dengan localStorage). Kedua layout dirender bersamaan via manipulasi visibilitas CSS untuk menjaga riwayat kursor/pilihan teks dengan sinkronisasi konten dua arah secara instan.
+- **Popover Hover Edit Link**: Menambahkan pendengar event hover pada teks tautan (`<a>`) di editor Tiptap yang memunculkan popover absolut (relatif terhadap scroll container) untuk melihat detail link, mengedit, atau menghapusnya.
+- **Penyunting Tautan Bubble Menu**: Menggantikan tombol AI "Rewrite" di bubble menu teks terpilih dengan form input tautan inline yang mendukung penambahan, pengubahan, dan penghapusan link. Dilengkapi penanganan stop-propagation agar kursor penulisan tidak dicuri oleh ProseMirror.
+
+### Changed
+- **Penyelarasan Tombol AI Preview**: Memperbarui tombol aksi (Accept/Reject) pada blok preview AI (Shorten & Expand) agar menggunakan kelas standar `.ui-btn`. Disematkan gaya inline warna teks untuk menimpa aturan pewarisan warna `.prose` dan `.editor-canvas` agar tampil konsisten (biru brand di mode terang, putih monokrom di mode gelap).
+- **Popup Link Resizable**: Mengonfigurasi popup hover link dan inline bubble menu link editor agar dapat diubah ukurannya ke samping maupun bawah (`resize: both`, `overflow: auto`). Menambahkan batas tinggi minimal dinamis (`minHeight: 200px` saat mengedit, `56px` saat membaca) pada popup hover agar konten input dan tombol tidak terpotong saat diperkecil.
+- **Pembersihan Slash Command**: Menghapus opsi rekomendasi perintah "Rewrite (AI)" dari menu slash `/` editor Tiptap secara keseluruhan.
+
 ### Fixed
 - **Bug Penyimpanan Blueprint**: Memperbaiki bug di mana blueprint yang dihasilkan di panel obrolan Content Strategist hilang setelah refresh browser, berpindah menu, atau saat membuat draf baru. Masalah diselesaikan dengan bermigrasi dari `fetch` biasa ke `directFetch` yang terautentikasi di frontend hook, memastikan callback merujuk pada `currentSessionId` terbaru, serta menambahkan logika pembuatan sesi otomatis di backend `/api/strategist/generate-plan` jika `sessionId` bernilai `'new'`.
+- **Bug Karakter Escape saat Paste Markdown**: Mengaktifkan `transformPastedText` dan `transformCopiedText` pada konfigurasi ekstensi Markdown di editor Tiptap untuk memproses teks markdown hasil tempel langsung menjadi node format terstruktur alih-alih melarikan (double-escaping) baris heading dengan karakter backslash.
+- **Peringatan Duplikasi Ekstensi Link Tiptap**: Menyelesaikan peringatan browser `Duplicate extension names found: ['link']` dengan memindahkan opsi ekstensi tautan langsung ke dalam konfigurasi `StarterKit.configure`.
+- **Warna Teks Link Mode Gelap di Editor**: Menambahkan aturan CSS `.dark .prose a` untuk memastikan teks tautan di editor mode gelap tetap berwarna biru (`#3b95d9`) yang kontras, alih-alih terbalik menjadi putih karena pewarisan tema gelap Tailwind Typography.
 
 ## [3.0.3] - 2026-07-10
 

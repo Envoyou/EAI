@@ -24,13 +24,15 @@ export const AIPreviewBlockComponent = ({ node, editor }: NodeViewProps) => {
         <div className="flex items-center gap-2">
           <button
             onClick={handleReject}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+            className="ui-btn ui-btn-muted ui-btn-xs"
+            style={{ color: 'var(--muted-foreground)' }}
           >
             <X className="h-3 w-3" /> Reject
           </button>
           <button
             onClick={handleAccept}
-            className="flex items-center gap-1 rounded-md bg-[var(--primary)] px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-[var(--primary)]/90"
+            className="ui-btn ui-btn-primary ui-btn-xs"
+            style={{ color: 'var(--primary-foreground)' }}
           >
             <Check className="h-3 w-3" /> Accept
           </button>

@@ -6,8 +6,21 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Rich Text & Raw Markdown Editor Toggle**: Implemented visual switcher in the editor panel to toggle between Rich Text (Tiptap) and Raw Markdown mode (with localStorage persistence). Rendered both modes concurrently via CSS visibility to preserve editor selection history, with instant bidirectional synchronization on toggle.
+- **Hover Link Edit Popover**: Added custom hover event listener over anchor links (`<a>`) in Tiptap editor that displays a scroll-relative absolute-positioned popover with link details, edit button, and deletion action.
+- **Bubble Menu Link Editor**: Replaced the AI "Rewrite" button inside the text bubble menu with an inline Link insertion form that supports adding, editing, and unlinking text anchors. Included stop-propagation handlers to isolate inputs from ProseMirror focus theft.
+
+### Changed
+- **AI Preview Button Alignment**: Restructured AI preview block (Shorten/Expand) action buttons (Accept/Reject) to use standard `ui-btn` class selectors. Applied inline styles to override Tailwind Typography's parent `.prose` and `.editor-canvas` color rules, ensuring proper brand-blue in light mode and monochrome-white in dark mode.
+- **Resizable Link Menus**: Configured both the hover link edit popover and the inline bubble menu link editor to be resizable in both directions (`resize: both`, `overflow: auto`). Equipped the hover popover with a dynamic `minHeight` threshold (200px when editing, 56px when viewing) to prevent form truncation.
+- **Slash Command Clean-up**: Completely removed the "Rewrite (AI)" suggestion command from the editor's slash commands menu.
+
 ### Fixed
 - **Blueprint Saving Bug**: Fixed a bug where generated blueprints in the Content Strategist chat panel disappeared upon refresh, menu transition, or initiating a new draft. This was resolved by migrating raw `fetch` to authenticated `directFetch` in the frontend hook, ensuring the callback has updated `currentSessionId` state references, and adding fallback logic in the backend `generate-plan` endpoint to automatically create a new `ChatSession` in the database if `sessionId` is `'new'`.
+- **Markdown Paste Escape Bug**: Set `transformPastedText` and `transformCopiedText` to true in the Markdown extension configuration to ensure pasted markdown parses directly into nodes instead of double-escaping headings with backslashes.
+- **Duplicate Tiptap Link Extension Warning**: Resolved duplicate registration warnings for the `'link'` extension by configuring it directly inside `StarterKit.configure` rather than importing it independently.
+- **Dark Mode Link Color Visibility**: Added explicit CSS rule `.dark .prose a` targeting anchor links inside dark-theme prose containers to force them to blue (`#3b95d9`) instead of defaulting to white.
 
 ## [3.0.3] - 2026-07-10
 

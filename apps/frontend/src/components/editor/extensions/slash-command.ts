@@ -3,7 +3,7 @@ import Suggestion, { SuggestionOptions, SuggestionProps } from '@tiptap/suggesti
 import { ReactRenderer } from '@tiptap/react';
 import tippy, { Instance as TippyInstance } from 'tippy.js';
 import { CommandList } from './CommandList';
-import { LucideIcon, Heading1, Heading2, Heading3, List, ListOrdered, Quote, Wand2, Search, Minimize2, Maximize2 } from 'lucide-react';
+import { LucideIcon, Heading1, Heading2, Heading3, List, ListOrdered, Quote, Search, Minimize2, Maximize2 } from 'lucide-react';
 
 export interface CommandItem {
   title: string;
@@ -63,15 +63,6 @@ export const getSuggestionItems = ({ query }: { query: string }): CommandItem[] 
       },
     },
     // AI Commands
-    {
-      title: 'Rewrite (AI)',
-      description: 'Rewrite the previous paragraph.',
-      icon: Wand2,
-      command: ({ editor, range }: { editor: Editor; range: Range }) => {
-        editor.chain().focus().deleteRange(range).run();
-        editor.commands.triggerAiAction('rewrite');
-      },
-    },
     {
       title: 'Expand (AI)',
       description: 'Expand the previous paragraph.',

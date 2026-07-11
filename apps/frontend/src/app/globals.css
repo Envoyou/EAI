@@ -359,6 +359,11 @@
   --tw-prose-td-borders:  var(--border);
 }
 
+.dark .prose a,
+.dark [class*="prose-"] a {
+  color: #3b95d9 !important;
+}
+
 .prose h1, .prose h2, .prose h3 {
   font-family: var(--font-display);
   font-weight: 400;

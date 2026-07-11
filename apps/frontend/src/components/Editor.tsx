@@ -1,7 +1,7 @@
 import { ArticleMetadata } from '@eai/shared';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Sparkles, Loader2 } from 'lucide-react';
+import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Sparkles, Loader2, Type, Code } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { useState, useRef, useEffect } from 'react';
@@ -9,6 +9,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Markdown } from 'tiptap-markdown';
+
 import { SlashCommand, renderItems, getSuggestionItems } from './editor/extensions/slash-command';
 import { BubbleMenuAI } from './editor/BubbleMenuAI';
 import { AIPreviewExtension } from './editor/extensions/ai-preview-extension';
@@ -63,17 +64,74 @@ export default function Editor({
   const [placeholder, setPlaceholder] = useState(PLACEHOLDERS[0]);
   const isOverLimit = value.length > charLimit;
 
+  // Editor mode state: 'tiptap' (Rich Text) or 'markdown' (Raw Markdown)
+  const [editorMode, setEditorMode] = useState<'tiptap' | 'markdown'>('tiptap');
+
   // AI Drafting Assistant States
-const [isWritingManually, setIsWritingManually] = useState(false);
+  const [isWritingManually, setIsWritingManually] = useState(false);
   const prevValueRef = useRef(value);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Link hover popup states
+  interface HoveredLink {
+    href: string;
+    text: string;
+    node: HTMLAnchorElement;
+    top: number;
+    left: number;
+    pos: number;
+  }
+  const [hoveredLink, setHoveredLink] = useState<HoveredLink | null>(null);
+  const [isEditingLink, setIsEditingLink] = useState(false);
+  const [tempHref, setTempHref] = useState('');
+  const [tempText, setTempText] = useState('');
+
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startCloseTimeout = () => {
+    if (isEditingLink) return;
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
+      setHoveredLink(null);
+    }, 400);
+  };
+
+  const cancelCloseTimeout = () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+  };
+
+  useEffect(() => {
+    if (hoveredLink) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTempHref(hoveredLink.href);
+      setTempText(hoveredLink.text);
+    } else {
+      setIsEditingLink(false);
+    }
+  }, [hoveredLink]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        link: {
+          openOnClick: false,
+          autolink: true,
+        },
+      }),
       Placeholder.configure({ placeholder }),
-      Markdown,
+      Markdown.configure({
+        transformPastedText: true,
+        transformCopiedText: true,
+      }),
       Table.configure({
         resizable: true,
       }),
@@ -108,15 +166,113 @@ const [isWritingManually, setIsWritingManually] = useState(false);
         }
         return false;
       },
+      handleDOMEvents: {
+        mouseover: (view, event) => {
+          const target = event.target as HTMLElement;
+          const anchor = target.closest('a');
+          if (anchor && scrollContainerRef.current) {
+            cancelCloseTimeout();
+            const href = anchor.getAttribute('href') || '';
+            const text = anchor.textContent || '';
+            const pos = view.posAtDOM(anchor, 0);
+
+            const rect = anchor.getBoundingClientRect();
+            const containerRect = scrollContainerRef.current.getBoundingClientRect();
+
+            const top = rect.bottom - containerRect.top + scrollContainerRef.current.scrollTop;
+            const left = rect.left - containerRect.left + scrollContainerRef.current.scrollLeft + (rect.width / 2);
+
+            setHoveredLink({
+              href,
+              text,
+              node: anchor,
+              top,
+              left,
+              pos,
+            });
+          }
+          return false;
+        },
+        mouseout: () => {
+          startCloseTimeout();
+          return false;
+        },
+      },
     },
     onFocus: () => setIsFocused(true),
     onBlur: () => setIsFocused(false),
   });
 
+  const handleSaveLink = () => {
+    if (!editor || !hoveredLink) return;
+
+    editor.chain()
+      .focus()
+      .setTextSelection({ from: hoveredLink.pos, to: hoveredLink.pos + 1 })
+      .extendMarkRange('link')
+      .run();
+
+    if (tempHref.trim() === '') {
+      editor.chain().focus().unsetLink().run();
+    } else {
+      editor.chain().focus().setLink({ href: tempHref }).run();
+    }
+
+    if (tempText !== hoveredLink.text && tempText.trim() !== '') {
+      editor.chain()
+        .focus()
+        .insertContent({
+          type: 'text',
+          text: tempText,
+          marks: [{ type: 'link', attrs: { href: tempHref } }],
+        })
+        .run();
+    }
+
+    toast.success('Link updated');
+    setIsEditingLink(false);
+    setHoveredLink(null);
+  };
+
+  const handleRemoveLink = () => {
+    if (!editor || !hoveredLink) return;
+    editor.chain()
+      .focus()
+      .setTextSelection({ from: hoveredLink.pos, to: hoveredLink.pos + 1 })
+      .extendMarkRange('link')
+      .unsetLink()
+      .run();
+
+    toast.success('Link removed');
+    setHoveredLink(null);
+  };
+
+  useEffect(() => {
+    const savedMode = localStorage.getItem('eai_editor_mode');
+    if (savedMode === 'tiptap' || savedMode === 'markdown') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setEditorMode(savedMode);
+    }
+  }, []);
+
+  const handleModeChange = (newMode: 'tiptap' | 'markdown') => {
+    if (newMode === editorMode) return;
+
+    if (editorMode === 'tiptap' && editor) {
+      const md = (editor.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
+      onChange(md);
+      prevValueRef.current = md;
+    } else if (newMode === 'tiptap' && editor) {
+      editor.commands.setContent(value);
+    }
+    setEditorMode(newMode);
+    localStorage.setItem('eai_editor_mode', newMode);
+  };
+
   useEffect(() => {
     if (!editor) return;
     const interval = setInterval(() => {
-      if (!isFocused) return;
+      if (!isFocused || editorMode !== 'tiptap') return;
       const md = (editor.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
       if (md !== prevValueRef.current) {
         onChange(md);
@@ -124,10 +280,10 @@ const [isWritingManually, setIsWritingManually] = useState(false);
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [editor, isFocused, onChange]);
+  }, [editor, isFocused, onChange, editorMode]);
 
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editorMode !== 'tiptap') return;
     try {
       const currentMarkdown = (editor.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
       if (value !== currentMarkdown) {
@@ -136,7 +292,7 @@ const [isWritingManually, setIsWritingManually] = useState(false);
     } catch (e) {
       console.error('Error synchronizing editor content:', e);
     }
-  }, [value, editor]);
+  }, [value, editor, editorMode]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -192,7 +348,7 @@ const [isWritingManually, setIsWritingManually] = useState(false);
       >
         {/* Panel Header */}
         <div className="ui-panel-header px-4 py-3 md:px-5">
-          {/* Top row: Title + Actions */}
+          {/* Top row: Title + Switcher + Actions */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <FileEdit className="w-3.5 h-3.5 shrink-0 ui-muted" />
@@ -205,6 +361,25 @@ const [isWritingManually, setIsWritingManually] = useState(false);
                 </p>
               </div>
             </div>
+
+            {/* Editor Mode Toggle */}
+            <div className="flex items-center bg-[var(--surface-2)] rounded-lg p-0.5 border border-[var(--border)] shrink-0">
+              <button
+                onClick={() => handleModeChange('tiptap')}
+                className={`flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md transition duration-150 ${editorMode === 'tiptap' ? 'bg-[var(--surface-1)] text-[var(--foreground)] shadow-sm' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}
+              >
+                <Type className="w-3 h-3" />
+                <span className="max-sm:hidden">Rich Text</span>
+              </button>
+              <button
+                onClick={() => handleModeChange('markdown')}
+                className={`flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md transition duration-150 ${editorMode === 'markdown' ? 'bg-[var(--surface-1)] text-[var(--foreground)] shadow-sm' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}
+              >
+                <Code className="w-3 h-3" />
+                <span className="max-sm:hidden">Markdown</span>
+              </button>
+            </div>
+
              <div className="flex shrink-0 items-center gap-1">
               <button
                 onClick={handleCopy}
@@ -417,7 +592,7 @@ const [isWritingManually, setIsWritingManually] = useState(false);
             </div>
           </div>
         ) : (
-          <div className="relative flex-1 w-full overflow-y-auto" onClick={() => editor?.commands.focus()}>
+          <div ref={scrollContainerRef} className="relative flex-1 w-full overflow-y-auto">
             {isLoading && !value && (
               <div className="absolute inset-0 z-50 bg-[var(--surface-1)]/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 select-none">
                 <Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" />
@@ -427,8 +602,120 @@ const [isWritingManually, setIsWritingManually] = useState(false);
                 </div>
               </div>
             )}
-            {editor && <BubbleMenuAI editor={editor} />}
-            <EditorContent editor={editor} className="w-full h-full" />
+
+            {/* Rich Text Editor (Tiptap) */}
+            <div className={editorMode === 'tiptap' ? 'w-full h-full' : 'hidden'} onClick={() => editor?.commands.focus()}>
+              {editor && <BubbleMenuAI editor={editor} />}
+              <EditorContent editor={editor} className="w-full h-full" />
+            </div>
+
+            {/* Raw Markdown Editor */}
+            <div className={editorMode === 'markdown' ? 'w-full h-full flex flex-col' : 'hidden'}>
+              <textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onKeyDown={(e) => {
+                  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    if (onAnalyze) {
+                      onAnalyze();
+                    }
+                  }
+                }}
+                className="w-full h-full min-h-[500px] resize-none border-0 outline-none px-6 py-6 font-mono text-[14px] bg-transparent text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-0 focus:outline-none leading-relaxed"
+                placeholder={placeholder}
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Link Edit Hover Popup */}
+            {hoveredLink && (
+              <div
+                onMouseEnter={cancelCloseTimeout}
+                onMouseLeave={startCloseTimeout}
+                style={{
+                  position: 'absolute',
+                  top: `${hoveredLink.top + 8}px`,
+                  left: `${hoveredLink.left}px`,
+                  transform: 'translateX(-50%)',
+                  resize: 'both',
+                  overflow: 'auto',
+                  width: '280px',
+                  minHeight: isEditingLink ? '200px' : '56px',
+                  maxHeight: '400px',
+                }}
+                className="z-50 min-w-[240px] max-w-[480px] rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3 shadow-xl backdrop-blur-md animate-fade-in flex flex-col justify-center gap-2 text-xs"
+              >
+                {!isEditingLink ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <a
+                      href={hoveredLink.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="truncate font-medium text-[var(--primary)] hover:underline flex-1 max-w-[180px] text-left"
+                    >
+                      {hoveredLink.href}
+                    </a>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => setIsEditingLink(true)}
+                        className="p-1.5 hover:bg-[var(--surface-2)] text-[var(--foreground)] rounded-lg transition duration-150"
+                        title="Edit link"
+                      >
+                        <FileEdit className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={handleRemoveLink}
+                        className="p-1.5 hover:bg-red-500/10 text-red-500 rounded-lg transition duration-150"
+                        title="Remove link"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-1 text-left">
+                      <label className="text-[9px] text-[var(--muted-foreground)] font-bold uppercase tracking-wider">Text</label>
+                      <input
+                        type="text"
+                        value={tempText}
+                        onChange={(e) => setTempText(e.target.value)}
+                        className="ui-control ui-input py-1 px-2 text-xs"
+                        placeholder="Link text..."
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1 text-left">
+                      <label className="text-[9px] text-[var(--muted-foreground)] font-bold uppercase tracking-wider">URL</label>
+                      <input
+                        type="text"
+                        value={tempHref}
+                        onChange={(e) => setTempHref(e.target.value)}
+                        className="ui-control ui-input py-1 px-2 text-xs"
+                        placeholder="https://..."
+                      />
+                    </div>
+                    <div className="flex items-center justify-end gap-1.5 mt-1">
+                      <button
+                        onClick={() => setIsEditingLink(false)}
+                        className="ui-btn ui-btn-muted ui-btn-xs"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSaveLink}
+                        className="ui-btn ui-btn-primary ui-btn-xs"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
