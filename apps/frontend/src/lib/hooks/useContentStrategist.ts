@@ -551,7 +551,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', type: 'text', content: '', payload: { status: 'Generating Editorial Blueprint...' } }]);
 
     try {
-      const res = await fetch('/api/strategist/generate-plan', {
+      const res = await directFetch('/api/strategist/generate-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recommendation: recommendationText, history, sessionId: currentSessionId }),
@@ -559,6 +559,13 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
       if (!res.ok) throw new Error('Plan generation failed');
       const data = await res.json();
+      
+      // If a new session was created in the backend for this plan, update local state
+      if (data.sessionId && data.sessionId !== currentSessionId) {
+        setCurrentSessionId(data.sessionId);
+        loadSessions();
+      }
+
       if (data.plan) {
         setCurrentPlan(data.plan);
         if (data.plan?.sources && data.plan.sources.length > 0) {
@@ -621,7 +628,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     } finally {
       setIsTyping(false);
     }
-  }, []);
+  }, [currentSessionId, directFetch, loadSessions]);
 
   const handleRewrite = useCallback(async (msgId: string) => {
     const msgIndex = messages.findIndex(m => m.id === msgId);

@@ -4,6 +4,11 @@ Semua perubahan penting pada proyek **Envoyou AI Editorial System** akan didokum
 
 Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/id/1.0.0/) dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Bug Penyimpanan Blueprint**: Memperbaiki bug di mana blueprint yang dihasilkan di panel obrolan Content Strategist hilang setelah refresh browser, berpindah menu, atau saat membuat draf baru. Masalah diselesaikan dengan bermigrasi dari `fetch` biasa ke `directFetch` yang terautentikasi di frontend hook, memastikan callback merujuk pada `currentSessionId` terbaru, serta menambahkan logika pembuatan sesi otomatis di backend `/api/strategist/generate-plan` jika `sessionId` bernilai `'new'`.
+
 ## [3.0.3] - 2026-07-10
 
 ### Added

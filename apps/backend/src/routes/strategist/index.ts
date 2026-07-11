@@ -1040,66 +1040,100 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       data.plan.sources = resolvedSources;
     }
 
-    // Save to database if session is active
-    if (req.auth && req.auth.userId && sessionId && sessionId !== 'new') {
-      try {
-        // 1. Save user message
-        await prisma.chatMessage.create({
-          data: {
-            sessionId,
-            role: 'user',
-            type: 'text',
-            content: recommendation,
-          }
-        });
+    // Save to database if authenticated
+    let dbSessionId = sessionId;
+    if (req.auth && req.auth.userId) {
+      if (!dbSessionId || dbSessionId === 'new') {
+        const firstMsg = recommendation.slice(0, 40).trim() || 'Rekomendasi Blueprint';
+        const title = firstMsg.length >= 40 ? `${firstMsg}...` : firstMsg;
+        const internalOrgId = await resolveInternalOrgId(req.auth.orgId, req.auth.userId);
 
-        // 2. Reconstruct displayContent to match frontend representation
-        let displayContent = data.reply || "";
-        if (data.plan) {
-          const plan = data.plan;
-          displayContent += `\n\n### **Blueprint Preview**\n`;
-          displayContent += `* **Angle**: ${plan.angle || 'N/A'}\n`;
-          displayContent += `* **Audience**: ${plan.audience || 'N/A'}\n`;
-          if (plan.hook) {
-            displayContent += `* **Hook**: *"${plan.hook}"*\n`;
-          }
-          displayContent += `\n`;
-          
-          if (plan.outline) {
-            displayContent += `### **Proposed Outline**\n${plan.outline}\n\n`;
-          }
-          
-          if (plan.sources && plan.sources.length > 0) {
-            displayContent += `### **Sources**\n`;
-            plan.sources.forEach((src: string, index: number) => {
-              let domain = 'Source';
-              try { domain = new URL(src).hostname.replace('www.', ''); } catch { /* ignore invalid URL */ }
-              displayContent += `${index + 1}. [${domain}](${src})\n`;
-            });
-            displayContent += `\n`;
-          }
-
-          if (plan.draft) {
-            displayContent += `### **Draft Preview**\n${plan.draft}\n`;
-          }
+        try {
+          const newSession = await prisma.chatSession.create({
+            data: {
+              userId: req.auth.userId,
+              organizationId: internalOrgId,
+              title,
+            }
+          });
+          dbSessionId = newSession.id;
+        } catch (dbErr) {
+          console.error('[CHAT_DB_ERROR] Failed to create chat session in generate-plan:', dbErr);
         }
+      } else {
+        try {
+          await prisma.chatSession.update({
+            where: { id: dbSessionId },
+            data: { updatedAt: new Date() }
+          });
+        } catch (dbErr) {
+          console.warn('[CHAT_DB_WARNING] Failed to touch session updated date:', dbErr);
+        }
+      }
 
-        // 3. Save assistant message
-        await prisma.chatMessage.create({
-          data: {
-            sessionId,
-            role: 'assistant',
-            type: 'text',
-            content: displayContent,
-            payload: data.suggestions ? { suggestions: data.suggestions } : undefined,
+      if (dbSessionId) {
+        try {
+          // 1. Save user message
+          await prisma.chatMessage.create({
+            data: {
+              sessionId: dbSessionId,
+              role: 'user',
+              type: 'text',
+              content: recommendation,
+            }
+          });
+
+          // 2. Reconstruct displayContent to match frontend representation
+          let displayContent = data.reply || "";
+          if (data.plan) {
+            const plan = data.plan;
+            displayContent += `\n\n### **Blueprint Preview**\n`;
+            displayContent += `* **Angle**: ${plan.angle || 'N/A'}\n`;
+            displayContent += `* **Audience**: ${plan.audience || 'N/A'}\n`;
+            if (plan.hook) {
+              displayContent += `* **Hook**: *"${plan.hook}"*\n`;
+            }
+            displayContent += `\n`;
+            
+            if (plan.outline) {
+              displayContent += `### **Proposed Outline**\n${plan.outline}\n\n`;
+            }
+            
+            if (plan.sources && plan.sources.length > 0) {
+              displayContent += `### **Sources**\n`;
+              plan.sources.forEach((src: string, index: number) => {
+                let domain = 'Source';
+                try { domain = new URL(src).hostname.replace('www.', ''); } catch { /* ignore invalid URL */ }
+                displayContent += `${index + 1}. [${domain}](${src})\n`;
+              });
+              displayContent += `\n`;
+            }
+
+            if (plan.draft) {
+              displayContent += `### **Draft Preview**\n${plan.draft}\n`;
+            }
           }
-        });
-      } catch (dbErr) {
-        console.error('[CHAT_DB_ERROR] Failed to save generate-plan messages:', dbErr);
+
+          // 3. Save assistant message
+          await prisma.chatMessage.create({
+            data: {
+              sessionId: dbSessionId,
+              role: 'assistant',
+              type: 'text',
+              content: displayContent,
+              payload: data.suggestions ? { suggestions: data.suggestions } : undefined,
+            }
+          });
+        } catch (dbErr) {
+          console.error('[CHAT_DB_ERROR] Failed to save generate-plan messages:', dbErr);
+        }
       }
     }
 
-    res.json(data);
+    res.json({
+      ...data,
+      sessionId: dbSessionId === 'new' ? null : dbSessionId
+    });
   } catch (error) {
     console.error('Error in generate-plan:', error);
     res.status(500).json({ error: 'Failed to generate plan' });

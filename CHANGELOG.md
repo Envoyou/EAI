@@ -4,6 +4,11 @@ All notable changes to the **Envoyou AI Editorial System** project will be docum
 
 The format of this file is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Blueprint Saving Bug**: Fixed a bug where generated blueprints in the Content Strategist chat panel disappeared upon refresh, menu transition, or initiating a new draft. This was resolved by migrating raw `fetch` to authenticated `directFetch` in the frontend hook, ensuring the callback has updated `currentSessionId` state references, and adding fallback logic in the backend `generate-plan` endpoint to automatically create a new `ChatSession` in the database if `sessionId` is `'new'`.
+
 ## [3.0.3] - 2026-07-10
 
 ### Added
