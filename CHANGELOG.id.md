@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-07-11
+
 ### Added
 - **Peralihan Mode Editor Rich Text & Raw Markdown**: Mengimplementasikan tombol pengalih visual di panel editor untuk beralih antara mode Rich Text (Tiptap) dan Raw Markdown (tersinkronisasi dengan localStorage). Kedua layout dirender bersamaan via manipulasi visibilitas CSS untuk menjaga riwayat kursor/pilihan teks dengan sinkronisasi konten dua arah secara instan.
 - **Popover Hover Edit Link**: Menambahkan pendengar event hover pada teks tautan (`<a>`) di editor Tiptap yang memunculkan popover absolut (relatif terhadap scroll container) untuk melihat detail link, mengedit, atau menghapusnya.

@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-07-11
+
 ### Added
 - **Rich Text & Raw Markdown Editor Toggle**: Implemented visual switcher in the editor panel to toggle between Rich Text (Tiptap) and Raw Markdown mode (with localStorage persistence). Rendered both modes concurrently via CSS visibility to preserve editor selection history, with instant bidirectional synchronization on toggle.
 - **Hover Link Edit Popover**: Added custom hover event listener over anchor links (`<a>`) in Tiptap editor that displays a scroll-relative absolute-positioned popover with link details, edit button, and deletion action.
