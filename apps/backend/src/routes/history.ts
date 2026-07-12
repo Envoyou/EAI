@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { prisma, Prisma } from '@/lib/db';
 import { requireAuth } from '@/middleware/auth';
@@ -228,6 +228,194 @@ router.delete('/:id', requireAuth, async (req, res) => {
   }
 });
 
+const AutosaveSchema = z.object({
+  action: z.literal('autosave_draft'),
+  content: z.string().optional(),
+  title: z.string().optional(),
+  notes: ResearchNotesArraySchema.optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+interface RateLimitBucket {
+  tokens: number;
+  lastRefill: number;
+}
+const autosaveRateLimitStore = new Map<string, RateLimitBucket>();
+
+function autosaveRateLimiter(req: Request, res: Response, next: NextFunction) {
+  const userId = req.auth?.userId || 'anonymous';
+  const key = `autosave:${userId}`;
+  const now = Date.now();
+  const windowMs = 60000; // 1 minute
+  const max = 100; // 100 requests per minute
+
+  let bucket = autosaveRateLimitStore.get(key);
+  if (!bucket) {
+    bucket = { tokens: max, lastRefill: now };
+    autosaveRateLimitStore.set(key, bucket);
+  }
+
+  const elapsed = now - bucket.lastRefill;
+  if (elapsed > windowMs) {
+    bucket.tokens = max;
+    bucket.lastRefill = now;
+  }
+
+  if (bucket.tokens <= 0) {
+    return res.status(429).json({ error: 'Too many autosave requests. Please try again later.' });
+  }
+
+  bucket.tokens--;
+  next();
+}
+
+// PATCH /api/history/:id/autosave
+router.patch('/:id/autosave', requireAuth, autosaveRateLimiter, async (req, res) => {
+  try {
+    const { userId, orgId, orgSlug, orgRole } = req.auth!;
+    const workspace = await getWorkspaceState(userId, {
+      clerkOrganizationId: orgId,
+      clerkOrganizationSlug: orgSlug,
+      clerkOrganizationRole: orgRole,
+    });
+    
+    if (!workspace || workspace.needsOnboarding || !workspace.organizationId) {
+      return res.status(409).json({ error: 'Workspace onboarding required' });
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: 'ID not found' });
+    }
+
+    const log = await prisma.analysisLog.findUnique({
+      where: { id },
+    });
+
+    if (!log) {
+      return res.status(404).json({ error: 'History not found' });
+    }
+
+    if (!canAccessLog(log, workspace.organizationId, userId)) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const validation = AutosaveSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: 'Invalid autosave data', details: validation.error.format() });
+    }
+
+    const { content, title: newTitle, notes, metadata: extraMetadata } = validation.data;
+    const metadata =
+      log.metadata && typeof log.metadata === 'object' && !Array.isArray(log.metadata)
+        ? (log.metadata as Record<string, unknown>)
+        : {};
+
+    const updatedMetadata = {
+      ...metadata,
+      ...(extraMetadata || {}),
+    };
+
+    if (newTitle !== undefined) {
+      updatedMetadata.title = newTitle;
+    }
+    if (notes !== undefined) {
+      updatedMetadata.researchNotes = notes;
+    }
+
+    await prisma.analysisLog.update({
+      where: { id },
+      data: {
+        content: content !== undefined ? content : undefined,
+        metadata: updatedMetadata as Prisma.InputJsonValue,
+      },
+    });
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('[HISTORY_ID_AUTOSAVE_PATCH]', error);
+    return res.status(500).json({ error: 'Failed to autosave history item' });
+  }
+});
+
+// PATCH /api/history/:id/resolve
+router.patch('/:id/resolve', requireAuth, async (req, res) => {
+  try {
+    const { userId, orgId, orgSlug, orgRole } = req.auth!;
+    const workspace = await getWorkspaceState(userId, {
+      clerkOrganizationId: orgId,
+      clerkOrganizationSlug: orgSlug,
+      clerkOrganizationRole: orgRole,
+    });
+    
+    if (!workspace || workspace.needsOnboarding || !workspace.organizationId) {
+      return res.status(409).json({ error: 'Workspace onboarding required' });
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: 'ID not found' });
+    }
+
+    const log = await prisma.analysisLog.findUnique({
+      where: { id },
+    });
+
+    if (!log) {
+      return res.status(404).json({ error: 'History not found' });
+    }
+
+    if (!canAccessLog(log, workspace.organizationId, userId)) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const resolution = EditorialResolutionSchema.safeParse(req.body);
+    if (!resolution.success) {
+      return res.status(400).json({ error: 'Invalid editorial resolution data', details: resolution.error.format() });
+    }
+
+    const metadata =
+      log.metadata && typeof log.metadata === 'object' && !Array.isArray(log.metadata)
+        ? (log.metadata as Record<string, unknown>)
+        : {};
+
+    const unresolved = resolution.data.feedback.filter(
+      (item) => item.status !== 'pass' && !item.isAccepted && !item.isVerified
+    );
+    const systemMetadata =
+      metadata._system && typeof metadata._system === 'object' && !Array.isArray(metadata._system)
+        ? (metadata._system as Record<string, unknown>)
+        : {};
+    const readiness = unresolved.length === 0
+      ? 'ready'
+      : systemMetadata.readiness === 'blocked' && unresolved.some((item) => item.status === 'fail')
+        ? 'blocked'
+        : 'needs_review';
+
+    await prisma.analysisLog.update({
+      where: { id },
+      data: {
+        feedback: resolution.data.feedback as Prisma.InputJsonValue,
+        flags: (readiness === 'ready' ? [] : resolution.data.flags ?? []) as Prisma.InputJsonValue,
+        verdict: readiness,
+        metadata: {
+          ...metadata,
+          _system: {
+            ...systemMetadata,
+            polishedDraft: resolution.data.polishedDraft,
+            readiness,
+          },
+        } as Prisma.InputJsonValue,
+      },
+    });
+
+    return res.json({ success: true, readiness });
+  } catch (error) {
+    console.error('[HISTORY_ID_RESOLVE_PATCH]', error);
+    return res.status(500).json({ error: 'Failed to resolve editorial feedback' });
+  }
+});
+
 // PATCH /api/history/:id
 router.patch('/:id', requireAuth, async (req, res) => {
   try {
@@ -259,96 +447,16 @@ router.patch('/:id', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
+    // This base PATCH route is now only used for updating the title
+    const title = req.body?.title;
+    if (!title || typeof title !== 'string') {
+      return res.status(400).json({ error: 'A valid title is required' });
+    }
+
     const metadata =
       log.metadata && typeof log.metadata === 'object' && !Array.isArray(log.metadata)
         ? (log.metadata as Record<string, unknown>)
         : {};
-
-    const resolution = EditorialResolutionSchema.safeParse(req.body);
-    if (!resolution.success) {
-      console.warn('[HISTORY_PATCH] Zod validation failed:', JSON.stringify(resolution.error.format(), null, 2));
-    }
-    if (resolution.success) {
-      const unresolved = resolution.data.feedback.filter(
-        (item) => item.status !== 'pass' && !item.isAccepted && !item.isVerified
-      );
-      const systemMetadata =
-        metadata._system && typeof metadata._system === 'object' && !Array.isArray(metadata._system)
-          ? (metadata._system as Record<string, unknown>)
-          : {};
-      const readiness = unresolved.length === 0
-        ? 'ready'
-        : systemMetadata.readiness === 'blocked' && unresolved.some((item) => item.status === 'fail')
-          ? 'blocked'
-          : 'needs_review';
-
-      await prisma.analysisLog.update({
-        where: { id },
-        data: {
-          feedback: resolution.data.feedback as Prisma.InputJsonValue,
-          flags: (readiness === 'ready' ? [] : resolution.data.flags ?? []) as Prisma.InputJsonValue,
-          verdict: readiness,
-          metadata: {
-            ...metadata,
-            _system: {
-              ...systemMetadata,
-              polishedDraft: resolution.data.polishedDraft,
-              readiness,
-            },
-          } as Prisma.InputJsonValue,
-        },
-      });
-
-      return res.json({ success: true, readiness });
-    }
-
-    const action = req.body?.action;
-    if (action === 'autosave_draft') {
-      const { content, title: newTitle, notes, metadata: extraMetadata } = req.body;
-      const updatedMetadata = {
-        ...metadata,
-        ...(extraMetadata || {}),
-      } as Record<string, unknown>;
-
-      if (newTitle !== undefined) {
-        updatedMetadata.title = newTitle;
-      }
-      if (notes !== undefined) {
-        updatedMetadata.researchNotes = notes;
-      }
-
-      await prisma.analysisLog.update({
-        where: { id },
-        data: {
-          content: content !== undefined ? content : undefined,
-          metadata: updatedMetadata as Prisma.InputJsonValue,
-        },
-      });
-      return res.json({ success: true });
-    }
-
-    if (action === 'save_research_notes') {
-      const parsedNotes = ResearchNotesArraySchema.safeParse(req.body?.notes);
-      if (!parsedNotes.success) {
-        return res.status(400).json({ error: 'Invalid or missing notes data', details: parsedNotes.error.format() });
-      }
-
-      await prisma.analysisLog.update({
-        where: { id },
-        data: {
-          metadata: {
-            ...metadata,
-            researchNotes: parsedNotes.data,
-          } as Prisma.InputJsonValue,
-        },
-      });
-      return res.json({ success: true });
-    }
-
-    const title = req.body?.title;
-    if (!title || typeof title !== 'string') {
-      return res.status(400).json({ error: 'A title or valid editorial resolution is required' });
-    }
     
     await prisma.analysisLog.update({
       where: { id },

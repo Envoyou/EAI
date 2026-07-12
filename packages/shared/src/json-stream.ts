@@ -7,6 +7,42 @@ export const extractJsonFromText = (text: string): string => {
   cleaned = cleaned.replace(/```$/, '');
   cleaned = cleaned.trim();
 
+  const firstBrace = cleaned.indexOf('{');
+  if (firstBrace === -1) return cleaned;
+
+  let braceCount = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = firstBrace; i < cleaned.length; i++) {
+    const char = cleaned[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === '{') {
+      braceCount++;
+    } else if (char === '}') {
+      braceCount--;
+      if (braceCount === 0) {
+        return cleaned.substring(firstBrace, i + 1);
+      }
+    }
+  }
+
+  // Fallback if no matching brace found
   const match = cleaned.match(/\{[\s\S]*\}/);
   return match ? match[0] : cleaned;
 };

@@ -6,6 +6,13 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Pemisahan Endpoint PATCH**: Memisahkan `/api/history/:id` menjadi endpoint spesifik `/resolve` dan `/autosave` untuk memisahkan logika bisnis, skema validasi, serta pembatasan rate limit.
+- **Skema Autosave & Pembatas Request**: Menambahkan skema validasi `AutosaveSchema` dan middleware pembatas request in-memory `autosaveRateLimiter` (maksimal 100 request/menit per pengguna) untuk melindungi proses autosave dari spam basis data.
+
+### Fixed
+- **Ekstraktor JSON Penghitung Kurung Kurawal**: Mengimplementasikan parser pelacak kurung kurawal (`brace-counting`) di fungsi `extractJsonFromText` untuk mengambil objek JSON secara tepat dari output model. Hal ini memotong teks/pagar markdown tambahan (bahkan jika memuat tanda kurung biasa atau kurawal) dan mencegah proses pengulangan (*retry*) parse JSON di Quality Gate.
+
 ## [3.1.1] - 2026-07-12
 
 ### Added

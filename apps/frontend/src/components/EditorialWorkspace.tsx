@@ -303,7 +303,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
 
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/history/${activeHistoryId}`, {
+        const response = await fetch(`/api/history/${activeHistoryId}/autosave`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
@@ -1248,7 +1248,7 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
       throw new Error('The refinement history is not ready yet. Please try again.');
     }
 
-    const response = await fetch(`/api/history/${analysisLogId}`, {
+    const response = await fetch(`/api/history/${analysisLogId}/resolve`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

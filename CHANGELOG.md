@@ -6,6 +6,13 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Dedicated PATCH Endpoints**: Split `/api/history/:id` into specific `/resolve` and `/autosave` endpoints to isolate business logic, validation schemas, and rate limits.
+- **Autosave Schema & Rate Limiting**: Added `AutosaveSchema` validation and an in-memory `autosaveRateLimiter` middleware (max 100 requests/minute per user) to safeguard autosaves against database spam.
+
+### Fixed
+- **Brace-Counting JSON Extractor**: Implemented a stateful brace-counting parser in `extractJsonFromText` to extract the exact JSON object from model outputs. This strips trailing fences/comments (even if they contain parenthesis or braces) and prevents JSON parsing retries on Quality Gate checks.
+
 ## [3.1.1] - 2026-07-12
 
 ### Added
