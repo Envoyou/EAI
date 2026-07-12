@@ -6,6 +6,19 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Link Deletion Safeguards (Layer 2 & Layer 3)**:
+  - **Frontend Link Interceptor**: Added utility `checkMissingSources` in the Editor to detect if original citation links have been deleted before refinement. Displays a warning dialog allowing the user to restore missing sources at the bottom of the draft, refine anyway, or cancel.
+  - **Backend Fact-Checker Context**: Injected original research notes and source links into the `<session_notes>` XML tag in `<workspace_context>` during the Quality Gate evaluation, providing the AI Fact-Checker with the complete original research context to audit factual claims.
+- **Programmatic Grounding Extraction (Option B)**: Extracted actual Google Search redirect URLs directly from `interaction.steps` metadata annotations in `/generate-plan`, bypassing hallucinated 404 links.
+
+### Changed
+- **Safe Grounding Resolution Timeout**: Implemented `fetchWithTimeout` helper in the strategist backend router to limit Vertex redirect resolution to 3 seconds, preventing Express server and frontend infinite loading hangs.
+- **Hierarchical Citation Matching**: Updated citation matching regex in the strategist backend to capture hierarchical citation formats (e.g., `[cite: 1.1.8]`).
+
+### Fixed
+- **ESLint & TypeScript Type Integrity**: Resolved linter violations (`no-explicit-any`, `prefer-const`) across both frontend and backend files, achieving 100% clean check status in turbo monorepo lint.
+
 ## [3.1.0] - 2026-07-11
 
 ### Added

@@ -10,7 +10,7 @@ import {
   getIterativeRefinementPrompt,
   PROMPT_VERSION,
 } from '@/lib/prompts';
-import { Role, ArticleMetadata, ResponseMode, AnalyzeMode, FeedbackItem, VerificationStatus } from '@eai/shared';
+import { Role, ArticleMetadata, ResponseMode, AnalyzeMode, FeedbackItem, VerificationStatus, ResearchNote } from '@eai/shared';
 import { FeedbackOutput, PolishDiagnosisOutput, FinalQualityGateOutput } from '@eai/shared';
 import { cleanupEscapedMarkdownArtifacts, convertAsciiTablesToMarkdown, stripVerificationMarkers } from '@/lib/final-quality';
 import { AiTelemetryCollector, AiTelemetrySnapshot } from '@/lib/ai-telemetry';
@@ -1490,6 +1490,7 @@ router.post('/', async (req: Request, res) => {
         editorialProfile,
         sanitizeFeedback: sanitizeSuppressiveFeedbackItem,
         sanitizeSummary: sanitizeFactualSummary,
+        researchNotes: ((metadata as Record<string, unknown>)?.researchNotes as ResearchNote[] | undefined) || [],
       });
       const refineQualityGate = refineQualityGateResponse.result;
       usedModels.push(`${refineQualityGateResponse.modelName}(quality-gate)`);
@@ -1724,6 +1725,7 @@ router.post('/', async (req: Request, res) => {
           editorialProfile,
           sanitizeFeedback: sanitizeSuppressiveFeedbackItem,
           sanitizeSummary: sanitizeFactualSummary,
+          researchNotes: ((metadata as Record<string, unknown>)?.researchNotes as ResearchNote[] | undefined) || [],
         });
         finalQualityGate = qualityGateResponse.result;
         usedModels.push(`${qualityGateResponse.modelName}(quality-gate)`);
@@ -1963,6 +1965,7 @@ router.post('/', async (req: Request, res) => {
           editorialProfile,
           sanitizeFeedback: sanitizeSuppressiveFeedbackItem,
           sanitizeSummary: sanitizeFactualSummary,
+          researchNotes: ((metadata as Record<string, unknown>)?.researchNotes as ResearchNote[] | undefined) || [],
         });
         finalQualityGate = qualityGateResponse.result;
         usedModels.push(`${qualityGateResponse.modelName}(quality-gate)`);

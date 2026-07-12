@@ -6,6 +6,19 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Sistem Proteksi Penghapusan Tautan (Lapisan 2 & Lapisan 3)**:
+  - **Pencegah Penghapusan Tautan Frontend**: Menambahkan utilitas `checkMissingSources` di Editor untuk mendeteksi apabila tautan sitasi orisinal terhapus sebelum draf dipoles. Menampilkan modal dialog peringatan yang memungkinkan pengguna untuk memulihkan sumber yang hilang di bagian bawah draf, melanjutkan pemolesan apa adanya, atau membatalkan aksi.
+  - **Konteks Fact-Checker Backend**: Menyisipkan catatan riset orisinal beserta tautan sumbernya ke dalam tag XML `<session_notes>` pada `<workspace_context>` selama evaluasi Quality Gate, membekali AI Fact-Checker dengan konteks riset orisinal yang lengkap untuk mengaudit klaim faktual.
+- **Ekstraksi Grounding Terprogram (Opsi B)**: Mengekstrak URL pengalihan asli Google Search secara langsung dari anotasi metadata `interaction.steps` di dalam `/generate-plan` untuk mencegah tautan 404 akibat halusinasi model.
+
+### Changed
+- **Batas Waktu Resolusi Grounding Aman**: Menerapkan fungsi pembantu `fetchWithTimeout` di backend strategist router untuk membatasi pemecahan URL pengalihan Vertex maksimal selama 3 detik, mencegah pemuatan tanpa henti (*infinite loading*) pada server Express dan halaman frontend.
+- **Pencocokan Sitasi Hirarkis**: Memperbarui regex pencarian sitasi di backend strategist untuk menangkap format sitasi hirarkis desimal (seperti `[cite: 1.1.8]`).
+
+### Fixed
+- **Integritas Tipe Data & ESLint**: Menyelesaikan seluruh pelanggaran aturan linter (`no-explicit-any`, `prefer-const`) di berkas frontend dan backend untuk memastikan kelolosan uji turbo monorepo lint secara penuh.
+
 ## [3.1.0] - 2026-07-11
 
 ### Added

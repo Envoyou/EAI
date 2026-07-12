@@ -10,6 +10,20 @@ import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
 import { prisma } from '@/lib/db';
 import { requireAuth } from '../../middleware/auth';
 
+async function fetchWithTimeout(url: string, options: RequestInit & { timeout?: number } = {}): Promise<globalThis.Response> {
+  const { timeout = 3000, ...fetchOptions } = options;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    return await fetch(url, {
+      ...fetchOptions,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 /**
  * Resolve the internal Prisma Organization UUID for billing purposes.
  *
@@ -807,7 +821,7 @@ CRITICAL: A file is attached to this request.
             await Promise.all(urlsToResolve.map(async (u) => {
                 if (u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
                     try {
-                        const res = await fetch(u, { method: 'HEAD', redirect: 'manual' });
+                        const res = await fetchWithTimeout(u, { method: 'HEAD', redirect: 'manual', timeout: 3000 });
                         const loc = res.headers.get('location');
                         resolvedUrls.set(u, loc || u);
                     } catch (_e) {
@@ -838,7 +852,7 @@ CRITICAL: A file is attached to this request.
             
             // Replace [cite: X] placeholders directly in their original order using globalAnnotations
             let annotationIndex = 0;
-            const citeRegex = /\[cite:\s*\d+\]/gi;
+            const citeRegex = /\[cite:\s*[^\]]+\]/gi;
             
             const finalOutputTextProcessed = finalOutputText.replace(citeRegex, (_match) => {
                 if (annotationIndex < globalAnnotations.length) {
@@ -961,8 +975,8 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       </instructions>
 
       <constraints>
-      1. CRITICAL REQUIREMENT: You MUST use Google Search to find highly credible, real-world sources, data points, and factual references related to this topic. 
-      2. The resulting "sources" array inside the plan MUST contain valid, real URLs to credible publications, reports, or data sources.
+      1. CRITICAL REQUIREMENT: You MUST use Google Search to find highly credible, real-world sources, data points, and factual references related to this topic.
+      2. The resulting "sources" array inside the plan MUST contain the exact, unmodified URLs returned by the google_search tool (including vertexaisearch.cloud.google.com/grounding-api-redirect URLs). Do NOT guess, rewrite, or simplify the URLs under any circumstances.
       3. The "draft" MUST include factual claims backed by the sources you found. 
       4. If you fail to provide real sources, the article will fail the final Editorial Fact-Checking stage.
       5. The 'draft' field must be a cohesive 400–600 word draft that synthesizes the outline and sources.
@@ -1014,30 +1028,131 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       };
     };
     
-    // Resolve any Google Vertex AI Search grounding redirect URLs in the plan sources list, draft, and reply
-    if (data.plan && Array.isArray(data.plan.sources)) {
-      const resolvedSources: string[] = [];
-      for (const u of data.plan.sources) {
-        if (typeof u === 'string' && u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
-          try {
-            const res = await fetch(u, { method: 'HEAD', redirect: 'manual' });
-            const loc = res.headers.get('location');
-            const realUrl = loc || u;
-            resolvedSources.push(realUrl);
-            if (typeof data.plan.draft === 'string') {
-              data.plan.draft = data.plan.draft.replaceAll(u, realUrl);
+    interface GroundingAnnotation {
+      type: string;
+      url: string;
+      title?: string;
+    }
+
+    // Option B: Extract actual, verified grounding URLs from the interaction steps metadata in order of appearance
+    const extractedAnnotations: GroundingAnnotation[] = [];
+    if (interaction.steps && Array.isArray(interaction.steps)) {
+      const modelOutputStep = interaction.steps.find(s => s.type === 'model_output');
+      if (modelOutputStep && Array.isArray(modelOutputStep.content)) {
+        for (const c of modelOutputStep.content) {
+          const cObj = c as Record<string, unknown>;
+          if (cObj && Array.isArray(cObj.annotations)) {
+            for (const annotation of cObj.annotations as Record<string, unknown>[]) {
+              if (annotation && annotation.type === 'url_citation' && typeof annotation.url === 'string') {
+                extractedAnnotations.push({
+                  type: annotation.type,
+                  url: annotation.url,
+                  title: typeof annotation.title === 'string' ? annotation.title : undefined,
+                });
+              }
             }
-            if (typeof data.reply === 'string') {
-              data.reply = data.reply.replaceAll(u, realUrl);
-            }
-          } catch (_e) {
-            resolvedSources.push(u);
           }
-        } else {
-          resolvedSources.push(u);
         }
       }
-      data.plan.sources = resolvedSources;
+    }
+
+    const resolvedUrls = new Map<string, string>();
+    const uniqueUrlsToResolve = [...new Set(extractedAnnotations.map(a => a.url).filter(Boolean))] as string[];
+    
+    // Resolve any Google Vertex AI Search grounding redirect URLs
+    for (const u of uniqueUrlsToResolve) {
+      if (u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
+        try {
+          const res = await fetchWithTimeout(u, { method: 'HEAD', redirect: 'manual', timeout: 3000 });
+          const loc = res.headers.get('location');
+          resolvedUrls.set(u, loc || u);
+        } catch (_e) {
+          resolvedUrls.set(u, u);
+        }
+      } else {
+        resolvedUrls.set(u, u);
+      }
+    }
+
+    const uniqueSourcesList: string[] = [];
+    const urlToIndex = new Map<string, number>();
+    for (const annotation of extractedAnnotations) {
+      if (annotation.url) {
+        const realUrl = resolvedUrls.get(annotation.url) || annotation.url;
+        if (!urlToIndex.has(realUrl)) {
+          uniqueSourcesList.push(realUrl);
+          urlToIndex.set(realUrl, uniqueSourcesList.length);
+        }
+      }
+    }
+
+    if (uniqueSourcesList.length > 0) {
+      if (data.plan) {
+        data.plan.sources = uniqueSourcesList;
+      }
+      
+      let annotationIndex = 0;
+      const replaceCiteSequential = (text: string) => {
+        if (typeof text !== 'string') return text;
+        const citeRegex = /\[cite:\s*[^\]]+\]/gi;
+        return text.replace(citeRegex, (match) => {
+          if (annotationIndex < extractedAnnotations.length) {
+            const annotation = extractedAnnotations[annotationIndex++];
+            if (annotation.url) {
+              const realUrl = resolvedUrls.get(annotation.url) || annotation.url;
+              const sourceIndex = urlToIndex.get(realUrl) || 1;
+              return `[${sourceIndex}](${realUrl})`;
+            }
+          }
+          return match;
+        });
+      };
+
+      if (typeof data.reply === 'string') {
+        data.reply = replaceCiteSequential(data.reply);
+      }
+      if (data.plan && typeof data.plan.draft === 'string') {
+        data.plan.draft = replaceCiteSequential(data.plan.draft);
+      }
+    } else {
+      // Fallback: Resolve and replace using the model-generated sources if any
+      if (data.plan && Array.isArray(data.plan.sources)) {
+        const resolvedSources: string[] = [];
+        for (const u of data.plan.sources) {
+          if (typeof u === 'string' && u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
+            try {
+              const res = await fetchWithTimeout(u, { method: 'HEAD', redirect: 'manual', timeout: 3000 });
+              const loc = res.headers.get('location');
+              resolvedSources.push(loc || u);
+            } catch (_e) {
+              resolvedSources.push(u);
+            }
+          } else {
+            resolvedSources.push(u);
+          }
+        }
+        data.plan.sources = resolvedSources;
+
+        const replaceCiteFallback = (text: string) => {
+          if (typeof text !== 'string') return text;
+          const citeRegex = /\[cite:\s*([^\]]+)\]/gi;
+          return text.replace(citeRegex, (match, citeVal) => {
+            const firstPart = citeVal.split(/[.,\s]/)[0];
+            const sourceIndex = parseInt(firstPart, 10) - 1;
+            if (sourceIndex >= 0 && sourceIndex < resolvedSources.length) {
+              return `[${citeVal}](${resolvedSources[sourceIndex]})`;
+            }
+            return match;
+          });
+        };
+
+        if (typeof data.reply === 'string') {
+          data.reply = replaceCiteFallback(data.reply);
+        }
+        if (data.plan && typeof data.plan.draft === 'string') {
+          data.plan.draft = replaceCiteFallback(data.plan.draft);
+        }
+      }
     }
 
     // Save to database if authenticated

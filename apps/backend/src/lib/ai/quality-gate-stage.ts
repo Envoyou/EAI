@@ -7,7 +7,7 @@ import {
 import { composeEditorialPrompt, type EditorialProfileSnapshot } from '@eai/shared/server';
 import { getFinalQualityGatePrompt } from '@/lib/prompts';
 import { parseJsonResponse } from '@eai/shared';
-import type { ArticleMetadata, FeedbackItem } from '@eai/shared';
+import type { ArticleMetadata, FeedbackItem, ResearchNote } from '@eai/shared';
 import {
   type AiProvider,
   type AnalysisSpeed,
@@ -58,6 +58,7 @@ const runFinalQualityGate = async ({
   editorialProfile,
   sanitizeFeedback,
   sanitizeSummary,
+  researchNotes = [],
   attempt = 1,
 }: {
   provider: AiProvider;
@@ -75,6 +76,7 @@ const runFinalQualityGate = async ({
     feedback: FinalQualityGateOutput['feedback'],
     draftText: string
   ) => string;
+  researchNotes?: ResearchNote[];
   attempt?: number;
 }): Promise<{ result: FinalQualityGateOutput; modelName: string }> => {
   const timezone = editorialProfile.config.timezone || 'Asia/Jakarta';
@@ -90,10 +92,21 @@ const runFinalQualityGate = async ({
   const day = parts.find((part) => part.type === 'day')?.value || '01';
   const currentDate = `${currentYear}-${month}-${day}`;
 
+  let notesSummary = '';
+  if (researchNotes && Array.isArray(researchNotes) && researchNotes.length > 0) {
+    notesSummary = researchNotes.map((n, i) => {
+      const sourcesText = n.sources && n.sources.length > 0
+        ? `Sources: ${n.sources.map((s) => s.url).join(', ')}`
+        : '';
+      return `Note ${i + 1}:\n${n.content}\n${sourcesText}`;
+    }).join('\n\n');
+  }
+
   const { xml: workspaceXml, agentInstruction } = composeWorkspaceContext({
     today: currentDate,
     timezone,
     profileConfig: editorialProfile.config,
+    notesSummary: notesSummary || null,
   });
 
   const contents = [

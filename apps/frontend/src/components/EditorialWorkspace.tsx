@@ -203,6 +203,15 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
 
   const showFeedbackSidebar = rightPanelOpen;
   const showNotesSidebar = rightPanelOpen;
+
+  // Link deletion safeguards state
+  const [showMissingSourcesModal, setShowMissingSourcesModal] = useState(false);
+  const [missingSources, setMissingSources] = useState<{ url: string; domain: string }[]>([]);
+  const [pendingRefineAction, setPendingRefineAction] = useState<{
+    type: 'analyze' | 'refine_again';
+    overrideDraft?: string;
+    instruction?: string;
+  } | null>(null);
   const [researchNotes, setResearchNotes] = useState<ResearchNote[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -545,10 +554,104 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
 
   const hasResult = analysis.status === 'success' || analysis.status === 'error';
 
+  /* ── Link Safeguard Helpers ── */
+  const checkMissingSources = (text: string, notes: ResearchNote[]) => {
+    if (!notes || notes.length === 0) return [];
+    
+    const allSources = notes.flatMap(n => n.sources || []);
+    const uniqueSourcesMap = new Map<string, { url: string; domain: string }>();
+    allSources.forEach(s => {
+      if (s.url) {
+        uniqueSourcesMap.set(s.url, s);
+      }
+    });
+    const uniqueSources = Array.from(uniqueSourcesMap.values());
+    if (uniqueSources.length === 0) return [];
+
+    const missing: { url: string; domain: string }[] = [];
+    const lowerText = text.toLowerCase();
+
+    for (const src of uniqueSources) {
+      const urlLower = src.url.toLowerCase();
+      const domainLower = src.domain ? src.domain.toLowerCase() : '';
+      
+      const hasUrl = lowerText.includes(urlLower);
+      const hasDomain = domainLower && lowerText.includes(domainLower);
+      
+      if (!hasUrl && !hasDomain) {
+        missing.push(src);
+      }
+    }
+    return missing;
+  };
+
+  const restoreSourcesInDraft = (text: string, missing: { url: string; domain: string }[]) => {
+    const newText = text.trim();
+    if (!newText) return text;
+    
+    const hasReferenceHeader = /(?:^|\n)\s{0,3}(?:#{1,6}\s*)?(?:sumber(?:\\s+referensi)?|references?|sources?)\s*:?\s*$/im.test(newText) ||
+                               /Referensi|Sumber/i.test(newText);
+    
+    let suffix = '\n\n';
+    if (!hasReferenceHeader) {
+      suffix += `### Referensi\n`;
+    }
+    
+    missing.forEach(src => {
+      suffix += `- [${src.domain || 'Sumber'}](${src.url})\n`;
+    });
+    
+    return newText + suffix;
+  };
+
+  const handleProceedRefinement = async (options: { restore: boolean }) => {
+    setShowMissingSourcesModal(false);
+    if (!pendingRefineAction) return;
+
+    let targetText = pendingRefineAction.overrideDraft ?? draft;
+    if (pendingRefineAction.type === 'refine_again') {
+      targetText = pendingRefineAction.overrideDraft ?? analysis.polishedDraft ?? '';
+    }
+
+    if (options.restore) {
+      const restoredText = restoreSourcesInDraft(targetText, missingSources);
+      if (pendingRefineAction.type === 'analyze') {
+        setDraft(restoredText);
+        setPendingRefineAction(null);
+        await handleAnalyze(restoredText, true);
+      } else {
+        setAnalysis(prev => ({ ...prev, polishedDraft: restoredText }));
+        const instruction = pendingRefineAction.instruction || '';
+        setPendingRefineAction(null);
+        await handleRefineAgain(instruction, restoredText, true);
+      }
+    } else {
+      const instruction = pendingRefineAction.instruction || '';
+      const actionType = pendingRefineAction.type;
+      const overrideDraftVal = pendingRefineAction.overrideDraft;
+      setPendingRefineAction(null);
+      if (actionType === 'analyze') {
+        await handleAnalyze(overrideDraftVal, true);
+      } else {
+        await handleRefineAgain(instruction, undefined, true);
+      }
+    }
+  };
+
   /* ── Analyze ── */
-  const handleAnalyze = async (overrideDraft?: string) => {
+  const handleAnalyze = async (overrideDraft?: string, forceSkipCheck = false) => {
     const textToAnalyze = overrideDraft ?? draft;
     if (!textToAnalyze.trim()) return;
+
+    if (!forceSkipCheck && !overrideDraft) {
+      const missing = checkMissingSources(textToAnalyze, researchNotes);
+      if (missing.length > 0) {
+        setMissingSources(missing);
+        setPendingRefineAction({ type: 'analyze', overrideDraft });
+        setShowMissingSourcesModal(true);
+        return;
+      }
+    }
 
     if (isDemoMode && demoRefineCount >= 2) {
       setShowDemoSignupModal(true);
@@ -731,14 +834,24 @@ EAI was built to solve exactly this. It reviews drafts against your brand guidel
   /* ── Re-analyze ── */
   const handleReanalyze = () => {
     if (analysis.polishedDraft) {
-      handleAnalyze(analysis.polishedDraft);
+      handleAnalyze(analysis.polishedDraft, true);
     }
   };
 
   /* ── Refine Again ── */
-  const handleRefineAgain = async (instruction: string) => {
-    const currentDraft = analysis.polishedDraft;
+  const handleRefineAgain = async (instruction: string, overrideText?: string, forceSkipCheck = false) => {
+    const currentDraft = overrideText ?? analysis.polishedDraft;
     if (!currentDraft?.trim() || isRefining || isStreaming) return;
+
+    if (!forceSkipCheck && !overrideText) {
+      const missing = checkMissingSources(currentDraft, researchNotes);
+      if (missing.length > 0) {
+        setMissingSources(missing);
+        setPendingRefineAction({ type: 'refine_again', instruction, overrideDraft: overrideText });
+        setShowMissingSourcesModal(true);
+        return;
+      }
+    }
 
     if (isDemoMode && demoRefineCount >= 2) {
       toast.error('Create a free account to continue.', {
@@ -1914,6 +2027,76 @@ return (
                 className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center py-1 transition-colors"
               >
                 Maybe Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Missing Sources Warning Modal */}
+      {showMissingSourcesModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}
+          onClick={() => handleProceedRefinement({ restore: false })}
+        >
+          <div
+            className="relative bg-[var(--background)] border border-[var(--border)] rounded-2xl shadow-2xl max-w-md w-full mx-4 p-7"
+            onClick={(e) => e.stopPropagation()}
+            style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.35)' }}
+          >
+            {/* Close */}
+            <button
+              onClick={() => setShowMissingSourcesModal(false)}
+              className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] transition-colors"
+              aria-label="Close"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            </button>
+
+            {/* Icon */}
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4">
+              <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+
+            {/* Copy */}
+            <h2 className="text-base font-bold text-[var(--foreground)] mb-1.5">Tautan Referensi Terhapus</h2>
+            <p className="text-sm text-[var(--muted-foreground)] mb-3 leading-relaxed">
+              Kami mendeteksi beberapa tautan sumber referensi dari catatan riset telah terhapus dari draf artikel Anda:
+            </p>
+
+            {/* List of missing domains */}
+            <div className="max-h-28 overflow-y-auto bg-[var(--surface-2)] rounded-lg p-3 mb-6 flex flex-col gap-1 border border-[var(--border)]">
+              {missingSources.map((src, idx) => (
+                <div key={idx} className="text-xs text-[var(--muted-foreground)] flex items-center gap-1.5 truncate">
+                  <span className="w-1 h-1 rounded-full bg-amber-500 shrink-0" />
+                  <span className="font-semibold text-[var(--foreground)] shrink-0">{src.domain || 'Source'}:</span>
+                  <span className="truncate">{src.url}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={() => handleProceedRefinement({ restore: true })}
+                className="ui-btn ui-btn-primary w-full justify-center py-2.5 text-sm font-semibold"
+              >
+                Pulihkan Tautan & Refine
+              </button>
+              <button
+                onClick={() => handleProceedRefinement({ restore: false })}
+                className="ui-btn w-full justify-center py-2.5 text-sm font-semibold border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors text-[var(--foreground)] font-medium"
+              >
+                Tetap Refine
+              </button>
+              <button
+                onClick={() => setShowMissingSourcesModal(false)}
+                className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center py-1 transition-colors"
+              >
+                Batal
               </button>
             </div>
           </div>
