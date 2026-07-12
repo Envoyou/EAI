@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-07-12
+
 ### Added
 - **Sistem Proteksi Penghapusan Tautan (Lapisan 2 & Lapisan 3)**:
   - **Pencegah Penghapusan Tautan Frontend**: Menambahkan utilitas `checkMissingSources` di Editor untuk mendeteksi apabila tautan sitasi orisinal terhapus sebelum draf dipoles. Menampilkan modal dialog peringatan yang memungkinkan pengguna untuk memulihkan sumber yang hilang di bagian bawah draf, melanjutkan pemolesan apa adanya, atau membatalkan aksi.

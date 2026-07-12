@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-07-12
+
 ### Added
 - **Link Deletion Safeguards (Layer 2 & Layer 3)**:
   - **Frontend Link Interceptor**: Added utility `checkMissingSources` in the Editor to detect if original citation links have been deleted before refinement. Displays a warning dialog allowing the user to restore missing sources at the bottom of the draft, refine anyway, or cancel.
