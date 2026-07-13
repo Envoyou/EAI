@@ -14,9 +14,17 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added PostgreSQL `CHECK` constraint (`chk_subscription_target`) to enforce database-level mutual exclusivity between user and organization subscription owners.
   - Added partial unique indexes to guarantee at most one active subscription per user or organization.
   - Integrated transactional updates using a single `prisma.$transaction` context to expire existing active subscriptions and create new ones atomically.
+- **Automated Plan Prorata & Credit Merging**: Calculates the prorated remaining cash value of active plans when a user changes subscriptions mid-period. Skips resetting user/organization credits (`cycle_reset`) on upgrades/downgrades to merge unused credits into the new plan cycle.
+- **Leftover Account Balance**: Introduced account balance (`balanceIdr` field on `User`/`Organization`) to store leftover funds from plan changes, which automatically apply as discounts to subsequent checkouts.
+- **Bypass for Rp 0 Checkout**: Implemented direct activation for checkouts fully covered by prorated refunds or account balances without redirecting to payment gateways.
+- **Grace Period State Support**: Updated backend subscription checks to recognize `cancels_at_period_end` as an active subscription state.
+- **Public Exchange Rate API**: Added a public `GET /api/payments/rate` route to expose the active backend exchange rate, preventing race conditions or currency mismatches on serverless cold starts.
+- **Reactivate Subscription Flow**: Added Reactivate Subscription button with full confirmation UI calling a new backend reactivation endpoint.
 
 ### Fixed
 - **Brace-Counting JSON Extractor**: Implemented a stateful brace-counting parser in `extractJsonFromText` to extract the exact JSON object from model outputs. This strips trailing fences/comments (even if they contain parenthesis or braces) and prevents JSON parsing retries on Quality Gate checks.
+- **Pricing Exchange Rate Rendering**: Adjusted invoice exchange rate logic to display the base exchange rate (USD 1 = Rp 18.000) instead of dividing tax-inclusive IDR total by USD amount.
+- **Dynamic Pricing Disclosures**: Updated Next.js server pricing page to fetch the real-time rate from the backend container, resolving visual mismatch and payment validation conflicts.
 
 ## [3.1.1] - 2026-07-12
 

@@ -14,9 +14,17 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan PostgreSQL `CHECK` constraint (`chk_subscription_target`) di tingkat basis data untuk memaksa eksklusivitas kepemilikan langganan (hanya boleh terikat ke user atau organisasi saja, tidak bisa keduanya atau kosong).
   - Menambahkan indeks unik kondisional (*partial unique index*) untuk memastikan hanya ada maksimal satu langganan berstatus `active` per user atau organisasi.
   - Menerapkan pengalokasian paket secara transaksional dalam satu blok `prisma.$transaction` untuk mengarsipkan langganan aktif lama dan membuat langganan baru secara atomik (aman dari kegagalan parsial).
+- **Prorata Paket Otomatis & Penggabungan Kredit**: Menghitung sisa nominal rupiah tak terpakai dari langganan aktif saat pengguna melakukan perubahan paket di tengah periode. Sistem melewatkan reset kredit (`cycle_reset`) pada upgrade/downgrade agar sisa kredit lama digabungkan secara otomatis ke siklus paket baru.
+- **Saldo Simpanan Akun (Deposit)**: Memperkenalkan saldo akun (`balanceIdr` pada `User`/`Organization`) untuk menyimpan sisa kembalian dana prorata, yang secara otomatis memotong biaya transaksi checkout berikutnya.
+- **Aktivasi Langsung Transaksi Rp 0**: Mengimplementasikan bypass payment gateway jika total tagihan bernilai Rp 0, sehingga aktivasi langganan baru dapat langsung diproses secara instan di backend.
+- **Dukungan Status Masa Tenggang (Grace Period)**: Memperbarui pengecekan langganan aktif di backend agar mengenali status `cancels_at_period_end` sebagai langganan aktif yang sah.
+- **API Sinkronisasi Kurs Publik**: Menambahkan route publik `GET /api/payments/rate` untuk mengekspos kurs aktif dari backend ke frontend, mencegah kesalahan kalkulasi kurs pada cold start serverless Next.js.
+- **Alur Reaktivasi Langganan**: Menambahkan tombol dan modal konfirmasi Reaktivasi Langganan di halaman tagihan beserta API endpoint reaktivasi di backend.
 
 ### Fixed
 - **Ekstraktor JSON Penghitung Kurung Kurawal**: Mengimplementasikan parser pelacak kurung kurawal (`brace-counting`) di fungsi `extractJsonFromText` untuk mengambil objek JSON secara tepat dari output model. Hal ini memotong teks/pagar markdown tambahan (bahkan jika memuat tanda kurung biasa atau kurawal) dan mencegah proses pengulangan (*retry*) parse JSON di Quality Gate.
+- **Perbaikan Kurs Invoice**: Memperbaiki logika pembagian nominal kurs pada invoice agar menampilkan nilai dasar (USD 1 = Rp 18.000) alih-alih membagi total tagihan kotor (termasuk PPN) dengan nominal USD.
+- **Konsistensi Kurs Pricing & Checkout**: Memperbarui halaman pricing Next.js agar melakukan sinkronisasi kurs langsung dari backend sebelum merender harga, menyelesaikan konflik mismatch kurs dan validasi nominal checkout.
 
 ## [3.1.1] - 2026-07-12
 
