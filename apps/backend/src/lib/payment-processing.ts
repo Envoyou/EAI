@@ -69,18 +69,21 @@ export async function processVerifiedPaymentEvent(
     const organizationId = paymentOrder.organizationId;
 
     if (plan.isSubscription) {
-      const subscription = await tx.subscription.upsert({
-        where: organizationId
-          ? { organizationId }
-          : { userId: paymentOrder.userId as string },
-        update: {
-          id: paymentOrder.id,
-          plan: plan.id,
+      // 1. Archive any existing active subscriptions inside the transaction
+      await tx.subscription.updateMany({
+        where: {
+          userId: organizationId ? undefined : (paymentOrder.userId as string),
+          organizationId: organizationId || undefined,
           status: 'active',
-          currentPeriodStart: now,
-          currentPeriodEnd: periodEnd,
         },
-        create: {
+        data: {
+          status: 'expired',
+        },
+      });
+
+      // 2. Create the new active subscription inside the transaction
+      const subscription = await tx.subscription.create({
+        data: {
           id: paymentOrder.id,
           userId,
           organizationId,

@@ -9,6 +9,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ### Added
 - **Dedicated PATCH Endpoints**: Split `/api/history/:id` into specific `/resolve` and `/autosave` endpoints to isolate business logic, validation schemas, and rate limits.
 - **Autosave Schema & Rate Limiting**: Added `AutosaveSchema` validation and an in-memory `autosaveRateLimiter` middleware (max 100 requests/minute per user) to safeguard autosaves against database spam.
+- **Historical Subscriptions & Database Constraints**:
+  - Removed `@unique` constraints on `userId` and `organizationId` from the `Subscription` model to transition to a 1-to-many relationship supporting expired/cancelled subscription history.
+  - Added PostgreSQL `CHECK` constraint (`chk_subscription_target`) to enforce database-level mutual exclusivity between user and organization subscription owners.
+  - Added partial unique indexes to guarantee at most one active subscription per user or organization.
+  - Integrated transactional updates using a single `prisma.$transaction` context to expire existing active subscriptions and create new ones atomically.
 
 ### Fixed
 - **Brace-Counting JSON Extractor**: Implemented a stateful brace-counting parser in `extractJsonFromText` to extract the exact JSON object from model outputs. This strips trailing fences/comments (even if they contain parenthesis or braces) and prevents JSON parsing retries on Quality Gate checks.

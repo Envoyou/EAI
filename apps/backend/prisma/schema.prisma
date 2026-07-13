@@ -23,7 +23,7 @@ model User {
 
   aiProviderOverride String?
   trialUsed      Boolean             @default(false)
-  subscription   Subscription?
+  subscriptions  Subscription[]
   transactions   CreditTransaction[]
   usages         CreditUsage[]
   paymentOrders  PaymentOrder[]
@@ -97,7 +97,7 @@ model Organization {
   profiles EditorialProfile[]
   cmsConnections CmsConnection[]
 
-  subscription   Subscription?
+  subscriptions  Subscription[]
   transactions   CreditTransaction[]
   usages         CreditUsage[]
   paymentOrders  PaymentOrder[]
@@ -212,8 +212,8 @@ enum CreditTransactionType {
 
 model Subscription {
   id                 String        @id
-  userId             String?       @unique
-  organizationId     String?       @unique
+  userId             String?
+  organizationId     String?
   plan               String        
   status             String        
   currentPeriodStart DateTime

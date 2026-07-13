@@ -51,8 +51,9 @@ const calculateOrganizationBalance = async (
   organizationId: string
 ): Promise<BillingBalance> => {
   const [subscription, transactions] = await Promise.all([
-    client.subscription.findUnique({
+    client.subscription.findFirst({
       where: { organizationId },
+      orderBy: { createdAt: 'desc' },
       select: {
         status: true,
         currentPeriodEnd: true,
@@ -334,8 +335,9 @@ const calculatePersonalBalance = async (
   userId: string
 ): Promise<BillingBalance> => {
   const [subscription, transactions] = await Promise.all([
-    client.subscription.findUnique({
+    client.subscription.findFirst({
       where: { userId },
+      orderBy: { createdAt: 'desc' },
       select: {
         status: true,
         currentPeriodEnd: true,
@@ -477,10 +479,20 @@ export const overrideOrganizationSubscription = async (
   const currentPeriodEnd = new Date(now.getTime() + input.durationDays * 24 * 60 * 60 * 1000);
 
   return prisma.$transaction(async (tx) => {
-    // 1. Upsert the subscription
-    const subscription = await tx.subscription.upsert({
-      where: { organizationId: input.organizationId },
-      create: {
+    // 1. Archive existing active subscriptions inside the transaction
+    await tx.subscription.updateMany({
+      where: {
+        organizationId: input.organizationId,
+        status: 'active',
+      },
+      data: {
+        status: 'expired',
+      },
+    });
+
+    // 2. Create the overridden active subscription inside the transaction
+    const subscription = await tx.subscription.create({
+      data: {
         id: `sub_manual_${Date.now()}`,
         organizationId: input.organizationId,
         plan: input.plan,
@@ -488,12 +500,6 @@ export const overrideOrganizationSubscription = async (
         currentPeriodStart,
         currentPeriodEnd,
       },
-      update: {
-        plan: input.plan,
-        status: 'active',
-        currentPeriodStart,
-        currentPeriodEnd,
-      }
     });
 
     // 2. Reset the remaining subscription credits

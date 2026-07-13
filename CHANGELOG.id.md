@@ -9,6 +9,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ### Added
 - **Pemisahan Endpoint PATCH**: Memisahkan `/api/history/:id` menjadi endpoint spesifik `/resolve` dan `/autosave` untuk memisahkan logika bisnis, skema validasi, serta pembatasan rate limit.
 - **Skema Autosave & Pembatas Request**: Menambahkan skema validasi `AutosaveSchema` dan middleware pembatas request in-memory `autosaveRateLimiter` (maksimal 100 request/menit per pengguna) untuk melindungi proses autosave dari spam basis data.
+- **Riwayat Langganan & Validasi Basis Data**:
+  - Menghapus batasan `@unique` pada `userId` dan `organizationId` di model `Subscription` untuk beralih ke relasi 1-ke-banyak demi mendukung pencatatan riwayat langganan yang sudah kedaluwarsa/dibatalkan.
+  - Menambahkan PostgreSQL `CHECK` constraint (`chk_subscription_target`) di tingkat basis data untuk memaksa eksklusivitas kepemilikan langganan (hanya boleh terikat ke user atau organisasi saja, tidak bisa keduanya atau kosong).
+  - Menambahkan indeks unik kondisional (*partial unique index*) untuk memastikan hanya ada maksimal satu langganan berstatus `active` per user atau organisasi.
+  - Menerapkan pengalokasian paket secara transaksional dalam satu blok `prisma.$transaction` untuk mengarsipkan langganan aktif lama dan membuat langganan baru secara atomik (aman dari kegagalan parsial).
 
 ### Fixed
 - **Ekstraktor JSON Penghitung Kurung Kurawal**: Mengimplementasikan parser pelacak kurung kurawal (`brace-counting`) di fungsi `extractJsonFromText` untuk mengambil objek JSON secara tepat dari output model. Hal ini memotong teks/pagar markdown tambahan (bahkan jika memuat tanda kurung biasa atau kurawal) dan mencegah proses pengulangan (*retry*) parse JSON di Quality Gate.
