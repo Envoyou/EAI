@@ -282,6 +282,18 @@ export const getWorkspaceState = async (
     },
   });
 
+  const queuedSub = await prisma.subscription.findFirst({
+    where: {
+      userId: activeOrganizationId ? undefined : userId,
+      organizationId: activeOrganizationId || undefined,
+      status: 'queued',
+    },
+    select: {
+      plan: true,
+      currentPeriodStart: true,
+    },
+  });
+
   const transactions = await prisma.creditTransaction.groupBy({
     by: ['bucket'],
     where: {
@@ -322,6 +334,11 @@ export const getWorkspaceState = async (
       currentPeriodEnd: activeSub?.currentPeriodEnd || null,
       subscriptionCreditsTotal,
       subscriptionCreditsRemaining,
+      queuedDowngrade: queuedSub ? {
+        planId: queuedSub.plan,
+        planName: PLANS[queuedSub.plan]?.name || queuedSub.plan,
+        activatesOn: queuedSub.currentPeriodStart,
+      } : null,
     },
   };
 };

@@ -7,6 +7,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Yearly Subscription Credit Scheduler**: Configured yearly subscriptions to allocate credits monthly (e.g. 50/month) instead of a upfront lump sum. Built a daily cron job `monthly-credit-allocation` using BullMQ to reset remaining monthly subscription credits and refill the monthly quota, using idempotency keys (`monthly-refill:${sub.id}:${year}-${month}`) to prevent double allocation.
+- **Delayed Downgrade (Stripe-Way)**: Implemented delayed downgrade flow from yearly to monthly plans. Creates a new monthly subscription row in the `queued` state scheduled to activate automatically at the yearly plan's `currentPeriodEnd`. Built a daily cron job `activate-queued-downgrade` to handle automatic activation.
+- **Cancel Scheduled Downgrade**: Added "Keep My Current Plan" confirmation button to delete the queued monthly plan and restore the yearly plan's active status.
+- **Yearly Purchase Gating**: Blocks buying or renewing yearly plans if the workspace already has a pending scheduled downgrade, displaying a helpful inline warning.
 - **Dedicated PATCH Endpoints**: Split `/api/history/:id` into specific `/resolve` and `/autosave` endpoints to isolate business logic, validation schemas, and rate limits.
 - **Autosave Schema & Rate Limiting**: Added `AutosaveSchema` validation and an in-memory `autosaveRateLimiter` middleware (max 100 requests/minute per user) to safeguard autosaves against database spam.
 - **Historical Subscriptions & Database Constraints**:

@@ -126,6 +126,8 @@ export function UserDirectory() {
     transactions: any[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     analysisLogs: any[];
+    activeSubscription?: any;
+    queuedSubscription?: any;
   } | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [activeDetailsTab, setActiveDetailsTab] = useState<'profile' | 'credits' | 'analyses'>('profile');
@@ -1002,7 +1004,7 @@ export function UserDirectory() {
                         </div>
                       </div>
 
-                      <div className="mt-2 p-3 rounded-lg border border-[var(--border)] bg-zinc-800/10 dark:bg-zinc-100/5">
+                      <div className="mt-2 p-3 rounded-lg border border-[var(--border)] bg-zinc-800/10 dark:bg-zinc-100/5 text-left">
                         <div className="text-xs text-[var(--muted-foreground)] font-semibold uppercase mb-2">Organization Status</div>
                         {detailsData.user.organization ? (
                           <div className="flex flex-col gap-1">
@@ -1013,6 +1015,85 @@ export function UserDirectory() {
                           </div>
                         ) : (
                           <div className="text-xs text-[var(--muted-foreground)] italic">User is not in any workspace/organization.</div>
+                        )}
+                      </div>
+
+                      {/* Subscription & Credit Schedule Details */}
+                      <div className="p-3 rounded-lg border border-[var(--border)] bg-zinc-800/10 dark:bg-zinc-100/5 text-left">
+                        <div className="text-xs text-[var(--muted-foreground)] font-semibold uppercase mb-3">Subscription & Credit Schedule</div>
+                        {detailsData.activeSubscription ? (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between text-xs border-b border-[var(--border)]/50 pb-1.5">
+                              <span className="text-[var(--muted-foreground)]">Current Plan:</span>
+                              <span className="font-semibold capitalize text-[var(--foreground)]">
+                                {detailsData.activeSubscription.plan.replaceAll('_', ' ')}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs border-b border-[var(--border)]/50 pb-1.5">
+                              <span className="text-[var(--muted-foreground)]">Status:</span>
+                              <span className={`font-semibold uppercase text-[9px] ui-badge ${
+                                detailsData.activeSubscription.status === 'active' 
+                                  ? 'ui-badge-success' 
+                                  : 'ui-badge-warning'
+                              }`}>
+                                {detailsData.activeSubscription.status === 'cancels_at_period_end' 
+                                  ? 'Cancellation Pending' 
+                                  : detailsData.activeSubscription.status}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs border-b border-[var(--border)]/50 pb-1.5">
+                              <span className="text-[var(--muted-foreground)]">Current Period End:</span>
+                              <span className="font-semibold text-[var(--foreground)]">
+                                {formatDate(detailsData.activeSubscription.currentPeriodEnd)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs border-b border-[var(--border)]/50 pb-1.5">
+                              <span className="text-[var(--muted-foreground)]">Last Monthly Refill:</span>
+                              <span className="font-semibold text-[var(--foreground)]">
+                                {detailsData.activeSubscription.lastCreditAllocation 
+                                  ? formatDate(detailsData.activeSubscription.lastCreditAllocation) 
+                                  : 'Never'}
+                              </span>
+                            </div>
+
+                            {/* Churn Survey Feedback if cancels_at_period_end */}
+                            {(detailsData.activeSubscription.cancelReason || detailsData.activeSubscription.cancelFeedback) && (
+                              <div className="mt-2 rounded-lg border border-red-200 dark:border-red-950 bg-red-500/5 p-3 text-[11px] space-y-1.5">
+                                <div className="font-bold text-red-600 dark:text-red-400 uppercase tracking-wider text-[9px]">
+                                  Cancellation Survey
+                                </div>
+                                {detailsData.activeSubscription.cancelReason && (
+                                  <p className="text-[var(--foreground)]">
+                                    <span className="font-semibold text-[var(--muted-foreground)]">Reason:</span>{' '}
+                                    {detailsData.activeSubscription.cancelReason}
+                                  </p>
+                                )}
+                                {detailsData.activeSubscription.cancelFeedback && (
+                                  <p className="text-[var(--foreground)]">
+                                    <span className="font-semibold text-[var(--muted-foreground)]">Feedback:</span>{' '}
+                                    &ldquo;{detailsData.activeSubscription.cancelFeedback}&rdquo;
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-[var(--muted-foreground)] italic">No active subscription (Free Tier).</div>
+                        )}
+
+                        {/* Queued Downgrade */}
+                        {detailsData.queuedSubscription && (
+                          <div className="mt-3 p-3 rounded-lg border border-yellow-200/50 dark:border-yellow-950 bg-yellow-500/5 text-left text-xs space-y-1.5">
+                            <div className="font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-wider text-[9px]">
+                              Scheduled Downgrade (Queued)
+                            </div>
+                            <p className="text-[var(--foreground)]">
+                              Target Plan: <span className="font-semibold capitalize">{detailsData.queuedSubscription.plan.replaceAll('_', ' ')}</span>
+                            </p>
+                            <p className="text-[var(--foreground)]">
+                              Start Date: <span className="font-semibold">{formatDate(detailsData.queuedSubscription.currentPeriodStart)}</span>
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>

@@ -37,6 +37,8 @@ type Subscription = {
   status: string;
   currentPeriodStart?: string;
   currentPeriodEnd: string;
+  cancelReason?: string | null;
+  cancelFeedback?: string | null;
 } | null;
 
 type OrganizationSummary = {
@@ -99,7 +101,7 @@ const formatDate = (value: string) =>
   }).format(new Date(value));
 
 const planLabel = (subscription: Subscription) => {
-  if (!subscription || subscription.status !== 'active') return 'Free';
+  if (!subscription || (subscription.status !== 'active' && subscription.status !== 'cancels_at_period_end')) return 'Free';
   return subscription.plan.replaceAll('_', ' ');
 };
 
@@ -408,14 +410,36 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                 <div className="ui-card flex flex-col justify-between p-5 lg:col-span-2">
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     {/* Workspace Identity Details */}
-                    <div>
-                      <h2 className="text-2xl font-bold">{selected.name}</h2>
-                      <p className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
-                        {selected.id}
-                      </p>
-                      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-                        {selected.publicationName || selected.domain || selected.slug}
-                      </p>
+                    <div className="space-y-4">
+                      <div>
+                        <h2 className="text-2xl font-bold">{selected.name}</h2>
+                        <p className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
+                          {selected.id}
+                        </p>
+                        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+                          {selected.publicationName || selected.domain || selected.slug}
+                        </p>
+                      </div>
+
+                      {(selected.subscription?.cancelReason || selected.subscription?.cancelFeedback) && (
+                        <div className="rounded-2xl border border-red-200 dark:border-red-950 bg-red-500/5 p-4 text-xs space-y-2 text-left">
+                          <h4 className="font-bold text-red-600 dark:text-red-400 uppercase tracking-wider !text-[10px]">
+                            Churn Survey Feedback
+                          </h4>
+                          {selected.subscription.cancelReason && (
+                            <p className="text-[var(--foreground)]">
+                              <span className="font-semibold text-[var(--muted-foreground)]">Reason:</span>{' '}
+                              {selected.subscription.cancelReason}
+                            </p>
+                          )}
+                          {selected.subscription.cancelFeedback && (
+                            <p className="text-[var(--foreground)]">
+                              <span className="font-semibold text-[var(--muted-foreground)]">Message:</span>{' '}
+                              &ldquo;{selected.subscription.cancelFeedback}&rdquo;
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Workspace Members list */}

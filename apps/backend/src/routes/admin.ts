@@ -754,10 +754,32 @@ router.get('/users/:id/details', requireAuth, async (req, res) => {
       take: 10,
     });
 
+    const subTarget = user.organization?.id
+      ? { organizationId: user.organization.id }
+      : { userId: targetUserId };
+
+    const activeSubscription = await prisma.subscription.findFirst({
+      where: {
+        ...subTarget,
+        status: { in: ['active', 'cancels_at_period_end'] }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const queuedSubscription = await prisma.subscription.findFirst({
+      where: {
+        ...subTarget,
+        status: 'queued'
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
     return res.json({
       user,
       transactions,
       analysisLogs,
+      activeSubscription,
+      queuedSubscription,
     });
   } catch (error) {
     console.error('[ADMIN_USER_DETAILS_GET]', error);

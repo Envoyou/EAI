@@ -12,6 +12,7 @@ import { getApiUrl } from '@/lib/api-url';
 import BillingDetailsForm from '@/components/BillingDetailsForm';
 import CancelSubscriptionButton from '@/components/CancelSubscriptionButton';
 import ReactivateSubscriptionButton from '@/components/ReactivateSubscriptionButton';
+import CancelQueuedDowngradeButton from '@/components/CancelQueuedDowngradeButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -193,9 +194,15 @@ export default async function BillingSettingsPage() {
                 </div>
               )}
               {workspace?.plan.subscriptionStatus === 'cancels_at_period_end' && workspace.plan.currentPeriodEnd && (
-                <div className="mt-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs leading-5">
-                  Your subscription has been canceled. You will still have access to all premium features and your remaining credits until <strong>{formatDate(workspace.plan.currentPeriodEnd)}</strong>.
-                </div>
+                workspace.plan.queuedDowngrade ? (
+                  <div className="mt-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs leading-5">
+                    Your plan is scheduled to downgrade to <strong>{workspace.plan.queuedDowngrade.planName}</strong> on <strong>{formatDate(workspace.plan.queuedDowngrade.activatesOn)}</strong>. Your current yearly plan remains fully active until then.
+                  </div>
+                ) : (
+                  <div className="mt-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs leading-5">
+                    Your subscription has been canceled. You will still have access to all premium features and your remaining credits until <strong>{formatDate(workspace.plan.currentPeriodEnd)}</strong>.
+                  </div>
+                )
               )}
               {['active', 'cancels_at_period_end'].includes(workspace?.plan.subscriptionStatus ?? '') && workspace.plan.subscriptionCreditsTotal > 0 && (
                 <div className="mt-4 space-y-2 border-t border-[var(--border)] pt-4">
@@ -240,7 +247,11 @@ export default async function BillingSettingsPage() {
               <CancelSubscriptionButton planName={activePlanName} />
             )}
             {workspace?.plan.subscriptionStatus === 'cancels_at_period_end' && activePlanId !== 'free' && (
-              <ReactivateSubscriptionButton />
+              workspace.plan.queuedDowngrade ? (
+                <CancelQueuedDowngradeButton />
+              ) : (
+                <ReactivateSubscriptionButton />
+              )
             )}
           </div>
         </div>

@@ -94,13 +94,14 @@ export async function processVerifiedPaymentEvent(
       // 2. Create the new active subscription inside the transaction
       const subscription = await tx.subscription.create({
         data: {
-          id: paymentOrder.id,
+          id: `sub_${paymentOrder.id}`,
           userId,
           organizationId,
           plan: plan.id,
           status: 'active',
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
+          lastCreditAllocation: plan.billingMonths === 12 ? now : null,
         },
       });
 
@@ -133,25 +134,27 @@ export async function processVerifiedPaymentEvent(
         });
       }
 
+      const isYearly = plan.billingMonths === 12;
+      const firstMonthEnd = new Date(now);
+      if (isYearly) {
+        firstMonthEnd.setUTCMonth(firstMonthEnd.getUTCMonth() + 1);
+      }
+
       await tx.creditTransaction.create({
         data: {
           userId,
           organizationId,
-          type:
-            plan.billingMonths === 12
-              ? 'yearly_monthly_allocation'
-              : 'monthly_allocation',
+          type: isYearly ? 'yearly_monthly_allocation' : 'monthly_allocation',
           bucket: 'subscription',
-          amount: getPlanCreditsGranted(plan),
+          amount: isYearly ? plan.creditsPerMonth : getPlanCreditsGranted(plan),
           subscriptionId: subscription.id,
           idempotencyKey: `allocation:${paymentOrder.id}`,
-          description:
-            plan.billingMonths === 12
-              ? `Prepaid 12-month credit allocation for the ${plan.name} plan`
-              : `Monthly credit allocation for the ${plan.name} plan`,
+          description: isYearly
+            ? `First month prepaid credit allocation for the ${plan.name} plan`
+            : `Monthly credit allocation for the ${plan.name} plan`,
           periodStart: now,
-          periodEnd,
-          expiresAt: periodEnd,
+          periodEnd: isYearly ? firstMonthEnd : periodEnd,
+          expiresAt: isYearly ? firstMonthEnd : periodEnd,
         },
       });
     } else {

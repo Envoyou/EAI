@@ -69,7 +69,9 @@ const calculateOrganizationBalance = async (
   const trial = transactions.find((item) => item.bucket === 'trial')?._sum.amount ?? 0;
   const addon = transactions.find((item) => item.bucket === 'addon')?._sum.amount ?? 0;
   const subscriptionIsActive = Boolean(
-    subscription?.status === 'active' && subscription.currentPeriodEnd > new Date()
+    subscription &&
+    (subscription.status === 'active' || subscription.status === 'cancels_at_period_end') &&
+    subscription.currentPeriodEnd > new Date()
   );
   const subscriptionBalance = subscriptionIsActive
     ? transactions.find((item) => item.bucket === 'subscription')?._sum.amount ?? 0
@@ -204,6 +206,8 @@ export const getBillingOrganizationDetail = async (organizationId: string) => {
           status: true,
           currentPeriodStart: true,
           currentPeriodEnd: true,
+          cancelReason: true,
+          cancelFeedback: true,
         },
         orderBy: { createdAt: 'desc' },
         take: 1,
@@ -361,7 +365,9 @@ const calculatePersonalBalance = async (
   const trial = transactions.find((item) => item.bucket === 'trial')?._sum.amount ?? 0;
   const addon = transactions.find((item) => item.bucket === 'addon')?._sum.amount ?? 0;
   const subscriptionIsActive = Boolean(
-    subscription?.status === 'active' && subscription.currentPeriodEnd > new Date()
+    subscription &&
+    (subscription.status === 'active' || subscription.status === 'cancels_at_period_end') &&
+    subscription.currentPeriodEnd > new Date()
   );
   const subscriptionBalance = subscriptionIsActive
     ? transactions.find((item) => item.bucket === 'subscription')?._sum.amount ?? 0

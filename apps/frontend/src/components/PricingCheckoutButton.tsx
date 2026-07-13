@@ -15,6 +15,7 @@ interface PricingCheckoutButtonProps {
   disclosure: CheckoutDisclosure;
   billingEnabled: boolean;
   autoCheckout?: boolean;
+  hasQueuedDowngrade?: boolean;
 }
 
 export default function PricingCheckoutButton({
@@ -26,6 +27,7 @@ export default function PricingCheckoutButton({
   disclosure,
   billingEnabled,
   autoCheckout = false,
+  hasQueuedDowngrade = false,
 }: PricingCheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(autoCheckout);
@@ -38,6 +40,7 @@ export default function PricingCheckoutButton({
     finalAmountIdr: number;
     balanceRemaining: number;
     oldSubPlanId: string | null;
+    oldSubPeriodEnd: string | null;
     usdToIdrRate: number;
   } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -123,9 +126,12 @@ export default function PricingCheckoutButton({
     }
   };
 
+  const isYearly = planId.endsWith('_yearly') || planId.includes('yearly');
+  const isBlockedByQueued = hasQueuedDowngrade && isYearly;
+
   const getButtonStyles = () => {
-    if (!billingEnabled) {
-      return 'bg-[var(--surface-2)] text-muted-foreground font-semibold border border-[var(--border)] cursor-not-allowed';
+    if (!billingEnabled || isBlockedByQueued) {
+      return 'bg-[var(--surface-2)] text-muted-foreground font-semibold border border-[var(--border)] cursor-not-allowed opacity-60';
     }
     if (current) {
       return 'bg-transparent text-muted-foreground font-semibold border border-[var(--border)] cursor-default';
@@ -163,12 +169,14 @@ export default function PricingCheckoutButton({
     <>
       <button
         onClick={handleCheckout}
-        disabled={loading || current || !billingEnabled}
-        aria-disabled={current || !billingEnabled}
+        disabled={loading || current || !billingEnabled || isBlockedByQueued}
+        aria-disabled={current || !billingEnabled || isBlockedByQueued}
         className={`w-full py-3 px-4 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 text-sm active:scale-98 disabled:cursor-not-allowed ${current ? '' : 'cursor-pointer disabled:opacity-75'} ${getButtonStyles()} ${className}`}
       >
         {!billingEnabled ? (
           <span>Coming Soon</span>
+        ) : isBlockedByQueued ? (
+          <span>Downgrade Pending</span>
         ) : loading ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -186,6 +194,11 @@ export default function PricingCheckoutButton({
           </>
         )}
       </button>
+      {isBlockedByQueued && (
+        <p className="mt-2 text-[10px] text-amber-500 font-semibold text-center leading-normal">
+          Downgrade pending. Cancel it in settings to buy yearly.
+        </p>
+      )}
 
       {confirming && (
         <div
@@ -201,124 +214,158 @@ export default function PricingCheckoutButton({
             aria-labelledby={`checkout-title-${planId}`}
             className="w-full max-w-md surface-card surface-card-xl p-6 text-left shadow-2xl animate-in fade-in zoom-in-95 duration-200"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                  Before checkout
-                </p>
-                <h2 id={`checkout-title-${planId}`} className="mt-1 text-xl font-bold text-foreground">
-                  Confirm your prepaid purchase
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={loading}
-                aria-label="Close checkout confirmation"
-                className="rounded-full p-1.5 text-muted-foreground transition hover:bg-[var(--surface-2)] hover:text-foreground disabled:opacity-50"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+            {/* Define isDelayedDowngrade logic */}
+            {(() => {
+              const isDelayedDowngrade =
+                preview &&
+                (preview.oldSubPlanId?.includes('yearly') || preview.oldSubPlanId?.endsWith('_yearly')) &&
+                !(planId.includes('yearly') || planId.endsWith('_yearly'));
 
-            {previewLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-3 text-sm text-muted-foreground">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <span>Calculating prorata discounts and balance...</span>
-              </div>
-            ) : (
-              <>
-                <ul className="mt-5 space-y-3 text-sm leading-6 text-muted-foreground">
-                  <li className="flex items-center justify-between gap-4">
-                    <span>Product</span>
-                    <strong className="text-right text-foreground">{disclosure.planName}</strong>
-                  </li>
-                  <li className="flex items-center justify-between gap-4">
-                    <span>Listed price</span>
-                    <strong className="text-right text-foreground">{formatUsd(disclosure.priceUsd)}</strong>
-                  </li>
-                  <li className="flex items-center justify-between gap-4 border-t border-[var(--border)] pt-3">
-                    <span>Original price (fixed IDR)</span>
-                    <strong className="text-right text-foreground">{formatIdr(preview ? preview.originalAmountIdr : disclosure.amountIdr)}</strong>
-                  </li>
-                  {preview && preview.useProratedRefund > 0 && (
-                    <li className="flex items-center justify-between gap-4 text-emerald-600 dark:text-emerald-400">
-                      <span>Prorated credit (previous plan)</span>
-                      <strong className="text-right font-semibold">-{formatIdr(preview.useProratedRefund)}</strong>
-                    </li>
-                  )}
-                  {preview && preview.useAccountBalance > 0 && (
-                    <li className="flex items-center justify-between gap-4 text-emerald-600 dark:text-emerald-400">
-                      <span>Account balance applied</span>
-                      <strong className="text-right font-semibold">-{formatIdr(preview.useAccountBalance)}</strong>
-                    </li>
-                  )}
-                  <li className="flex items-center justify-between gap-4 border-t border-[var(--border)] pt-3">
-                    <span>Final checkout amount</span>
-                    <strong className="text-right text-base text-primary font-bold">
-                      {formatIdr(preview ? preview.finalAmountIdr : disclosure.amountIdr)}
-                    </strong>
-                  </li>
-                  <li className="flex items-center justify-between gap-4">
-                    <span>Editorial Credits</span>
-                    <strong className="text-right text-foreground">{disclosure.creditsGranted}</strong>
-                  </li>
-                </ul>
-
-                {preview && preview.balanceRemaining > 0 && (
-                  <div className="mt-4 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs leading-5 font-semibold">
-                    Leftover balance saved to account: <strong>{formatIdr(preview.balanceRemaining)}</strong>. It will automatically apply as a discount on your next checkout.
+              return (
+                <>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                        {isDelayedDowngrade ? 'Delayed Downgrade' : 'Before checkout'}
+                      </p>
+                      <h2 id={`checkout-title-${planId}`} className="mt-1 text-xl font-bold text-foreground">
+                        {isDelayedDowngrade ? 'Confirm plan downgrade' : 'Confirm your prepaid purchase'}
+                      </h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      disabled={loading}
+                      aria-label="Close checkout confirmation"
+                      className="rounded-full p-1.5 text-muted-foreground transition hover:bg-[var(--surface-2)] hover:text-foreground disabled:opacity-50"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                )}
-              </>
-            )}
 
-            <div className="mt-5 space-y-2 rounded-2xl bg-[var(--surface-2)] p-4 text-xs leading-5 text-muted-foreground">
-              <p>{disclosure.billingLabel}</p>
-              <p>{disclosure.creditValidity}</p>
-              <p>{disclosure.renewalLabel}</p>
-              <p>{disclosure.taxLabel}</p>
-              <p>
-                Conversion reference: USD 1 = IDR {formatIdrRate(preview ? preview.usdToIdrRate : disclosure.usdToIdrRate)}.
-                The IDR amount above is fixed when this order is created.
-              </p>
-            </div>
+                  {previewLoading ? (
+                    <div className="flex flex-col items-center justify-center py-12 gap-3 text-sm text-muted-foreground">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <span>Calculating prorata discounts and balance...</span>
+                    </div>
+                  ) : isDelayedDowngrade ? (
+                    <div className="mt-4 p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-sm leading-relaxed space-y-3 font-semibold">
+                      <p>
+                        You are downgrading from a Yearly plan to the <strong>{disclosure.planName}</strong> monthly plan.
+                      </p>
+                      <p>
+                        Your current yearly plan will remain fully active until{' '}
+                        <strong>
+                          {preview?.oldSubPeriodEnd ? new Date(preview.oldSubPeriodEnd).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          }) : 'the end of its term'}
+                        </strong>
+                        .
+                      </p>
+                      <p className="text-xs text-muted-foreground font-medium">
+                        The {disclosure.planName} monthly plan will activate automatically on that date. No immediate payment will be charged today.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <ul className="mt-5 space-y-3 text-sm leading-6 text-muted-foreground">
+                        <li className="flex items-center justify-between gap-4">
+                          <span>Product</span>
+                          <strong className="text-right text-foreground">{disclosure.planName}</strong>
+                        </li>
+                        <li className="flex items-center justify-between gap-4">
+                          <span>Listed price</span>
+                          <strong className="text-right text-foreground">{formatUsd(disclosure.priceUsd)}</strong>
+                        </li>
+                        <li className="flex items-center justify-between gap-4 border-t border-[var(--border)] pt-3">
+                          <span>Original price (fixed IDR)</span>
+                          <strong className="text-right text-foreground">{formatIdr(preview ? preview.originalAmountIdr : disclosure.amountIdr)}</strong>
+                        </li>
+                        {preview && preview.useProratedRefund > 0 && (
+                          <li className="flex items-center justify-between gap-4 text-emerald-600 dark:text-emerald-400">
+                            <span>Prorated credit (previous plan)</span>
+                            <strong className="text-right font-semibold">-{formatIdr(preview.useProratedRefund)}</strong>
+                          </li>
+                        )}
+                        {preview && preview.useAccountBalance > 0 && (
+                          <li className="flex items-center justify-between gap-4 text-emerald-600 dark:text-emerald-400">
+                            <span>Account balance applied</span>
+                            <strong className="text-right font-semibold">-{formatIdr(preview.useAccountBalance)}</strong>
+                          </li>
+                        )}
+                        <li className="flex items-center justify-between gap-4 border-t border-[var(--border)] pt-3">
+                          <span>Final checkout amount</span>
+                          <strong className="text-right text-base text-primary font-bold">
+                            {formatIdr(preview ? preview.finalAmountIdr : disclosure.amountIdr)}
+                          </strong>
+                        </li>
+                        <li className="flex items-center justify-between gap-4">
+                          <span>Editorial Credits</span>
+                          <strong className="text-right text-foreground">{disclosure.creditsGranted}</strong>
+                        </li>
+                      </ul>
 
-            <p className="mt-5 text-xs leading-5 text-muted-foreground">
-              By continuing, you agree to the{' '}
-              <Link href="https://envoyou.com/terms" target="_blank" className="font-semibold text-primary hover:underline">
-                Terms of Service
-              </Link>
-              ,{' '}
-              <Link href="https://envoyou.com/privacy" target="_blank" className="font-semibold text-primary hover:underline">
-                Privacy Notice
-              </Link>
-              , and{' '}
-              <Link href="https://envoyou.com/refund" target="_blank" className="font-semibold text-primary hover:underline">
-                Refund Policy
-              </Link>
-              .
-            </p>
+                      {preview && preview.balanceRemaining > 0 && (
+                        <div className="mt-4 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs leading-5 font-semibold">
+                          Leftover balance saved to account: <strong>{formatIdr(preview.balanceRemaining)}</strong>. It will automatically apply as a discount on your next checkout.
+                        </div>
+                      )}
+                    </>
+                  )}
 
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={loading || previewLoading}
-                className="ui-btn ui-btn-outline"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={createCheckout}
-                disabled={loading || previewLoading}
-                className="ui-btn ui-btn-primary"
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {preview && preview.finalAmountIdr === 0 ? 'Confirm & Activate' : 'Continue to payment'}
-              </button>
-            </div>
+                  {!isDelayedDowngrade && (
+                    <div className="mt-5 space-y-2 rounded-2xl bg-[var(--surface-2)] p-4 text-xs leading-5 text-muted-foreground">
+                      <p>{disclosure.billingLabel}</p>
+                      <p>{disclosure.creditValidity}</p>
+                      <p>{disclosure.renewalLabel}</p>
+                      <p>{disclosure.taxLabel}</p>
+                      <p>
+                        Conversion reference: USD 1 = IDR {formatIdrRate(preview ? preview.usdToIdrRate : disclosure.usdToIdrRate)}.
+                        The IDR amount above is fixed when this order is created.
+                      </p>
+                    </div>
+                  )}
+
+                  <p className="mt-5 text-xs leading-5 text-muted-foreground">
+                    By continuing, you agree to the{' '}
+                    <Link href="https://envoyou.com/terms" target="_blank" className="font-semibold text-primary hover:underline">
+                      Terms of Service
+                    </Link>
+                    ,{' '}
+                    <Link href="https://envoyou.com/privacy" target="_blank" className="font-semibold text-primary hover:underline">
+                      Privacy Notice
+                    </Link>
+                    , and{' '}
+                    <Link href="https://envoyou.com/refund" target="_blank" className="font-semibold text-primary hover:underline">
+                      Refund Policy
+                    </Link>
+                    .
+                  </p>
+
+                  <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      disabled={loading || previewLoading}
+                      className="ui-btn ui-btn-outline"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={createCheckout}
+                      disabled={loading || previewLoading}
+                      className="ui-btn ui-btn-primary"
+                    >
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                      {isDelayedDowngrade ? 'Confirm Downgrade' : (preview && preview.finalAmountIdr === 0 ? 'Confirm & Activate' : 'Continue to payment')}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

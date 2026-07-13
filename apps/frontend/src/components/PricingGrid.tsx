@@ -7,7 +7,16 @@ import PricingCheckoutButton from './PricingCheckoutButton';
 import type { CheckoutDisclosure } from '@eai/shared';
 
 interface PricingGridProps {
-  workspace: { plan?: { activePlan?: string } } | null;
+  workspace: {
+    plan?: {
+      activePlan?: string;
+      queuedDowngrade?: {
+        planId: string;
+        planName: string;
+        activatesOn: string;
+      } | null;
+    };
+  } | null;
   disclosures: Record<string, CheckoutDisclosure>;
   billingEnabled: boolean;
 }
@@ -132,6 +141,7 @@ export default function PricingGrid({ workspace, disclosures, billingEnabled }: 
             disclosure={disclosures[billingCycle === 'monthly' ? 'starter' : 'starter_yearly']}
             billingEnabled={billingEnabled}
             autoCheckout={planParam === (billingCycle === 'monthly' ? 'starter' : 'starter_yearly')}
+            hasQueuedDowngrade={Boolean(workspace?.plan?.queuedDowngrade)}
           />
         </div>
 
@@ -163,6 +173,7 @@ export default function PricingGrid({ workspace, disclosures, billingEnabled }: 
             disclosure={disclosures[billingCycle === 'monthly' ? 'pro' : 'pro_yearly']}
             billingEnabled={billingEnabled}
             autoCheckout={planParam === (billingCycle === 'monthly' ? 'pro' : 'pro_yearly')}
+            hasQueuedDowngrade={Boolean(workspace?.plan?.queuedDowngrade)}
           />
         </div>
 
@@ -191,6 +202,7 @@ export default function PricingGrid({ workspace, disclosures, billingEnabled }: 
             disclosure={disclosures[billingCycle === 'monthly' ? 'team' : 'team_yearly']}
             billingEnabled={billingEnabled}
             autoCheckout={planParam === (billingCycle === 'monthly' ? 'team' : 'team_yearly')}
+            hasQueuedDowngrade={Boolean(workspace?.plan?.queuedDowngrade)}
           />
         </div>
       </section>

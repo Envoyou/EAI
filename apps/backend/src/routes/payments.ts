@@ -676,4 +676,65 @@ router.post('/reactivate-subscription', requireAuth, async (req, res) => {
   }
 });
 
+// DELETE /api/payments/queued-downgrade
+router.delete('/queued-downgrade', requireAuth, async (req, res) => {
+  try {
+    const { userId, orgId, orgSlug, orgRole } = req.auth!;
+    const workspace = await getWorkspaceState(userId, {
+      clerkOrganizationId: orgId,
+      clerkOrganizationSlug: orgSlug,
+      clerkOrganizationRole: orgRole,
+    });
+    if (!workspace) {
+      return res.status(404).json({ error: 'Workspace not found.' });
+    }
+    if (workspace.organizationId && !workspace.isAdmin) {
+      return res.status(403).json({ error: 'Only workspace admins can cancel scheduled downgrades.' });
+    }
+
+    const orgIdDb = workspace.organizationId;
+
+    // Find the queued subscription
+    const queuedSub = await prisma.subscription.findFirst({
+      where: {
+        userId: orgIdDb ? undefined : userId,
+        organizationId: orgIdDb || undefined,
+        status: 'queued',
+      },
+    });
+
+    if (!queuedSub) {
+      return res.status(400).json({ error: 'No scheduled downgrade found.' });
+    }
+
+    // Cancel transaction: Delete queued row, and set active subscription from cancels_at_period_end back to active
+    await prisma.$transaction(async (tx) => {
+      await tx.subscription.delete({
+        where: { id: queuedSub.id },
+      });
+
+      // Find the subscription that was marked to cancel at period end
+      const cancellingSub = await tx.subscription.findFirst({
+        where: {
+          userId: orgIdDb ? undefined : userId,
+          organizationId: orgIdDb || undefined,
+          status: 'cancels_at_period_end',
+        },
+      });
+
+      if (cancellingSub) {
+        await tx.subscription.update({
+          where: { id: cancellingSub.id },
+          data: { status: 'active' },
+        });
+      }
+    });
+
+    return res.json({ success: true, message: 'Scheduled downgrade cancelled successfully.' });
+  } catch (error) {
+    console.error('[CANCEL_QUEUED_DOWNGRADE] Error:', error);
+    return res.status(500).json({ error: 'Internal server error while cancelling scheduled downgrade.' });
+  }
+});
+
 export default router;

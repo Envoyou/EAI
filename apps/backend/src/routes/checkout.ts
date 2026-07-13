@@ -5,6 +5,7 @@ import { createCheckoutSession, calculateCheckoutDetails, PLANS } from '@/lib/pa
 import { processRpZeroCheckout } from '@/lib/payment-processing';
 import { getAllFeatureFlags } from '@eai/shared/server';
 import { createClerkClient } from '@clerk/backend';
+import { prisma } from '@/lib/db';
 
 const router = Router();
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
@@ -82,11 +83,77 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Only workspace admins can change plans.' });
     }
 
+    const orgIdDb = workspace.organizationId;
+
+    // Check if there is an active queued downgrade
+    const hasQueuedDowngrade = await prisma.subscription.findFirst({
+      where: {
+        userId: orgIdDb ? undefined : userId,
+        organizationId: orgIdDb || undefined,
+        status: 'queued',
+      },
+    });
+
+    if (hasQueuedDowngrade && planDetails.billingMonths === 12) {
+      return res.status(409).json({
+        error: 'You have a pending downgrade scheduled. Please cancel your scheduled downgrade first if you wish to purchase or renew a yearly plan.',
+        code: 'QUEUED_DOWNGRADE_EXISTS',
+      });
+    }
+
+    // Check active subscription
+    const activeSub = await prisma.subscription.findFirst({
+      where: {
+        userId: orgIdDb ? undefined : userId,
+        organizationId: orgIdDb || undefined,
+        status: { in: ['active', 'cancels_at_period_end'] },
+        currentPeriodEnd: { gt: new Date() },
+      },
+    });
+
+    // Skenario: yearly to monthly -> Delayed Downgrade
+    const isDowngradeFromYearly =
+      activeSub &&
+      PLANS[activeSub.plan]?.billingMonths === 12 &&
+      planDetails.billingMonths !== 12;
+
+    if (isDowngradeFromYearly) {
+      const periodEnd = new Date(activeSub.currentPeriodEnd);
+      periodEnd.setUTCMonth(periodEnd.getUTCMonth() + 1);
+
+      await prisma.$transaction(async (tx) => {
+        // Mark active as cancels_at_period_end
+        await tx.subscription.update({
+          where: { id: activeSub.id },
+          data: { status: 'cancels_at_period_end' },
+        });
+
+        // Create queued subscription
+        await tx.subscription.create({
+          data: {
+            id: `sub_queued_${Date.now()}`,
+            userId: orgIdDb ? null : userId,
+            organizationId: orgIdDb,
+            plan: plan,
+            status: 'queued',
+            currentPeriodStart: activeSub.currentPeriodEnd,
+            currentPeriodEnd: periodEnd,
+          },
+        });
+      });
+
+      return res.json({
+        queued: true,
+        activatesOn: activeSub.currentPeriodEnd,
+        redirectUrl: '/settings/billing',
+      });
+    }
+
     // Calculate dynamic pricing with prorata/balance discount
     const calc = await calculateCheckoutDetails({
       planId: plan,
       userId,
-      organizationId: workspace.organizationId,
+      organizationId: orgIdDb,
     });
 
     if (

@@ -352,6 +352,7 @@ export async function calculateCheckoutDetails(params: {
     balanceRemaining,
     oldSubPlanId: activeSub?.plan || null,
     oldSubId,
+    oldSubPeriodEnd: activeSub?.currentPeriodEnd || null,
     usdToIdrRate: getPaymentUsdToIdrRate(),
   };
 }

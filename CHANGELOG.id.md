@@ -7,6 +7,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Penjadwal Kredit Langganan Tahunan**: Mengonfigurasi langganan tahunan agar alokasi kredit diberikan per bulan (contoh: 50/bulan) alih-alih sekaligus di awal. Membangun job cron harian `monthly-credit-allocation` menggunakan BullMQ untuk mereset sisa kredit bulanan utama subscription dan mengisi ulang jatah bulanan baru, menggunakan kunci idempotensi unik (`monthly-refill:${sub.id}:${year}-${month}`) guna mencegah alokasi ganda.
+- **Penangguhan Turun Paket / Delayed Downgrade (Stripe-Way)**: Mengimplementasikan alur turun paket yang ditangguhkan dari tahunan ke bulanan. Membuat baris langganan baru dengan status `queued` yang dijadwalkan aktif secara otomatis pada tanggal berakhir paket tahunan (`currentPeriodEnd`). Membangun job cron harian `activate-queued-downgrade` untuk mengotomatisasi aktivasi tersebut.
+- **Pembatalan Penangguhan Turun Paket**: Menambahkan tombol modal konfirmasi *"Keep My Current Plan"* untuk menghapus baris antrean paket bulanan (`queued`) dan mengembalikan status aktif paket tahunan.
+- **Pembatasan Pembelian Paket Tahunan**: Memblokir opsi pembelian atau perpanjangan paket tahunan baru jika ruang kerja (*workspace*) terdeteksi memiliki antrean turun paket yang tertunda, disertai dengan tampilan teks peringatan yang informatif.
 - **Pemisahan Endpoint PATCH**: Memisahkan `/api/history/:id` menjadi endpoint spesifik `/resolve` dan `/autosave` untuk memisahkan logika bisnis, skema validasi, serta pembatasan rate limit.
 - **Skema Autosave & Pembatas Request**: Menambahkan skema validasi `AutosaveSchema` dan middleware pembatas request in-memory `autosaveRateLimiter` (maksimal 100 request/menit per pengguna) untuk melindungi proses autosave dari spam basis data.
 - **Riwayat Langganan & Validasi Basis Data**:
