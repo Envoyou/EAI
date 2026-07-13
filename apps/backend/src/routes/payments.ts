@@ -1,12 +1,23 @@
 import { Router } from 'express';
 import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
-import { getPaymentGateway, getPlanCreditsGranted, PLANS, getPlanPeriodEnd, getFriendlyInvoiceNumber } from '@/lib/payment';
+import { getPaymentGateway, getPlanCreditsGranted, PLANS, getPlanPeriodEnd, getFriendlyInvoiceNumber, getPaymentUsdToIdrRate } from '@/lib/payment';
 import type { PaymentProvider } from '@/lib/payments/types';
 import { processVerifiedPaymentEvent } from '@/lib/payment-processing';
 import { getWorkspaceState } from '@/lib/user-workspace';
 
 const router = Router();
+
+// GET /api/payments/rate
+router.get('/rate', async (req, res) => {
+  try {
+    const rate = getPaymentUsdToIdrRate();
+    return res.json({ rate });
+  } catch (error) {
+    console.error('Failed to get exchange rate:', error);
+    return res.status(500).json({ error: 'Failed to retrieve exchange rate.' });
+  }
+});
 
 // GET /api/payments/status
 router.get('/status', requireAuth, async (req, res) => {
@@ -209,8 +220,11 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
       periodText = 'One-time credit top-up (No expiration)';
     }
 
+    const subtotal = Math.round(order.amountIdr / 1.11);
+    const taxAmount = order.amountIdr - subtotal;
+
     const priceUsd = plan?.priceUsd || 0;
-    const rateUsed = priceUsd > 0 ? Math.round(order.amountIdr / priceUsd) : 0;
+    const rateUsed = priceUsd > 0 ? Math.round(subtotal / priceUsd) : 0;
     const rateNote = priceUsd > 0 ? `Billed as $${priceUsd} USD. Exchange Rate: 1 USD = Rp ${rateUsed.toLocaleString('id-ID')}` : '';
 
     const formatPaymentType = (type: string | null) => {
@@ -224,9 +238,6 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
       };
       return mapping[type.toLowerCase()] || type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     };
-
-    const subtotal = Math.round(order.amountIdr / 1.11);
-    const taxAmount = order.amountIdr - subtotal;
 
     const html = `
       <!DOCTYPE html>
@@ -569,6 +580,99 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Invoice generation error:', error);
     return res.status(500).send('Failed to generate invoice.');
+  }
+});
+
+// POST /api/payments/cancel-subscription
+router.post('/cancel-subscription', requireAuth, async (req, res) => {
+  try {
+    const { userId, orgId, orgSlug, orgRole } = req.auth!;
+    const { reasons, feedback } = req.body;
+
+    const workspace = await getWorkspaceState(userId, {
+      clerkOrganizationId: orgId,
+      clerkOrganizationSlug: orgSlug,
+      clerkOrganizationRole: orgRole,
+    });
+    if (!workspace) {
+      return res.status(404).json({ error: 'Workspace not found.' });
+    }
+
+    if (workspace.organizationId && !workspace.isAdmin) {
+      return res.status(403).json({ error: 'Only workspace admins can cancel the subscription.' });
+    }
+
+    const activeSub = await prisma.subscription.findFirst({
+      where: {
+        userId: workspace.organizationId ? undefined : userId,
+        organizationId: workspace.organizationId || undefined,
+        status: 'active',
+      },
+    });
+
+    if (!activeSub) {
+      return res.status(400).json({ error: 'No active subscription found for this workspace.' });
+    }
+
+    await prisma.subscription.update({
+      where: { id: activeSub.id },
+      data: {
+        status: 'cancels_at_period_end',
+        cancelReason: Array.isArray(reasons) ? reasons.join(', ') : (reasons || null),
+        cancelFeedback: feedback || null,
+      },
+    });
+
+    return res.json({ success: true, message: 'Subscription successfully cancelled.' });
+  } catch (error) {
+    console.error('[CANCEL_SUBSCRIPTION] Error:', error);
+    return res.status(500).json({ error: 'Internal server error while cancelling subscription.' });
+  }
+});
+
+// POST /api/payments/reactivate-subscription
+router.post('/reactivate-subscription', requireAuth, async (req, res) => {
+  try {
+    const { userId, orgId, orgSlug, orgRole } = req.auth!;
+
+    const workspace = await getWorkspaceState(userId, {
+      clerkOrganizationId: orgId,
+      clerkOrganizationSlug: orgSlug,
+      clerkOrganizationRole: orgRole,
+    });
+    if (!workspace) {
+      return res.status(404).json({ error: 'Workspace not found.' });
+    }
+
+    if (workspace.organizationId && !workspace.isAdmin) {
+      return res.status(403).json({ error: 'Only workspace admins can reactivate the subscription.' });
+    }
+
+    const cancelledSub = await prisma.subscription.findFirst({
+      where: {
+        userId: workspace.organizationId ? undefined : userId,
+        organizationId: workspace.organizationId || undefined,
+        status: 'cancels_at_period_end',
+      },
+    });
+
+    if (!cancelledSub) {
+      return res.status(400).json({ error: 'No cancelled subscription found for this workspace.' });
+    }
+
+    await prisma.subscription.update({
+      where: { id: cancelledSub.id },
+      data: {
+        status: 'active',
+        cancelReason: null,
+        cancelFeedback: null,
+      },
+    });
+
+    return res.json({ success: true, message: 'Subscription successfully reactivated.' });
+  } catch (error) {
+    console.error('[REACTIVATE_SUBSCRIPTION] Error:', error);
+    return res.status(500).json({ error: 'Internal server error while reactivating subscription.' });
   }
 });
 

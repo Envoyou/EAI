@@ -858,7 +858,7 @@ async function createAnalysisLogAndDebitCredit(data: {
       where: {
         userId: data.organizationId ? undefined : data.userId,
         organizationId: data.organizationId || undefined,
-        status: 'active',
+        status: { in: ['active', 'cancels_at_period_end'] },
         currentPeriodEnd: { gt: new Date() },
       },
     });

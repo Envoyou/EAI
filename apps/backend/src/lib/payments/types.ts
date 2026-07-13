@@ -17,6 +17,7 @@ export type CheckoutResult = {
   token?: string;
   redirectUrl: string;
   isSimulated: boolean;
+  isPaid?: boolean;
 };
 
 export type PaymentEvent = {

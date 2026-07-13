@@ -10,6 +10,8 @@ import PaymentStatusBanner from '@/components/PaymentStatusBanner';
 import { getAllFeatureFlags } from '@eai/shared/server';
 import { getApiUrl } from '@/lib/api-url';
 import BillingDetailsForm from '@/components/BillingDetailsForm';
+import CancelSubscriptionButton from '@/components/CancelSubscriptionButton';
+import ReactivateSubscriptionButton from '@/components/ReactivateSubscriptionButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -166,9 +168,15 @@ export default async function BillingSettingsPage() {
                 <span className={`ui-badge ui-badge-xs ${
                   workspace?.plan.subscriptionStatus === 'active'
                     ? 'ui-badge-success'
-                    : 'ui-badge-muted'
+                    : workspace?.plan.subscriptionStatus === 'cancels_at_period_end'
+                      ? 'ui-badge-warning bg-amber-500/10 text-amber-500 border-amber-500/20'
+                      : 'ui-badge-muted'
                 }`}>
-                  {workspace?.plan.subscriptionStatus === 'active' ? 'Active' : 'No active subscription'}
+                  {workspace?.plan.subscriptionStatus === 'active'
+                    ? 'Active'
+                    : workspace?.plan.subscriptionStatus === 'cancels_at_period_end'
+                      ? 'Cancellation Pending'
+                      : 'No active subscription'}
                 </span>
               </div>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
@@ -184,7 +192,12 @@ export default async function BillingSettingsPage() {
                   </span>
                 </div>
               )}
-              {workspace?.plan.subscriptionStatus === 'active' && workspace.plan.subscriptionCreditsTotal > 0 && (
+              {workspace?.plan.subscriptionStatus === 'cancels_at_period_end' && workspace.plan.currentPeriodEnd && (
+                <div className="mt-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs leading-5">
+                  Your subscription has been canceled. You will still have access to all premium features and your remaining credits until <strong>{formatDate(workspace.plan.currentPeriodEnd)}</strong>.
+                </div>
+              )}
+              {['active', 'cancels_at_period_end'].includes(workspace?.plan.subscriptionStatus ?? '') && workspace.plan.subscriptionCreditsTotal > 0 && (
                 <div className="mt-4 space-y-2 border-t border-[var(--border)] pt-4">
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-muted-foreground font-medium">Monthly Credit Usage</span>
@@ -218,10 +231,18 @@ export default async function BillingSettingsPage() {
               )}
             </div>
           </div>
-          <Link href="/pricing" className="ui-btn ui-btn-surface ui-btn-sm no-underline">
-            Compare or Change Plan
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/pricing" className="ui-btn ui-btn-surface ui-btn-sm no-underline">
+              Compare or Change Plan
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            {workspace?.plan.subscriptionStatus === 'active' && activePlanId !== 'free' && (
+              <CancelSubscriptionButton planName={activePlanName} />
+            )}
+            {workspace?.plan.subscriptionStatus === 'cancels_at_period_end' && activePlanId !== 'free' && (
+              <ReactivateSubscriptionButton />
+            )}
+          </div>
         </div>
       </SettingSection>
 

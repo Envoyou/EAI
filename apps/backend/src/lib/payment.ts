@@ -218,7 +218,12 @@ export async function createCheckoutSession(params: {
   if (!plan) throw new Error('Plan not found.');
 
   const provider = getActivePaymentProvider();
-  const amountIdr = getPlanAmountIdr(plan);
+  const calc = await calculateCheckoutDetails({
+    planId,
+    userId,
+    organizationId,
+  });
+  const amountIdr = calc.finalAmountIdr;
   const orderId = createOrderId();
 
   await prisma.paymentOrder.create({
@@ -229,8 +234,24 @@ export async function createCheckoutSession(params: {
       organizationId,
       planId,
       amountIdr,
+      discountIdr: calc.useProratedRefund,
+      useAccountBalance: calc.useAccountBalance,
+      balanceRemaining: calc.balanceRemaining,
     },
   });
+
+  if (amountIdr === 0) {
+    const successUrl = new URL(callbackUrl);
+    successUrl.searchParams.set('payment_order', orderId);
+    successUrl.searchParams.set('success', 'true');
+    return {
+      orderId,
+      provider,
+      redirectUrl: successUrl.toString(),
+      isSimulated: false,
+      isPaid: true,
+    };
+  }
 
   try {
     const trackedCallbackUrl = new URL(callbackUrl);
@@ -260,3 +281,77 @@ export const getFriendlyInvoiceNumber = (orderId: string, createdAt: Date | stri
   const suffix = orderId.length >= 6 ? orderId.slice(-6).toUpperCase() : orderId.toUpperCase();
   return `EAI-${year}-${suffix}`;
 };
+
+export async function calculateCheckoutDetails(params: {
+  planId: string;
+  userId: string;
+  organizationId: string | null;
+}) {
+  const { planId, userId, organizationId } = params;
+  const plan = PLANS[planId];
+  if (!plan) throw new Error('Plan not found.');
+
+  const originalAmountIdr = getPlanAmountIdr(plan);
+
+  // 1. Find active subscription
+  const activeSub = await prisma.subscription.findFirst({
+    where: {
+      userId: organizationId ? undefined : userId,
+      organizationId: organizationId || undefined,
+      status: { in: ['active', 'cancels_at_period_end'] },
+      currentPeriodEnd: { gt: new Date() },
+    },
+  });
+
+  let proratedRefundIdr = 0;
+  let oldSubId: string | null = null;
+
+  if (activeSub) {
+    oldSubId = activeSub.id;
+    // Find original payment order to get actual paid amount
+    const originalOrder = await prisma.paymentOrder.findUnique({
+      where: { id: activeSub.id },
+    });
+    const originalCost = originalOrder ? originalOrder.amountIdr : getPlanAmountIdr(PLANS[activeSub.plan]);
+
+    const now = new Date();
+    const totalDuration = activeSub.currentPeriodEnd.getTime() - activeSub.currentPeriodStart.getTime();
+    const remainingDuration = activeSub.currentPeriodEnd.getTime() - now.getTime();
+    const unusedRatio = Math.max(0, Math.min(1, remainingDuration / totalDuration));
+    proratedRefundIdr = Math.round(originalCost * unusedRatio);
+  }
+
+  // 2. Fetch current account balance
+  const owner = organizationId
+    ? await prisma.organization.findUnique({ where: { id: organizationId } })
+    : await prisma.user.findUnique({ where: { id: userId } });
+
+  const currentBalanceIdr = owner?.balanceIdr || 0;
+
+  // 3. Compute final amount and remaining balance
+  const totalAvailableCredit = proratedRefundIdr + currentBalanceIdr;
+  const finalAmountIdr = Math.max(0, originalAmountIdr - totalAvailableCredit);
+
+  const useProratedRefund = proratedRefundIdr >= originalAmountIdr
+    ? originalAmountIdr
+    : proratedRefundIdr;
+
+  const useAccountBalance = proratedRefundIdr >= originalAmountIdr
+    ? 0
+    : Math.min(currentBalanceIdr, originalAmountIdr - proratedRefundIdr);
+
+  const balanceRemaining = totalAvailableCredit - (useProratedRefund + useAccountBalance);
+
+  return {
+    originalAmountIdr,
+    proratedRefundIdr,
+    currentBalanceIdr,
+    useProratedRefund,
+    useAccountBalance,
+    finalAmountIdr,
+    balanceRemaining,
+    oldSubPlanId: activeSub?.plan || null,
+    oldSubId,
+    usdToIdrRate: getPaymentUsdToIdrRate(),
+  };
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Loader2, ArrowRight, Check, X } from 'lucide-react';
 import type { CheckoutDisclosure } from '@eai/shared';
@@ -29,13 +29,51 @@ export default function PricingCheckoutButton({
 }: PricingCheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(autoCheckout);
+  const [preview, setPreview] = useState<{
+    originalAmountIdr: number;
+    proratedRefundIdr: number;
+    currentBalanceIdr: number;
+    useProratedRefund: number;
+    useAccountBalance: number;
+    finalAmountIdr: number;
+    balanceRemaining: number;
+    oldSubPlanId: string | null;
+    usdToIdrRate: number;
+  } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const handleCheckout = useCallback(async () => {
+    if (current) return;
+    setConfirming(true);
+    if (!billingEnabled) return;
+
+    setPreviewLoading(true);
+    try {
+      const response = await fetch(`/api/checkout/preview?plan=${planId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPreview(data);
+      }
+    } catch (error) {
+      console.error('Failed to load checkout preview:', error);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [current, billingEnabled, planId]);
+
+  const handleCancel = () => {
+    setConfirming(false);
+    setPreview(null);
+  };
 
   useEffect(() => {
     if (autoCheckout && !current) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setConfirming(true);
+      const timer = setTimeout(() => {
+        void handleCheckout();
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [autoCheckout, current]);
+  }, [autoCheckout, current, handleCheckout]);
 
   const createCheckout = async () => {
     if (current) return;
@@ -48,7 +86,7 @@ export default function PricingCheckoutButton({
         },
         body: JSON.stringify({
           plan: planId,
-          quotedAmountIdr: disclosure.amountIdr,
+          quotedAmountIdr: preview ? preview.finalAmountIdr : disclosure.amountIdr,
         }),
       });
 
@@ -83,10 +121,6 @@ export default function PricingCheckoutButton({
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCheckout = () => {
-    if (!current) setConfirming(true);
   };
 
   const getButtonStyles = () => {
@@ -158,14 +192,14 @@ export default function PricingCheckoutButton({
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
           role="presentation"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !loading) setConfirming(false);
+            if (event.target === event.currentTarget && !loading) handleCancel();
           }}
         >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby={`checkout-title-${planId}`}
-            className="w-full max-w-md surface-card surface-card-xl p-6 text-left shadow-2xl"
+            className="w-full max-w-md surface-card surface-card-xl p-6 text-left shadow-2xl animate-in fade-in zoom-in-95 duration-200"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -178,7 +212,7 @@ export default function PricingCheckoutButton({
               </div>
               <button
                 type="button"
-                onClick={() => setConfirming(false)}
+                onClick={handleCancel}
                 disabled={loading}
                 aria-label="Close checkout confirmation"
                 className="rounded-full p-1.5 text-muted-foreground transition hover:bg-[var(--surface-2)] hover:text-foreground disabled:opacity-50"
@@ -187,24 +221,57 @@ export default function PricingCheckoutButton({
               </button>
             </div>
 
-            <ul className="mt-5 space-y-3 text-sm leading-6 text-muted-foreground">
-              <li className="flex items-center justify-between gap-4">
-                <span>Product</span>
-                <strong className="text-right text-foreground">{disclosure.planName}</strong>
-              </li>
-              <li className="flex items-center justify-between gap-4">
-                <span>Listed price</span>
-                <strong className="text-right text-foreground">{formatUsd(disclosure.priceUsd)}</strong>
-              </li>
-              <li className="flex items-center justify-between gap-4 border-t border-[var(--border)] pt-3">
-                <span>Final checkout amount</span>
-                <strong className="text-right text-base text-primary">{formatIdr(disclosure.amountIdr)}</strong>
-              </li>
-              <li className="flex items-center justify-between gap-4">
-                <span>Editorial Credits</span>
-                <strong className="text-right text-foreground">{disclosure.creditsGranted}</strong>
-              </li>
-            </ul>
+            {previewLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3 text-sm text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span>Calculating prorata discounts and balance...</span>
+              </div>
+            ) : (
+              <>
+                <ul className="mt-5 space-y-3 text-sm leading-6 text-muted-foreground">
+                  <li className="flex items-center justify-between gap-4">
+                    <span>Product</span>
+                    <strong className="text-right text-foreground">{disclosure.planName}</strong>
+                  </li>
+                  <li className="flex items-center justify-between gap-4">
+                    <span>Listed price</span>
+                    <strong className="text-right text-foreground">{formatUsd(disclosure.priceUsd)}</strong>
+                  </li>
+                  <li className="flex items-center justify-between gap-4 border-t border-[var(--border)] pt-3">
+                    <span>Original price (fixed IDR)</span>
+                    <strong className="text-right text-foreground">{formatIdr(preview ? preview.originalAmountIdr : disclosure.amountIdr)}</strong>
+                  </li>
+                  {preview && preview.useProratedRefund > 0 && (
+                    <li className="flex items-center justify-between gap-4 text-emerald-600 dark:text-emerald-400">
+                      <span>Prorated credit (previous plan)</span>
+                      <strong className="text-right font-semibold">-{formatIdr(preview.useProratedRefund)}</strong>
+                    </li>
+                  )}
+                  {preview && preview.useAccountBalance > 0 && (
+                    <li className="flex items-center justify-between gap-4 text-emerald-600 dark:text-emerald-400">
+                      <span>Account balance applied</span>
+                      <strong className="text-right font-semibold">-{formatIdr(preview.useAccountBalance)}</strong>
+                    </li>
+                  )}
+                  <li className="flex items-center justify-between gap-4 border-t border-[var(--border)] pt-3">
+                    <span>Final checkout amount</span>
+                    <strong className="text-right text-base text-primary font-bold">
+                      {formatIdr(preview ? preview.finalAmountIdr : disclosure.amountIdr)}
+                    </strong>
+                  </li>
+                  <li className="flex items-center justify-between gap-4">
+                    <span>Editorial Credits</span>
+                    <strong className="text-right text-foreground">{disclosure.creditsGranted}</strong>
+                  </li>
+                </ul>
+
+                {preview && preview.balanceRemaining > 0 && (
+                  <div className="mt-4 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs leading-5 font-semibold">
+                    Leftover balance saved to account: <strong>{formatIdr(preview.balanceRemaining)}</strong>. It will automatically apply as a discount on your next checkout.
+                  </div>
+                )}
+              </>
+            )}
 
             <div className="mt-5 space-y-2 rounded-2xl bg-[var(--surface-2)] p-4 text-xs leading-5 text-muted-foreground">
               <p>{disclosure.billingLabel}</p>
@@ -212,7 +279,7 @@ export default function PricingCheckoutButton({
               <p>{disclosure.renewalLabel}</p>
               <p>{disclosure.taxLabel}</p>
               <p>
-                Conversion reference: USD 1 = IDR {formatIdrRate(disclosure.usdToIdrRate)}.
+                Conversion reference: USD 1 = IDR {formatIdrRate(preview ? preview.usdToIdrRate : disclosure.usdToIdrRate)}.
                 The IDR amount above is fixed when this order is created.
               </p>
             </div>
@@ -236,8 +303,8 @@ export default function PricingCheckoutButton({
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                onClick={() => setConfirming(false)}
-                disabled={loading}
+                onClick={handleCancel}
+                disabled={loading || previewLoading}
                 className="ui-btn ui-btn-outline"
               >
                 Cancel
@@ -245,11 +312,11 @@ export default function PricingCheckoutButton({
               <button
                 type="button"
                 onClick={createCheckout}
-                disabled={loading}
+                disabled={loading || previewLoading}
                 className="ui-btn ui-btn-primary"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Continue to payment
+                {preview && preview.finalAmountIdr === 0 ? 'Confirm & Activate' : 'Continue to payment'}
               </button>
             </div>
           </div>

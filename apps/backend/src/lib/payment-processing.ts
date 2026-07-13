@@ -4,7 +4,7 @@ import {
   getPlanPeriodEnd,
   PLANS,
 } from './payment';
-import type { PaymentEvent } from './payments/types';
+import type { PaymentEvent, PaymentProvider } from './payments/types';
 
 export type PaymentProcessingResult =
   | 'processed'
@@ -68,13 +68,23 @@ export async function processVerifiedPaymentEvent(
     const userId = paymentOrder.organizationId ? null : paymentOrder.userId;
     const organizationId = paymentOrder.organizationId;
 
+    // Check if they had an active subscription before archiving it (upgrade/downgrade)
+    const activeSub = await tx.subscription.findFirst({
+      where: {
+        userId: organizationId ? undefined : (paymentOrder.userId as string),
+        organizationId: organizationId || undefined,
+        status: { in: ['active', 'cancels_at_period_end'] },
+        currentPeriodEnd: { gt: now },
+      },
+    });
+
     if (plan.isSubscription) {
       // 1. Archive any existing active subscriptions inside the transaction
       await tx.subscription.updateMany({
         where: {
           userId: organizationId ? undefined : (paymentOrder.userId as string),
           organizationId: organizationId || undefined,
-          status: 'active',
+          status: { in: ['active', 'cancels_at_period_end'] },
         },
         data: {
           status: 'expired',
@@ -104,7 +114,9 @@ export async function processVerifiedPaymentEvent(
       });
       const currentBalance = subscriptionBalance._sum.amount ?? 0;
 
-      if (currentBalance > 0) {
+      // Only perform a cycle_reset if they did not have an active subscription (normal purchase or expired renewal)
+      // If they had an active subscription, we skip cycle_reset to MERGE the credits!
+      if (!activeSub && currentBalance > 0) {
         await tx.creditTransaction.create({
           data: {
             userId,
@@ -156,6 +168,40 @@ export async function processVerifiedPaymentEvent(
       });
     }
 
+    // Apply the leftover account balance to User/Organization
+    if (paymentOrder.organizationId) {
+      await tx.organization.update({
+        where: { id: paymentOrder.organizationId },
+        data: { balanceIdr: paymentOrder.balanceRemaining },
+      });
+    } else if (paymentOrder.userId) {
+      await tx.user.update({
+        where: { id: paymentOrder.userId },
+        data: { balanceIdr: paymentOrder.balanceRemaining },
+      });
+    }
+
     return 'processed';
   });
+}
+
+export async function processRpZeroCheckout(orderId: string): Promise<void> {
+  const paymentOrder = await prisma.paymentOrder.findUnique({
+    where: { id: orderId },
+  });
+  if (!paymentOrder) throw new Error('Payment order not found');
+  if (paymentOrder.amountIdr !== 0) throw new Error('Not a Rp 0 payment order');
+  if (paymentOrder.status === 'paid') return;
+
+  const mockTransaction: PaymentEvent = {
+    provider: paymentOrder.provider as PaymentProvider,
+    orderId,
+    transactionId: `rp0_${Date.now()}`,
+    status: 'paid',
+    amountIdr: 0,
+    isPaid: true,
+    paymentType: 'account_balance',
+  };
+
+  await processVerifiedPaymentEvent(orderId, mockTransaction);
 }

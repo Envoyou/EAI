@@ -277,7 +277,7 @@ export const getWorkspaceState = async (
     where: {
       userId: activeOrganizationId ? undefined : userId,
       organizationId: activeOrganizationId || undefined,
-      status: 'active',
+      status: { in: ['active', 'cancels_at_period_end'] },
       currentPeriodEnd: { gt: new Date() },
     },
   });

@@ -13,7 +13,7 @@ export async function checkCreditsRemaining(
     where: {
       userId: organizationId ? undefined : userId,
       organizationId: organizationId || undefined,
-      status: 'active',
+      status: { in: ['active', 'cancels_at_period_end'] },
       currentPeriodEnd: { gt: new Date() },
     },
   });
@@ -56,7 +56,7 @@ export async function deductCredits(
       where: {
         userId: organizationId ? undefined : userId,
         organizationId: organizationId || undefined,
-        status: 'active',
+        status: { in: ['active', 'cancels_at_period_end'] },
         currentPeriodEnd: { gt: new Date() },
       },
     });

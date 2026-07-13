@@ -156,22 +156,26 @@ export const searchBillingOrganizations = async (query: string) => {
         take: 5,
         select: { id: true, email: true, name: true, role: true },
       },
-      subscription: {
+      subscriptions: {
         select: {
           plan: true,
           status: true,
           currentPeriodEnd: true,
         },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
       },
     },
   });
 
-  return Promise.all(organizations.map(async (organization) => {
-    const users = await getOrganizationMembers(organization.users, organization.clerkOrganizationId);
+  return Promise.all(organizations.map(async (org) => {
+    const users = await getOrganizationMembers(org.users, org.clerkOrganizationId);
+    const { subscriptions, ...rest } = org;
     return {
-      ...organization,
+      ...rest,
       users,
-      balance: await calculateOrganizationBalance(prisma, organization.id),
+      subscription: subscriptions[0] || null,
+      balance: await calculateOrganizationBalance(prisma, org.id),
     };
   }));
 };
@@ -194,13 +198,15 @@ export const getBillingOrganizationDetail = async (organizationId: string) => {
         orderBy: { createdAt: 'asc' },
         select: { id: true, email: true, name: true, role: true },
       },
-      subscription: {
+      subscriptions: {
         select: {
           plan: true,
           status: true,
           currentPeriodStart: true,
           currentPeriodEnd: true,
         },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
       },
       transactions: {
         orderBy: { createdAt: 'desc' },
@@ -227,10 +233,12 @@ export const getBillingOrganizationDetail = async (organizationId: string) => {
   if (!organization) return null;
 
   const users = await getOrganizationMembers(organization.users, organization.clerkOrganizationId);
+  const { subscriptions, ...rest } = organization;
 
   return {
-    ...organization,
+    ...rest,
     users,
+    subscription: subscriptions[0] || null,
     balance: await calculateOrganizationBalance(prisma, organization.id),
   };
 };
@@ -483,7 +491,7 @@ export const overrideOrganizationSubscription = async (
     await tx.subscription.updateMany({
       where: {
         organizationId: input.organizationId,
-        status: 'active',
+        status: { in: ['active', 'cancels_at_period_end'] },
       },
       data: {
         status: 'expired',

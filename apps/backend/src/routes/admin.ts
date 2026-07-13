@@ -256,34 +256,24 @@ router.get('/users', requireAuth, async (req, res) => {
       if (planFilter.toLowerCase() === 'free') {
         where.AND = [
           {
-            OR: [
-              { subscription: null },
-              {
-                subscription: {
-                  OR: [
-                    { status: { not: 'active' } },
-                    { currentPeriodEnd: { lte: now } }
-                  ]
-                }
+            subscriptions: {
+              none: {
+                status: { in: ['active', 'cancels_at_period_end'] },
+                currentPeriodEnd: { gt: now }
               }
-            ]
+            }
           },
           {
             OR: [
               { organizationId: null },
               {
                 organization: {
-                  OR: [
-                    { subscription: null },
-                    {
-                      subscription: {
-                        OR: [
-                          { status: { not: 'active' } },
-                          { currentPeriodEnd: { lte: now } }
-                        ]
-                      }
+                  subscriptions: {
+                    none: {
+                      status: { in: ['active', 'cancels_at_period_end'] },
+                      currentPeriodEnd: { gt: now }
                     }
-                  ]
+                  }
                 }
               }
             ]
@@ -292,18 +282,22 @@ router.get('/users', requireAuth, async (req, res) => {
       } else {
         where.OR = [
           {
-            subscription: {
-              plan: { equals: planFilter, mode: 'insensitive' },
-              status: 'active',
-              currentPeriodEnd: { gt: now }
+            subscriptions: {
+              some: {
+                plan: { equals: planFilter, mode: 'insensitive' },
+                status: { in: ['active', 'cancels_at_period_end'] },
+                currentPeriodEnd: { gt: now }
+              }
             }
           },
           {
             organization: {
-              subscription: {
-                plan: { equals: planFilter, mode: 'insensitive' },
-                status: 'active',
-                currentPeriodEnd: { gt: now }
+              subscriptions: {
+                some: {
+                  plan: { equals: planFilter, mode: 'insensitive' },
+                  status: { in: ['active', 'cancels_at_period_end'] },
+                  currentPeriodEnd: { gt: now }
+                }
               }
             }
           }
@@ -370,7 +364,7 @@ router.get('/users', requireAuth, async (req, res) => {
           { userId: { in: userIds } },
           { organizationId: { in: orgIds } }
         ],
-        status: 'active',
+        status: { in: ['active', 'cancels_at_period_end'] },
         currentPeriodEnd: { gt: new Date() },
       }
     });

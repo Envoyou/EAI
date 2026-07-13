@@ -23,6 +23,7 @@ model User {
 
   aiProviderOverride String?
   trialUsed      Boolean             @default(false)
+  balanceIdr     Int                 @default(0)
   subscriptions  Subscription[]
   transactions   CreditTransaction[]
   usages         CreditUsage[]
@@ -86,6 +87,7 @@ model Organization {
   npwp      String?
   billingAddress String?
   aiProviderOverride String?
+  balanceIdr     Int                 @default(0)
   isActive  Boolean  @default(true)
   onboardingStatus OnboardingStatus @default(completed)
   activatedAt DateTime?
@@ -220,6 +222,8 @@ model Subscription {
   currentPeriodEnd   DateTime
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
+  cancelReason       String?
+  cancelFeedback     String?
 
   user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -235,6 +239,9 @@ model PaymentOrder {
   organizationId String?
   planId         String
   amountIdr      Int
+  discountIdr    Int      @default(0)
+  useAccountBalance Int   @default(0)
+  balanceRemaining Int  @default(0)
   status         String   @default("pending")
   transactionId  String?
   paymentType    String?
