@@ -68,6 +68,15 @@ export const getGeminiModelForRole = (
   role: Role,
   analysisSpeed: AnalysisSpeed = 'balanced'
 ): string => {
+  if (role === 'seo') {
+    return process.env.GEMINI_SEO_MODEL || 'gemini-3.1-flash-lite';
+  }
+
+  const customGeminiModel = process.env.GEMINI_MODEL;
+  if (customGeminiModel) {
+    return customGeminiModel;
+  }
+
   if (analysisSpeed === 'fast') {
     switch (role) {
       case 'fact-checker':
@@ -75,7 +84,6 @@ export const getGeminiModelForRole = (
       case 'polish':
       case 'author':
       case 'editor':
-      case 'seo':
       default:
         return 'gemini-3.1-flash-lite';
     }
@@ -83,7 +91,6 @@ export const getGeminiModelForRole = (
 
   switch (role) {
     case 'author':
-    case 'seo':
       return 'gemini-3.1-flash-lite';
     case 'polish':
     case 'editor':

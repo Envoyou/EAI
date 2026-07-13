@@ -1446,7 +1446,7 @@ router.post('/', async (req: Request, res) => {
           durationMs: Date.now() - startedAt,
         });
       } else {
-        const refineModelName = resolveModel(analysisSpeed === 'fast' ? 'gemini-3.1-flash-lite' : 'gemini-3.5-flash');
+        const refineModelName = resolveModel(process.env.GEMINI_MODEL || (analysisSpeed === 'fast' ? 'gemini-3.1-flash-lite' : 'gemini-3.5-flash'));
         usedModels.push(`${refineModelName}(refine)`);
         const startedAt = Date.now();
         let refineUsage: Parameters<AiTelemetryCollector['recordGemini']>[0]['usage'];

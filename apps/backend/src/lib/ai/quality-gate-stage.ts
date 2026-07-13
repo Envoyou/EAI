@@ -130,9 +130,9 @@ const runFinalQualityGate = async ({
   let modelName: string;
 
   if (provider === 'gemini') {
-    modelName = analysisSpeed === 'fast'
+    modelName = process.env.GEMINI_MODEL || (analysisSpeed === 'fast'
       ? 'gemini-3.1-flash-lite'
-      : 'gemini-3.5-flash';
+      : 'gemini-3.5-flash');
     const startedAt = Date.now();
     const response = await gemini.models.generateContent({
       model: modelName,

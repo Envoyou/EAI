@@ -114,9 +114,9 @@ export const runTargetedFixStage = async ({
     });
     replacementText = extractOpenRouterText(response).trim();
   } else {
-    modelName = analysisSpeed === 'fast'
+    modelName = process.env.GEMINI_MODEL || (analysisSpeed === 'fast'
       ? 'gemini-3.1-flash-lite'
-      : 'gemini-3.5-flash';
+      : 'gemini-3.5-flash');
     const response = await gemini.models.generateContent({
       model: modelName,
       contents,
