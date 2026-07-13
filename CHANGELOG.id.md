@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-07-14
+
 ### Added
 - **Halaman Khusus Penggunaan Kredit (Credit Usage)**: Membuat halaman terdedikasi di `/settings/usage` dalam berkas [page.tsx](./apps/frontend/src/app/[locale]/settings/usage/page.tsx) untuk memisahkan pemantauan kredit dari halaman Billing utama, menampilkan kartu rincian saldo (Total Available, Plan, Free, Add-on) dan log transaksi yang mendetail.
 - **Kolom Atribusi Aksi ("Triggered By")**: Menampilkan identitas profil (nama dan avatar) anggota tim penginisiasi di workspace organisasi, label "You" untuk personal workspace, dan ikon "System" untuk aksi background otomatis (`isSystem: true`).

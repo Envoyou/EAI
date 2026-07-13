@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-07-14
+
 ### Added
 - **Separate Credit Usage Settings Page**: Created a dedicated `/settings/usage` settings page in [page.tsx](./apps/frontend/src/app/[locale]/settings/usage/page.tsx) that separates credit monitoring from the main Billing Plan page, featuring balance breakdown cards (Total Available, Plan, Free, Add-on) and a detailed audit trail ledger.
 - **Teammate Attribution ("Triggered By") in Table**: Integrated audit logs with human/system attribution. Displays names and avatars for teammate actions in team workspaces, "You" for personal workspaces, and "System" with a gear icon for automatic background runs (`isSystem: true`).
