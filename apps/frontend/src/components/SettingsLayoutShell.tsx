@@ -10,12 +10,8 @@ import {
   FileText,
   Loader2,
   Workflow,
-  Server,
-  Activity,
   CreditCard,
-  ShieldAlert,
   Settings,
-  Users,
 } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 
@@ -29,7 +25,17 @@ type SettingsLayoutShellProps = {
   isSuperAdmin: boolean;
 };
 
-const SECTIONS = [
+type SidebarSection = {
+  id: string;
+  label: string;
+  href?: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  heading?: boolean;
+  requireAdmin?: boolean;
+  requireSuperAdmin?: boolean;
+};
+
+const SECTIONS: SidebarSection[] = [
   { id: 'general_heading', label: 'My Preferences', heading: true },
   { id: 'account', href: '/settings/account', label: 'Preferences', icon: CircleUserRound },
   { id: 'general', href: '/settings/general', label: 'General', icon: Settings },
@@ -40,12 +46,6 @@ const SECTIONS = [
   { id: 'workspace', href: '/settings/workspace', label: 'Workspace', icon: Building2, requireAdmin: true },
   { id: 'billing', href: '/settings/billing', label: 'Billing & Plans', icon: CreditCard, requireAdmin: true },
   { id: 'publication', href: '/settings/publication/identity', label: 'Publication Standards', icon: FileText, requireAdmin: true },
-
-  { id: 'system', label: 'EAI System', heading: true, requireSuperAdmin: true },
-  { id: 'system/users', href: '/settings/system/users', label: 'User Directory', icon: Users, requireSuperAdmin: true },
-  { id: 'system/tenants', href: '/settings/system/tenants', label: 'Tenants', icon: Server, requireSuperAdmin: true },
-  { id: 'system/telemetry', href: '/settings/system/telemetry', label: 'Telemetry', icon: Activity, requireSuperAdmin: true },
-  { id: 'system/feature-flags', href: '/settings/system/feature-flags', label: 'Feature Flags', icon: ShieldAlert, requireSuperAdmin: true },
 ];
 
 export function SettingsLayoutShell({ children, isAdmin, isSuperAdmin }: SettingsLayoutShellProps) {

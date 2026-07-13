@@ -83,8 +83,13 @@ apps/frontend/
 │   │       │   ├── publication/  # Editorial profile & CMS connections
 │   │       │   ├── workflow/     # AI pipeline preferences
 │   │       │   ├── workspace/    # Workspace-level settings
-│   │       │   ├── defaults/     # Default settings
-│   │       │   └── system/       # Admin system settings (feature flags, etc.)
+│   │       │   └── defaults/     # Default settings
+│   │       ├── admin/            # EAI Admin Console
+│   │       │   ├── page.tsx          # Index with redirect
+│   │       │   ├── tenants/          # Tenant/Billing administration
+│   │       │   ├── users/            # User directory console
+│   │       │   ├── telemetry/        # Telemetry & logs Sentry status
+│   │       │   └── feature-flags/    # Edge Configuration feature flags
 │   │       ├── checkout/         # Payment checkout flow
 │   │       ├── pricing/          # Public pricing page
 │   │       ├── onboarding/       # New-user onboarding wizard
@@ -116,6 +121,7 @@ apps/frontend/
 │   │   ├── StrategistTab.tsx     # Content strategy AI tab
 │   │   ├── UserDirectory.tsx     # User management console (66KB)
 │   │   ├── BillingAdmin.tsx      # Admin billing panel
+│   │   ├── AdminLayoutShell.tsx  # Dedicated Admin Console sidebar shell
 │   │   ├── OnboardingWizard.tsx  # Multi-step onboarding wizard
 │   │   ├── AICopilotPanel.tsx    # AI copilot chat panel
 │   │   ├── DocumentHistoryPanel.tsx  # Document history/versioning

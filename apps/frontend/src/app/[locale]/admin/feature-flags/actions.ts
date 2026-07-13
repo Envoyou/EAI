@@ -132,7 +132,7 @@ export async function toggleFeatureFlag(
       };
     }
 
-    revalidatePath('/settings/system/feature-flags');
+    revalidatePath('/admin/feature-flags');
     return { success: true, mocked: false, message: 'Feature Flag updated globally via Vercel Edge Config.' };
   } catch (error) {
     console.error('Error toggling feature flag:', error);

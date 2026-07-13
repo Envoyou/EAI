@@ -3,10 +3,10 @@ import { isZohoDeskEnabled } from '@/lib/utils';
 import { BillingAdmin } from '@/components/BillingAdmin';
 
 export const metadata = {
-  title: 'Tenant Management | EAI Settings',
+  title: 'Tenant Management | EAI Admin Console',
 };
 
-export default function TenantsSystemPage() {
+export default function TenantsAdminPage() {
   return (
     <>
       <div className="settings-page-intro">
@@ -14,7 +14,7 @@ export default function TenantsSystemPage() {
         <h2 className="text-balance">Billing Administration</h2>
         <p className="text-pretty">Organization credit ledger and manual adjustments.</p>
       </div>
-      <div className="-mx-5 mt-2">
+      <div className="mt-4">
         <BillingAdmin zohoDeskEnabled={isZohoDeskEnabled()} />
       </div>
     </>

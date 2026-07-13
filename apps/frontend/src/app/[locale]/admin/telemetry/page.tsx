@@ -2,10 +2,10 @@ import React from 'react';
 import { TelemetryClient } from './TelemetryClient';
 
 export const metadata = {
-  title: 'Telemetry & Logs | EAI Settings',
+  title: 'Telemetry & Logs | EAI Admin Console',
 };
 
-export default function TelemetryPage() {
+export default function TelemetryAdminPage() {
   const hasDsn = !!process.env.NEXT_PUBLIC_SENTRY_DSN;
 
   return (

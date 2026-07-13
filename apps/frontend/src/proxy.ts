@@ -81,7 +81,7 @@ export default clerkMiddleware(async (auth, request) => {
     pathWithoutLocale.startsWith('/support') ||
     pathWithoutLocale.startsWith('/legal') ||
     pathWithoutLocale.startsWith('/login') ||
-    pathWithoutLocale.startsWith('/settings/system/feature-flags');
+    pathWithoutLocale.startsWith('/admin');
 
   if (featureFlagReadBypass) {
     if (!isPublicRoute(request)) {

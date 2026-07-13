@@ -72,6 +72,16 @@ type PaginationMeta = {
   limit: number;
 };
 
+type UserSubscription = {
+  plan: string;
+  status: string;
+  currentPeriodStart?: string;
+  currentPeriodEnd: string;
+  lastCreditAllocation?: string | null;
+  cancelReason?: string | null;
+  cancelFeedback?: string | null;
+};
+
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat('en-US', {
     dateStyle: 'medium',
@@ -126,8 +136,8 @@ export function UserDirectory() {
     transactions: any[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     analysisLogs: any[];
-    activeSubscription?: any;
-    queuedSubscription?: any;
+    activeSubscription?: UserSubscription | null;
+    queuedSubscription?: UserSubscription | null;
   } | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [activeDetailsTab, setActiveDetailsTab] = useState<'profile' | 'credits' | 'analyses'>('profile');
@@ -1091,7 +1101,11 @@ export function UserDirectory() {
                               Target Plan: <span className="font-semibold capitalize">{detailsData.queuedSubscription.plan.replaceAll('_', ' ')}</span>
                             </p>
                             <p className="text-[var(--foreground)]">
-                              Start Date: <span className="font-semibold">{formatDate(detailsData.queuedSubscription.currentPeriodStart)}</span>
+                              Start Date: <span className="font-semibold">
+                                {detailsData.queuedSubscription.currentPeriodStart 
+                                  ? formatDate(detailsData.queuedSubscription.currentPeriodStart) 
+                                  : 'N/A'}
+                              </span>
                             </p>
                           </div>
                         )}

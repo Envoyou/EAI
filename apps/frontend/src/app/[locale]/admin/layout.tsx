@@ -1,7 +1,9 @@
+import React from 'react';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { AdminLayoutShell } from '@/components/AdminLayoutShell';
 
-export default async function SystemSettingsLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth();
   if (!userId) redirect('/login');
 
@@ -12,5 +14,5 @@ export default async function SystemSettingsLayout({ children }: { children: Rea
     redirect('/settings/general');
   }
 
-  return <>{children}</>;
+  return <AdminLayoutShell>{children}</AdminLayoutShell>;
 }

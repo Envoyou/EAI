@@ -22,7 +22,7 @@ export default async function MaintenancePage() {
       ownerAction={
         isOwnerUser(userId)
           ? {
-              href: '/settings/system/feature-flags',
+              href: '/admin/feature-flags',
               label: 'System owner controls',
             }
           : undefined

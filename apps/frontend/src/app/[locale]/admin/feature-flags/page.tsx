@@ -5,10 +5,10 @@ import { FeatureFlagsClient } from './FeatureFlagsClient';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Feature Flags | EAI Settings',
+  title: 'Feature Flags | EAI Admin Console',
 };
 
-export default async function FeatureFlagsPage() {
+export default async function FeatureFlagsAdminPage() {
   const flags = await getAllFeatureFlags();
 
   return (

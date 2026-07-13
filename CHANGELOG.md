@@ -7,6 +7,9 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Internal Admin Console (`EAI Admin Console`)**: Replaced the previous system settings sub-menu (`/settings/system/*`) with a dedicated operational admin space at `/admin/*`. Added [AdminLayoutShell.tsx](./apps/frontend/src/components/AdminLayoutShell.tsx) providing a custom sidebar, theme controls, and quick navigation for administrators.
+- **SuperAdmin Protection & Authorization**: Implemented server-side SuperAdmin verification in `/admin/layout.tsx` to authorize access only to users defined in the `OWNER_USER_IDS` environment variable.
+- **Bypass for Maintenance Mode**: Configured the middleware ([proxy.ts](./apps/frontend/src/proxy.ts)) to bypass maintenance mode redirects for all routes under `/admin/*`, allowing system owners to manage production feature flags or troubleshoot errors during maintenance.
 - **Yearly Subscription Credit Scheduler**: Configured yearly subscriptions to allocate credits monthly (e.g. 50/month) instead of a upfront lump sum. Built a daily cron job `monthly-credit-allocation` using BullMQ to reset remaining monthly subscription credits and refill the monthly quota, using idempotency keys (`monthly-refill:${sub.id}:${year}-${month}`) to prevent double allocation.
 - **Delayed Downgrade (Stripe-Way)**: Implemented delayed downgrade flow from yearly to monthly plans. Creates a new monthly subscription row in the `queued` state scheduled to activate automatically at the yearly plan's `currentPeriodEnd`. Built a daily cron job `activate-queued-downgrade` to handle automatic activation.
 - **Cancel Scheduled Downgrade**: Added "Keep My Current Plan" confirmation button to delete the queued monthly plan and restore the yearly plan's active status.
@@ -26,6 +29,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Reactivate Subscription Flow**: Added Reactivate Subscription button with full confirmation UI calling a new backend reactivation endpoint.
 
 ### Fixed
+- **TypeScript Compilation & ESLint in UserDirectory**: Cleaned up implicit `any` types in [UserDirectory.tsx](./apps/frontend/src/components/UserDirectory.tsx) to use the new typed `UserSubscription` interface, resolving the ESLint `@typescript-eslint/no-explicit-any` rules and Next.js production build errors.
+- **Settings Sidebar Cleanups**: Removed unused Lucide icon imports and cleaned up the `SECTIONS` navigation items type definition in [SettingsLayoutShell.tsx](./apps/frontend/src/components/SettingsLayoutShell.tsx) to resolve Type Errors from the removal of the EAI System submenu.
 - **Brace-Counting JSON Extractor**: Implemented a stateful brace-counting parser in `extractJsonFromText` to extract the exact JSON object from model outputs. This strips trailing fences/comments (even if they contain parenthesis or braces) and prevents JSON parsing retries on Quality Gate checks.
 - **Pricing Exchange Rate Rendering**: Adjusted invoice exchange rate logic to display the base exchange rate (USD 1 = Rp 18.000) instead of dividing tax-inclusive IDR total by USD amount.
 - **Dynamic Pricing Disclosures**: Updated Next.js server pricing page to fetch the real-time rate from the backend container, resolving visual mismatch and payment validation conflicts.

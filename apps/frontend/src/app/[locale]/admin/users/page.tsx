@@ -2,10 +2,10 @@ import React from 'react';
 import { UserDirectory } from '@/components/UserDirectory';
 
 export const metadata = {
-  title: 'User Directory | EAI Settings',
+  title: 'User Directory | EAI Admin Console',
 };
 
-export default function UsersSystemPage() {
+export default function UsersAdminPage() {
   return (
     <>
       <div className="settings-page-intro">
@@ -13,7 +13,7 @@ export default function UsersSystemPage() {
         <h2 className="text-balance">User Directory</h2>
         <p className="text-pretty">Chronological list of all user signups and their current organization status.</p>
       </div>
-      <div className="-mx-5 mt-2 px-5">
+      <div className="mt-4">
         <UserDirectory />
       </div>
     </>
