@@ -25,7 +25,8 @@
         "SENTRY_PUBLIC_KEY",
         "CLERK_SECRET_KEY",
         "DASHBOARD_PASSWORD",
-        "DASHBOARD_AUTH_SECRET"
+        "DASHBOARD_AUTH_SECRET",
+        "PAYMENT_USD_TO_IDR_RATE"
       ]
     },
     "lint": {
