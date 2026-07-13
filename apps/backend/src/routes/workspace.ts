@@ -192,4 +192,113 @@ router.put('/billing-details', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/workspace/usage
+router.get('/usage', requireAuth, async (req, res) => {
+  try {
+    const { userId, orgId, orgSlug, orgRole } = req.auth!;
+    const state = await getWorkspaceState(userId, {
+      clerkOrganizationId: orgId,
+      clerkOrganizationSlug: orgSlug,
+      clerkOrganizationRole: orgRole,
+    });
+
+    if (!state) {
+      return res.status(404).json({ error: 'Workspace not found.' });
+    }
+
+    const activeOrganizationId = state.organizationId;
+
+    // 1. Get detailed transactions list with user profiles
+    const transactions = await prisma.creditTransaction.findMany({
+      where: {
+        userId: activeOrganizationId ? undefined : userId,
+        organizationId: activeOrganizationId || undefined,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            imageUrl: true,
+          }
+        }
+      },
+      orderBy: { id: 'desc' },
+      take: 100
+    });
+
+    // 2. Fetch sums for addon
+    const addonAllocation = await prisma.creditTransaction.aggregate({
+      where: {
+        userId: activeOrganizationId ? undefined : userId,
+        organizationId: activeOrganizationId || undefined,
+        bucket: 'addon',
+        amount: { gt: 0 }
+      },
+      _sum: { amount: true }
+    });
+
+    // 3. Fetch active subscription for refill info
+    const activeSub = await prisma.subscription.findFirst({
+      where: {
+        userId: activeOrganizationId ? undefined : userId,
+        organizationId: activeOrganizationId || undefined,
+        status: { in: ['active', 'cancels_at_period_end'] },
+        currentPeriodEnd: { gt: new Date() },
+      }
+    });
+
+    const systemTypes = [
+      'trial',
+      'monthly_allocation',
+      'yearly_monthly_allocation',
+      'cycle_reset',
+      'manual_adjustment'
+    ];
+
+    const mappedTransactions = transactions.map(t => {
+      const isSystem = systemTypes.includes(t.type);
+      let triggeredBy = null;
+
+      if (!isSystem && t.user) {
+        triggeredBy = {
+          id: t.user.id,
+          name: t.user.name || t.user.email.split('@')[0],
+          imageUrl: t.user.imageUrl,
+        };
+      }
+
+      return {
+        id: t.id,
+        createdAt: t.createdAt,
+        type: t.type,
+        bucket: t.bucket,
+        amount: t.amount,
+        description: t.description,
+        isSystem,
+        triggeredBy
+      };
+    });
+
+    return res.json({
+      activeOrganizationId,
+      summary: {
+        totalRemaining: state.plan.creditsRemaining,
+        trialRemaining: state.plan.trialCreditsRemaining,
+        trialTotal: state.plan.trialCreditsTotal,
+        subscriptionRemaining: state.plan.subscriptionCreditsRemaining,
+        subscriptionTotal: state.plan.subscriptionCreditsTotal,
+        addonRemaining: Math.max(0, state.plan.creditsRemaining - state.plan.trialCreditsRemaining - state.plan.subscriptionCreditsRemaining),
+        addonTotal: addonAllocation._sum.amount ?? 0,
+      },
+      nextRefillDate: activeSub?.currentPeriodEnd || null,
+      transactions: mappedTransactions
+    });
+  } catch (error) {
+    console.error('[WORKSPACE_USAGE_GET]', error);
+    return res.status(500).json({ error: 'Failed to fetch workspace credit usage details.' });
+  }
+});
+
 export default router;

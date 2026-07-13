@@ -40,6 +40,32 @@ export function AppSidebarShell({
 
   const { user, isLoaded } = useUser();
 
+  const [activePlan, setActivePlan] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!isLoaded || !user || isDemoMode) return;
+
+    let active = true;
+    const fetchState = async () => {
+      try {
+        const res = await fetch('/api/workspace/state');
+        if (res.ok) {
+          const data = await res.json();
+          if (active && data?.plan?.activePlan) {
+            setActivePlan(data.plan.activePlan);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch workspace state in sidebar:', err);
+      }
+    };
+    void fetchState();
+
+    return () => {
+      active = false;
+    };
+  }, [isLoaded, user, isDemoMode]);
+
   const toggleTheme = () => {
     const nextTheme = isDark ? 'light' : 'dark';
     storeThemePreference(nextTheme);
@@ -100,20 +126,35 @@ export function AppSidebarShell({
         </Tooltip>
 
         {isLoaded && user && sidebarOpen && !isDemoMode && (
-          <div className="px-2 mb-2 mt-1 animate-in fade-in duration-200">
-            <OrganizationSwitcher
-              hidePersonal={false}
-              afterCreateOrganizationUrl="/workspace"
-              afterLeaveOrganizationUrl="/workspace"
-              afterSelectOrganizationUrl="/workspace"
-              afterSelectPersonalUrl="/workspace"
-              appearance={{
-                elements: {
-                  rootBox: 'w-full',
-                  organizationSwitcherTrigger: 'w-full justify-between bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)] border border-[var(--border)] rounded-full px-3 py-1.5 text-xs font-semibold shadow-xs',
-                }
-              }}
-            />
+          <div className="px-2 mb-2 mt-1 flex items-center gap-2 animate-in fade-in duration-200">
+            <div className="flex-1 min-w-0">
+              <OrganizationSwitcher
+                hidePersonal={false}
+                afterCreateOrganizationUrl="/workspace"
+                afterLeaveOrganizationUrl="/workspace"
+                afterSelectOrganizationUrl="/workspace"
+                afterSelectPersonalUrl="/workspace"
+                appearance={{
+                  elements: {
+                    rootBox: 'w-full',
+                    organizationSwitcherTrigger: 'w-full justify-between bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)] border border-[var(--border)] rounded-full px-3 py-1.5 text-xs font-semibold shadow-xs',
+                  }
+                }}
+              />
+            </div>
+            {activePlan && (
+              <span className={`shrink-0 ui-badge ui-badge-xs uppercase tracking-wider font-extrabold ${
+                activePlan.replace('org:', '') === 'starter' || activePlan.replace('org:', '') === 'starter_yearly'
+                  ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                  : activePlan.replace('org:', '') === 'pro' || activePlan.replace('org:', '') === 'pro_yearly'
+                    ? 'bg-purple-500/10 text-purple-500 border-purple-500/20'
+                    : activePlan.replace('org:', '') === 'team' || activePlan.replace('org:', '') === 'team_yearly'
+                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                      : 'bg-muted/40 text-muted-foreground border-muted-foreground/10'
+              }`}>
+                {activePlan.replace('org:', '').replace('_yearly', '')}
+              </span>
+            )}
           </div>
         )}
 

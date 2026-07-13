@@ -223,9 +223,70 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
     const subtotal = Math.round(order.amountIdr / 1.11);
     const taxAmount = order.amountIdr - subtotal;
 
+    // Reconstruct original cost (before discounts/refunds)
+    const originalAmountIdr = order.amountIdr + order.discountIdr + order.useAccountBalance;
+    const originalSubtotal = Math.round(originalAmountIdr / 1.11);
+
     const priceUsd = plan?.priceUsd || 0;
-    const rateUsed = priceUsd > 0 ? Math.round(subtotal / priceUsd) : 0;
+    const rateUsed = priceUsd > 0 ? Math.round(originalSubtotal / priceUsd) : 0;
     const rateNote = priceUsd > 0 ? `Billed as $${priceUsd} USD. Exchange Rate: 1 USD = Rp ${rateUsed.toLocaleString('id-ID')}` : '';
+
+    const isYearly = plan && plan.billingMonths === 12;
+    const allocationNote = isYearly
+      ? `* Credits: ${plan.creditsPerMonth} credits allocated monthly over the 12-month period, rather than upfront.`
+      : '';
+
+    const discountSubtotal = Math.round(order.discountIdr / 1.11);
+    const balanceSubtotal = Math.round(order.useAccountBalance / 1.11);
+
+    // Adjust for any minor rounding discrepancy
+    const delta = originalSubtotal - discountSubtotal - balanceSubtotal - subtotal;
+    let adjustedDiscountSubtotal = discountSubtotal;
+    let adjustedBalanceSubtotal = balanceSubtotal;
+    if (delta !== 0) {
+      if (order.discountIdr > 0) {
+        adjustedDiscountSubtotal += delta;
+      } else if (order.useAccountBalance > 0) {
+        adjustedBalanceSubtotal += delta;
+      }
+    }
+
+    // Build table rows
+    let invoiceRowsHtml = `
+      <tr>
+        <td>
+          <strong>${planName} Plan</strong><br>
+          <span style="font-size: 12px; color: #64748b;">${periodText}</span><br>
+          ${rateNote ? `<span style="font-size: 11px; color: #94a3b8;">${rateNote}</span><br>` : ''}
+          ${allocationNote ? `<span style="font-size: 11px; color: #f59e0b; font-weight: 500; display: block; margin-top: 4px;">${allocationNote}</span>` : ''}
+        </td>
+        <td class="amount-col">Rp ${originalSubtotal.toLocaleString('id-ID')}</td>
+      </tr>
+    `;
+
+    if (order.discountIdr > 0) {
+      invoiceRowsHtml += `
+        <tr>
+          <td>
+            <strong>Prorated Refund / Plan Upgrade Credit</strong><br>
+            <span style="font-size: 11px; color: #94a3b8;">Unused credit from previous plan</span>
+          </td>
+          <td class="amount-col" style="color: #16a34a;">-Rp ${adjustedDiscountSubtotal.toLocaleString('id-ID')}</td>
+        </tr>
+      `;
+    }
+
+    if (order.useAccountBalance > 0) {
+      invoiceRowsHtml += `
+        <tr>
+          <td>
+            <strong>Account Balance Applied</strong><br>
+            <span style="font-size: 11px; color: #94a3b8;">Credit balance used at checkout</span>
+          </td>
+          <td class="amount-col" style="color: #16a34a;">-Rp ${adjustedBalanceSubtotal.toLocaleString('id-ID')}</td>
+        </tr>
+      `;
+    }
 
     const formatPaymentType = (type: string | null) => {
       if (!type) return 'N/A';
@@ -518,14 +579,7 @@ router.get('/:id/invoice', requireAuth, async (req, res) => {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>
-                    <strong>${planName} Plan</strong><br>
-                    <span style="font-size: 12px; color: #64748b;">${periodText}</span><br>
-                    ${rateNote ? `<span style="font-size: 11px; color: #94a3b8;">${rateNote}</span>` : ''}
-                  </td>
-                  <td class="amount-col">Rp ${subtotal.toLocaleString('id-ID')}</td>
-                </tr>
+                ${invoiceRowsHtml}
               </tbody>
             </table>
           </div>

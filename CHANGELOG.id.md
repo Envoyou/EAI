@@ -7,6 +7,12 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Halaman Khusus Penggunaan Kredit (Credit Usage)**: Membuat halaman terdedikasi di `/settings/usage` dalam berkas [page.tsx](./apps/frontend/src/app/[locale]/settings/usage/page.tsx) untuk memisahkan pemantauan kredit dari halaman Billing utama, menampilkan kartu rincian saldo (Total Available, Plan, Free, Add-on) dan log transaksi yang mendetail.
+- **Kolom Atribusi Aksi ("Triggered By")**: Menampilkan identitas profil (nama dan avatar) anggota tim penginisiasi di workspace organisasi, label "You" untuk personal workspace, dan ikon "System" untuk aksi background otomatis (`isSystem: true`).
+- **Transparansi Quota Reset & Reset Warning**: Menambahkan notifikasi dinamis "Next Quota Reset" untuk memperingatkan tanggal hangus sisa kredit paket bulanan serta pengecualian untuk Add-on credits.
+- **Pemberitahuan Kuota Habis (Exhausted Indicators)**: Menambahkan status indikator status habis (`Monthly Plan Quota Exhausted`, `Free / Trial Credits Exhausted`) di bawah kartu kredit saat saldo mencapai 0.
+- **Badge Plan Aktif di Sidebar**: Menampilkan badge plan aktif (Starter, Pro, Team, Free) dengan warna tersendiri di sebelah Organization Switcher pada sidebar [AppSidebarShell.tsx](./apps/frontend/src/components/AppSidebarShell.tsx).
+- **Backend API `/api/workspace/usage`**: Membuat API endpoint terpadu di [workspace.ts](./apps/backend/src/routes/workspace.ts) yang mengembalikan data saldo per bucket, status refill, serta riwayat lengkap transaksi kredit tergabung dengan data profil Clerk.
 - **Konsol Admin Internal (`EAI Admin Console`)**: Menggantikan sub-menu pengaturan sistem sebelumnya (`/settings/system/*`) dengan ruang kerja operasional admin terdedikasi di `/admin/*`. Menambahkan [AdminLayoutShell.tsx](./apps/frontend/src/components/AdminLayoutShell.tsx) untuk menyediakan sidebar kustom, kendali tema, dan navigasi cepat bagi administrator.
 - **Proteksi & Otorisasi SuperAdmin**: Menerapkan validasi SuperAdmin di tingkat server pada `/admin/layout.tsx` untuk membatasi akses halaman admin hanya kepada ID pengguna yang terdaftar di variabel lingkungan `OWNER_USER_IDS`.
 - **Bypass Mode Pemeliharaan (Maintenance Bypass)**: Mengonfigurasi middleware ([proxy.ts](./apps/frontend/src/proxy.ts)) agar seluruh rute di bawah `/admin/*` dapat dilewati ketika *Maintenance Mode* aktif, sehingga admin dapat mengelola feature flags produksi atau memeriksa log telemetri selama pemeliharaan sistem.
@@ -32,6 +38,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Alur Reaktivasi Langganan**: Menambahkan tombol dan modal konfirmasi Reaktivasi Langganan di halaman tagihan beserta API endpoint reaktivasi di backend.
 
 ### Fixed
+- **Penguncian Nilai Kurs Invoice**: Memperbaiki dan mengunci nilai kurs pada invoice Midtrans otomatis secara stabil pada Rp 18.000 (sesuai nilai checkout asli) serta merinci alokasi saldo/diskon prorasi.
+- **Perbaikan Formula Kuota Bulanan**: Memperbaiki perhitungan kuota plan bulanan (dari sebelumnya selalu menampilkan `0 / 300`) dengan menghitung konsumsi aktual di siklus tagihan berjalan secara dinamis.
 - **Kompilasi TypeScript & ESLint di UserDirectory**: Membersihkan tipe data implicit `any` pada [UserDirectory.tsx](./apps/frontend/src/components/UserDirectory.tsx) dengan mengimplementasikan interface `UserSubscription` yang baru, menyelesaikan aturan linter `@typescript-eslint/no-explicit-any` serta error kompilasi build produksi Next.js.
 - **Pembersihan Sidebar Settings**: Menghapus impor ikon Lucide yang tidak terpakai dan mendefinisikan tipe data eksplisit pada array navigasi `SECTIONS` di [SettingsLayoutShell.tsx](./apps/frontend/src/components/SettingsLayoutShell.tsx) guna memperbaiki Type Error akibat penghapusan submenu EAI System.
 - **Ekstraktor JSON Penghitung Kurung Kurawal**: Mengimplementasikan parser pelacak kurung kurawal (`brace-counting`) di fungsi `extractJsonFromText` untuk mengambil objek JSON secara tepat dari output model. Hal ini memotong teks/pagar markdown tambahan (bahkan jika memuat tanda kurung biasa atau kurawal) dan mencegah proses pengulangan (*retry*) parse JSON di Quality Gate.

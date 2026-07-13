@@ -7,6 +7,12 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Separate Credit Usage Settings Page**: Created a dedicated `/settings/usage` settings page in [page.tsx](./apps/frontend/src/app/[locale]/settings/usage/page.tsx) that separates credit monitoring from the main Billing Plan page, featuring balance breakdown cards (Total Available, Plan, Free, Add-on) and a detailed audit trail ledger.
+- **Teammate Attribution ("Triggered By") in Table**: Integrated audit logs with human/system attribution. Displays names and avatars for teammate actions in team workspaces, "You" for personal workspaces, and "System" with a gear icon for automatic background runs (`isSystem: true`).
+- **Quota Expiry Transparency & Reset Warning**: Added dynamic Quota Reset alerts clearly communicating the expiry of remaining monthly plan credits alongside standard Add-on credits exemption notice.
+- **Exhausted Credit Indicators**: Appended small indicator warnings (`Monthly Plan Quota Exhausted`, `Free / Trial Credits Exhausted`) at the bottom of the credit cards when balances drop to 0.
+- **Active Plan Sidebar Badge**: Mounted live subscription checks in the sidebar [AppSidebarShell.tsx](./apps/frontend/src/components/AppSidebarShell.tsx) next to the Organization Switcher showing colored plan badges (Starter, Pro, Team, Free).
+- **Backend API Endpoint `GET /api/workspace/usage`**: Exposed a consolidated endpoint in [workspace.ts](./apps/backend/src/routes/workspace.ts) returning real-time credit buckets, subscription refill states, and user-joined credit transaction histories.
 - **Internal Admin Console (`EAI Admin Console`)**: Replaced the previous system settings sub-menu (`/settings/system/*`) with a dedicated operational admin space at `/admin/*`. Added [AdminLayoutShell.tsx](./apps/frontend/src/components/AdminLayoutShell.tsx) providing a custom sidebar, theme controls, and quick navigation for administrators.
 - **SuperAdmin Protection & Authorization**: Implemented server-side SuperAdmin verification in `/admin/layout.tsx` to authorize access only to users defined in the `OWNER_USER_IDS` environment variable.
 - **Bypass for Maintenance Mode**: Configured the middleware ([proxy.ts](./apps/frontend/src/proxy.ts)) to bypass maintenance mode redirects for all routes under `/admin/*`, allowing system owners to manage production feature flags or troubleshoot errors during maintenance.
@@ -32,6 +38,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Reactivate Subscription Flow**: Added Reactivate Subscription button with full confirmation UI calling a new backend reactivation endpoint.
 
 ### Fixed
+- **Locked Exchange Rate on Invoices**: Fixed and locked the exchange rate on automatic Midtrans invoices at a stable rate of 1 USD = Rp 18,000 to match checkout values, and added detail breakouts for prorated discount adjustments.
+- **Dynamic Subscription Usage Formula**: Fixed incorrect `0 / 300` monthly credit progress calculation by subtracting only the actual consumed subscription credits in the current billing cycle.
 - **TypeScript Compilation & ESLint in UserDirectory**: Cleaned up implicit `any` types in [UserDirectory.tsx](./apps/frontend/src/components/UserDirectory.tsx) to use the new typed `UserSubscription` interface, resolving the ESLint `@typescript-eslint/no-explicit-any` rules and Next.js production build errors.
 - **Settings Sidebar Cleanups**: Removed unused Lucide icon imports and cleaned up the `SECTIONS` navigation items type definition in [SettingsLayoutShell.tsx](./apps/frontend/src/components/SettingsLayoutShell.tsx) to resolve Type Errors from the removal of the EAI System submenu.
 - **Brace-Counting JSON Extractor**: Implemented a stateful brace-counting parser in `extractJsonFromText` to extract the exact JSON object from model outputs. This strips trailing fences/comments (even if they contain parenthesis or braces) and prevents JSON parsing retries on Quality Gate checks.

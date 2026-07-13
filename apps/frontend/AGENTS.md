@@ -80,6 +80,7 @@ apps/frontend/
 │   │       │   ├── general/      # Organization name, slug, logo
 │   │       │   ├── account/      # User account settings
 │   │       │   ├── billing/      # Subscription & payment management
+│   │       │   ├── usage/        # Credit balance breakdown & transaction history
 │   │       │   ├── publication/  # Editorial profile & CMS connections
 │   │       │   ├── workflow/     # AI pipeline preferences
 │   │       │   ├── workspace/    # Workspace-level settings

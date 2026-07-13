@@ -309,12 +309,45 @@ export const getWorkspaceState = async (
   const addonSum = transactions.find((t) => t.bucket === 'addon')?._sum.amount ?? 0;
   const subSum = transactions.find((t) => t.bucket === 'subscription')?._sum.amount ?? 0;
 
+  const trialAllocation = await prisma.creditTransaction.aggregate({
+    where: {
+      userId: activeOrganizationId ? undefined : userId,
+      organizationId: activeOrganizationId || undefined,
+      bucket: 'trial',
+      amount: { gt: 0 },
+    },
+    _sum: {
+      amount: true,
+    },
+  });
+  const trialCreditsTotal = trialAllocation._sum.amount ?? 0;
+
   const creditsRemaining = Math.max(0, trialSum + addonSum + (activeSub ? subSum : 0));
 
   const resolvedPlanId = activeSub?.plan ? activeSub.plan.replace('org:', '') : 'free';
   const planDetails = PLANS[resolvedPlanId];
   const subscriptionCreditsTotal = planDetails?.creditsPerMonth ?? 0;
-  const subscriptionCreditsRemaining = activeSub ? Math.max(0, subSum) : 0;
+
+  let currentPeriodUsage = 0;
+  if (activeSub) {
+    const spentInPeriod = await prisma.creditTransaction.aggregate({
+      where: {
+        userId: activeOrganizationId ? undefined : userId,
+        organizationId: activeOrganizationId || undefined,
+        bucket: 'subscription',
+        amount: { lt: 0 },
+        createdAt: { gte: activeSub.currentPeriodStart },
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+    currentPeriodUsage = Math.abs(spentInPeriod._sum.amount ?? 0);
+  }
+
+  const subscriptionCreditsRemaining = activeSub
+    ? Math.max(0, subscriptionCreditsTotal - currentPeriodUsage)
+    : 0;
 
   return {
     ...workspaceUser,
@@ -334,6 +367,8 @@ export const getWorkspaceState = async (
       currentPeriodEnd: activeSub?.currentPeriodEnd || null,
       subscriptionCreditsTotal,
       subscriptionCreditsRemaining,
+      trialCreditsRemaining: Math.max(0, trialSum),
+      trialCreditsTotal,
       queuedDowngrade: queuedSub ? {
         planId: queuedSub.plan,
         planName: PLANS[queuedSub.plan]?.name || queuedSub.plan,

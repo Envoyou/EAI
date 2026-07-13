@@ -204,38 +204,6 @@ export default async function BillingSettingsPage() {
                   </div>
                 )
               )}
-              {['active', 'cancels_at_period_end'].includes(workspace?.plan.subscriptionStatus ?? '') && workspace.plan.subscriptionCreditsTotal > 0 && (
-                <div className="mt-4 space-y-2 border-t border-[var(--border)] pt-4">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground font-medium">Monthly Credit Usage</span>
-                    <span className="font-semibold text-foreground">
-                      {Math.max(0, workspace.plan.subscriptionCreditsTotal - workspace.plan.subscriptionCreditsRemaining)}{' '}
-                      / {workspace.plan.subscriptionCreditsTotal} Credits Used
-                    </span>
-                  </div>
-                  <div className="w-full bg-[var(--surface-2)] rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-primary h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          Math.max(
-                            0,
-                            ((workspace.plan.subscriptionCreditsTotal - workspace.plan.subscriptionCreditsRemaining) /
-                              workspace.plan.subscriptionCreditsTotal) *
-                              100
-                          )
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                  {workspace.plan.subscriptionCreditsRemaining === 0 && (
-                    <p className="text-[10px] text-amber-500 font-medium">
-                      Monthly plan credits exhausted. System is now consuming Add-on credit balance.
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">

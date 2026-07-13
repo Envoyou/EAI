@@ -12,6 +12,7 @@ import {
   Workflow,
   CreditCard,
   Settings,
+  Activity,
 } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 
@@ -45,6 +46,7 @@ const SECTIONS: SidebarSection[] = [
   { id: 'organization', label: 'Organization', heading: true, requireAdmin: true },
   { id: 'workspace', href: '/settings/workspace', label: 'Workspace', icon: Building2, requireAdmin: true },
   { id: 'billing', href: '/settings/billing', label: 'Billing & Plans', icon: CreditCard, requireAdmin: true },
+  { id: 'usage', href: '/settings/usage', label: 'Credit Usage', icon: Activity, requireAdmin: true },
   { id: 'publication', href: '/settings/publication/identity', label: 'Publication Standards', icon: FileText, requireAdmin: true },
 ];
 

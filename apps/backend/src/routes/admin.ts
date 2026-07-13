@@ -1175,7 +1175,7 @@ router.post('/audit-logs', requireAuth, async (req, res) => {
       targetId: z.string().max(150).optional().nullable(),
       targetType: z.string().max(50).optional().nullable(),
       description: z.string().min(5).max(500),
-      details: z.record(z.any()).optional().nullable(),
+      details: z.record(z.string(), z.any()).optional().nullable(),
     });
 
     const parsed = schema.safeParse(req.body);
