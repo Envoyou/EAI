@@ -189,6 +189,12 @@ Master prompts for all stages live in `src/lib/prompts.ts`. Never write inline p
     2. Cancels/resets the current `subscription` credit ledger balances using a `cycle_reset` transaction type.
     3. Allocates the new plan's default credits.
     4. Logs the admin's email, target org, Zoho support ticket ID, and adjustment reason for audit trails.
+* **Operational Audit Logs**:
+  * Critical administrative actions (credit adjustments, subscription plan overrides, user bans/unbans, and AI engine config updates) must write an audit trail using the `logAuditEvent` helper in `src/lib/audit.ts`.
+  * Logs must capture the actor's email, actor's ID, target entity ID, target type (e.g., "Tenant", "User", "System"), a description, and details for comparison.
+* **AI Provider Overrides**:
+  * Organization-level AI provider and model overrides (stored in the format `provider:model` in the `aiProviderOverride` column) affect only the Refinement stage (rewrite, review, and SEO metadata).
+  * Assigning model names in the refinement pipeline must be wrapped with the `resolveModel` helper to dynamically support these tenant-level engine configurations.
 
 ---
 

@@ -55,7 +55,7 @@ type SourceProvenanceLevel = 'none' | 'weak' | 'moderate' | 'strong';
 type DraftRiskProfile = 'general' | 'low_stakes_consumer';
 
 const MAX_SUMMARY_LENGTH = 280;
-import { resolveActiveAiProvider } from '@/lib/ai-provider-resolver';
+import { resolveActiveAiConfig } from '@/lib/ai-provider-resolver';
 
 const buildStoredMetadata = (
   metadata: ArticleMetadata | undefined,
@@ -1124,11 +1124,23 @@ router.post('/', async (req: Request, res) => {
     const analysisSpeed = userId ? (requestedAnalysisSpeed ?? 'deep') : 'fast';
     const looksLikeTargetedFix = Boolean(targetText?.trim() && (feedbackMessage?.trim() || instruction?.trim()));
     const effectiveMode: AnalyzeMode = mode ?? (looksLikeTargetedFix ? 'fix_targeted' : 'analyze');
-    const resolvedAiProvider = userId 
-      ? await resolveActiveAiProvider(userId, workspace?.organizationId)
-      : (process.env.ACTIVE_AI_PROVIDER || 'gemini') as 'gemini' | 'groq' | 'openrouter';
+    let modelOverride: string | null = null;
+    let resolvedAiProvider: 'gemini' | 'groq' | 'openrouter' = 'gemini';
+
+    if (userId) {
+      const config = await resolveActiveAiConfig(userId, workspace?.organizationId);
+      resolvedAiProvider = config.provider;
+      modelOverride = config.modelOverride;
+    } else {
+      resolvedAiProvider = (process.env.ACTIVE_AI_PROVIDER || 'gemini') as 'gemini' | 'groq' | 'openrouter';
+    }
 
     const effectiveProvider: 'gemini' | 'groq' | 'openrouter' = bodyProvider || resolvedAiProvider;
+
+    // Helper to resolve model name (handling modelOverride dynamically)
+    const resolveModel = (defaultModel: string): string => {
+      return modelOverride || defaultModel;
+    };
 
     textToLog = text || '';
     roleToLog = effectiveMode === 'refine' ? 'refine' : (role || 'unknown');
@@ -1354,11 +1366,12 @@ router.post('/', async (req: Request, res) => {
       const lockedRefineInput = applyVerificationLocks(text, protectedFeedback);
 
       if (effectiveProvider === 'groq') {
-        usedModels.push(`${GROQ_MODEL}(refine)`);
+        const refineModelName = resolveModel(GROQ_MODEL);
+        usedModels.push(`${refineModelName}(refine)`);
         const startedAt = Date.now();
         let refineUsage: Parameters<AiTelemetryCollector['recordGroq']>[0]['usage'];
         const groqRefineStream = await groq.chat.completions.create({
-          model: GROQ_MODEL,
+          model: refineModelName,
           messages: [
             { role: 'system', content: refinePrompt },
             {
@@ -1388,12 +1401,12 @@ router.post('/', async (req: Request, res) => {
         }
         telemetry.recordGroq({
           stage: 'refine',
-          model: GROQ_MODEL,
+          model: refineModelName,
           usage: refineUsage,
           durationMs: Date.now() - startedAt,
         });
       } else if (effectiveProvider === 'openrouter') {
-        const refineModelName = getOpenRouterModelForRole('editor', analysisSpeed);
+        const refineModelName = resolveModel(getOpenRouterModelForRole('editor', analysisSpeed));
         usedModels.push(`${refineModelName}(refine)`);
         const startedAt = Date.now();
         let refineUsage: Parameters<AiTelemetryCollector['recordOpenRouter']>[0]['usage'];
@@ -1433,7 +1446,7 @@ router.post('/', async (req: Request, res) => {
           durationMs: Date.now() - startedAt,
         });
       } else {
-        const refineModelName = analysisSpeed === 'fast' ? 'gemini-3.1-flash-lite' : 'gemini-3.5-flash';
+        const refineModelName = resolveModel(analysisSpeed === 'fast' ? 'gemini-3.1-flash-lite' : 'gemini-3.5-flash');
         usedModels.push(`${refineModelName}(refine)`);
         const startedAt = Date.now();
         let refineUsage: Parameters<AiTelemetryCollector['recordGemini']>[0]['usage'];
@@ -1508,11 +1521,13 @@ router.post('/', async (req: Request, res) => {
       let refineSeo: Record<string, unknown> | null = null;
 
       if (analysisSpeed !== 'fast') {
-        const seoModelName = effectiveProvider === 'groq'
-          ? GROQ_SEO_MODEL
-          : effectiveProvider === 'openrouter'
-            ? getOpenRouterModelForRole('seo', analysisSpeed)
-            : getGeminiModelForRole('seo', analysisSpeed);
+        const seoModelName = resolveModel(
+          effectiveProvider === 'groq'
+            ? GROQ_SEO_MODEL
+            : effectiveProvider === 'openrouter'
+              ? getOpenRouterModelForRole('seo', analysisSpeed)
+              : getGeminiModelForRole('seo', analysisSpeed)
+        );
         usedModels.push(`${seoModelName}(seo)`);
         refineSeo = (await runSeoStage({
           provider: effectiveProvider,
@@ -1569,7 +1584,7 @@ router.post('/', async (req: Request, res) => {
 
     // Real API Mode per Provider (Gemini / Groq)
     if (effectiveProvider === 'gemini') {
-      executedModelName = getGeminiModelForRole(role!, analysisSpeed);
+      executedModelName = resolveModel(getGeminiModelForRole(role!, analysisSpeed));
       const reviewModelName = executedModelName;
       usedModels.push(`${reviewModelName}(review)`);
       const reviewPrompt = isPolishMode
@@ -1651,7 +1666,7 @@ router.post('/', async (req: Request, res) => {
           getPolishedDraftPrompt(metadata, !isSingleChunk, publishedPosts, editorialProfile.config)
         );
 
-        const rewriteModelName = getGeminiModelForRole('rewrite' as Role, analysisSpeed);
+        const rewriteModelName = resolveModel(getGeminiModelForRole('rewrite' as Role, analysisSpeed));
         usedModels.push(`${rewriteModelName}(rewrite)`);
 
         for (let i = 0; i < chunks.length; i++) {
@@ -1748,7 +1763,7 @@ router.post('/', async (req: Request, res) => {
       let seo: unknown = null;
       if (analysisSpeed !== 'fast') {
         sendEvent('status', 'generating_seo');
-        const seoModelName = getGeminiModelForRole('seo', analysisSpeed);
+        const seoModelName = resolveModel(getGeminiModelForRole('seo', analysisSpeed));
         usedModels.push(`${seoModelName}(seo)`);
         seo = (await runSeoStage({
           provider: 'gemini',
@@ -1805,16 +1820,16 @@ router.post('/', async (req: Request, res) => {
       const isOpenRouter = effectiveProvider === 'openrouter';
       const providerName = isOpenRouter ? 'openrouter' : 'groq';
       const client = (isOpenRouter ? openrouter : groq) as unknown as OpenAiCompatibleClient;
-      executedModelName = isOpenRouter
+      executedModelName = resolveModel(isOpenRouter
         ? getOpenRouterModelForRole(role!, analysisSpeed)
-        : GROQ_MODEL;
+        : GROQ_MODEL);
       const reviewModelName = executedModelName;
-      const rewriteModelName = isOpenRouter
+      const rewriteModelName = resolveModel(isOpenRouter
         ? getOpenRouterModelForRole('rewrite' as Role, analysisSpeed)
-        : GROQ_MODEL;
-      const seoModelName = isOpenRouter
+        : GROQ_MODEL);
+      const seoModelName = resolveModel(isOpenRouter
         ? getOpenRouterModelForRole('seo', analysisSpeed)
-        : GROQ_SEO_MODEL;
+        : GROQ_SEO_MODEL);
       usedModels.push(`${reviewModelName}(review)`);
       const reviewPrompt = isPolishMode
         ? composePrompt(getPolishReviewPrompt(metadata, editorialProfile.config, {

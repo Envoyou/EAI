@@ -3,6 +3,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 import { isFeatureFlagKey } from '@eai/shared/server';
+import { getApiUrl } from '@/lib/api-url';
 
 type ToggleFeatureFlagResult =
   | {
@@ -56,6 +57,31 @@ export async function toggleFeatureFlag(
 
   if (!edgeConfigId || !vercelApiToken) {
     console.warn('EDGE_CONFIG_ID or VERCEL_API_TOKEN is missing. Mocking toggle action for local development.');
+    try {
+      const token = await authContext.getToken();
+      const apiUrl = getApiUrl();
+      await fetch(`${apiUrl}/api/admin/audit-logs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: 'feature_flag.update',
+          targetId: key,
+          targetType: 'System',
+          description: `[MOCK] Toggled feature flag "${key}" to ${newValue ? 'ENABLED' : 'DISABLED'}`,
+          details: {
+            flagKey: key,
+            oldValue: !newValue,
+            newValue,
+            mocked: true,
+          },
+        }),
+      });
+    } catch (auditErr) {
+      console.warn('[FEATURE_FLAGS_ACTION] Failed to record audit log in mock mode:', auditErr);
+    }
     return { success: true, mocked: true, message: 'Local/Dummy Mode: Vercel Token not found.' };
   }
 
@@ -133,6 +159,30 @@ export async function toggleFeatureFlag(
     }
 
     revalidatePath('/admin/feature-flags');
+    try {
+      const token = await authContext.getToken();
+      const apiUrl = getApiUrl();
+      await fetch(`${apiUrl}/api/admin/audit-logs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: 'feature_flag.update',
+          targetId: key,
+          targetType: 'System',
+          description: `Toggled feature flag "${key}" to ${newValue ? 'ENABLED' : 'DISABLED'}`,
+          details: {
+            flagKey: key,
+            oldValue: !newValue,
+            newValue,
+          },
+        }),
+      });
+    } catch (auditErr) {
+      console.warn('[FEATURE_FLAGS_ACTION] Failed to record audit log:', auditErr);
+    }
     return { success: true, mocked: false, message: 'Feature Flag updated globally via Vercel Edge Config.' };
   } catch (error) {
     console.error('Error toggling feature flag:', error);

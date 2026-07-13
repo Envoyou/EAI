@@ -346,3 +346,19 @@ model ChatMessage {
   @@index([sessionId])
   @@index([createdAt])
 }
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String   // e.g. "feature_flag.update", "tenant.ai_config.update", "user.ban", "credit.adjust"
+  actorId     String   // Admin Clerk User ID
+  actorEmail  String   // Admin Email
+  targetId    String?  // Target ID (e.g. tenant or user id)
+  targetType  String?  // e.g. "Tenant", "User", "System"
+  description String?  // Short human readable description
+  details     Json?    // Detailed payload comparison
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([actorId])
+}

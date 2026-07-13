@@ -15,6 +15,8 @@ import {
   Sun,
   ArrowLeft,
   Loader2,
+  Cpu,
+  Scroll,
 } from 'lucide-react';
 import { EAILogo } from '@/components/EAILogo';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -28,8 +30,10 @@ type AdminLayoutShellProps = {
 const ADMIN_SECTIONS = [
   { id: 'tenants', href: '/admin/tenants', label: 'Tenants', icon: Server },
   { id: 'users', href: '/admin/users', label: 'User Directory', icon: Users },
+  { id: 'ai-config', href: '/admin/ai-config', label: 'AI Engine', icon: Cpu },
   { id: 'telemetry', href: '/admin/telemetry', label: 'Telemetry', icon: Activity },
   { id: 'feature-flags', href: '/admin/feature-flags', label: 'Feature Flags', icon: ShieldAlert },
+  { id: 'audit-logs', href: '/admin/audit-logs', label: 'Audit Logs', icon: Scroll },
 ];
 
 export function AdminLayoutShell({ children }: AdminLayoutShellProps) {

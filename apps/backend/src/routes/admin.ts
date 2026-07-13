@@ -5,6 +5,8 @@ import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
 import { createClerkClient } from '@clerk/backend';
 import { sendEmail } from '@/lib/email';
+import { logAuditEvent } from '@/lib/audit';
+import { redisConnection } from '@/lib/queue';
 import {
   adjustOrganizationCredits,
   adjustPersonalCredits,
@@ -122,6 +124,22 @@ router.post('/billing', requireAuth, async (req, res) => {
       externalTicketId: zohoTicket?.id,
       externalTicketUrl: zohoTicket?.url,
     });
+    
+    await logAuditEvent({
+      action: 'credit.adjust',
+      actorId: actor.userId,
+      actorEmail: actor.email,
+      targetId: result.organizationId,
+      targetType: 'Tenant',
+      description: `Adjusted credits for organization: ${parsed.data.direction === 'add' ? '+' : '-'}${parsed.data.amount} credits. Reason: ${parsed.data.reason}`,
+      details: {
+        direction: parsed.data.direction,
+        amount: parsed.data.amount,
+        reason: parsed.data.reason,
+        ticketReference: parsed.data.ticketReference,
+      },
+    });
+
     const organization = await getBillingOrganizationDetail(result.organizationId);
 
     return res.json({
@@ -182,6 +200,20 @@ router.post('/billing/override-plan', requireAuth, async (req, res) => {
       ticketReference: zohoTicket?.ticketNumber || parsed.data.ticketReference,
       externalTicketId: zohoTicket?.id,
       externalTicketUrl: zohoTicket?.url,
+    });
+
+    await logAuditEvent({
+      action: 'tenant.subscription.override',
+      actorId: actor.userId,
+      actorEmail: actor.email,
+      targetId: parsed.data.organizationId,
+      targetType: 'Tenant',
+      description: `Overrode organization subscription plan to: ${parsed.data.plan} for ${parsed.data.durationDays} days. Reason: ${parsed.data.reason}`,
+      details: {
+        plan: parsed.data.plan,
+        durationDays: parsed.data.durationDays,
+        reason: parsed.data.reason,
+      },
     });
 
     const organization = await getBillingOrganizationDetail(parsed.data.organizationId);
@@ -650,6 +682,22 @@ router.post('/users/:id/adjust-credits', requireAuth, async (req, res) => {
         idempotencyKey: parsed.data.idempotencyKey,
         ...ticketInfo,
       });
+      
+      await logAuditEvent({
+        action: 'credit.adjust',
+        actorId: actor.userId,
+        actorEmail: actor.email,
+        targetId: user.organizationId,
+        targetType: 'Tenant',
+        description: `Adjusted organization credits via user: ${parsed.data.direction === 'add' ? '+' : '-'}${parsed.data.amount} credits. Reason: ${parsed.data.reason}`,
+        details: {
+          userId: targetUserId,
+          direction: parsed.data.direction,
+          amount: parsed.data.amount,
+          reason: parsed.data.reason,
+        },
+      });
+
       return res.json({
         success: true,
         type: 'organization',
@@ -667,6 +715,21 @@ router.post('/users/:id/adjust-credits', requireAuth, async (req, res) => {
         idempotencyKey: parsed.data.idempotencyKey,
         ...ticketInfo,
       });
+
+      await logAuditEvent({
+        action: 'credit.adjust',
+        actorId: actor.userId,
+        actorEmail: actor.email,
+        targetId: targetUserId,
+        targetType: 'User',
+        description: `Adjusted personal credits: ${parsed.data.direction === 'add' ? '+' : '-'}${parsed.data.amount} credits. Reason: ${parsed.data.reason}`,
+        details: {
+          direction: parsed.data.direction,
+          amount: parsed.data.amount,
+          reason: parsed.data.reason,
+        },
+      });
+
       return res.json({
         success: true,
         type: 'personal',
@@ -801,6 +864,16 @@ router.post('/users/:id/ban', requireAuth, async (req, res) => {
     }
     const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
     await clerk.users.banUser(targetUserId);
+
+    await logAuditEvent({
+      action: 'user.ban',
+      actorId: actor.userId,
+      actorEmail: actor.email,
+      targetId: targetUserId,
+      targetType: 'User',
+      description: `Banned user with ID: ${targetUserId}`,
+    });
+
     return res.json({ success: true });
   } catch (error) {
     console.error('[ADMIN_USER_BAN]', error);
@@ -819,6 +892,16 @@ router.post('/users/:id/unban', requireAuth, async (req, res) => {
     const targetUserId = req.params.id;
     const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
     await clerk.users.unbanUser(targetUserId);
+
+    await logAuditEvent({
+      action: 'user.unban',
+      actorId: actor.userId,
+      actorEmail: actor.email,
+      targetId: targetUserId,
+      targetType: 'User',
+      description: `Unbanned user with ID: ${targetUserId}`,
+    });
+
     return res.json({ success: true });
   } catch (error) {
     console.error('[ADMIN_USER_UNBAN]', error);
@@ -911,6 +994,209 @@ router.post('/users/:id/resend-invite', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('[ADMIN_USER_RESEND_INVITE]', error);
     return res.status(500).json({ error: 'Failed to resend invite' });
+  }
+});
+
+// GET /api/admin/organizations/:id/ai-config
+router.get('/organizations/:id/ai-config', requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.auth!;
+    const actor = await getActor(userId);
+    if (!actor) {
+      return res.status(403).json({ error: 'Owner or super-admin access required' });
+    }
+
+    const orgId = req.params.id;
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true, aiProviderOverride: true },
+    });
+
+    if (!org) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    let provider = 'gemini';
+    let model = '';
+
+    if (org.aiProviderOverride) {
+      if (org.aiProviderOverride.includes(':')) {
+        const parts = org.aiProviderOverride.split(':');
+        provider = parts[0];
+        model = parts[1] || '';
+      } else {
+        provider = org.aiProviderOverride;
+      }
+    }
+
+    return res.json({
+      organizationId: org.id,
+      name: org.name,
+      provider,
+      model,
+    });
+  } catch (error) {
+    console.error('[ADMIN_AI_CONFIG_GET]', error);
+    return res.status(500).json({ error: 'Failed to fetch AI configuration' });
+  }
+});
+
+// PUT /api/admin/organizations/:id/ai-config
+router.put('/organizations/:id/ai-config', requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.auth!;
+    const actor = await getActor(userId);
+    if (!actor) {
+      return res.status(403).json({ error: 'Owner or super-admin access required' });
+    }
+
+    const orgId = req.params.id;
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true, aiProviderOverride: true },
+    });
+
+    if (!org) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const schema = z.object({
+      provider: z.enum(['gemini', 'groq', 'openrouter']),
+      model: z.string().trim().max(100).optional().nullable(),
+    });
+
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid config payload', issues: parsed.error.flatten() });
+    }
+
+    const { provider, model } = parsed.data;
+    const value = model ? `${provider}:${model}` : provider;
+    const oldVal = org.aiProviderOverride;
+
+    await prisma.organization.update({
+      where: { id: orgId },
+      data: { aiProviderOverride: value },
+    });
+
+    // Invalidate Cache
+    const cacheKey = `ai_config:org:${orgId}`;
+    try {
+      await redisConnection.del(cacheKey);
+    } catch (cacheErr) {
+      console.warn(`[ADMIN_AI_CONFIG_PUT] Failed to clear Redis cache:`, cacheErr);
+    }
+
+    // Log Audit Event
+    await logAuditEvent({
+      action: 'tenant.ai_config.update',
+      actorId: actor.userId,
+      actorEmail: actor.email,
+      targetId: orgId,
+      targetType: 'Tenant',
+      description: `Updated Refine AI Engine config for organization "${org.name}" to provider: ${provider}, model: ${model || 'default'}`,
+      details: {
+        oldValue: oldVal,
+        newValue: value,
+      },
+    });
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('[ADMIN_AI_CONFIG_PUT]', error);
+    return res.status(500).json({ error: 'Failed to update AI configuration' });
+  }
+});
+
+// GET /api/admin/audit-logs
+router.get('/audit-logs', requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.auth!;
+    const actor = await getActor(userId);
+    if (!actor) {
+      return res.status(403).json({ error: 'Owner or super-admin access required' });
+    }
+
+    const page = Math.max(1, parseInt(req.query.page as string || '1'));
+    const limit = Math.max(1, parseInt(req.query.limit as string || '10'));
+    const search = (req.query.search as string || '').trim();
+    const actionFilter = (req.query.action as string || '').trim();
+
+    const where: Prisma.AuditLogWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { actorEmail: { contains: search, mode: 'insensitive' } },
+        { targetId: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (actionFilter) {
+      where.action = actionFilter;
+    }
+
+    const totalCount = await prisma.auditLog.count({ where });
+    const totalPages = Math.ceil(totalCount / limit);
+
+    const logs = await prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return res.json({
+      logs,
+      pagination: {
+        totalCount,
+        totalPages,
+        page,
+        limit,
+      },
+    });
+  } catch (error) {
+    console.error('[ADMIN_AUDIT_LOGS_GET]', error);
+    return res.status(500).json({ error: 'Failed to fetch audit logs' });
+  }
+});
+
+// POST /api/admin/audit-logs
+router.post('/audit-logs', requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.auth!;
+    const actor = await getActor(userId);
+    if (!actor) {
+      return res.status(403).json({ error: 'Owner or super-admin access required' });
+    }
+
+    const schema = z.object({
+      action: z.string().min(3).max(100),
+      targetId: z.string().max(150).optional().nullable(),
+      targetType: z.string().max(50).optional().nullable(),
+      description: z.string().min(5).max(500),
+      details: z.record(z.any()).optional().nullable(),
+    });
+
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid audit payload', issues: parsed.error.flatten() });
+    }
+
+    const log = await logAuditEvent({
+      action: parsed.data.action,
+      actorId: actor.userId,
+      actorEmail: actor.email,
+      targetId: parsed.data.targetId,
+      targetType: parsed.data.targetType,
+      description: parsed.data.description,
+      details: parsed.data.details,
+    });
+
+    return res.status(201).json({ success: true, log });
+  } catch (error) {
+    console.error('[ADMIN_AUDIT_LOGS_POST]', error);
+    return res.status(500).json({ error: 'Failed to create audit log' });
   }
 });
 
