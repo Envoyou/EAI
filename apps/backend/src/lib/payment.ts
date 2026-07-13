@@ -135,10 +135,10 @@ export const getPaymentUsdToIdrRate = () => {
 
 export const getPaymentTaxLabel = () =>
   process.env.PAYMENT_TAX_LABEL?.trim() ||
-  'Includes 11% VAT (PPN). A detailed tax invoice will be issued upon successful payment.';
+  'Excludes 11% VAT (PPN), which is added to the final checkout amount. A detailed tax invoice will be issued upon successful payment.';
 
 export const getPlanAmountIdr = (plan: PlanDetails) =>
-  Math.round(plan.priceUsd * getPaymentUsdToIdrRate());
+  Math.round(plan.priceUsd * getPaymentUsdToIdrRate() * 1.11);
 
 export const getPlanCreditsGranted = (plan: PlanDetails) =>
   plan.creditsPerMonth * Math.max(1, plan.billingMonths);
