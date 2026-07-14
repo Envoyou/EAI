@@ -4,8 +4,8 @@ import { FinalQualityGateResponseJsonSchema, FinalQualityGateResponseSchema, Fin
 import {
   applyDeterministicQualityChecks,
 } from '@/lib/final-quality';
-import { composeEditorialPrompt, type EditorialProfileSnapshot } from '@eai/shared/server';
-import { getFinalQualityGatePrompt } from '@/lib/prompts';
+import type { EditorialProfileSnapshot } from '@eai/shared/server';
+import { QualityGatePromptComposer } from './prompt-engine/composer/quality-gate-composer';
 import { parseJsonResponse } from '@eai/shared';
 import type { ArticleMetadata, FeedbackItem, ResearchNote } from '@eai/shared';
 import {
@@ -21,9 +21,6 @@ import {
   groq,
   openrouter,
 } from './provider-runtime';
-import {
-  withInputBoundaryPolicy,
-} from './prompt-context';
 import { composeWorkspaceContext } from './workspace-context';
 
 const detectLanguage = (text: string): 'id' | 'en' => {
@@ -138,12 +135,10 @@ const runFinalQualityGate = async ({
       model: modelName,
       contents,
       config: {
-        systemInstruction: `${withInputBoundaryPolicy(composeEditorialPrompt(
-          getFinalQualityGatePrompt(metadata, editorialProfile.config, {
-            includeTextSchema: false,
-          }),
-          editorialProfile
-        ))}\n\n${agentInstruction}`,
+        systemInstruction: `${new QualityGatePromptComposer(
+          editorialProfile.config,
+          { includeTextSchema: false }
+        ).compose('xml')}\n\n${agentInstruction}`,
         ...getNativeGeminiConfig(),
         candidateCount: 1,
         maxOutputTokens: 4000,
@@ -168,10 +163,9 @@ const runFinalQualityGate = async ({
       messages: [
         {
           role: 'system',
-          content: `${withInputBoundaryPolicy(composeEditorialPrompt(
-            getFinalQualityGatePrompt(metadata, editorialProfile.config),
-            editorialProfile
-          ))}\n\n${agentInstruction}`,
+          content: `${new QualityGatePromptComposer(
+            editorialProfile.config
+          ).compose('xml')}\n\n${agentInstruction}`,
         },
         { role: 'user', content: contents },
       ],
@@ -196,10 +190,9 @@ const runFinalQualityGate = async ({
       messages: [
         {
           role: 'system',
-          content: `${withInputBoundaryPolicy(composeEditorialPrompt(
-            getFinalQualityGatePrompt(metadata, editorialProfile.config),
-            editorialProfile
-          ))}\n\n${agentInstruction}`,
+          content: `${new QualityGatePromptComposer(
+            editorialProfile.config
+          ).compose('xml')}\n\n${agentInstruction}`,
         },
         { role: 'user', content: contents },
       ],

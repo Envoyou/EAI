@@ -3,6 +3,7 @@ import { SeoPromptComposer } from '../composer/seo-composer';
 import { ReviewPromptComposer } from '../composer/review-composer';
 import { RewritePromptComposer } from '../composer/rewrite-composer';
 import { RefinementPromptComposer } from '../composer/refinement-composer';
+import { QualityGatePromptComposer } from '../composer/quality-gate-composer';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -187,6 +188,27 @@ const composedRefineTargeted = refineComposerTargeted.compose('xml');
 assert(
   composedRefineTargeted.includes('You are a senior TestBrand editor performing one targeted text repair.'),
   'Refinement prompt must contain targeted fix role instructions'
+);
+
+// Test Case 7: QualityGatePromptComposer generation
+const qualityComposer = new QualityGatePromptComposer(mockProfile);
+const composedQuality = qualityComposer.compose('xml');
+
+assert(
+  composedQuality.includes('<quality_gate_role_instructions brand="TestBrand">'),
+  'Quality gate prompt must contain role instructions'
+);
+assert(
+  composedQuality.includes('You are the final TestBrand editorial quality gate.'),
+  'Quality gate prompt must contain specific quality gate message'
+);
+assert(
+  composedQuality.includes('<output_format_contract>'),
+  'Quality gate prompt must contain output format contract'
+);
+assert(
+  composedQuality.includes('<temporal_context_rules>'),
+  'Quality gate prompt must contain temporal context rules'
 );
 
 console.log('✅ All prompt engine unit tests passed successfully!');

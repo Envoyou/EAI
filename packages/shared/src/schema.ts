@@ -41,6 +41,27 @@ export const POLISH_DIAGNOSIS_OUTPUT_PROMPT_SCHEMA = `
 }
 `;
 
+export const FINAL_QUALITY_GATE_OUTPUT_PROMPT_SCHEMA = `
+{
+  "thinking": string (detailed step-by-step thinking or reasoning trace before making any conclusions),
+  "readiness": "ready" | "needs_review" | "blocked",
+  "summary": string,
+  "changes": Array<string>,
+  "feedback": Array<{
+    "category": string,
+    "status": "warning" | "fail",
+    "verificationStatus"?: "source_backed" | "needs_citation" | "high_risk_factual_claim",
+    "message": string,
+    "suggestion"?: string,
+    "operation": "replace" | "insert_before" | "insert_after" | "manual",
+    "targetText"?: string,
+    "replacementText"?: string,
+    "reason"?: string
+  }>,
+  "flags": Array<string>
+}
+`;
+
 export const SEO_METADATA_OUTPUT_PROMPT_SCHEMA = `
 {
   "title": string,
