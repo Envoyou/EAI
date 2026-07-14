@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.2.1] - 2026-07-14
+
 ### Added
 - **Pembersihan Judul H1 Pembuka**: Mengimplementasikan mekanisme pembersihan judul `# ` secara deterministik melalui fungsi `stripLeadingH1` pada utilitas teks backend untuk memisahkan judul H1 sebelum draf masuk ke tahap penulisan/pemolesan akhir. Menjaga integritas judul UX Tahap 3 tanpa melanggar batasan format Tahap 4.
 - **Optimasi ThinkingLevel Gemini**: Meningkatkan konfigurasi `thinkingConfig.thinkingLevel` model Gemini 3.x dari `ThinkingLevel.MINIMAL` menjadi `ThinkingLevel.LOW` di seluruh tahap penulisan draf cepat (Quick Draft), evaluasi kepatuhan sumber (Quality Gate), review editor (Editorial Review), serta perbaikan parsial (Targeted Fix) guna mengoptimalkan kemampuan nalar model.
