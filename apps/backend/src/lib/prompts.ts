@@ -3,6 +3,10 @@ import type { EditorialProfileConfig } from '@eai/shared/server';
 import { FEEDBACK_OUTPUT_PROMPT_SCHEMA, POLISH_DIAGNOSIS_OUTPUT_PROMPT_SCHEMA, SEO_METADATA_OUTPUT_PROMPT_SCHEMA } from '@eai/shared';
 export const PROMPT_VERSION = '1.10.0';
 
+const GFM_TABLE_RULE = `If using a table, it must be a clean GFM Markdown table. Strictly forbid ASCII tables using characters like +, -, | or wrapping tables in code blocks. Do not insert line breaks, plus/minus lines, or odd spacing that breaks table rendering.`;
+
+const VERIFICATION_LOCK_RULE = `If there is a [[VERIFICATION_LOCK_START]] ... [[VERIFICATION_LOCK_END]] block, preserve everything inside it 100% verbatim. Do not change numbers, words, formatting, or order.`;
+
 const DEFAULT_PROMPT_PROFILE: EditorialProfileConfig = {
   brandName: 'Envoyou',
   positioning: 'Modern Insight Platform for Technology, AI, Business, and Future Economy.',
@@ -121,44 +125,42 @@ const getToneGuidance = (profile?: EditorialProfileConfig) => {
   const config = getPromptProfile(profile);
   if (config.brandName !== 'Envoyou') {
     return `
-TONE DIRECTION FOR ${config.brandName}:
-- Use this tone: ${config.tone.join(', ')}.
-- Write for this audience: ${config.audience}.
+TONE DIRECTION FOR \${config.brandName}:
+- Use this tone: \${config.tone.join(', ')}.
+- Write for this audience: \${config.audience}.
 - Follow the tenant's positioning and custom editorial profile instructions.
 `;
   }
 
   return `
-CORRECT TONE (${config.brandName}):
+CORRECT TONE (\${config.brandName}):
 
 [Technology & AI]
-✓ "OpenAI just changed the rules of the game, and most AI startups have not caught up yet."
-✓ "The number looks small. The implication does not."
-✓ "The question is no longer whether AI will reshape this job, but how quickly the shift becomes visible."
+✓ "OpenAI just changed the rules of the game, and most AI startups have not caught up yet." / "OpenAI baru saja mengubah aturan main, dan sebagian besar startup AI belum mampu mengejar."
+✓ "The number looks small. The implication does not." / "Angkanya tampak kecil. Implikasinya tidak."
+✓ "The question is no longer whether AI will reshape this job, but how quickly the shift becomes visible." / "Pertanyaannya bukan lagi apakah AI akan mengubah pekerjaan ini, melainkan seberapa cepat pergeseran itu mulai terlihat."
 
 [Digital Creator]
-✓ "This algorithm update is not just a technical adjustment. It cuts into the revenue model creators have relied on for years."
-✓ "Content monetization is no longer just about audience size. It is about who is watching and how deeply they are engaged."
-✓ "Platforms will keep changing. The creators who last are not always the most viral, but the least dependent on a single channel."
+✓ "This algorithm update is not just a technical adjustment. It cuts into the revenue model creators have relied on for years." / "Pembaruan algoritma ini bukan sekadar penyesuaian teknis. Langkah ini memotong model pendapatan yang telah diandalkan kreator selama bertahun-tahun."
+✓ "Content monetization is no longer just about audience size. It is about who is watching and how deeply they are engaged." / "Monetisasi konten bukan lagi soal ukuran audiens, melainkan siapa yang menonton dan seberapa dalam mereka terlibat."
+✓ "Platforms will keep changing. The creators who last are not always the most viral, but the least dependent on a single channel." / "Platform akan terus berubah. Kreator yang bertahan tidak selalu yang paling viral, melainkan yang paling tidak bergantung pada satu saluran."
 
 [Data & Insight]
-✓ "The data is not wrong. The way most people read it almost certainly is."
-✓ "The trend is obvious on the surface. The interesting part is the small anomaly nobody is asking about."
-✓ "The growth number looks convincing until you look at the assumptions underneath it."
+✓ "The data is not wrong. The way most people read it almost certainly is." / "Datanya tidak salah. Cara kebanyakan orang membacanya yang hampir pasti keliru."
+✓ "The trend is obvious on the surface. The interesting part is the small anomaly nobody is asking about." / "Trennya terlihat jelas di permukaan. Bagian yang menarik justru anomali kecil yang tidak ditanyakan siapa pun."
+✓ "The growth number looks convincing until you look at the assumptions underneath it." / "Angka pertumbuhan tampak meyakinkan sampai Anda melihat asumsi di bawahnya."
 
 [Finance & Investment]
-✓ "This bull run is not only about fundamentals. It is also about who realizes last that risk has changed shape."
-✓ "Liquidity can make a market look healthy. It can also hide how fragile the assumptions behind valuation have become."
-✓ "The instrument promises high yield. The more important question is who is carrying the risk."
+✓ "This bull run is not only about fundamentals. It is also about who realizes last that risk has changed shape." / "Bull run ini bukan hanya tentang fundamental. Ini juga tentang siapa yang paling terakhir menyadari bahwa risiko telah berubah bentuk."
+✓ "Liquidity can make a market look healthy. It can also hide how fragile the assumptions behind valuation have become." / "Likuiditas bisa membuat pasar tampak sehat. Namun, itu juga menyembunyikan betapa rapuhnya asumsi di balik valuasi."
+✓ "The instrument promises high yield. The more important question is who is carrying the risk." / "Instrumen ini menjanjikan imbal hasil tinggi. Pertanyaan yang lebih penting adalah siapa yang menanggung risikonya."
 
 WRONG TONE:
-✗ "In today's rapidly evolving digital era, it is important for us to..."
-✗ "This article will comprehensively discuss..."
-✗ "There is no denying that artificial intelligence is..."
-✗ "Let us explore this topic together..."
-✗ "In conclusion, we can see that..."
-✗ "Dalam era transformasi digital yang semakin pesat ini, penting bagi kita..."
-✗ "Artikel ini akan membahas secara komprehensif tentang..."
+✗ "In today's rapidly evolving digital era, it is important for us to..." / "Dalam era transformasi digital yang semakin pesat ini, penting bagi kita..."
+✗ "This article will comprehensively discuss..." / "Artikel ini akan membahas secara komprehensif tentang..."
+✗ "There is no denying that artificial intelligence is..." / "Tidak dapat dipungkiri bahwa kecerdasan buatan..."
+✗ "Let us explore this topic together..." / "Mari kita telusuri topik ini bersama-sama..."
+✗ "In conclusion, we can see that..." / "Sebagai kesimpulan, kita dapat melihat bahwa..."
 `;
 };
 
@@ -166,7 +168,7 @@ const FACTUAL_REFINEMENT_GUARDRAIL = `
 FACTUAL GUARDRAIL (applies to all instructions):
 - Do not change numbers, entity names, quotes, dates, valuations, funding amounts, percentages, or factual claims except to fix an obvious typo or formatting issue.
 - Do not turn factual framing into prediction, rumor, or scenario language if the draft presents it as an event that already happened or is ongoing.
-- If there is a [[VERIFICATION_LOCK_START]] ... [[VERIFICATION_LOCK_END]] block, preserve everything inside it 100% verbatim. Do not change numbers, words, formatting, or order.
+- \${VERIFICATION_LOCK_RULE}
 - If an editor instruction conflicts with data integrity, prioritize data integrity and apply style/structure changes only where safe.
 `;
 
@@ -271,17 +273,17 @@ const getBaseGuidelines = (profile?: EditorialProfileConfig) => {
     .join('\n');
 
   return `
-You are an AI Editorial Assistant for "${config.brandName}". The brand's core positioning is: ${config.positioning}
+You are an AI Editorial Assistant for "\${config.brandName}". The brand's core positioning is: \${config.positioning}
 
-EDITORIAL MISSION: Apply ${config.brandName}'s positioning, audience, tone, and structure consistently.
+EDITORIAL MISSION: Apply \${config.brandName}'s positioning, audience, tone, and structure consistently.
 
-Required Editorial Rules for ${config.brandName}:
+Required Editorial Rules for \${config.brandName}:
 - Do not copy-paste news or merely summarize it without insight.
 - Do not make large claims without grounding, data, or sources.
 - If an article uses data, statistics, or reports, it must include clear references.
 - Avoid cheap clickbait, empty hype, keyword stuffing, and generic headings like "Introduction".
-- Use internal links naturally only when the ${config.brandName} catalog and internal URLs are available.
-- Keep articles readable on mobile: short paragraphs, clear headings, and bullets/tables where helpful. Strictly forbid ASCII tables using characters like +, -, | or wrapping tables in code blocks. Use clean GFM Markdown tables when presenting tabular data.
+- Use internal links naturally only when the \${config.brandName} catalog and internal URLs are available.
+- Keep articles readable on mobile: short paragraphs, clear headings, and bullets/tables where helpful. \${GFM_TABLE_RULE}
 - The article must offer a fresh perspective, not just restate obvious points.
 
 FACTUAL TRUTH HIERARCHY:
@@ -441,11 +443,6 @@ ${strictnessInstruction}
 YOUR ROLE: Fact-Checker & Skeptic - critical, precise, and focused on data accuracy and logical coherence.
 GOAL: Identify unsupported claims, unsourced statistics, internal conflicts between claims, and logical fallacies in the article.
 
-WORKING PRINCIPLES:
-- You are not the final source of factual truth. You are a factual risk detector.
-- Your task is not to decide the most correct version of a fact from memory, but to flag weakly supported, poorly attributed, potentially misleading, or primary-source-dependent claims.
-- If a source seems weak or speculative, focus on source quality, attribution quality, and verification needs; do not rebut the claim with comparison numbers from outside the draft.
-
 Focus on:
 - Numbers, percentages, and statistics: is the source clearly identified?
 - Names of institutions, studies, or public figures: are they valid and verifiable?
@@ -453,11 +450,6 @@ Focus on:
 - Logical flaws, for example correlation treated as causation or excessive generalization.
 
 ROLE-SPECIFIC FACTUAL RULES:
-- Do not produce "corrected numbers" or "true market facts" from memory.
-- If the draft includes sources, your primary task is to test whether article claims are clearly connected to those sources.
-- If you doubt the validity of a number, use wording like "verify this against the primary source" or "this claim needs more precise attribution".
-- Do not suggest auto-replace operations that change amounts, valuations, dates, ARR, percentages, or entity names except for obvious typo/format fixes.
-- Do not cite historical valuations, alternative market numbers, or comparison amounts absent from the draft as grounds for correction.
 - For sensitive factual claims, use only neutral language around source verification, citation needs, and attribution clarity.
 - For sensitive factual feedback, set "verificationStatus" to one of:
   "source_backed" = the claim appears supported by a clear source,
@@ -494,15 +486,6 @@ export const getSeoMetadataPrompt = (
 
   return `You are the ${config.brandName} SEO Specialist.
 Create optimal, production-ready SEO metadata for the editorial dashboard.
-
-Metadata rules:
-- title: Compelling article title, max ${config.seoRules.titleMaxLength} characters.
-- slug: URL-friendly slug using lowercase words and hyphens.
-- excerpt: Short preview or opening summary, 2-3 curiosity-building sentences.
-- metaTitle: Specific Google search result title, max ${config.seoRules.metaTitleMaxLength} characters.
-- metaDescription: Search engine description, max ${config.seoRules.metaDescriptionMaxLength} characters.
-- coverImageAltText: Descriptive alt text for the cover image, with a relevant keyword where natural.
-- tags: ${config.seoRules.tagCountMin}-${config.seoRules.tagCountMax} relevant category tags.
 
 ${getJsonOutputContract(SEO_METADATA_OUTPUT_PROMPT_SCHEMA, options)}
 
@@ -573,11 +556,10 @@ ${config.brandName} Standards:
 - Tone: ${config.tone.join(', ')}.
 - Audience: ${config.audience}.
 - Short paragraphs, 2-4 sentences each, for comfortable mobile reading.
-- Avoid stale introductions such as "In today's digital era...", "Amid rapid technological development...", "Dalam era transformasi digital...", or "Di tengah perkembangan teknologi...".
+- Avoid stale introductions and generic AI styling.
 - If the draft contains important data, facts, or claims, preserve their substance accurately.
 - Strengthen the opening hook so it immediately targets reader curiosity or urgency.
 - Make headings insight-driven, not generic noun labels.
-- Make the final version slightly tighter than the original draft, around 80-90% of its length.
 
 ${getToneGuidance(config)}
 
@@ -589,7 +571,7 @@ REWRITE PRIORITIES (highest first):
 1. Data and factual integrity - never compromised.
 2. Hook and closing quality - always strengthened without changing factual substance.
 3. Argument clarity per section - fix weak, repetitive, or context-jumping sections.
-4. Length and density - reduce only when it does not compromise priorities 1-3.
+4. Density - reduce redundancies and wordiness only when it does not compromise priorities 1-3.
 
 Mandatory Editorial Guardrails:
 - Establish one main thesis from the original draft. Every heading and section must reinforce that same thesis.
@@ -599,7 +581,6 @@ Mandatory Editorial Guardrails:
 - Write for this audience: ${config.audience}.
 - Track numbers, statistics, and important entities already mentioned. Do not repeat the same data within 3 paragraphs unless adding a clearly new implication.
 - The conclusion must not be a summary or generic call to action. End with 1-2 strategic implications or asymmetric projections that make readers rethink their strategy.
-- The 80-90% tightening target applies only when it does not harm factual integrity, important context, argument structure, or causal clarity.
 - Do not change numbers, entity names, quotes, or factual claims from the draft except to fix obviously wrong formatting.
 - The editorial date may be used only as neutral time orientation when truly needed. Do not automatically insert months, quarters, semesters, beginning/mid/end-of-year framing, or other calendar phases into the opening.
 - Do not use the editorial date to create new trend status, outcomes, developments, or data absent from the draft, for example claiming 2026 sales increased or a prediction has been proven merely because the current year is 2026.
@@ -612,9 +593,9 @@ Mandatory Editorial Guardrails:
 - Preserve as much of the draft's logical structure and core facts as possible. Rewrite only as needed to improve cohesion, tone, clarity, and argument quality.
 - Each section must have one main function: build context, show evidence, explain implications, or draw strategic consequences.
 - Connect business or career impact to a specific geography only if that context already exists in the draft, brief, or target audience; do not localize automatically.
-- If you use a table, it must be a clean GFM Markdown table. Strictly forbid ASCII tables using characters like +, -, | or wrapping tables in code blocks. Do not insert line breaks, plus/minus lines, or odd spacing that breaks table rendering.
+- ${GFM_TABLE_RULE}
 - Do not write internal markers such as "[Source verification recommended]", "[Citation recommended]", or editor instruction notes into the final article. EAI handles verification needs in the refinement report.
-- If there is a [[VERIFICATION_LOCK_START]] ... [[VERIFICATION_LOCK_END]] block, preserve everything inside it 100% verbatim. Do not change numbers, words, formatting, or order.
+- ${VERIFICATION_LOCK_RULE}
 ${internalLinksSection}
 Output rules:
 - Reply ONLY with the final article text.
@@ -809,9 +790,9 @@ ${config.brandName} standards to preserve:
 - Short paragraphs, 2-4 sentences each, for comfortable mobile reading
 - Avoid stale introductions or generic phrasing
 - Preserve existing substance, data, and facts
-- Mandatory table rule: strictly forbid ASCII tables using characters like +, -, | or wrapping tables in code blocks. If using a table, use a clean GFM Markdown table. Do not insert line breaks, plus/minus lines, or odd spacing that breaks rendering.
+- ${GFM_TABLE_RULE}
 - Do not preserve or add internal markers such as "[Source verification recommended]" and "[Citation recommended]" to the final article. Verification needs remain in the refinement report.
-- If there is a [[VERIFICATION_LOCK_START]] ... [[VERIFICATION_LOCK_END]] block, preserve everything inside it 100% verbatim. Do not change numbers, words, formatting, or order.
+- ${VERIFICATION_LOCK_RULE}
 
 ${temporalContextGuardrail}
 

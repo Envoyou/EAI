@@ -1128,19 +1128,19 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
     } = {};
 
     try {
-      const parsed = parseJsonResponse(interaction.output_text) as any;
+      const parsed = parseJsonResponse(interaction.output_text) as Record<string, unknown>;
       if (parsed && typeof parsed === 'object') {
-        const planObj = parsed.plan || {};
+        const planObj = (parsed.plan || {}) as Record<string, unknown>;
         data = {
           reply: typeof parsed.reply === 'string' ? parsed.reply : "Here is the draft.",
-          suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : defaultSuggestions,
+          suggestions: Array.isArray(parsed.suggestions) ? (parsed.suggestions as string[]) : defaultSuggestions,
           plan: {
             angle: typeof planObj.angle === 'string' ? planObj.angle : defaultPlan.angle,
             audience: typeof planObj.audience === 'string' ? planObj.audience : defaultPlan.audience,
             hook: typeof planObj.hook === 'string' ? planObj.hook : defaultPlan.hook,
             outline: typeof planObj.outline === 'string' ? planObj.outline : defaultPlan.outline,
             seoIntent: typeof planObj.seoIntent === 'string' ? planObj.seoIntent : defaultPlan.seoIntent,
-            sources: Array.isArray(planObj.sources) ? planObj.sources : defaultPlan.sources,
+            sources: Array.isArray(planObj.sources) ? (planObj.sources as string[]) : defaultPlan.sources,
             draft: typeof planObj.draft === 'string' ? planObj.draft : (typeof parsed.reply === 'string' ? parsed.reply : interaction.output_text)
           }
         };
