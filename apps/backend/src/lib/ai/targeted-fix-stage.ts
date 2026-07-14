@@ -23,7 +23,7 @@ export const runTargetedFixStage = async ({
   targetText,
   feedback,
   editorInstruction,
-  _metadata,
+  metadata: _metadata,
   editorialProfile,
 }: {
   provider: AiProvider;
