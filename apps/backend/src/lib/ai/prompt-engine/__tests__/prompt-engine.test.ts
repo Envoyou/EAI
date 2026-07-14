@@ -1,6 +1,7 @@
 import { CompositePromptNode, PromptNode, RenderContext } from '@eai/shared';
 import { SeoPromptComposer } from '../composer/seo-composer';
 import { ReviewPromptComposer } from '../composer/review-composer';
+import { RewritePromptComposer } from '../composer/rewrite-composer';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -68,6 +69,7 @@ const mockProfile = {
     tagCountMax: 5,
   },
   internalLinkDomains: ['test.com'],
+  internalLinkBaseUrl: 'https://test.com',
 };
 
 const composer = new SeoPromptComposer(mockProfile);
@@ -124,6 +126,42 @@ const composedPolish = reviewComposerPolish.compose('xml');
 assert(
   composedPolish.includes('YOUR ROLE: Draft Transformation Editor'),
   'Review polish prompt must contain polish role instructions'
+);
+
+// Test Case 5: RewritePromptComposer generation
+const rewriteComposer = new RewritePromptComposer(mockProfile, {
+  isChunkMode: true,
+  publishedPosts: [{ title: 'Existing Post', slug: 'existing-post' }]
+});
+const composedRewrite = rewriteComposer.compose('xml');
+
+assert(
+  composedRewrite.includes('<rewrite_role_instructions brand="TestBrand">'),
+  'Rewrite prompt must contain role instructions'
+);
+assert(
+  composedRewrite.includes('You are a senior TestBrand editor'),
+  'Rewrite prompt must contain specific editor role message'
+);
+assert(
+  composedRewrite.includes('<rewrite_few_shot_demonstration>'),
+  'Rewrite prompt must contain few-shot demo'
+);
+assert(
+  composedRewrite.includes('<rewrite_priorities_and_guardrails>'),
+  'Rewrite prompt must contain priorities and guardrails'
+);
+assert(
+  composedRewrite.includes('<internal_linking_rules>'),
+  'Rewrite prompt must contain internal linking rules'
+);
+assert(
+  composedRewrite.includes('- "Existing Post" (slug: existing-post)'),
+  'Rewrite prompt must contain correct internal link data'
+);
+assert(
+  composedRewrite.includes('- Output must process ONLY content from this input chunk'),
+  'Rewrite prompt must reflect chunk mode rules'
 );
 
 console.log('✅ All prompt engine unit tests passed successfully!');

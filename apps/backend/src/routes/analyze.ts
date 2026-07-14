@@ -3,7 +3,6 @@ import { ThinkingLevel } from '@google/genai';
 import { randomUUID } from 'node:crypto';
 import { prisma, Prisma } from '@/lib/db';
 import {
-  getPolishedDraftPrompt,
   getIterativeRefinementPrompt,
   PROMPT_VERSION,
 } from '@/lib/prompts';
@@ -37,6 +36,7 @@ import { runTargetedFixStage } from '@/lib/ai/targeted-fix-stage';
 import { runSeoStage } from '@/lib/ai/seo-stage';
 import { SeoPromptComposer } from '@/lib/ai/prompt-engine/composer/seo-composer';
 import { ReviewPromptComposer } from '@/lib/ai/prompt-engine/composer/review-composer';
+import { RewritePromptComposer } from '@/lib/ai/prompt-engine/composer/rewrite-composer';
 import { getAllFeatureFlags } from '@eai/shared/server';
 import { verifyToken } from '@clerk/backend';
 import { stripLeadingH1 } from '@/lib/text-utils';
@@ -1662,9 +1662,13 @@ router.post('/', async (req: Request, res) => {
         const isSingleChunk = chunks.length === 1;
         const protectedClaims = getProtectedVerificationClaims(validatedData.feedback);
 
-        const rewriteSystemInstruction = composePrompt(
-          getPolishedDraftPrompt(metadata, !isSingleChunk, publishedPosts, editorialProfile.config)
-        );
+        const rewriteSystemInstruction = new RewritePromptComposer(
+          editorialProfile.config,
+          {
+            isChunkMode: !isSingleChunk,
+            publishedPosts
+          }
+        ).compose('xml');
 
         const rewriteModelName = resolveModel(getGeminiModelForRole('rewrite' as Role, analysisSpeed));
         usedModels.push(`${rewriteModelName}(rewrite)`);
@@ -1915,9 +1919,13 @@ router.post('/', async (req: Request, res) => {
         const isSingleChunk = chunks.length === 1;
         const protectedClaims = getProtectedVerificationClaims(validatedData.feedback);
 
-        const rewriteSystemInstruction = composePrompt(
-          getPolishedDraftPrompt(metadata, !isSingleChunk, publishedPosts, editorialProfile.config)
-        );
+        const rewriteSystemInstruction = new RewritePromptComposer(
+          editorialProfile.config,
+          {
+            isChunkMode: !isSingleChunk,
+            publishedPosts
+          }
+        ).compose('xml');
 
         usedModels.push(`${rewriteModelName}(rewrite)`);
 

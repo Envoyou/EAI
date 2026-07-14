@@ -11,10 +11,12 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Core and Tenant Prompt Nodes**: Separated static platform prompts into independent Core nodes (`EditorialMissionNode`, `MarkdownRulesNode`, `VerificationLockNode`, `LanguagePolicyNode`, `TemporalContextNode`, `StrictnessConstraintNode`, `InputBoundaryNode`, and `OutputSchemaNode`) and dynamic workspace configurations into Tenant nodes (`BrandIdentityNode`, `ToneCalibrationNode`).
 - **SeoPromptComposer**: Implemented the first composer pilot to compile the structured SEO metadata generation prompt from component nodes.
 - **ReviewPromptComposer**: Added a flexible, multi-role review prompt composer that targets author, editor, seo (feedback suggestions), fact-checker, and polish (diagnosis transformation) roles.
+- **RewritePromptComposer**: Introduced a comprehensive rewrite stage prompt composer that handles few-shot demonstrations, priority guidelines, editorial constraints, smart internal linking (published posts), and chunking boundaries.
 
 ### Changed
 - **SEO Stage Refactoring**: Refactored `runSeoStage` and `analyze.ts` to utilize the new `SeoPromptComposer` for prompt generation, optimizing static prompt blocks for Gemini prompt caching.
 - **Review Stage Refactoring**: Refactored `runEditorialReviewStage` and `analyze.ts` to utilize the new `ReviewPromptComposer` instead of the legacy `getPolishReviewPrompt` and `getPromptForRole` functions.
+- **Rewrite Stage Refactoring**: Refactored the draft rewrite process in `analyze.ts` to utilize the new `RewritePromptComposer` for prompt generation instead of the legacy `getPolishedDraftPrompt` function.
 
 ## [3.3.0] - 2026-07-14
 
