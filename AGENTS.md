@@ -46,6 +46,7 @@ Refer to these resources for detailed architectural overviews, third-party integ
 
 ### Architecture & AI Planning
 * 📄 [Architecture Notes](./docs/architecture-notes.md) — Detailed design of the intelligent content analysis and AI editor system.
+* 📄 [Prompt Component Architecture](./docs/prompt-component-architecture.md) — Formal design spec, layers, caching tree, and future roadmap of EAI's Composable PCA.
 * 📄 [Future Roadmap](./docs/future-roadmap.md) — Multi-phase plans for workspace upgrades and CMS integrations.
 * 📄 [Prompt Evolution](./docs/prompt-evolution.md) — Documentation of prompt engineering history and prompt designs.
 
