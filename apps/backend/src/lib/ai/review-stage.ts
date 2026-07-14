@@ -205,7 +205,7 @@ export const runEditorialReviewStage = async ({
           ...getNativeGeminiConfig(),
           candidateCount: 1,
           maxOutputTokens: getGeminiReviewOutputLimit(role, mode),
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+          thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
           responseMimeType: 'application/json',
           responseJsonSchema: getFeedbackResponseJsonSchema(role),
         },

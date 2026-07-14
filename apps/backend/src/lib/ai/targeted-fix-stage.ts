@@ -121,7 +121,7 @@ export const runTargetedFixStage = async ({
         ...getNativeGeminiConfig(),
         candidateCount: 1,
         maxOutputTokens: 800,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+        thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
       },
     });
     replacementText = extractGeminiText(response).trim();

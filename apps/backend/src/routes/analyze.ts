@@ -1459,7 +1459,7 @@ router.post('/', async (req: Request, res) => {
             ...getNativeGeminiConfig(),
             candidateCount: 1,
             maxOutputTokens: getRewriteOutputTokens(text, true),
-            thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+            thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
           },
         });
 

@@ -142,7 +142,7 @@ const runFinalQualityGate = async ({
         ...getNativeGeminiConfig(),
         candidateCount: 1,
         maxOutputTokens: 4000,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+        thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
         responseMimeType: 'application/json',
         responseJsonSchema: FinalQualityGateResponseJsonSchema,
       },

@@ -5,6 +5,9 @@ import { RewritePromptComposer } from '../composer/rewrite-composer';
 import { RefinementPromptComposer } from '../composer/refinement-composer';
 import { QualityGatePromptComposer } from '../composer/quality-gate-composer';
 import { StrategistPromptComposer } from '../composer/strategist-composer';
+import { StrategistChatComposer } from '../composer/strategist-chat-composer';
+import { StrategistBlueprintComposer } from '../composer/strategist-blueprint-composer';
+import { DraftFromNotesComposer } from '../composer/draft-from-notes-composer';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -258,6 +261,54 @@ assert(
 assert(
   composedOutline.includes('generate a structured, comprehensive article outline'),
   'Strategist outline prompt must contain outline instructions text'
+);
+
+// Test Case 9: StrategistChatComposer generation
+const chatComposer = new StrategistChatComposer(mockProfile);
+const composedChat = chatComposer.compose('xml');
+assert(
+  composedChat.includes('<strategist_role>'),
+  'Strategist chat prompt must contain role tag'
+);
+assert(
+  composedChat.includes('You are a Senior Content Strategist and SEO Editorial Specialist.'),
+  'Strategist chat prompt must contain role instructions'
+);
+assert(
+  composedChat.includes('## General Constraints'),
+  'Strategist chat prompt must contain constraints'
+);
+
+// Test Case 10: StrategistBlueprintComposer generation
+const blueprintComposer = new StrategistBlueprintComposer(mockProfile);
+const composedBlueprint = blueprintComposer.compose('xml');
+assert(
+  composedBlueprint.includes('<strategist_role>'),
+  'Blueprint prompt must contain role tag'
+);
+assert(
+  composedBlueprint.includes('<instructions>'),
+  'Blueprint prompt must contain instructions tag'
+);
+assert(
+  composedBlueprint.includes('Write a brief, conversational summary in the \'reply\' field'),
+  'Blueprint prompt must contain blueprint instructions'
+);
+
+// Test Case 11: DraftFromNotesComposer generation
+const draftFromNotesComposer = new DraftFromNotesComposer(mockProfile);
+const composedDraftFromNotes = draftFromNotesComposer.compose('xml');
+assert(
+  composedDraftFromNotes.includes('<role>'),
+  'Draft from notes prompt must contain role tag'
+);
+assert(
+  composedDraftFromNotes.includes('You are an article writing specialist.'),
+  'Draft from notes prompt must contain writing specialist role'
+);
+assert(
+  composedDraftFromNotes.includes('<cognitive_framework>'),
+  'Draft from notes prompt must contain cognitive framework'
 );
 
 console.log('✅ All prompt engine unit tests passed successfully!');
