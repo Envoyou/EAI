@@ -8,7 +8,7 @@ import {
   extractGeminiText,
   extractOpenRouterText,
   gemini,
-  getGeminiSamplingConfig,
+  getNativeGeminiConfig,
   getOpenRouterModelForRole,
   GROQ_MODEL,
   groq,
@@ -287,9 +287,9 @@ router.post('/', async (req, res) => {
         contents: userPrompt,
         config: {
           systemInstruction: systemPrompt,
-          ...getGeminiSamplingConfig(modelName, 0.45),
+          ...getNativeGeminiConfig(),
           candidateCount: 1,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
         }
       });
 

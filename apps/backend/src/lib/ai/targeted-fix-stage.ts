@@ -9,7 +9,7 @@ import {
   extractGeminiText,
   extractOpenRouterText,
   gemini,
-  getGeminiSamplingConfig,
+  getNativeGeminiConfig,
   getOpenRouterModelForRole,
   GROQ_MODEL,
   groq,
@@ -122,10 +122,10 @@ export const runTargetedFixStage = async ({
       contents,
       config: {
         systemInstruction,
-        ...getGeminiSamplingConfig(modelName, 0.2),
+        ...getNativeGeminiConfig(),
         candidateCount: 1,
         maxOutputTokens: 800,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
       },
     });
     replacementText = extractGeminiText(response).trim();

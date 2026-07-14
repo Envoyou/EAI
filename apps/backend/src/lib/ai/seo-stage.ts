@@ -11,7 +11,7 @@ import {
   extractOpenRouterText,
   extractOpenRouterUsage,
   gemini,
-  getGeminiSamplingConfig,
+  getNativeGeminiConfig,
   groq,
   openrouter,
 } from './provider-runtime';
@@ -138,7 +138,7 @@ export const runSeoStage = async ({
     contents,
     config: {
       systemInstruction,
-      ...getGeminiSamplingConfig(modelName, 0.2),
+      ...getNativeGeminiConfig(),
       candidateCount: 1,
       maxOutputTokens: 400,
       thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },

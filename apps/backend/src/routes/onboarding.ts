@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { hashEditorialConfiguration, PREDEFINED_CATEGORIES, PREDEFINED_ARTICLE_TYPES } from '@eai/shared/server';
 import { buildSandboxEditorialProfile, OnboardingDataSchema, OnboardingSaveSchema } from '@eai/shared';
 import { ensureCurrentUserRecord, getWorkspaceState } from '@/lib/user-workspace';
-import { gemini, getGeminiSamplingConfig } from '@/lib/ai/provider-runtime';
+import { gemini, getNativeGeminiConfig } from '@/lib/ai/provider-runtime';
 
 const router = Router();
 
@@ -365,7 +365,7 @@ ${scrapedText ? `Scraped Website Content:\n${scrapedText}` : 'No website provide
         contents: promptContent,
         config: {
           systemInstruction,
-          ...getGeminiSamplingConfig('gemini-3.5-flash', 0.2),
+          ...getNativeGeminiConfig(),
           candidateCount: 1,
           responseMimeType: 'application/json',
         },

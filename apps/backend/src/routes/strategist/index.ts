@@ -1,9 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { gemini, getGeminiSamplingConfig } from '@/lib/ai/provider-runtime';
+import { gemini, getNativeGeminiConfig } from '@/lib/ai/provider-runtime';
 import { composeWorkspaceContext } from '@/lib/ai/workspace-context';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { composeEditorialPrompt, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
+import type { EditorialProfileConfig } from '@eai/shared/server';
 import { parseJsonResponse } from '@eai/shared';
 import { verifyToken } from '@clerk/backend';
 import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
@@ -239,12 +240,23 @@ const RESEARCH_MODEL = resolveModel(process.env.GEMINI_RESEARCH_MODEL || 'gemini
 
 // Fast-mode output control: higher limit for structured research material
 const FAST_MODE_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_COPILOT_FAST_MAX_TOKENS) || 2048;
-const FAST_MODE_TEMPERATURE = Number(process.env.GEMINI_COPILOT_FAST_TEMPERATURE) || 0.35;
 
-const getStrategistSystemPrompt = () => {
+const getStrategistSystemPrompt = (profile?: EditorialProfileConfig | null) => {
+  const brandSection = profile ? `
+<brand_editorial_guidelines>
+Brand: ${profile.brandName ?? 'Envoyou'}
+Positioning: ${profile.positioning ?? ''}
+Target Audience: ${profile.audience ?? ''}
+Tone of Voice: ${(profile.tone ?? []).join(', ')}
+Primary Goal: ${profile.primaryGoal ?? ''}
+${profile.customInstructions ? `Editorial Preferences:\n${profile.customInstructions.slice(0, 800)}${profile.customInstructions.length > 800 ? '\n[...truncated for context limit...]' : ''}` : ''}
+</brand_editorial_guidelines>
+` : '';
+
   return `
 ## Role
 You are a Senior Content Strategist and SEO Editorial Specialist. You possess deep expertise in blending high-quality journalism with data-driven SEO optimization (leveraging GA4, GSC, Ahrefs, and Semrush).
+${brandSection}
 Your role is to analyze data, identify trends, and propose actionable editorial strategies.
 
 ## General Constraints
@@ -600,7 +612,7 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
       const interaction = await gemini.interactions.create({
         model: RESEARCH_MODEL,
         input: deepModeInput,
-        system_instruction: getStrategistSystemPrompt(),
+        system_instruction: getStrategistSystemPrompt(profile?.config),
         tools: [{ type: "google_search" }],
         background: true
       });
@@ -693,11 +705,11 @@ CRITICAL: A file is attached to this request.
       model: MODEL,
       input: cacheFriendlyInput,
       tools: fastTools.length > 0 ? fastTools : undefined,
-      system_instruction: getStrategistSystemPrompt(),
+      system_instruction: getStrategistSystemPrompt(profile?.config),
       stream: true,
       generation_config: {
         max_output_tokens: FAST_MODE_MAX_OUTPUT_TOKENS,
-        ...getGeminiSamplingConfig(MODEL, FAST_MODE_TEMPERATURE),
+        ...getNativeGeminiConfig(),
       },
     });
 
@@ -1003,10 +1015,20 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       </output_format>
     `;
 
+    let profile = null;
+    if (req.auth && req.auth.userId) {
+      try {
+        const internalOrgId = await resolveInternalOrgId(req.auth.orgId, req.auth.userId);
+        profile = await resolveEditorialProfileForUser(req.auth.userId, internalOrgId);
+      } catch (err) {
+        console.warn('[GENERATE_PLAN_WARNING] Failed to resolve brand profile:', err);
+      }
+    }
+
     const interaction = await gemini.interactions.create({
       model: MODEL,
       input: prompt,
-      system_instruction: getStrategistSystemPrompt(),
+      system_instruction: getStrategistSystemPrompt(profile?.config),
       tools: [{ type: "google_search" }],
     });
     
@@ -1461,7 +1483,7 @@ Tahun 2026 akan menjadi tahun di mana agentic workflow mulai diadopsi secara lua
       stream: true,
       generation_config: {
         max_output_tokens: 6000,
-        ...getGeminiSamplingConfig(MODEL, 0.6),
+        ...getNativeGeminiConfig(),
       },
     });
 

@@ -78,12 +78,13 @@ apps/backend/
 │   │   ├── db.ts             # Prisma + Neon serverless driver setup
 │   │   ├── r2.ts             # Cloudflare R2 client (AWS S3 SDK)
 │   │   ├── queue.ts          # BullMQ + Redis connection
-│   │   ├── prompts.ts        # Master AI prompt library (all stages)
-│   │   ├── final-quality.ts  # Final quality gate pipeline
+│   │   ├── prompts.ts        # Master AI prompt library for all pipeline stages (never inline prompts in routes)
+│   │   ├── text-utils.ts     # Text utilities (e.g., stripLeadingH1 — removes rogue H1 before rewrite stage)
+│   │   ├── final-quality.ts  # Final quality gate pipeline — deterministic source-fidelity checks
 │   │   ├── admin-billing.ts  # Subscription + credit ledger admin helpers
 │   │   ├── admin-billing-core.ts  # Core billing primitives
-│   │   ├── ai-provider-resolver.ts  # AI provider selection logic
-│   │   ├── ai-telemetry.ts   # AI usage telemetry
+│   │   ├── ai-provider-resolver.ts  # AI provider selection logic (resolveModel, provider overrides)
+│   │   ├── ai-telemetry.ts   # AI usage telemetry (token, cost, stage duration)
 │   │   ├── chat-billing.ts   # Chat credit accounting
 │   │   ├── cms-adapter.ts    # CMS adapter abstraction
 │   │   ├── credential-vault.ts  # Encrypted credential read/write
@@ -97,13 +98,13 @@ apps/backend/
 │   │   └── ai/               # AI pipeline stages
 │   │       ├── workspace-context.ts    # composeWorkspaceContext + getWorkspaceAgentInstruction
 │   │       ├── prompt-context.ts       # Prompt context assembly
-│   │       ├── provider-runtime.ts     # Provider runtime abstraction
-│   │       ├── review-stage.ts         # Content review stage
-│   │       ├── quality-gate-stage.ts   # Quality gate evaluation stage
-│   │       ├── seo-stage.ts            # SEO analysis stage
-│   │       └── targeted-fix-stage.ts   # Targeted fix application stage
+│   │       ├── provider-runtime.ts     # Provider config helpers: getNativeGeminiConfig / getOpenRouterSamplingConfig
+│   │       ├── review-stage.ts         # Editorial review — ThinkingLevel.LOW, CoT "thinking" field
+│   │       ├── quality-gate-stage.ts   # Quality gate — ThinkingLevel.LOW, deterministic gating
+│   │       ├── seo-stage.ts            # SEO metadata generation stage
+│   │       └── targeted-fix-stage.ts   # Targeted fix — ThinkingLevel.LOW, tenant-aware
 │   └── routes/
-│       ├── analyze.ts        # POST /api/analyze — core AI analysis pipeline
+│       ├── analyze.ts        # POST /api/analyze — core AI analysis pipeline (applies stripLeadingH1)
 │       ├── workspace.ts      # GET/PATCH /api/workspace — workspace management
 │       ├── history.ts        # GET /api/history — analysis log history
 │       ├── export.ts         # POST /api/export — article export
@@ -119,8 +120,8 @@ apps/backend/
 │       ├── storage.ts        # /api/storage — R2 file storage
 │       ├── health.ts         # GET /health, /api/health — shallow & deep health checks
 │       ├── strategist/
-│       │   ├── index.ts      # /api/strategist — content strategy AI
-│       │   └── quick-draft.ts  # /api/strategist/quick-draft — quick draft gen
+│       │   ├── index.ts      # /api/strategist — brand-aware content strategy AI (EditorialProfileConfig)
+│       │   └── quick-draft.ts  # /api/strategist/quick-draft — quick draft gen (ThinkingLevel.LOW)
 │       └── webhooks/
 │           ├── clerk.ts      # /api/webhooks/clerk — Clerk user sync events
 │           └── payment.ts    # /api/webhooks/payment — Midtrans payment events
@@ -154,13 +155,15 @@ The AI analysis pipeline is composed of stages in `src/lib/ai/`:
 |---|---|
 | `workspace-context.ts` | Builds `<workspace_context>` XML + `<agent_instruction>` block via `composeWorkspaceContext` and `getWorkspaceAgentInstruction` |
 | `prompt-context.ts` | Assembles the full prompt context (profile + content + notes + attachments) |
-| `provider-runtime.ts` | Resolves the active AI provider (Gemini / Groq / OpenRouter) per organization override |
-| `review-stage.ts` | Runs the editorial review — returns structured feedback with `thinking` CoT field |
-| `quality-gate-stage.ts` | Evaluates overall content quality score; acts as the pipeline gate |
+| `provider-runtime.ts` | Provider config helpers: `getNativeGeminiConfig` (native SDK calls) and `getOpenRouterSamplingConfig` (OpenRouter). `getGeminiSamplingConfig` is **deprecated** — do not use. |
+| `review-stage.ts` | Editorial review — `ThinkingLevel.LOW`, returns structured feedback with `thinking` CoT field |
+| `quality-gate-stage.ts` | Final quality gate — `ThinkingLevel.LOW`, deterministic source-fidelity checks via `final-quality.ts` |
 | `seo-stage.ts` | SEO metadata analysis and optimization recommendations |
-| `targeted-fix-stage.ts` | Applies targeted fixes from reviewer feedback to specific content sections |
+| `targeted-fix-stage.ts` | Targeted fix — `ThinkingLevel.LOW`, tenant-aware prompt with brand guidelines |
 
 Master prompts for all stages live in `src/lib/prompts.ts`. Never write inline prompts in route handlers.
+
+> **H1 Contract**: `analyze.ts` applies `stripLeadingH1` (from `src/lib/text-utils.ts`) to the input draft **before** the rewrite stage. This removes any top-level heading that would duplicate the article title rendered by the frontend.
 
 
 * **Gemini Prompt Caching**: Gemini supports static prompt caching.

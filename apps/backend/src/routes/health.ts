@@ -183,7 +183,7 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
     if (!apiKey || apiKey === 'empty') return { status: 'not_configured', critical: isCritical, latencyMs: 0 };
     try {
       const r = await withTimeout(
-        fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite?key=${apiKey}`),
+        fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite?key=${apiKey}`),
         TIMEOUT_MS, 'Gemini'
       );
       if (!r.ok) throw new Error(`Gemini API responded with HTTP ${r.status}`);

@@ -35,9 +35,19 @@ export const openrouter = new OpenAI({
   },
 });
 
+export const getNativeGeminiConfig = (): Record<string, never> => ({});
+
+export const getOpenRouterSamplingConfig = (temperature: number): { temperature: number } =>
+  ({ temperature });
+
+/**
+ * @deprecated Use getNativeGeminiConfig() for direct Gemini API calls
+ * or getOpenRouterSamplingConfig(temperature) for OpenRouter.
+ * This function is kept for backward-compat with non-gemini-3.x models.
+ */
 export const getGeminiSamplingConfig = (model: string, temperature: number) =>
   model.startsWith('gemini-3')
-    ? {}
+    ? getNativeGeminiConfig()
     : { temperature };
 
 export const extractGeminiText = (response: {

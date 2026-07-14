@@ -23,7 +23,7 @@ import {
   extractOpenRouterText,
   gemini,
   getGeminiModelForRole,
-  getGeminiSamplingConfig,
+  getNativeGeminiConfig,
   getOpenRouterModelForRole,
   GROQ_MODEL,
   GROQ_SEO_MODEL,
@@ -40,6 +40,7 @@ import { runTargetedFixStage } from '@/lib/ai/targeted-fix-stage';
 import { runSeoStage } from '@/lib/ai/seo-stage';
 import { getAllFeatureFlags } from '@eai/shared/server';
 import { verifyToken } from '@clerk/backend';
+import { stripLeadingH1 } from '@/lib/text-utils';
 
 const router = Router();
 
@@ -1463,7 +1464,7 @@ router.post('/', async (req: Request, res) => {
           }),
           config: {
             systemInstruction: refinePrompt,
-            ...getGeminiSamplingConfig(refineModelName, 0.35),
+            ...getNativeGeminiConfig(),
             candidateCount: 1,
             maxOutputTokens: getRewriteOutputTokens(text, true),
             thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
@@ -1615,10 +1616,12 @@ router.post('/', async (req: Request, res) => {
       if (role === 'polish') {
         sendEvent('status', 'rewriting');
 
+        const { body: sourceTextToPolish } = stripLeadingH1(text);
+
         if (analysisSpeed !== 'fast') {
           try {
             publishedPosts = await listPublishedPostsForProfile(editorialProfile, 20);
-            publishedPosts = selectRelevantPublishedPosts(text, publishedPosts);
+            publishedPosts = selectRelevantPublishedPosts(sourceTextToPolish, publishedPosts);
             if (!editorialProfile.config.internalLinkBaseUrl) {
               publishedPosts = [];
             }
@@ -1658,7 +1661,7 @@ router.post('/', async (req: Request, res) => {
           );
         }
 
-        const chunks = splitDraftIntoRewriteChunks(text);
+        const chunks = splitDraftIntoRewriteChunks(sourceTextToPolish);
         const isSingleChunk = chunks.length === 1;
         const protectedClaims = getProtectedVerificationClaims(validatedData.feedback);
 
@@ -1700,7 +1703,7 @@ router.post('/', async (req: Request, res) => {
             }),
             config: {
               systemInstruction: rewriteSystemInstruction,
-              ...getGeminiSamplingConfig(rewriteModelName, 0.35),
+              ...getNativeGeminiConfig(),
               candidateCount: 1,
               maxOutputTokens: getRewriteOutputTokens(chunkText, isSingleChunk),
               thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
@@ -1722,7 +1725,7 @@ router.post('/', async (req: Request, res) => {
           });
         }
 
-        polishedText = ensureTitleAndOpening(polishedText, text);
+        polishedText = ensureTitleAndOpening(polishedText, sourceTextToPolish);
         polishedText = removeDisallowedRefineTargets(polishedText, validatedData.feedback);
         const lockedPolishedText = applyVerificationLocks(polishedText, protectedClaims);
         
@@ -1731,7 +1734,7 @@ router.post('/', async (req: Request, res) => {
 
         const qualityGateResponse = await runFinalQualityGateSafely({
           provider: 'gemini',
-          originalDraft: text,
+          originalDraft: sourceTextToPolish,
           finalDraft: preparePublicationDraft(lockedPolishedText),
           metadata,
           analysisSpeed,
@@ -1873,10 +1876,12 @@ router.post('/', async (req: Request, res) => {
       if (role === 'polish') {
         sendEvent('status', 'rewriting');
 
+        const { body: sourceTextToPolish } = stripLeadingH1(text);
+
         if (analysisSpeed !== 'fast') {
           try {
             publishedPosts = await listPublishedPostsForProfile(editorialProfile, 20);
-            publishedPosts = selectRelevantPublishedPosts(text, publishedPosts);
+            publishedPosts = selectRelevantPublishedPosts(sourceTextToPolish, publishedPosts);
             if (!editorialProfile.config.internalLinkBaseUrl) {
               publishedPosts = [];
             }
@@ -1908,7 +1913,7 @@ router.post('/', async (req: Request, res) => {
           );
         }
 
-        const chunks = splitDraftIntoRewriteChunks(text);
+        const chunks = splitDraftIntoRewriteChunks(sourceTextToPolish);
         const isSingleChunk = chunks.length === 1;
         const protectedClaims = getProtectedVerificationClaims(validatedData.feedback);
 
@@ -1962,7 +1967,7 @@ router.post('/', async (req: Request, res) => {
           });
         }
 
-        polishedText = ensureTitleAndOpening(polishedText, text);
+        polishedText = ensureTitleAndOpening(polishedText, sourceTextToPolish);
         polishedText = removeDisallowedRefineTargets(polishedText, validatedData.feedback);
         const lockedPolishedText = applyVerificationLocks(polishedText, protectedClaims);
 
@@ -1971,7 +1976,7 @@ router.post('/', async (req: Request, res) => {
 
         const qualityGateResponse = await runFinalQualityGateSafely({
           provider: providerName,
-          originalDraft: text,
+          originalDraft: sourceTextToPolish,
           finalDraft: preparePublicationDraft(lockedPolishedText),
           metadata,
           analysisSpeed,

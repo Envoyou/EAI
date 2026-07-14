@@ -6,6 +6,16 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Pembersihan Judul H1 Pembuka**: Mengimplementasikan mekanisme pembersihan judul `# ` secara deterministik melalui fungsi `stripLeadingH1` pada utilitas teks backend untuk memisahkan judul H1 sebelum draf masuk ke tahap penulisan/pemolesan akhir. Menjaga integritas judul UX Tahap 3 tanpa melanggar batasan format Tahap 4.
+- **Optimasi ThinkingLevel Gemini**: Meningkatkan konfigurasi `thinkingConfig.thinkingLevel` model Gemini 3.x dari `ThinkingLevel.MINIMAL` menjadi `ThinkingLevel.LOW` di seluruh tahap penulisan draf cepat (Quick Draft), evaluasi kepatuhan sumber (Quality Gate), review editor (Editorial Review), serta perbaikan parsial (Targeted Fix) guna mengoptimalkan kemampuan nalar model.
+- **Konteks Strategis Ramah Brand**: Mengonfigurasi fungsi `getStrategistSystemPrompt` agar menerima profil brand organisasi aktif. Preferensi brand (nama brand, tone, audiens, posisi, dan instruksi khusus) dimasukkan ke dalam tag XML khusus `<brand_editorial_guidelines>` untuk isolasi cakupan agar tidak mengganggu instruksi sistem.
+- **Pemisahan Pengambilan Konfigurasi API Gemini & OpenRouter**: Memperkenalkan helper `getNativeGeminiConfig` (panggilan API Gemini langsung, tanpa payload `temperature`) dan `getOpenRouterSamplingConfig` (panggilan API OpenRouter, mempertahankan payload `temperature`) pada `provider-runtime.ts` untuk membuang dead parameters dan mempermudah perutean model Gemini via OpenRouter di masa depan.
+
+### Fixed
+- **Pembersihan Model AI Deprecated**: Mengganti rute pengecekan kesehatan liveness check model `gemini-2.0-flash-lite` dan file onboarding awal dari model lama (`gemini-2.5-flash`) ke model rujukan aktif (`gemini-3.1-flash-lite`, `gemini-3.5-flash`).
+- **Pembersihan Variabel Dead Parameter**: Menghapus variabel yang tidak lagi digunakan seperti `FAST_MODE_TEMPERATURE` dan membersihkan pemanggilan linter `getGeminiSamplingConfig` yang tidak terpakai, menghasilkan kepatuhan linter ESLint 100% bersih.
+
 ## [3.2.0] - 2026-07-14
 
 ### Added

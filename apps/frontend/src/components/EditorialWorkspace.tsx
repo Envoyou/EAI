@@ -2062,9 +2062,9 @@ return (
             </div>
 
             {/* Copy */}
-            <h2 className="text-base font-bold text-[var(--foreground)] mb-1.5">Tautan Referensi Terhapus</h2>
+            <h2 className="text-base font-bold text-[var(--foreground)] mb-1.5">Source Missing Detected</h2>
             <p className="text-sm text-[var(--muted-foreground)] mb-3 leading-relaxed">
-              Kami mendeteksi beberapa tautan sumber referensi dari catatan riset telah terhapus dari draf artikel Anda:
+              We detected that some reference links from your research notes have been deleted from the draft:
             </p>
 
             {/* List of missing domains */}
@@ -2084,19 +2084,19 @@ return (
                 onClick={() => handleProceedRefinement({ restore: true })}
                 className="ui-btn ui-btn-primary w-full justify-center py-2.5 text-sm font-semibold"
               >
-                Pulihkan Tautan & Refine
+                Restore Sources & Refine
               </button>
               <button
                 onClick={() => handleProceedRefinement({ restore: false })}
                 className="ui-btn w-full justify-center py-2.5 text-sm font-semibold border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors text-[var(--foreground)] font-medium"
               >
-                Tetap Refine
+                Refine Anyway
               </button>
               <button
                 onClick={() => setShowMissingSourcesModal(false)}
                 className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center py-1 transition-colors"
               >
-                Batal
+                Cancel
               </button>
             </div>
           </div>

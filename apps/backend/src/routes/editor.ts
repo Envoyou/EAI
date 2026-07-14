@@ -3,7 +3,7 @@ import { requireAuth } from '@/middleware/auth';
 import {
   gemini,
   getGeminiModelForRole,
-  getGeminiSamplingConfig,
+  getNativeGeminiConfig,
   extractGeminiText,
 } from '@/lib/ai/provider-runtime';
 
@@ -41,7 +41,7 @@ router.post('/ai-action', requireAuth, async (req, res) => {
 
     // Call Gemini. For inline fast edits, 'fast' speed is usually appropriate.
     const model = getGeminiModelForRole('polish', 'fast');
-    const samplingConfig = getGeminiSamplingConfig(model, 0.7);
+    const samplingConfig = getNativeGeminiConfig();
     
     const response = await gemini.models.generateContent({
       model,

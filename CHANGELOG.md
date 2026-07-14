@@ -6,6 +6,16 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Leading H1 Title Stripping**: Implemented a deterministic `# ` title stripping mechanism via `stripLeadingH1` in backend text utilities to parse out and extract H1 headings before draft contents enter the rewrite/polish stages. This keeps the Stage 3 UX title intact while respecting the Stage 4 constraints.
+- **ThinkingLevel Tuning**: Upgraded Gemini 3.x models' `thinkingConfig.thinkingLevel` from `ThinkingLevel.MINIMAL` to `ThinkingLevel.LOW` across Editorial Review, Quality Gate, Quick Draft, and Targeted Fix stages to optimize factual auditing and outline adherence.
+- **Brand-Aware Strategist Context**: Modified `getStrategistSystemPrompt` to accept organizational brand profiles. Injected brand name, tone, audience, positioning, and custom instructions inside a scoped `<brand_editorial_guidelines>` XML tag to prevent prompt injection and keep operational constraints safe.
+- **OpenRouter Sampling Overloads**: Introduced `getNativeGeminiConfig` (direct API calls, no temperature payload) and `getOpenRouterSamplingConfig` (OpenRouter API calls, retains temperature payload) inside `provider-runtime.ts` to clear dead parameters and prepare routing for future OpenRouter Gemini engines.
+
+### Fixed
+- **Deprecated Model Cleanup**: Replaced deprecated model references across the codebase (e.g. `gemini-2.5-flash`, `gemini-2.0-flash-lite`) with active, recommended tiers (`gemini-3.1-flash-lite`, `gemini-3.5-flash`).
+- **Dead Parameter Cleanups**: Removed deprecated, unused `FAST_MODE_TEMPERATURE` and obsolete `getGeminiSamplingConfig` occurrences, achieving 100% linter type-check compatibility.
+
 ## [3.2.0] - 2026-07-14
 
 ### Added
