@@ -843,7 +843,7 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
             },
             draft: {
               type: "string",
-              description: "Cohesive 400-600 word draft synthesizing the outline and sources."
+              description: "Cohesive 400-800 word draft synthesizing the outline and sources."
             }
           },
           required: ["angle", "audience", "hook", "outline", "seoIntent", "sources", "draft"]
