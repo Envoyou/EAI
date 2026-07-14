@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-07-14
+
 ### Added
 - **Few-Shot Rewrite Demonstrations**: Added few-shot translation and rewrite demonstrations with explicit reasoning steps in `getPolishedDraftPrompt`'s system instructions to guide model style transformations and eliminate AI clichés.
 - **Structured Chain-of-Thought (CoT)**: Enforced a three-step reasoning schema (`CORE DISCOVERY`, `TRANSFORMATION NEEDS`, `REVISION TASKS` for Review stage and `AUDIT DRAFT CHANGES`, `FIDELITY VERIFICATION`, `RESOLUTION` for Quality Gate stage) inside the JSON response `thinking` field to prevent false-positives and ensure thorough factual audits.

@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-07-14
+
 ### Added
 - **Demonstrasi Rewrite Few-Shot**: Menambahkan demonstrasi rewrite dan penerjemahan few-shot dengan langkah penalaran eksplisit pada instruksi sistem `getPolishedDraftPrompt` untuk memandu transformasi gaya tulisan model dan menghilangkan klise AI.
 - **Struktur Penalaran Chain-of-Thought (CoT)**: Menerapkan skema penalaran tiga langkah (`CORE DISCOVERY`, `TRANSFORMATION NEEDS`, `REVISION TASKS` untuk tahap Review dan `AUDIT DRAFT CHANGES`, `FIDELITY VERIFICATION`, `RESOLUTION` untuk tahap Quality Gate) di dalam kolom `thinking` pada respon JSON model untuk mencegah false-positives dan memastikan audit fakta yang menyeluruh.
