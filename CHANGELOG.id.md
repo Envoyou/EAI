@@ -7,12 +7,16 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Demonstrasi Rewrite Few-Shot**: Menambahkan demonstrasi rewrite dan penerjemahan few-shot dengan langkah penalaran eksplisit pada instruksi sistem `getPolishedDraftPrompt` untuk memandu transformasi gaya tulisan model dan menghilangkan klise AI.
+- **Struktur Penalaran Chain-of-Thought (CoT)**: Menerapkan skema penalaran tiga langkah (`CORE DISCOVERY`, `TRANSFORMATION NEEDS`, `REVISION TASKS` untuk tahap Review dan `AUDIT DRAFT CHANGES`, `FIDELITY VERIFICATION`, `RESOLUTION` untuk tahap Quality Gate) di dalam kolom `thinking` pada respon JSON model untuk mencegah false-positives dan memastikan audit fakta yang menyeluruh.
 - **Structured Outputs untuk Strategist**: Mengintegrasikan format skema JSON ketat (`response_format` dengan skema JSON) pada pemanggilan `interactions.create` di router strategist backend untuk memastikan tipe data keluaran model `gemini-3.5-flash` aman dan valid.
 - **Sistem Proteksi Parsing Fallback**: Menerapkan perlindungan ganda: melakukan *retry* pemanggilan API tanpa pembatasan skema jika terjadi penolakan format, serta membungkus output teks mentah ke dalam draf jika parsing JSON gagal demi mencegah crash server 500.
 - **Panduan Tone Bilingual**: Menambahkan contoh padanan Bahasa Indonesia bersisian dengan contoh Bahasa Inggris pada fungsi `getToneGuidance` untuk kalibrasi gaya bahasa yang konsisten di kedua bahasa output.
 - **Proteksi Mode Editor Responsif**: Mengonfigurasi tombol alih mode Tiptap/Markdown agar disembunyikan pada tampilan mobile (`hidden sm:flex`) serta memaksa otomatisasi fallback ke mode Tiptap (Rich Text) ketika dipasang (*mount*) atau saat ukuran layar diubah di bawah 640px untuk mencegah layout terpotong atau melebar keluar layar.
 
 ### Changed
+- **Prompt Statis untuk Caching (v2.5.0)**: Merestrukturisasi seluruh templat prompt agar bersifat sepenuhnya statis, memindahkan aturan dinamis, tingkat ketat, kebijakan bahasa, dan kebutuhan tanggal hari ini dari system instruction ke dalam objek `articleContext` pada payload user untuk mengoptimalkan mekanisme prompt caching di sisi penyedia AI.
+- **Modularitas Panduan Prompt**: Membagi pembuatan system prompt yang monolitis ke dalam beberapa sub-fungsi pembangun yang modular dan teruji (`getCoreEditorialMission`, `getFactualTruthHierarchy`, `getOneClickApplyRule`).
 - **Refactoring Prompt Sistem**: Mengekstrak aturan tabel GFM dan penguncian verifikasi data yang berulang menjadi konstanta global bersama (`GFM_TABLE_RULE`, `VERIFICATION_LOCK_RULE`) untuk membersihkan draf prompt.
 - **Pengurangan Token Bloat (Pemborosan)**: Menghapus paragraf aturan umum duplikat di prompt sensor Fact-checker serta membersihkan rincian deskripsi field yang berulang di prompt SEO Metadata.
 - **Pembersihan Batasan Target Panjang Artikel**: Menghapus target kuantitatif pemangkasan artikel *80-90%* dari prompt pemoles editor draf (`getPolishedDraftPrompt`) untuk mendukung penulisan ulang artikel pada panjang apa pun sesuai preferensi pengguna.

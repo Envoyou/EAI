@@ -1,4 +1,5 @@
 import type { ArticleMetadata } from '@eai/shared';
+import { getCurrentEditorialDate } from '../prompts';
 
 const INPUT_BOUNDARY_POLICY = `
 INPUT BOUNDARY:
@@ -29,6 +30,7 @@ export const buildEditorialUserContent = ({
     strictness: metadata?.strictness ?? 'balanced',
     outputLanguage: metadata?.outputLanguage ?? 'en',
     editorialBrief: metadata?.brief ?? null,
+    currentEditorialDate: getCurrentEditorialDate(),
   };
 
   return [

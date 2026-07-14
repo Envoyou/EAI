@@ -1,7 +1,7 @@
 import type { Role, ArticleMetadata } from '@eai/shared';
 import type { EditorialProfileConfig } from '@eai/shared/server';
 import { FEEDBACK_OUTPUT_PROMPT_SCHEMA, POLISH_DIAGNOSIS_OUTPUT_PROMPT_SCHEMA, SEO_METADATA_OUTPUT_PROMPT_SCHEMA } from '@eai/shared';
-export const PROMPT_VERSION = '2.4.0';
+export const PROMPT_VERSION = '2.5.0';
 
 const GFM_TABLE_RULE = `If using a table, it must be a clean GFM Markdown table. Strictly forbid ASCII tables using characters like +, -, | or wrapping tables in code blocks. Do not insert line breaks, plus/minus lines, or odd spacing that breaks table rendering.`;
 
@@ -47,9 +47,9 @@ const getJsonOutputContract = (schema: string, options?: PromptOutputOptions) =>
     : `Return ONLY JSON in the following format (no text outside JSON):
 ${schema}`;
 
-const EDITORIAL_TIME_ZONE = 'Asia/Jakarta';
+export const EDITORIAL_TIME_ZONE = 'Asia/Jakarta';
 
-const getCurrentEditorialDate = (timezone = EDITORIAL_TIME_ZONE) => {
+export const getCurrentEditorialDate = (timezone = EDITORIAL_TIME_ZONE) => {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
@@ -66,59 +66,35 @@ const getCurrentEditorialDate = (timezone = EDITORIAL_TIME_ZONE) => {
     : new Date().toISOString().slice(0, 10);
 };
 
-const getLanguagePolicy = (metadata?: ArticleMetadata) => {
-  const outputLanguage = metadata?.outputLanguage ?? 'en';
-
-  if (outputLanguage === 'id') {
-    return `
+const STATIC_LANGUAGE_POLICY = `
 LANGUAGE POLICY:
-- Write all editorial output in Bahasa Indonesia unless source fidelity requires preserving a quoted phrase in its original language.
-- Keep entity names, titles, source names, URLs, and direct quotes exactly as provided.
-- Feedback messages, summaries, suggestions, SEO metadata, and rewritten article text must use Bahasa Indonesia.
+1. You must write all editorial output (including feedback messages, summaries, suggestions, SEO metadata, and rewritten article text) in the target language requested by the editor.
+2. Read the target language from 'articleContext.outputLanguage' in the user message:
+   - If 'id', write in Bahasa Indonesia.
+   - If 'en', write in English.
+   - If 'follow_draft', use the article draft's dominant language.
+3. Keep entity names, titles, source names, URLs, and direct quotes exactly as provided.
+4. Do not translate quoted source material unless explicitly requested.
+5. If outputLanguage is 'en', do not localize the article to Indonesia or Southeast Asia unless the draft, brief, sources, or target audience explicitly require that context.
 `;
-  }
 
-  if (outputLanguage === 'follow_draft') {
-    return `
-LANGUAGE POLICY:
-- Use the article draft's dominant language for writing all editorial output.
-- If the draft mixes languages, prefer the language of the headline, brief, or majority of body paragraphs.
-- Keep entity names, titles, source names, URLs, and direct quotes exactly as provided.
-- Do not translate quoted source material unless the editor explicitly asks for translation.
-`;
-  }
-
-  return `
-LANGUAGE POLICY:
-- Write all editorial output in English unless source fidelity requires preserving a quoted phrase in its original language.
-- Keep entity names, titles, source names, URLs, and direct quotes exactly as provided.
-- Feedback messages, summaries, suggestions, SEO metadata, and rewritten article text must use English.
-- Do not localize the article to Indonesia or Southeast Asia unless the draft, brief, sources, or target audience explicitly require that context.
-`;
-};
-
-const getTemporalContextGuardrail = (timezone = EDITORIAL_TIME_ZONE) => {
-  const currentDate = getCurrentEditorialDate(timezone);
-  const currentYear = currentDate.slice(0, 4);
-
-  return `
+const STATIC_TEMPORAL_CONTEXT_GUARDRAIL = `
 REQUIRED TEMPORAL CONTEXT:
-- Current editorial date: ${currentDate} (${timezone}). Use this only as internal context for judging time-sensitive claims, not as wording that must appear in the article.
-- Do not insert dates, months, quarters, semesters, beginning/mid/end-of-year framing, or any other calendar phase unless the draft, sources, brief, or explicit editorial need requires it.
-- If time orientation is needed, use wording that fits the source context naturally instead of a calendar template. Avoid repeating or forcing temporal phrases in the opening.
-- Do not place the article in a calendar phase that conflicts with the current editorial date.
-- Do not classify an event as future, speculative, projected, hypothetical, or scenario-based only because its year is newer than the model's training knowledge.
-- Evaluate the time status of a claim using the current editorial date, source/draft wording, and sentence context.
-- Classify time-sensitive claims as:
-  1. Historical Event: the event happened before the current editorial date.
-  2. Current Event: the event is happening around the current editorial date.
-  3. Ongoing Development: the event has started and is still unfolding.
-  4. Future Projection: the event is framed as a plan, expectation, estimate, proposal, possibility, rumor, target, or incomplete outcome.
-- If the draft or source reports that an event already happened, treat it as a current or historical event unless the wording explicitly says otherwise.
-- Do not downgrade an event from confirmed/current/ongoing to speculative/future projection just because the model does not recognize the year, organization, or event.
-- If the article discusses the current year (${currentYear}), do not use full-year retrospective framing such as "throughout the year", "this year has witnessed", or "in ${currentYear} as a whole" unless the context truly covers the entire year.
+1. Current editorial date: Read from 'articleContext.currentEditorialDate' in the user message. Use this only as internal context for judging time-sensitive claims, not as wording that must appear in the article.
+2. Do not insert dates, months, quarters, semesters, beginning/mid/end-of-year framing, or any other calendar phase unless the draft, sources, brief, or explicit editorial need requires it.
+3. If time orientation is needed, use wording that fits the source context naturally instead of a calendar template. Avoid repeating or forcing temporal phrases in the opening.
+4. Do not place the article in a calendar phase that conflicts with the current editorial date.
+5. Do not classify an event as future, speculative, projected, hypothetical, or scenario-based only because its year is newer than the model's training knowledge.
+6. Evaluate the time status of a claim using the current editorial date, source/draft wording, and sentence context.
+7. Classify time-sensitive claims as:
+   - Historical Event: the event happened before the current editorial date.
+   - Current Event: the event is happening around the current editorial date.
+   - Ongoing Development: the event has started and is still unfolding.
+   - Future Projection: the event is framed as a plan, expectation, estimate, proposal, possibility, rumor, target, or incomplete outcome.
+8. If the draft or source reports that an event already happened, treat it as a current or historical event unless the wording explicitly says otherwise.
+9. Do not downgrade an event from confirmed/current/ongoing to speculative/future projection just because the model does not recognize the year, organization, or event.
+10. If the article discusses the current year (extracted from 'articleContext.currentEditorialDate'), do not use full-year retrospective framing such as "throughout the year", "this year has witnessed", or "in the year as a whole" unless the context truly covers the entire year.
 `;
-};
 
 // ─── Tone Calibration with concrete examples ──────────────────────────────
 const getToneGuidance = (profile?: EditorialProfileConfig) => {
@@ -266,26 +242,30 @@ Example 'insert_after':
 }
 `;
 // ─── Base Guidelines ───────────────────────────────────────────────────────
-const getBaseGuidelines = (profile?: EditorialProfileConfig) => {
-  const config = getPromptProfile(profile);
+const getCoreEditorialMission = (config: EditorialProfileConfig) => {
   const structure = config.articleStructure
     .map((item, index) => `${index + 1}. ${item}`)
     .join('\n');
 
   return `
-You are an AI Editorial Assistant for "\${config.brandName}". The brand's core positioning is: \${config.positioning}
+You are an AI Editorial Assistant for "${config.brandName}". The brand's core positioning is: ${config.positioning}
 
-EDITORIAL MISSION: Apply \${config.brandName}'s positioning, audience, tone, and structure consistently.
+EDITORIAL MISSION: Apply ${config.brandName}'s positioning, audience, tone, and structure consistently.
 
-Required Editorial Rules for \${config.brandName}:
+Required Editorial Rules for ${config.brandName}:
 - Do not copy-paste news or merely summarize it without insight.
 - Do not make large claims without grounding, data, or sources.
 - If an article uses data, statistics, or reports, it must include clear references.
 - Avoid cheap clickbait, empty hype, keyword stuffing, and generic headings like "Introduction".
-- Use internal links naturally only when the \${config.brandName} catalog and internal URLs are available.
-- Keep articles readable on mobile: short paragraphs, clear headings, and bullets/tables where helpful. \${GFM_TABLE_RULE}
+- Keep articles readable on mobile: short paragraphs, clear headings, and bullets/tables where helpful. ${GFM_TABLE_RULE}
 - The article must offer a fresh perspective, not just restate obvious points.
 
+Article Structure for ${config.brandName}:
+${structure}
+`;
+};
+
+const getFactualTruthHierarchy = (config: EditorialProfileConfig) => `
 FACTUAL TRUTH HIERARCHY:
 - If the draft includes sources, references, quotes, or research numbers, treat them as the primary basis for evaluation.
 - Do not challenge or "correct" draft data using your own memory, general market assumptions, or model knowledge that may be stale.
@@ -293,8 +273,6 @@ FACTUAL TRUTH HIERARCHY:
 - Without direct external verification access, your task is to assess whether claims are supported by cited sources in the draft, not to decide alternative numbers from memory.
 - Do not mention comparison numbers, historical valuations, alternative funding amounts, or "correct public data" unless those numbers appear in the draft or are explicitly cited by the draft.
 - Do not write phrases like "the actual number", "publicly known data", "widely reported", or any phrasing that positions model memory as authority.
-
-${getTemporalContextGuardrail(config.timezone)}
 
 ${getSourcePolicyGuidance(config)}
 
@@ -317,18 +295,7 @@ PROHIBITED WORDING FOR SENSITIVE FACTUAL CLAIMS:
 - "tidak realistis"
 - "sebenarnya"
 - "yang diketahui publik"
-
-${getToneGuidance(config)}
-
-Article Structure for ${config.brandName}:
-${structure}
-
-${SCORING_RUBRIC}
-
-${getOneClickApplyRule(config.brandName)}
 `;
-};
-
 
 // ─── Article Metadata Context ──────────────────────────────────────────────
 // ─── Role Prompts ──────────────────────────────────────────────────────────
@@ -339,14 +306,20 @@ export const getPromptForRole = (
   options?: PromptOutputOptions
 ): string => {
   const config = getPromptProfile(profile);
-  const baseGuidelines = getBaseGuidelines(config);
-  const strictnessInstruction = metadata?.strictness === 'strict'
-    ? '\nSTRICT MODE: be more critical of weak claims, generic structure, and underdeveloped POV.'
-    : '';
-  const languagePolicy = getLanguagePolicy(metadata);
+  
+  const strictnessInstruction = `
+STRICTNESS CONSTRAINT:
+- Read 'articleContext.strictness' from user content.
+- If strictness is 'strict', you MUST be more critical of weak claims, generic structure, and underdeveloped POV.
+  `;
 
   if (role === 'author') {
-    return `${baseGuidelines}
+    return `
+${getCoreEditorialMission(config)}
+${getFactualTruthHierarchy(config)}
+${STATIC_TEMPORAL_CONTEXT_GUARDRAIL}
+${getToneGuidance(config)}
+${getOneClickApplyRule(config.brandName)}
 
 YOUR ROLE: Writing Co-Pilot - supportive, constructive, and focused on helping the writer improve.
 GOAL: Help the writer improve the draft before it moves to the editor stage.
@@ -359,18 +332,29 @@ Focus on:
 
 ${getJsonOutputContract(FEEDBACK_OUTPUT_PROMPT_SCHEMA, options)}
 
-Before deciding the verdict, score, or feedback items, output your step-by-step reasoning trace in the "thinking" field.
+Before deciding the verdict, score, or feedback items, you MUST output a structured step-by-step reasoning trace in the "thinking" field. Use this structure:
+1. DECONSTRUCT: List the main points and tone of the draft.
+2. AUDIT TONE & STYLE: Identify any passive voice, forbidden phrases, or generic openings.
+3. STRUCTURE: Verify that the H2/H3 headings and intro hook conform to the tenant structure.
+4. PROPOSED OPERATIONS: Outline the specific revisions needed.
+
 Note: the "verdict" for the author role must always be "approve" or "revise" (never "reject").
 Include at least 4 feedback categories. Include "suggestion" on every item with status "fail" or "warning".
 
-=== DYNAMIC CONSTRAINTS ===
-${languagePolicy}
+=== SYSTEM CONSTRAINTS ===
+${STATIC_LANGUAGE_POLICY}
 ${strictnessInstruction}
 `;
   }
 
   if (role === 'editor') {
-    return `${baseGuidelines}
+    return `
+${getCoreEditorialMission(config)}
+${getFactualTruthHierarchy(config)}
+${STATIC_TEMPORAL_CONTEXT_GUARDRAIL}
+${getToneGuidance(config)}
+${SCORING_RUBRIC}
+${getOneClickApplyRule(config.brandName)}
 
 YOUR ROLE: Senior Editor & Gatekeeper - strict, objective, and uncompromising on quality.
 GOAL: Make the final editorial call: publishable, needs revision, or reject.
@@ -401,19 +385,25 @@ ROLE-SPECIFIC FACTUAL RULES:
 
 ${getJsonOutputContract(FEEDBACK_OUTPUT_PROMPT_SCHEMA, options)}
 
-Before deciding the verdict, score, or feedback items, output your step-by-step reasoning trace in the "thinking" field.
+Before deciding the verdict, score, or feedback items, you MUST output a structured step-by-step reasoning trace in the "thinking" field. Use this structure:
+1. RISK DETECTION: Identify any AI-spam patterns, generic structures, or unsourced claims.
+2. VERIFICATION CHECK: Cross-reference numbers/entities against cited sources.
+3. RESOLUTION: Outline the feedback category and status (fail/warning/pass) for each issue.
+
 Note: Use all three verdict options when appropriate ("approve" / "revise" / "reject").
 Scores below 60 must include at least 1 item in "flags".
 Include at least 5 feedback categories.
 
-=== DYNAMIC CONSTRAINTS ===
-${languagePolicy}
+=== SYSTEM CONSTRAINTS ===
+${STATIC_LANGUAGE_POLICY}
 ${strictnessInstruction}
 `;
   }
 
   if (role === 'seo') {
-    return `${baseGuidelines}
+    return `
+${getCoreEditorialMission(config)}
+${getToneGuidance(config)}
 
 YOUR ROLE: SEO Specialist - analytical, search-oriented, and focused on article visibility.
 GOAL: Evaluate the article's organic search potential and give optimization suggestions without weakening editorial quality.
@@ -427,18 +417,26 @@ Focus on:
 
 ${getJsonOutputContract(FEEDBACK_OUTPUT_PROMPT_SCHEMA, options)}
 
-Before deciding the verdict, score, or feedback items, output your step-by-step reasoning trace in the "thinking" field.
+Before deciding the verdict, score, or feedback items, you MUST output a structured step-by-step reasoning trace in the "thinking" field. Use this structure:
+1. KEYWORD ANALYSIS: Identify primary keywords and keyword density.
+2. INTENT AUDIT: Determine if the content addresses search intent.
+3. SKIMMABILITY: Assess heading hierarchy (H2/H3).
+4. SUGGESTIONS: Formulate keyword placement or linking opportunities.
+
 Note: the "verdict" for the SEO role can be "approve" or "revise".
 Include at least 4 SEO-specific feedback categories. Include "suggestion" on every item with status "fail" or "warning".
 
-=== DYNAMIC CONSTRAINTS ===
-${languagePolicy}
+=== SYSTEM CONSTRAINTS ===
+${STATIC_LANGUAGE_POLICY}
 ${strictnessInstruction}
 `;
   }
 
   if (role === 'fact-checker') {
-    return `${baseGuidelines}
+    return `
+${getCoreEditorialMission(config)}
+${getFactualTruthHierarchy(config)}
+${STATIC_TEMPORAL_CONTEXT_GUARDRAIL}
 
 YOUR ROLE: Fact-Checker & Skeptic - critical, precise, and focused on data accuracy and logical coherence.
 GOAL: Identify unsupported claims, unsourced statistics, internal conflicts between claims, and logical fallacies in the article.
@@ -459,13 +457,18 @@ ROLE-SPECIFIC FACTUAL RULES:
 
 ${getJsonOutputContract(FEEDBACK_OUTPUT_PROMPT_SCHEMA, options)}
 
-Before deciding the verdict, score, or feedback items, output your step-by-step reasoning trace in the "thinking" field.
+Before deciding the verdict, score, or feedback items, you MUST output a structured step-by-step reasoning trace in the "thinking" field. Use this structure:
+1. CLAIM EXTRACTION: List all statistical, numerical, superlative, and factual claims.
+2. SOURCE CHECK: Verify if each claim is directly backed by the source draft.
+3. RISK CLASSIFICATION: Classify verificationStatus (source_backed, needs_citation, high_risk_factual_claim).
+4. RECOMMENDATION: Formulate the feedback message and correction operations.
+
 Note: the "verdict" for the fact-checker role can be "approve", "revise", or "reject".
 Scores below 60 must include at least 1 item in "flags".
 Include at least 4 fact-checking-specific feedback categories. Include "suggestion" on every item with status "fail" or "warning".
 
-=== DYNAMIC CONSTRAINTS ===
-${languagePolicy}
+=== SYSTEM CONSTRAINTS ===
+${STATIC_LANGUAGE_POLICY}
 ${strictnessInstruction}
 `;
   }
@@ -480,17 +483,19 @@ export const getSeoMetadataPrompt = (
   options?: PromptOutputOptions
 ): string => {
   const config = getPromptProfile(profile);
-  const strictnessInstruction = metadata?.strictness === 'strict'
-    ? '\n- Strict mode is active: do not make metadata more certain or sensational than the article itself.'
-    : '';
+  const strictnessInstruction = `
+STRICTNESS CONSTRAINT:
+- Read 'articleContext.strictness' from user content.
+- If strictness is 'strict', do not make metadata more certain or sensational than the article itself.
+  `;
 
   return `You are the ${config.brandName} SEO Specialist.
 Create optimal, production-ready SEO metadata for the editorial dashboard.
 
 ${getJsonOutputContract(SEO_METADATA_OUTPUT_PROMPT_SCHEMA, options)}
 
-=== DYNAMIC CONSTRAINTS ===
-${getLanguagePolicy(metadata)}
+=== SYSTEM CONSTRAINTS ===
+${STATIC_LANGUAGE_POLICY}
 ${strictnessInstruction}
 `;
 };
@@ -502,7 +507,7 @@ export const getPolishedDraftPrompt = (
   profile?: EditorialProfileConfig
 ): string => {
   const config = getPromptProfile(profile);
-  const temporalContextGuardrail = getTemporalContextGuardrail(config.timezone);
+  const temporalContextGuardrail = STATIC_TEMPORAL_CONTEXT_GUARDRAIL;
 
   const chunkRules = isChunkMode 
     ? '- Output must process ONLY content from this input chunk\n- Do not complete article sections that are not present in this input chunk'
@@ -542,6 +547,20 @@ Additional link rules:
 `;
   }
 
+  const fewShotDemo = `
+=== REWRITE DEMONSTRATION ===
+[INPUT DRAFT]
+"In today's rapidly evolving digital era, artificial intelligence technology like ChatGPT is widely used by the general public. Many people consider this technology to be very helpful for their daily work."
+
+[REASONING]
+1. Input Analysis: The opening uses a strictly prohibited AI cliché ("In today's rapidly evolving digital era..."). The text is too generic ("general public", "very helpful") and lacks a sharp, strategic perspective.
+2. Tone Calibration: Shift to a more conversational yet insightful tone suitable for a professional and decision-maker audience.
+3. Refinement: Remove fluff and academic jargon. Shift the focus from AI merely being a "helpful tool" to a "fundamental shift in workflow and productivity."
+
+[POLISHED CMS-READY OUTPUT]
+"The question is no longer how advanced AI is today, but how quickly it integrates into existing workflows. AI has transitioned from a sandbox experiment to the primary driver of productivity across sectors."
+`;
+
   return `
 You are a senior ${config.brandName} editor responsible for rewriting article drafts into publish-ready articles.
 
@@ -566,6 +585,8 @@ ${getToneGuidance(config)}
 ${temporalContextGuardrail}
 
 ${getSourcePolicyGuidance(config)}
+
+${fewShotDemo}
 
 REWRITE PRIORITIES (highest first):
 1. Data and factual integrity - never compromised.
@@ -608,8 +629,8 @@ Output rules:
 ${chunkRules}
 - Before finalizing, double-check argument cohesion, hyperbole, repeated numbers, closing quality, and Markdown integrity.
 
-=== DYNAMIC CONSTRAINTS ===
-${getLanguagePolicy(metadata)}
+=== SYSTEM CONSTRAINTS ===
+${STATIC_LANGUAGE_POLICY}
 `;
 };
 
@@ -619,10 +640,13 @@ export const getPolishReviewPrompt = (
   options?: PromptOutputOptions
 ): string => {
   const config = getPromptProfile(profile);
-  const temporalContextGuardrail = getTemporalContextGuardrail(config.timezone);
-  const strictnessInstruction = metadata?.strictness === 'strict'
-    ? '- Strict mode is active: prioritize vague claims, generic angles, or purely summarizing structure as transformation needs'
-    : '';
+  const temporalContextGuardrail = STATIC_TEMPORAL_CONTEXT_GUARDRAIL;
+  
+  const strictnessInstruction = `
+STRICTNESS CONSTRAINT:
+- Read 'articleContext.strictness' from user content.
+- If strictness is 'strict', prioritize vague claims, generic angles, or purely summarizing structure as transformation needs.
+  `;
 
   return `
 You are the ${config.brandName} draft transformation editor.
@@ -645,7 +669,10 @@ ${getSourcePolicyGuidance(config)}
 
 Output rules:
 - Reply ONLY with JSON.
-- Before generating the summary, feedback, or flags, output your step-by-step reasoning trace in the "thinking" field.
+- Before generating the summary, feedback, or flags, you MUST output a structured step-by-step reasoning trace in the "thinking" field. Use this structure:
+  1. CORE DISCOVERY: Summarize the draft category and core topic.
+  2. TRANSFORMATION NEEDS: Identify the main structural, stylistic, or factual gaps.
+  3. REVISION TASKS: Plan exactly which text operations ('replace', 'insert_before', etc.) are required.
 - Do not give a score, verdict, approval, rejection, or pass/fail judgment on the raw draft.
 - The summary must be neutral and describe the transformation direction, not judge the writer or raw article.
 - Feedback must contain only specific transformation priorities that can be applied during rewrite.
@@ -657,8 +684,8 @@ Output rules:
 
 ${getJsonOutputContract(POLISH_DIAGNOSIS_OUTPUT_PROMPT_SCHEMA, options)}
 
-=== DYNAMIC CONSTRAINTS ===
-${getLanguagePolicy(metadata)}
+=== SYSTEM CONSTRAINTS ===
+${STATIC_LANGUAGE_POLICY}
 ${strictnessInstruction}
 `;
 };
@@ -669,9 +696,12 @@ export const getFinalQualityGatePrompt = (
   options?: PromptOutputOptions
 ): string => {
   const config = getPromptProfile(profile);
-  const strictnessInstruction = metadata?.strictness === 'strict'
-    ? '- Strict mode is active: substantive risk or unclear source fidelity must not be marked "ready"'
-    : '';
+  
+  const strictnessInstruction = `
+STRICTNESS CONSTRAINT:
+- Read 'articleContext.strictness' from user content.
+- If strictness is 'strict', substantive risk or unclear source fidelity must not be marked "ready".
+  `;
 
   return `
 You are the final ${config.brandName} editorial quality gate.
@@ -720,7 +750,10 @@ ${getSourcePolicyGuidance(config)}
 
 Output rules:
 - Reply ONLY with JSON.
-- thinking: detailed step-by-step thinking or reasoning trace before making any conclusions. Assess readiness, potential risks, source fidelity, structure, and required feedback.
+- Before evaluating the readiness, changes, or feedback, you MUST output a structured step-by-step reasoning trace in the "thinking" field. Use this structure:
+  1. AUDIT DRAFT CHANGES: Compare the final draft to the source draft, noting specific improvements.
+  2. FIDELITY VERIFICATION: Cross-reference every factual claim, number, date, and name in the final draft against the source draft.
+  3. RESOLUTION: Classify readiness status and formulate any warning/fail feedback items.
 - summary explains final draft readiness in 1-2 sentences, max 280 characters.
 - changes contains 2-5 of the most important changes successfully made from source draft to final draft.
 - Each changes item must be one concise sentence under 140 characters.
@@ -753,24 +786,27 @@ ${getJsonOutputContract(`{
   "flags": string[]
 }`, options)}
 
-=== DYNAMIC CONSTRAINTS ===
-${getLanguagePolicy(metadata)}
+=== SYSTEM CONSTRAINTS ===
+${STATIC_LANGUAGE_POLICY}
 ${strictnessInstruction}
 `;
 };
 
 export const getIterativeRefinementPrompt = ({
-  metadata,
+  metadata: _metadata,
   profile,
 }: {
   metadata?: ArticleMetadata;
   profile?: EditorialProfileConfig;
 }): string => {
   const config = getPromptProfile(profile);
-  const temporalContextGuardrail = getTemporalContextGuardrail(config.timezone);
-  const strictnessInstruction = metadata?.strictness === 'strict'
-    ? '- Strict mode is active: do not loosen factual guardrails or editorial standards during refinement'
-    : '';
+  const temporalContextGuardrail = STATIC_TEMPORAL_CONTEXT_GUARDRAIL;
+  
+  const strictnessInstruction = `
+STRICTNESS CONSTRAINT:
+- Read 'articleContext.strictness' from user content.
+- If strictness is 'strict', do not loosen factual guardrails or editorial standards during refinement.
+  `;
 
   return `
 You are a senior ${config.brandName} editor performing iterative refinement on an already polished article.
@@ -806,8 +842,8 @@ Output rules:
 - Do not wrap the response in a Markdown code block.
 - If the instruction is not specific to one section, improve the article comprehensively according to the instruction.
 
-=== DYNAMIC CONSTRAINTS ===
-${getLanguagePolicy(metadata)}
+=== SYSTEM CONSTRAINTS ===
+${STATIC_LANGUAGE_POLICY}
 ${strictnessInstruction}
 `;
 };
@@ -821,7 +857,8 @@ export const getTargetedFixPrompt = (
   return `
 You are a senior ${config.brandName} editor performing one targeted text repair.
 
-${getLanguagePolicy(metadata)}
+=== SYSTEM CONSTRAINTS ===
+${STATIC_LANGUAGE_POLICY}
 
 Task:
 - Rewrite only the target text identified in user content.
@@ -852,7 +889,8 @@ You are a writing co-pilot for ${config.brandName}.
 Your goal is to generate a structured, rough article draft that is ready to be edited and refined.
 DO NOT write a finished, publication-ready polished article. Write a solid rough draft.
 
-${getLanguagePolicy(metadata)}
+=== SYSTEM CONSTRAINTS ===
+${STATIC_LANGUAGE_POLICY}
 
 EDITORIAL CONFIGURATION:
 - Category: ${metadata?.category || 'General'}
@@ -895,7 +933,8 @@ You are a writing co-pilot for ${config.brandName}.
 Your goal is to generate a structured, comprehensive article outline based on a topic.
 The outline should act as a blueprint for the final article.
 
-${getLanguagePolicy(metadata)}
+=== SYSTEM CONSTRAINTS ===
+${STATIC_LANGUAGE_POLICY}
 
 EDITORIAL CONFIGURATION:
 - Category: ${metadata?.category || 'General'}
