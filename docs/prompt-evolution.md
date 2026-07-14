@@ -4,9 +4,9 @@ Dokumen ini mencatat rancangan, riwayat iterasi, kendala teknis, serta solusi re
 
 ---
 
-## 1. Versi Saat Ini: v2.5.0
+## 1. Versi Saat Ini: v3.3.0
 
-Prompt utama dikelola secara modular pada berkas `src/lib/prompts.ts` serta memanfaatkan modul pembangun konteks bersama `src/lib/ai/workspace-context.ts`.
+Prompt utama dikelola secara modular menggunakan **Composable Prompt Component Architecture (PCA)** di `src/lib/ai/prompt-engine/` dan memanfaatkan modul pembangun konteks bersama `src/lib/ai/workspace-context.ts`. Berkas `src/lib/prompts.ts` disederhanakan murni sebagai pembantu utilitas bersama.
 
 ### Struktur Utama System Prompt
 Prompt yang dikirim ke model kini dibagi ke lima jalur:
@@ -157,12 +157,12 @@ Dalam masa pengembangan awal, ditemukan beberapa kendala pada respon model AI. B
     2.  **Demonstrasi Few-Shot & Penalaran**: Menambahkan blok `=== REWRITE DEMONSTRATION ===` ke prompt pemoles draf. Menyediakan contoh draf mentah dengan klise AI ("In today's rapidly evolving digital era..."), langkah-langkah penalaran perbaikan model, dan hasil pemolesan akhir yang tajam.
     3.  **Mandatory Chain-of-Thought (CoT)**: Mewajibkan model evaluasi menulis langkah penalaran logis terstruktur di field `"thinking"` pada JSON response sebelum menyimpulkan status kelayakan.
 
-### P. Refaktorisasi Prompt Statis untuk Optimalisasi Cache & Penalaran Terstruktur (v2.5.0)
-*   **Kendala**:
-    1.  Penyisipan instruksi bahasa (`Language Policy`), tingkat ketat (`strictness`), dan tanggal editorial hari ini (`currentEditorialDate`) secara dinamis di dalam `system_instruction` merusak efisiensi *caching* (Gemini Context Caching) karena instruksi sistem berubah per kueri.
-    2.  Model pemoles draf (`getPolishedDraftPrompt`) cenderung menggunakan klise pembuka AI dan gaya penulisan yang terlalu generik tanpa contoh nyata (Telling vs Showing).
-    3.  Model evaluasi kualitas (Review dan Quality Gate) rentan menghasilkan keputusan yang tidak konsisten atau terburu-buru (*false positive*) tanpa analisis bertahap yang mendalam.
+### Q. Composable Prompt Component Architecture & Caching Tree (v3.3.0)
+*   **Kendala**: Meskipun template prompt di `prompts.ts` telah distatiskan pada v2.5.0, berkas tersebut berukuran sangat besar (ribuan baris) dan sulit dirawat. Lebih jauh lagi, logika perakitan prompt dinamis (seperti pembatasan strictness, penguncian verifikasi data [[VERIFICATION_LOCK]], dan tone brand tenant) dicampur-campur secara manual di berbagai file stage route. Hal ini rentan terhadap kesalahan sintaksis, duplikasi kode, dan menyulitkan optimalisasi Gemini prompt caching secara konsisten.
 *   **Solusi**:
-    1.  **Statisasi Templat System Prompt**: Seluruh templat prompt di `prompts.ts` dikonversi menjadi statis. Semua data dinamis (bahasa, tanggal hari ini, strictness) dipindahkan ke objek `articleContext` di dalam user payload JSON. Konteks tanggal hari ini (`currentEditorialDate`) dihitung di backend (`prompt-context.ts`) dan disisipkan secara dinamis ke user content. Hal ini menjamin efisiensi caching system instruction 100% sempurna.
-    2.  **Demonstrasi Few-Shot & Penalaran**: Menambahkan blok `=== REWRITE DEMONSTRATION ===` ke prompt pemoles draf. Menyediakan contoh draf mentah dengan klise AI ("In today's rapidly evolving digital era..."), langkah-langkah penalaran perbaikan model, dan hasil pemolesan akhir yang tajam.
-    3.  **Mandatory Chain-of-Thought (CoT)**: Mewajibkan model evaluasi menulis langkah penalaran logis terstruktur di field `"thinking"` pada JSON response sebelum menyimpulkan status kelayakan.
+    1.  **Penerapan Composable PCA (Prompt Component Architecture)**: Memperkenalkan arsitektur penyusunan prompt berbasis Abstract Syntax Tree (AST) di bawah `src/lib/ai/prompt-engine/`.
+    2.  **Pemisahan Core & Tenant Nodes**: Memecah aturan prompt menjadi komponen-komponen kecil berupa node independen. `Core Nodes` (statis platform seperti misi editorial, aturan markdown, verifikasi data, kebijakan bahasa, batasan strictness, skema format keluaran) dipisahkan dari `Tenant Nodes` (dinamis tenant seperti positioning brand, tone calibration).
+    3.  **Implementasi Stage Composers**: Membuat komposer khusus per tahapan stage (`SeoPromptComposer`, `ReviewPromptComposer`, `RewritePromptComposer`, `RefinementPromptComposer`, `QualityGatePromptComposer`, `StrategistPromptComposer`) yang menggunakan `CompositePromptNode` untuk mengelola pohon AST tersebut.
+    4.  **Optimalisasi Gemini Prompt Caching**: `CompositePromptNode` secara otomatis merender seluruh node statis (Core) di bagian awal prompt dan menempatkan context/dynamic nodes di bagian akhir untuk memaksimalkan efisiensi context caching Gemini secara konsisten.
+    5.  **Depresiasi Prompts Monolitik**: Berkas `prompts.ts` disederhanakan secara total, hanya menyisakan variabel sistem, timezone, dan pembantu penanggalan. Seluruh logika template prompt dikelola secara granular pada masing-masing AST node dan komposer.
+
