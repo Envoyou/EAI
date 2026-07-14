@@ -4,7 +4,7 @@ const readLegalValue = (name: string, fallback: string) =>
 export const LEGAL_EFFECTIVE_DATE = 'June 13, 2026';
 
 export const legalIdentity = {
-  productName: 'Envoyou AI Editorial System',
+  productName: 'Envoyou AI Editorial Intelligence',
   operatorName: readLegalValue('LEGAL_OPERATOR_NAME', 'Envoyou'),
   registeredAddress: process.env.LEGAL_REGISTERED_ADDRESS?.trim() || '',
   supportEmail: readLegalValue('LEGAL_SUPPORT_EMAIL', 'support@envoyou.com'),

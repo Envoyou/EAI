@@ -1,7 +1,7 @@
 import type { Role, ArticleMetadata } from '@eai/shared';
 import type { EditorialProfileConfig } from '@eai/shared/server';
 import { FEEDBACK_OUTPUT_PROMPT_SCHEMA, POLISH_DIAGNOSIS_OUTPUT_PROMPT_SCHEMA, SEO_METADATA_OUTPUT_PROMPT_SCHEMA } from '@eai/shared';
-export const PROMPT_VERSION = '1.10.0';
+export const PROMPT_VERSION = '2.4.0';
 
 const GFM_TABLE_RULE = `If using a table, it must be a clean GFM Markdown table. Strictly forbid ASCII tables using characters like +, -, | or wrapping tables in code blocks. Do not insert line breaks, plus/minus lines, or odd spacing that breaks table rendering.`;
 
@@ -81,7 +81,7 @@ LANGUAGE POLICY:
   if (outputLanguage === 'follow_draft') {
     return `
 LANGUAGE POLICY:
-- Use the article draft's dominant language for all editorial output.
+- Use the article draft's dominant language for writing all editorial output.
 - If the draft mixes languages, prefer the language of the headline, brief, or majority of body paragraphs.
 - Keep entity names, titles, source names, URLs, and direct quotes exactly as provided.
 - Do not translate quoted source material unless the editor explicitly asks for translation.

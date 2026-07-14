@@ -98,9 +98,9 @@ export const ENVOYOU_PROFILE_CONFIG: EditorialProfileConfig = {
   tone: ['professional', 'modern', 'conversational', 'strategic', 'insightful'],
   articleStructure: ['Headline', 'Excerpt', 'Hook', 'Context', 'Body', 'Strategic Closing'],
   additionalProhibitedPatterns: [
-    'Dalam era transformasi digital',
-    'Artikel ini akan membahas',
-    'Sebagai kesimpulan',
+    'in the era of digital transformation',
+    'this article will discuss',
+    'in conclusion',
   ],
   sourcePolicy: 'strict',
   seoRules: {
