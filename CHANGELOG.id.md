@@ -10,6 +10,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Structured Outputs untuk Strategist**: Mengintegrasikan format skema JSON ketat (`response_format` dengan skema JSON) pada pemanggilan `interactions.create` di router strategist backend untuk memastikan tipe data keluaran model `gemini-3.5-flash` aman dan valid.
 - **Sistem Proteksi Parsing Fallback**: Menerapkan perlindungan ganda: melakukan *retry* pemanggilan API tanpa pembatasan skema jika terjadi penolakan format, serta membungkus output teks mentah ke dalam draf jika parsing JSON gagal demi mencegah crash server 500.
 - **Panduan Tone Bilingual**: Menambahkan contoh padanan Bahasa Indonesia bersisian dengan contoh Bahasa Inggris pada fungsi `getToneGuidance` untuk kalibrasi gaya bahasa yang konsisten di kedua bahasa output.
+- **Proteksi Mode Editor Responsif**: Mengonfigurasi tombol alih mode Tiptap/Markdown agar disembunyikan pada tampilan mobile (`hidden sm:flex`) serta memaksa otomatisasi fallback ke mode Tiptap (Rich Text) ketika dipasang (*mount*) atau saat ukuran layar diubah di bawah 640px untuk mencegah layout terpotong atau melebar keluar layar.
 
 ### Changed
 - **Refactoring Prompt Sistem**: Mengekstrak aturan tabel GFM dan penguncian verifikasi data yang berulang menjadi konstanta global bersama (`GFM_TABLE_RULE`, `VERIFICATION_LOCK_RULE`) untuk membersihkan draf prompt.

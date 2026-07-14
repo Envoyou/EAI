@@ -10,6 +10,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Structured Outputs for Strategist**: Integrated strict JSON schema formatting (`response_format` with Zod-based/JSON schema) into the strategist router's `interactions.create` call, ensuring type-safe output constraints for `gemini-3.5-flash` model.
 - **Robust Parsing Fallbacks**: Implemented double fallback protections: retries API calls without response format restrictions on schema refusal and falls back to wrapping raw model output text inside the draft object on JSON parse failure, preventing server 500 crashes.
 - **Bilingual Tone Guidelines**: Added Indonesian translation examples alongside English sentences in `getToneGuidance` to calibrate editorial styles for both language outputs.
+- **Responsive Editor Mode Safeguard**: Configured the Tiptap/Markdown mode toggle to hide on mobile viewports (`hidden sm:flex`) and enforced auto-fallback to Tiptap mode on mount or resize under 640px to prevent layout overflows and screen breaks.
 
 ### Changed
 - **System Prompt Refactoring**: Removed redundant ASCII table and verification lock instructions, centralizing them in global constants (`GFM_TABLE_RULE`, `VERIFICATION_LOCK_RULE`).

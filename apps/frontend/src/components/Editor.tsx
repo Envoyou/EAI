@@ -248,14 +248,30 @@ export default function Editor({
   };
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const savedMode = localStorage.getItem('eai_editor_mode');
-    if (savedMode === 'tiptap' || savedMode === 'markdown') {
+    const isMobile = window.innerWidth < 640;
+    if (isMobile) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
+      setEditorMode('tiptap');
+    } else if (savedMode === 'tiptap' || savedMode === 'markdown') {
       setEditorMode(savedMode);
     }
+
+    const handleResize = () => {
+      if (window.innerWidth < 640) {
+        setEditorMode('tiptap');
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const handleModeChange = (newMode: 'tiptap' | 'markdown') => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      newMode = 'tiptap';
+    }
     if (newMode === editorMode) return;
 
     if (editorMode === 'tiptap' && editor) {
@@ -363,7 +379,7 @@ export default function Editor({
             </div>
 
             {/* Editor Mode Toggle */}
-            <div className="flex items-center bg-[var(--surface-2)] rounded-lg p-0.5 border border-[var(--border)] shrink-0">
+            <div className="hidden sm:flex items-center bg-[var(--surface-2)] rounded-lg p-0.5 border border-[var(--border)] shrink-0">
               <button
                 onClick={() => handleModeChange('tiptap')}
                 className={`flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md transition duration-150 ${editorMode === 'tiptap' ? 'bg-[var(--surface-1)] text-[var(--foreground)] shadow-sm' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}
