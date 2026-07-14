@@ -3,6 +3,8 @@ export type RenderFormat = 'xml' | 'markdown' | 'text';
 export interface RenderContext {
   format: RenderFormat;
   targetLanguage?: 'en' | 'id' | 'follow_draft';
+  /** ISO date string (YYYY-MM-DD) for the current day, injected at render time. */
+  today?: string;
   [key: string]: unknown;
 }
 

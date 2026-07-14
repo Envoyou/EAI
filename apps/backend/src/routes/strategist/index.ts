@@ -7,6 +7,7 @@ import { ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { StrategistChatComposer } from '@/lib/ai/prompt-engine/composer/strategist-chat-composer';
 import { StrategistBlueprintComposer } from '@/lib/ai/prompt-engine/composer/strategist-blueprint-composer';
 import { DraftFromNotesComposer } from '@/lib/ai/prompt-engine/composer/draft-from-notes-composer';
+import { StrategistFastModeInstructionNode } from '@/lib/ai/prompt-engine/core/strategist';
 import { parseJsonResponse } from '@eai/shared';
 import { verifyToken } from '@clerk/backend';
 import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
@@ -243,7 +244,41 @@ const RESEARCH_MODEL = resolveModel(process.env.GEMINI_RESEARCH_MODEL || 'gemini
 // Fast-mode output control: higher limit for structured research material
 const FAST_MODE_MAX_OUTPUT_TOKENS = Number(process.env.GEMINI_COPILOT_FAST_MAX_TOKENS) || 2048;
 
+// Base fast-mode instruction rendered from core node — version-controlled and testable.
+const FAST_MODE_INSTRUCTION = new StrategistFastModeInstructionNode().render({ format: 'xml' });
 
+// ─── URL / Document override helper constants ────────────────────────────────
+// These are appended to FAST_MODE_INSTRUCTION at request-time based on context.
+// Kept as functions/constants (not nodes) because they embed dynamic values (url).
+
+const buildUrlOverrideWithContent = (url: string): string => `
+<url_mode_override>
+The system has fetched the URL content at ${url} and placed it inside <scraped_url_content>.
+Prioritize analyzing this content. Length restrictions are relaxed and you are encouraged to write
+a beautifully structured, comprehensive Markdown analysis.
+Do NOT use web search unless additional external details are needed.
+</url_mode_override>
+`.trim();
+
+const URL_OVERRIDE_NO_CONTENT = `
+<url_mode_override>
+The user provided a URL. Use the url_context tool to fetch and read that page directly.
+If you cannot fetch it or the tool fails, politely ask the user to copy and paste the content manually.
+</url_mode_override>
+`.trim();
+
+const DOCUMENT_MODE_OVERRIDE = `
+<document_mode_override>
+A file is attached to this request.
+1. Scope of Analysis: Prioritize analyzing the data/text inside <attached_file> ONLY if the user's query is directly asking for performance audits, data summaries, or findings from the attached document. If the query shifts to researching facts, finding data for a new article, or planning/drafting, do NOT force analysis of the attached file.
+2. Web Search & Fact Grounding: If the user asks for data, statistics, or research materials to write a new article, you MUST use Google Search to find real-world statistics, quantitative data, and expert sources. Do NOT reference internal blog performance metrics (views, clicks, impressions) from the attached file as factual content for the new article draft.
+3. Quantified Claims: Ground all claims quantitatively by citing specific data points (exact numbers, titles, or values) from the attached file when auditing traffic, but do not append these metrics to article titles in outlines, lists, or blueprints.
+4. Editorial Progression & Suggestions: Under the [SUGGESTIONS: ...] block, the 3 follow-up suggestions must guide the user dynamically based on the current discussion state:
+   - If the user is analyzing the file: suggest further data audits or performance comparisons.
+   - If the user has identified a solid topic: suggest generating the blueprint (e.g., "Generate Blueprint for [Topic Name]").
+   - If the user is reviewing research materials: suggest next steps for drafting or outline refinement.
+</document_mode_override>
+`.trim();
 
 
 /**
@@ -518,73 +553,20 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
       return;
     }
 
-    // FAST MODE
-    const FAST_MODE_INSTRUCTION = `
-<instructions>
-CRITICAL: You are in FAST MODE — a professional content strategist.
-Your task: answer the user's question with focused, actionable insights. Use rich Markdown formatting (headings like ## and ###, horizontal dividers ---, bold labels **Label**:, bullet points, and tables) to make your output visually beautiful, structured, and easy to read.
-</instructions>
-
-${agentInstruction}
-
-<constraints>
-1. Structure and Length:
-   - For simple, quick factual queries (e.g., "what is X?"): Be concise (2-4 sentences).
-   - For comprehensive queries, research requests, trend analysis, outline, or report requests: Provide a beautifully structured, rich, and detailed multi-section report. Do NOT artificially limit the length or restrict sections.
-2. Ground all your factual claims. Use the [cite: X] format to reference your grounding sources. Do not write full URLs in your responses.
-3. If searches do not return relevant results after trying alternative phrasings, say so explicitly rather than providing speculative information.
-4. If you find related but non-matching results (for example, a different year, a parent company, or a subsidiary), state the mismatch explicitly before answering.
-5. End with exactly 3 short, clickable follow-up suggestions in this format:
-[SUGGESTIONS: Suggestion 1 | Suggestion 2 | Suggestion 3]
-Ensure these suggestions are action-oriented and guide the user through the logical editorial workflow:
-   - If brainstorming/analyzing: suggest next research topics.
-   - If a specific topic/outline is identified and agreed: the first suggestion MUST invite the user to generate the blueprint (e.g., "Generate Blueprint for [Topic Name]").
-   - If reviewing research: suggest starting the draft or outline refinement in the editor.
-6. Leverage the full power of Markdown to structure your response. Use:
-   - Headers (e.g., ## for main sections, ### for sub-sections) to establish a clear hierarchy.
-   - Bullet points (*) and bold text (**Text**) for list items.
-   - Tables for comparisons or structured data.
-   - Horizontal rules (---) to separate major sections.
-   - Blockquotes (>) for summaries or key takeaways.
-7. DO NOT repeat previous answers.
-</constraints>
-`;
-
-    let finalFastModeInstruction = FAST_MODE_INSTRUCTION;
+    // FAST MODE — build input from node + agent instruction + dynamic overrides
+    let finalFastModeInstruction = `${FAST_MODE_INSTRUCTION}\n\n${agentInstruction}`;
     const hasAttachments = attachments && Array.isArray(attachments) && attachments.length > 0;
 
     const hasUrlInMessage = !!urlMatch;
     if (hasUrlInMessage) {
       if (scrapedContent) {
-        finalFastModeInstruction += `
-\n<url_mode_override>
-CRITICAL: The system has successfully fetched the URL content at ${urlToScrape} and placed it inside <scraped_url_content>.
-Prioritize analyzing the content inside <scraped_url_content> to answer the user's request. Treat the query as a research request: length restrictions are relaxed and you are encouraged to write a beautifully structured, comprehensive Markdown analysis of the page.
-Do NOT use web search unless additional external details are needed.
-</url_mode_override>
-`;
+        finalFastModeInstruction += `\n\n${buildUrlOverrideWithContent(urlToScrape)}`;
       } else {
-        finalFastModeInstruction += `
-\n<url_mode_override>
-CRITICAL: The user provided a URL. Use the url_context tool to fetch and read that page directly.
-If you cannot fetch it or the tool fails, politely ask the user to copy and paste the content manually.
-</url_mode_override>
-`;
+        finalFastModeInstruction += `\n\n${URL_OVERRIDE_NO_CONTENT}`;
       }
     }
     if (hasAttachments) {
-      finalFastModeInstruction += `
-\n<document_mode_override>
-CRITICAL: A file is attached to this request.
-1. Scope of Analysis: Prioritize analyzing the data/text inside <attached_file> ONLY if the user's query is directly asking for performance audits, data summaries, or findings from the attached document. If the query shifts to researching facts, finding data for a new article, or planning/drafting, do NOT force analysis of the attached file.
-2. Web Search & Fact Grounding: If the user asks for data, statistics, or research materials to write a new article, you MUST use Google Search to find real-world statistics, quantitative data, and expert sources. Do NOT reference internal blog performance metrics (views, clicks, impressions) from the attached file as factual content for the new article draft.
-3. Quantified Claims: Ground all claims quantitatively by citing specific data points (exact numbers, titles, or values) from the attached file when auditing traffic, but do not append these metrics to article titles in outlines, lists, or blueprints.
-4. Editorial Progression & Suggestions: Under the [SUGGESTIONS: ...] block, the 3 follow-up suggestions must guide the user dynamically based on the current discussion state:
-   - If the user is analyzing the file: suggest further data audits or performance comparisons.
-   - If the user has identified a solid topic: suggest generating the blueprint (e.g., "Generate Blueprint for [Topic Name]").
-   - If the user is reviewing research materials: suggest next steps for drafting or outline refinement.
-</document_mode_override>
-`;
+      finalFastModeInstruction += `\n\n${DOCUMENT_MODE_OVERRIDE}`;
     }
 
     // Build tools list: google_search if enabled, url_context if message has a URL
@@ -611,9 +593,6 @@ CRITICAL: A file is attached to this request.
     const sources: string[] = [];
     const globalAnnotations: { type?: string; url?: string; title?: string; start_index?: number; end_index?: number }[] = [];
 
-    let isInsideThinking = false;
-    let streamBuffer = "";
-
     for await (const event of stream) {
         if (isDisconnected) {
             console.log('[chat] Aborting stream loop due to client disconnect.');
@@ -634,58 +613,14 @@ CRITICAL: A file is attached to this request.
             }
         } else if (event.event_type === "step.delta") {
             if (event.delta?.type === "text" && event.delta.text) {
-                streamBuffer += event.delta.text;
-
-                while (streamBuffer.length > 0) {
-                    if (!isInsideThinking) {
-                        const thinkingIndex = streamBuffer.indexOf('<thinking>');
-                        if (thinkingIndex !== -1) {
-                            // Send everything before <thinking>
-                            const before = streamBuffer.slice(0, thinkingIndex);
-                            if (before) {
-                                finalOutputText += before;
-                                res.write(`data: ${JSON.stringify({ type: "text", chunk: before })}\n\n`);
-                            }
-                            isInsideThinking = true;
-                            streamBuffer = streamBuffer.slice(thinkingIndex + '<thinking>'.length);
-                        } else {
-                            // Check for partial tag at the end of the buffer (e.g. "<", "<t", "<th", etc.)
-                            const openBracketIndex = streamBuffer.lastIndexOf('<');
-                            if (openBracketIndex !== -1 && '<thinking>'.startsWith(streamBuffer.slice(openBracketIndex))) {
-                                // Send everything before the partial tag
-                                const before = streamBuffer.slice(0, openBracketIndex);
-                                if (before) {
-                                    finalOutputText += before;
-                                    res.write(`data: ${JSON.stringify({ type: "text", chunk: before })}\n\n`);
-                                }
-                                streamBuffer = streamBuffer.slice(openBracketIndex);
-                                break; // Wait for more data
-                            } else {
-                                // No partial tag, send everything
-                                finalOutputText += streamBuffer;
-                                res.write(`data: ${JSON.stringify({ type: "text", chunk: streamBuffer })}\n\n`);
-                                streamBuffer = "";
-                            }
-                        }
-                    } else {
-                        const closeThinkingIndex = streamBuffer.indexOf('</thinking>');
-                        if (closeThinkingIndex !== -1) {
-                            isInsideThinking = false;
-                            streamBuffer = streamBuffer.slice(closeThinkingIndex + '</thinking>'.length);
-                        } else {
-                            // Check for partial close tag at the end of the buffer (e.g. "</", "</t", "</th", etc.)
-                            const openBracketIndex = streamBuffer.lastIndexOf('<');
-                            if (openBracketIndex !== -1 && '</thinking>'.startsWith(streamBuffer.slice(openBracketIndex))) {
-                                streamBuffer = streamBuffer.slice(openBracketIndex);
-                                break; // Wait for more data to complete the close tag
-                            } else {
-                                // Discard the entire buffer since we are inside thinking and no partial close tag is at the end
-                                streamBuffer = "";
-                                break;
-                            }
-                        }
-                    }
-                }
+                // Gemini 3.x native thinking flows as separate `thought_summary` deltas, not
+                // inline <thinking> tags. Simply forward text deltas directly.
+                finalOutputText += event.delta.text;
+                res.write(`data: ${JSON.stringify({ type: "text", chunk: event.delta.text })}\n\n`);
+            } else if (event.delta?.type === "thought_summary" && (event.delta as { text?: string }).text) {
+                // Forward native thinking summaries to the client for UI "Thinking..." indicators.
+                // The frontend decides whether to display or discard this stream.
+                res.write(`data: ${JSON.stringify({ type: "thinking", chunk: (event.delta as { text: string }).text })}\n\n`);
             } else if (event.delta?.type === "text_annotation_delta" && event.delta.annotations) {
                 globalAnnotations.push(...event.delta.annotations);
             }
@@ -806,11 +741,6 @@ CRITICAL: A file is attached to this request.
         }
     }
 
-    if (streamBuffer && !isInsideThinking) {
-        finalOutputText += streamBuffer;
-        res.write(`data: ${JSON.stringify({ type: "text", chunk: streamBuffer })}\n\n`);
-    }
-    
     res.end();
   } catch (error) {
     console.error('Error in chat stream:', error);
@@ -1329,6 +1259,9 @@ router.post('/generate-draft-from-notes', async (req, res) => {
 
     const systemInstruction = new DraftFromNotesComposer(profile?.config).compose('xml');
 
+    // The <instruction> block that was previously appended here is fully covered by
+    // DraftFromNotesConstraintsNode (cognitive_framework + absolute_prohibitions).
+    // Keeping it caused instruction duplication and potential model confusion.
     const prompt = `
 <input_material>
 ${notesText}
@@ -1341,14 +1274,6 @@ Target Audience: ${metadata?.targetAudience || 'General Audience'}
 Output Language: ${metadata?.outputLanguage || 'Follow the language of the input material.'}
 Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and engaging tone.'}
 </metadata>
-
-<instruction>
-Process the input_material through the cognitive framework stages (IDENTIFY → EXTRACT → EXPAND).
-
-CRITICAL: If the input contains performance audits, strategy sections, or multiple article topics, pick exactly ONE article topic and write ONLY that article. IGNORE all meta-commentary, audit data, SEO plans, and distribution strategy — they are NOT article content.
-
-Your output must be a single, complete article draft ready for editorial review.
-</instruction>
 `.trim();
 
     const stream = await gemini.interactions.create({
