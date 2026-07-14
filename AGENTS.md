@@ -62,10 +62,17 @@ Refer to these resources for detailed architectural overviews, third-party integ
 
 ---
 
-## 💡 AI Prompt Alignment & Brand Compliance Rules (Mandatory)
+## 💡 Composable Prompt Component Architecture & Brand Compliance Rules (Mandatory)
 
-To guarantee that all AI assistant operations (Chat, SEO Optimizer, Fact-Checker, Targeted Fixes) align with the active tenant's brand voice:
-* **Prompt Modularization**: Always use the modular helper `composeWorkspaceContext` to structure the workspace metadata.
+To guarantee that all AI assistant operations (Chat, SEO Optimizer, Fact-Checker, Targeted Fixes, Strategist, Quality Gate) align with the active tenant's brand voice:
+* **Composable Prompt Component Architecture (PCA)**: All prompts must be built modularly using AST nodes (Core and Tenant nodes) and composed via their respective stage composers:
+  - `SeoPromptComposer` (SEO Stage)
+  - `ReviewPromptComposer` (Review/Polish Stage)
+  - `RewritePromptComposer` (Rewrite Stage)
+  - `RefinementPromptComposer` (Iterative Refinement & Targeted Fix Stages)
+  - `QualityGatePromptComposer` (Final Quality Gate Stage)
+  - `StrategistPromptComposer` (Draft & Outline Strategist Stages)
+* **Gemini Prompt Caching Optimization**: All composers must inherit from `CompositePromptNode`, which automatically groups static platform rules and guidelines (Core nodes) at the beginning of the prompt and appends dynamic article/workspace context (Tenant nodes) at the end, maximizing Gemini prompt caching efficiency.
 * **Input Boundary Guidelines**: Place references and context inside the `<workspace_context>` tag, and dynamic system rules inside the `<agent_instruction>` tag.
 * **Never Duplicate Instructions**: Always fetch instructions through the shared helper `getWorkspaceAgentInstruction` and inject them as system guidelines (`systemInstruction` or provider-specific system prompts) instead of hardcoding them in endpoints.
 * **Provider Config Helpers**: For native Gemini calls, use `getNativeGeminiConfig(thinkingLevel)` from `apps/backend/src/lib/ai/provider-runtime.ts`. Do **not** use the deprecated `getGeminiSamplingConfig` — the `temperature` param is silently ignored by the Gemini 2.5 SDK when `thinkingConfig` is active.

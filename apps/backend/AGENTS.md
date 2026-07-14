@@ -149,30 +149,32 @@ apps/backend/
 
 ## 5. AI Pipeline Architecture
 
-The AI analysis pipeline is composed of stages in `src/lib/ai/`:
+The AI analysis pipeline is composed of stages in `src/lib/ai/` and managed dynamically via the **Composable Prompt Component Architecture (PCA)** under `src/lib/ai/prompt-engine/`:
 
-| Stage file | Purpose |
+| Path / Class | Purpose |
 |---|---|
 | `workspace-context.ts` | Builds `<workspace_context>` XML + `<agent_instruction>` block via `composeWorkspaceContext` and `getWorkspaceAgentInstruction` |
 | `prompt-context.ts` | Assembles the full prompt context (profile + content + notes + attachments) |
 | `provider-runtime.ts` | Provider config helpers: `getNativeGeminiConfig` (native SDK calls) and `getOpenRouterSamplingConfig` (OpenRouter). `getGeminiSamplingConfig` is **deprecated** — do not use. |
-| `review-stage.ts` | Editorial review — `ThinkingLevel.LOW`, returns structured feedback with `thinking` CoT field |
-| `quality-gate-stage.ts` | Final quality gate — `ThinkingLevel.LOW`, deterministic source-fidelity checks via `final-quality.ts` |
-| `seo-stage.ts` | SEO metadata analysis and optimization recommendations |
-| `targeted-fix-stage.ts` | Targeted fix — `ThinkingLevel.LOW`, tenant-aware prompt with brand guidelines |
+| `review-stage.ts` | Editorial review — utilizes `ReviewPromptComposer` (`ThinkingLevel.LOW`), returns structured feedback with `thinking` CoT field |
+| `quality-gate-stage.ts` | Final quality gate — utilizes `QualityGatePromptComposer` (`ThinkingLevel.LOW`), deterministic source-fidelity checks via `final-quality.ts` |
+| `seo-stage.ts` | SEO metadata analysis and optimization recommendations — utilizes `SeoPromptComposer` |
+| `targeted-fix-stage.ts` | Targeted fix — utilizes `RefinementPromptComposer` (`ThinkingLevel.LOW`), tenant-aware prompt with brand guidelines |
+| `quick-draft.ts` | Strategist / Quick Draft route — utilizes `StrategistPromptComposer` for draft generation and outline creation |
 
-Master prompts for all stages live in `src/lib/prompts.ts`. Never write inline prompts in route handlers.
+### Composable Prompt Component Architecture (PCA)
+Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes located under `prompt-engine/core/` (statically defined guidelines) and `prompt-engine/tenant/` (tenant-specific details):
+* **Core Nodes**: Statically configured platform rules (`EditorialMissionNode`, `LanguagePolicyNode`, `StrictnessConstraintNode`, `InputBoundaryNode`, `MarkdownRulesNode`, `VerificationLockNode`, `TemporalContextNode`, `OutputSchemaNode`).
+* **Tenant Nodes**: Dynamic configurations (`BrandIdentityNode`, `ToneCalibrationNode`).
+* **Composers**: Composers (`SeoPromptComposer`, `ReviewPromptComposer`, `RewritePromptComposer`, `RefinementPromptComposer`, `QualityGatePromptComposer`, `StrategistPromptComposer`) assemble these nodes into a unified `CompositePromptNode`.
+* **Gemini Prompt Caching**: Composers automatically group static Core nodes at the beginning of the prompt and append dynamic Tenant nodes at the end to maximize cache reuse and minimize Gemini API token costs.
+* **Master Prompts File**: Berkas `src/lib/prompts.ts` is simplified and **only** exports timezone, date, and prompt version helpers. All prompt content must be updated inside the AST nodes and stage composers. Never inline raw system prompt blocks in route handlers or stages.
 
 > **H1 Contract**: `analyze.ts` applies `stripLeadingH1` (from `src/lib/text-utils.ts`) to the input draft **before** the rewrite stage. This removes any top-level heading that would duplicate the article title rendered by the frontend.
 
-
-* **Gemini Prompt Caching**: Gemini supports static prompt caching.
-  * Structure prompts by placing long, static system instructions at the **beginning**.
-  * Place dynamic parameters (such as the user's article content) at the **end** beneath marker blocks: `=== DYNAMIC CONSTRAINTS ===` or `=== ARTICLE CONTENT ===`.
-  * This maximizes cache reuse and reduces Gemini API token costs.
 * **Chain-of-Thought (CoT)**: When designing JSON output schemas for AI reviewers or quality gates, ensure the Zod schema includes a `"thinking"` string property at the very top to hold the LLM reasoning process before yielding the final evaluation.
 * **Workspace Context & Compliance Helpers**:
-  * All AI pipeline stages (SEO Optimizer, Fact-Checker, Targeted Fixes, Chat) must utilize the shared prompt helper functions from `src/lib/ai/workspace-context.ts`:
+  * All AI pipeline stages (SEO Optimizer, Fact-Checker, Targeted Fixes, Chat, Strategist) must utilize the shared prompt helper functions from `src/lib/ai/workspace-context.ts`:
     * `composeWorkspaceContext`: Builds a structured workspace context object and renders it as XML (`<workspace_context>`).
     * `getWorkspaceAgentInstruction`: Generates the dynamic `<agent_instruction>` guidelines detailing style restrictions and language fallbacks based on whether the workspace profile is fully configured.
   * Place reference materials and dates inside `<workspace_context>` tags and system-level instructions in `<agent_instruction>` tags to prevent prompt injection.

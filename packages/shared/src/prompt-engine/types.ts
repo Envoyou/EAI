@@ -3,7 +3,7 @@ export type RenderFormat = 'xml' | 'markdown' | 'text';
 export interface RenderContext {
   format: RenderFormat;
   targetLanguage?: 'en' | 'id' | 'follow_draft';
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface PromptNode {
