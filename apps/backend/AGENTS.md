@@ -78,7 +78,7 @@ apps/backend/
 │   │   ├── db.ts             # Prisma + Neon serverless driver setup
 │   │   ├── r2.ts             # Cloudflare R2 client (AWS S3 SDK)
 │   │   ├── queue.ts          # BullMQ + Redis connection
-│   │   ├── prompts.ts        # Master AI prompt library for all pipeline stages (never inline prompts in routes)
+│   │   ├── prompts.ts        # Timezone, date, and prompt version helpers (no prompt bodies)
 │   │   ├── text-utils.ts     # Text utilities (e.g., stripLeadingH1 — removes rogue H1 before rewrite stage)
 │   │   ├── final-quality.ts  # Final quality gate pipeline — deterministic source-fidelity checks
 │   │   ├── admin-billing.ts  # Subscription + credit ledger admin helpers
@@ -99,10 +99,15 @@ apps/backend/
 │   │       ├── workspace-context.ts    # composeWorkspaceContext + getWorkspaceAgentInstruction
 │   │       ├── prompt-context.ts       # Prompt context assembly
 │   │       ├── provider-runtime.ts     # Provider config helpers: getNativeGeminiConfig / getOpenRouterSamplingConfig
-│   │       ├── review-stage.ts         # Editorial review — ThinkingLevel.LOW, CoT "thinking" field
-│   │       ├── quality-gate-stage.ts   # Quality gate — ThinkingLevel.LOW, deterministic gating
-│   │       ├── seo-stage.ts            # SEO metadata generation stage
-│   │       └── targeted-fix-stage.ts   # Targeted fix — ThinkingLevel.LOW, tenant-aware
+│   │       ├── review-stage.ts         # Editorial review — utilizes ReviewPromptComposer
+│   │       ├── quality-gate-stage.ts   # Quality gate — utilizes QualityGatePromptComposer
+│   │       ├── seo-stage.ts            # SEO metadata generation stage — utilizes SeoPromptComposer
+│   │       ├── targeted-fix-stage.ts   # Targeted fix — utilizes RefinementPromptComposer
+│   │       └── prompt-engine/          # Composable PCA engine
+│   │           ├── core/               # Static platform instruction nodes (mission, rules, facts)
+│   │           ├── tenant/             # Dynamic/tenant instruction nodes (profile, tone)
+│   │           ├── composer/           # Stage composers (SEO, Review, Rewrite, Refinement, QualityGate, Strategist)
+│   │           └── __tests__/          # Unit test suite for AST and composers
 │   └── routes/
 │       ├── analyze.ts        # POST /api/analyze — core AI analysis pipeline (applies stripLeadingH1)
 │       ├── workspace.ts      # GET/PATCH /api/workspace — workspace management
@@ -120,8 +125,8 @@ apps/backend/
 │       ├── storage.ts        # /api/storage — R2 file storage
 │       ├── health.ts         # GET /health, /api/health — shallow & deep health checks
 │       ├── strategist/
-│       │   ├── index.ts      # /api/strategist — brand-aware content strategy AI (EditorialProfileConfig)
-│       │   └── quick-draft.ts  # /api/strategist/quick-draft — quick draft gen (ThinkingLevel.LOW)
+│       │   ├── index.ts      # /api/strategist — brand-aware content strategy AI
+│       │   └── quick-draft.ts  # /api/strategist/quick-draft — quick draft gen using StrategistPromptComposer
 │       └── webhooks/
 │           ├── clerk.ts      # /api/webhooks/clerk — Clerk user sync events
 │           └── payment.ts    # /api/webhooks/payment — Midtrans payment events
