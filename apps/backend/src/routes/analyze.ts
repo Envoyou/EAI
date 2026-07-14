@@ -6,7 +6,6 @@ import {
   getPolishReviewPrompt,
   getPolishedDraftPrompt,
   getPromptForRole,
-  getSeoMetadataPrompt,
   getIterativeRefinementPrompt,
   PROMPT_VERSION,
 } from '@/lib/prompts';
@@ -38,9 +37,11 @@ import { runEditorialReviewStage } from '@/lib/ai/review-stage';
 import { runFinalQualityGateSafely } from '@/lib/ai/quality-gate-stage';
 import { runTargetedFixStage } from '@/lib/ai/targeted-fix-stage';
 import { runSeoStage } from '@/lib/ai/seo-stage';
+import { SeoPromptComposer } from '@/lib/ai/prompt-engine/composer/seo-composer';
 import { getAllFeatureFlags } from '@eai/shared/server';
 import { verifyToken } from '@clerk/backend';
 import { stripLeadingH1 } from '@/lib/text-utils';
+
 
 const router = Router();
 
@@ -1536,11 +1537,10 @@ router.post('/', async (req: Request, res) => {
           article: refinedText,
           metadata,
           editorialProfile,
-          systemInstruction: composePrompt(getSeoMetadataPrompt(
-            metadata,
+          systemInstruction: new SeoPromptComposer(
             editorialProfile.config,
             { includeTextSchema: effectiveProvider !== 'gemini' }
-          )),
+          ).compose('xml'),
           telemetry,
         })) as Record<string, unknown>;
         sendEvent('seo_metadata', refineSeo);
@@ -1774,11 +1774,10 @@ router.post('/', async (req: Request, res) => {
           article: polishedText || text,
           metadata,
           editorialProfile,
-          systemInstruction: composePrompt(getSeoMetadataPrompt(
-            metadata,
+          systemInstruction: new SeoPromptComposer(
             editorialProfile.config,
             { includeTextSchema: false }
-          )),
+          ).compose('xml'),
           telemetry,
         })) as Record<string, unknown>;
         sendEvent('seo_metadata', seo);
@@ -2015,11 +2014,10 @@ router.post('/', async (req: Request, res) => {
           article: polishedText || text,
           metadata,
           editorialProfile,
-          systemInstruction: composePrompt(getSeoMetadataPrompt(
-            metadata,
+          systemInstruction: new SeoPromptComposer(
             editorialProfile.config,
             { includeTextSchema: true }
-          )),
+          ).compose('xml'),
           telemetry,
         })) as Record<string, unknown>;
         sendEvent('seo_metadata', seo);
