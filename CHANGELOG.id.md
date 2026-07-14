@@ -6,6 +6,14 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Composable Prompt Component Architecture (PCA)**: Memperkenalkan mesin penyusunan prompt modular berbasis AST di folder `packages/shared/src/prompt-engine` dan `apps/backend/src/lib/ai/prompt-engine/`.
+- **Core dan Tenant Prompt Nodes**: Memisahkan instruksi statis platform ke dalam node Core independen (`EditorialMissionNode`, `MarkdownRulesNode`, `VerificationLockNode`, `LanguagePolicyNode`, `TemporalContextNode`, `StrictnessConstraintNode`, `InputBoundaryNode`, dan `OutputSchemaNode`) serta konfigurasi workspace dinamis ke dalam node Tenant (`BrandIdentityNode`, `ToneCalibrationNode`).
+- **SeoPromptComposer**: Mengimplementasikan komposer pilot pertama untuk menyusun prompt SEO metadata secara terstruktur dari komponen-komponen node.
+
+### Changed
+- **Refaktorisasi SEO Stage**: Merefaktor `runSeoStage` dan `analyze.ts` untuk menggunakan `SeoPromptComposer` baru dalam menghasilkan prompt, mengoptimalkan blok instruksi statis agar Gemini prompt caching bekerja maksimal.
+
 ## [3.3.0] - 2026-07-14
 
 ### Added

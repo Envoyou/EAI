@@ -6,6 +6,14 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Composable Prompt Component Architecture (PCA)**: Introduced a modular, AST-based prompt composition engine under `packages/shared/src/prompt-engine` and `apps/backend/src/lib/ai/prompt-engine/`.
+- **Core and Tenant Prompt Nodes**: Separated static platform prompts into independent Core nodes (`EditorialMissionNode`, `MarkdownRulesNode`, `VerificationLockNode`, `LanguagePolicyNode`, `TemporalContextNode`, `StrictnessConstraintNode`, `InputBoundaryNode`, and `OutputSchemaNode`) and dynamic workspace configurations into Tenant nodes (`BrandIdentityNode`, `ToneCalibrationNode`).
+- **SeoPromptComposer**: Implemented the first composer pilot to compile the structured SEO metadata generation prompt from component nodes.
+
+### Changed
+- **SEO Stage Refactoring**: Refactored `runSeoStage` and `analyze.ts` to utilize the new `SeoPromptComposer` for prompt generation, optimizing static prompt blocks for Gemini prompt caching.
+
 ## [3.3.0] - 2026-07-14
 
 ### Added
