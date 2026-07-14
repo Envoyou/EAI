@@ -2,6 +2,7 @@ import { CompositePromptNode, PromptNode, RenderContext } from '@eai/shared';
 import { SeoPromptComposer } from '../composer/seo-composer';
 import { ReviewPromptComposer } from '../composer/review-composer';
 import { RewritePromptComposer } from '../composer/rewrite-composer';
+import { RefinementPromptComposer } from '../composer/refinement-composer';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -162,6 +163,30 @@ assert(
 assert(
   composedRewrite.includes('- Output must process ONLY content from this input chunk'),
   'Rewrite prompt must reflect chunk mode rules'
+);
+
+// Test Case 6: RefinementPromptComposer generation
+const refineComposerIterative = new RefinementPromptComposer('iterative', mockProfile);
+const composedRefineIterative = refineComposerIterative.compose('xml');
+
+assert(
+  composedRefineIterative.includes('<refinement_role_instructions type="iterative">'),
+  'Refinement prompt must contain role instructions'
+);
+assert(
+  composedRefineIterative.includes('You are a senior TestBrand editor performing iterative refinement'),
+  'Refinement prompt must contain specific editor role message'
+);
+assert(
+  composedRefineIterative.includes('<factual_refinement_guardrail>'),
+  'Refinement prompt must contain factual refinement guardrail'
+);
+
+const refineComposerTargeted = new RefinementPromptComposer('targeted_fix', mockProfile);
+const composedRefineTargeted = refineComposerTargeted.compose('xml');
+assert(
+  composedRefineTargeted.includes('You are a senior TestBrand editor performing one targeted text repair.'),
+  'Refinement prompt must contain targeted fix role instructions'
 );
 
 console.log('✅ All prompt engine unit tests passed successfully!');

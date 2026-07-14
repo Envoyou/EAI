@@ -12,11 +12,13 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **SeoPromptComposer**: Implemented the first composer pilot to compile the structured SEO metadata generation prompt from component nodes.
 - **ReviewPromptComposer**: Added a flexible, multi-role review prompt composer that targets author, editor, seo (feedback suggestions), fact-checker, and polish (diagnosis transformation) roles.
 - **RewritePromptComposer**: Introduced a comprehensive rewrite stage prompt composer that handles few-shot demonstrations, priority guidelines, editorial constraints, smart internal linking (published posts), and chunking boundaries.
+- **RefinementPromptComposer**: Implemented a refinement composer for partial edits, supporting both Iterative Refinement and Targeted Fix stages with factual refinement guardrails and output constraints.
 
 ### Changed
 - **SEO Stage Refactoring**: Refactored `runSeoStage` and `analyze.ts` to utilize the new `SeoPromptComposer` for prompt generation, optimizing static prompt blocks for Gemini prompt caching.
 - **Review Stage Refactoring**: Refactored `runEditorialReviewStage` and `analyze.ts` to utilize the new `ReviewPromptComposer` instead of the legacy `getPolishReviewPrompt` and `getPromptForRole` functions.
 - **Rewrite Stage Refactoring**: Refactored the draft rewrite process in `analyze.ts` to utilize the new `RewritePromptComposer` for prompt generation instead of the legacy `getPolishedDraftPrompt` function.
+- **Refinement Stage Refactoring**: Refactored the iterative refinement and targeted fix stages in `analyze.ts` and `targeted-fix-stage.ts` to utilize the new `RefinementPromptComposer` for prompt generation instead of the legacy `getIterativeRefinementPrompt` and `getTargetedFixPrompt` functions.
 
 ## [3.3.0] - 2026-07-14
 

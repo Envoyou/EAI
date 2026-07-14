@@ -12,11 +12,13 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **SeoPromptComposer**: Mengimplementasikan komposer pilot pertama untuk menyusun prompt SEO metadata secara terstruktur dari komponen-komponen node.
 - **ReviewPromptComposer**: Menambahkan komposer prompt review multi-peran yang fleksibel untuk mendukung peran author, editor, seo (feedback saran), fact-checker, dan mode polish (diagnosa transformasi).
 - **RewritePromptComposer**: Memperkenalkan komposer prompt rewrite yang komprehensif untuk menangani demonstrasi few-shot, panduan prioritas, batasan editorial, smart internal linking (artikel terkait), dan aturan pemotongan tulisan (chunking).
+- **RefinementPromptComposer**: Memperkenalkan komposer prompt refinement untuk penyuntingan draf parsial, mendukung tahapan Iterative Refinement dan Targeted Fixes dengan guardrail refinement fakta serta pembatasan format output.
 
 ### Changed
 - **Refaktorisasi SEO Stage**: Merefaktor `runSeoStage` dan `analyze.ts` untuk menggunakan `SeoPromptComposer` baru dalam menghasilkan prompt, mengoptimalkan blok instruksi statis agar Gemini prompt caching bekerja maksimal.
 - **Refaktorisasi Review Stage**: Merefaktor `runEditorialReviewStage` dan `analyze.ts` untuk menggunakan `ReviewPromptComposer` baru sebagai pengganti fungsi `getPolishReviewPrompt` dan `getPromptForRole` lama.
 - **Refaktorisasi Rewrite Stage**: Merefaktor proses penulisan ulang draf di `analyze.ts` agar menggunakan `RewritePromptComposer` baru sebagai pengganti fungsi `getPolishedDraftPrompt` lama.
+- **Refaktorisasi Refinement Stage**: Merefaktor tahapan penyuntingan berulang (*iterative refinement*) dan perbaikan target teks (*targeted fix*) di `analyze.ts` dan `targeted-fix-stage.ts` agar menggunakan `RefinementPromptComposer` baru sebagai pengganti fungsi `getIterativeRefinementPrompt` dan `getTargetedFixPrompt` lama.
 
 ## [3.3.0] - 2026-07-14
 

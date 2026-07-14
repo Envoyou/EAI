@@ -1,8 +1,7 @@
 import { ThinkingLevel } from '@google/genai';
 import type { ArticleMetadata } from '@eai/shared';
 import type { EditorialProfileSnapshot } from '@eai/shared/server';
-import { composeEditorialPrompt } from '@eai/shared/server';
-import { getTargetedFixPrompt } from '@/lib/prompts';
+import { RefinementPromptComposer } from './prompt-engine/composer/refinement-composer';
 import {
   type AiProvider,
   type AnalysisSpeed,
@@ -15,9 +14,6 @@ import {
   groq,
   openrouter,
 } from './provider-runtime';
-import {
-  withInputBoundaryPolicy,
-} from './prompt-context';
 import { composeWorkspaceContext } from './workspace-context';
 
 export const runTargetedFixStage = async ({
@@ -27,7 +23,7 @@ export const runTargetedFixStage = async ({
   targetText,
   feedback,
   editorInstruction,
-  metadata,
+  _metadata,
   editorialProfile,
 }: {
   provider: AiProvider;
@@ -58,10 +54,10 @@ export const runTargetedFixStage = async ({
     profileConfig: editorialProfile.config,
   });
 
-  const systemInstruction = `${withInputBoundaryPolicy(composeEditorialPrompt(
-    getTargetedFixPrompt(metadata, editorialProfile.config),
-    editorialProfile
-  ))}\n\n${agentInstruction}`;
+  const systemInstruction = `${new RefinementPromptComposer(
+    'targeted_fix',
+    editorialProfile.config
+  ).compose('xml')}\n\n${agentInstruction}`;
 
   const contents = [
     workspaceXml,

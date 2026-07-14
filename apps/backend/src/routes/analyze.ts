@@ -3,14 +3,13 @@ import { ThinkingLevel } from '@google/genai';
 import { randomUUID } from 'node:crypto';
 import { prisma, Prisma } from '@/lib/db';
 import {
-  getIterativeRefinementPrompt,
   PROMPT_VERSION,
 } from '@/lib/prompts';
 import { Role, ArticleMetadata, ResponseMode, AnalyzeMode, FeedbackItem, VerificationStatus, ResearchNote } from '@eai/shared';
 import { FeedbackOutput, PolishDiagnosisOutput, FinalQualityGateOutput } from '@eai/shared';
 import { cleanupEscapedMarkdownArtifacts, convertAsciiTablesToMarkdown, stripVerificationMarkers } from '@/lib/final-quality';
 import { AiTelemetryCollector, AiTelemetrySnapshot } from '@/lib/ai-telemetry';
-import { buildEditorialAuditContext, composeEditorialPrompt, EditorialAuditContext, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
+import { buildEditorialAuditContext, EditorialAuditContext, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { CmsAdapterError, listPublishedPostsForProfile } from '@/lib/cms-adapter';
 import { getWorkspaceState } from '@/lib/user-workspace';
@@ -28,7 +27,6 @@ import {
 } from '@/lib/ai/provider-runtime';
 import {
   buildEditorialUserContent,
-  withInputBoundaryPolicy,
 } from '@/lib/ai/prompt-context';
 import { runEditorialReviewStage } from '@/lib/ai/review-stage';
 import { runFinalQualityGateSafely } from '@/lib/ai/quality-gate-stage';
@@ -37,6 +35,7 @@ import { runSeoStage } from '@/lib/ai/seo-stage';
 import { SeoPromptComposer } from '@/lib/ai/prompt-engine/composer/seo-composer';
 import { ReviewPromptComposer } from '@/lib/ai/prompt-engine/composer/review-composer';
 import { RewritePromptComposer } from '@/lib/ai/prompt-engine/composer/rewrite-composer';
+import { RefinementPromptComposer } from '@/lib/ai/prompt-engine/composer/refinement-composer';
 import { getAllFeatureFlags } from '@eai/shared/server';
 import { verifyToken } from '@clerk/backend';
 import { stripLeadingH1 } from '@/lib/text-utils';
@@ -1075,9 +1074,6 @@ router.post('/', async (req: Request, res) => {
   res.on('finish', clearKeepAlive);
   res.on('close', clearKeepAlive);
 
-  const composePrompt = (prompt: string) =>
-    withInputBoundaryPolicy(composeEditorialPrompt(prompt, editorialProfile));
-
   const editorialAudit = buildEditorialAuditContext(editorialProfile, PROMPT_VERSION);
   const editorialLogFields = {
     editorialProfileVersionId: editorialAudit.editorialProfileVersionId ?? null,
@@ -1354,10 +1350,10 @@ router.post('/', async (req: Request, res) => {
 
       sendEvent('status', 'rewriting');
 
-      const refinePrompt = composePrompt(getIterativeRefinementPrompt({
-        metadata,
-        profile: editorialProfile.config,
-      }));
+      const refinePrompt = new RefinementPromptComposer(
+        'iterative',
+        editorialProfile.config
+      ).compose('xml');
 
       let refinedText = '';
       const lockedRefineInput = applyVerificationLocks(text, protectedFeedback);
