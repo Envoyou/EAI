@@ -15,6 +15,9 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **RefinementPromptComposer**: Memperkenalkan komposer prompt refinement untuk penyuntingan draf parsial, mendukung tahapan Iterative Refinement dan Targeted Fixes dengan guardrail refinement fakta serta pembatasan format output.
 - **QualityGatePromptComposer**: Memperkenalkan komposer prompt Quality Gate untuk mengevaluasi kualitas, perubahan, kelayakan, dan risiko draf akhir artikel.
 - **StrategistPromptComposer**: Menambahkan komposer prompt Strategist untuk menangani pembuatan draf kasar dan outline terstruktur secara modular dengan integrasi aturan press release.
+- **StrategistChatComposer**: Menambahkan komposer prompt obrolan strategist untuk memandu interaksi brainstorming interaktif, analisis data lalu lintas, audit halaman, dan asisten riset.
+- **StrategistBlueprintComposer**: Menambahkan komposer prompt blueprint untuk menyusun rencana editorial terperinci (angle, hook, target audiens, dan outline) serta draft awal artikel berbasis structured output.
+- **DraftFromNotesComposer**: Menambahkan komposer prompt penyusunan draf dari catatan riset/blueprint secara instan dengan penerapan model kognitif (IDENTIFY -> EXTRACT -> EXPAND).
 - **StrategistFastModeInstructionNode**: Menambahkan node baru untuk menangani instruksi sistem khusus Fast Mode pada asisten strategist secara modular dan testable.
 - **Indikator Berpikir Real-Time (Thinking Indicator)**: Menambahkan dukungan SSE untuk meneruskan dan menampilkan teks penalaran (thought_summary delta) dari Gemini 3.x secara real-time di UI obrolan Strategist.
 

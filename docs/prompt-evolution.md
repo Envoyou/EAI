@@ -4,19 +4,30 @@ Dokumen ini mencatat rancangan, riwayat iterasi, kendala teknis, serta solusi re
 
 ---
 
-## 1. Versi Saat Ini: v3.3.0
+## 1. Versi Saat Ini: v3.3.0 (Strategist Prompt Optimization & Real-Time Thinking)
 
 Prompt utama dikelola secara modular menggunakan **Composable Prompt Component Architecture (PCA)** di `src/lib/ai/prompt-engine/` dan memanfaatkan modul pembangun konteks bersama `src/lib/ai/workspace-context.ts`. Berkas `src/lib/prompts.ts` disederhanakan murni sebagai pembantu utilitas bersama.
 
-### Struktur Utama System Prompt
+### Struktur Utama System Prompt & Asisten Strategis
 Prompt yang dikirim ke model kini dibagi ke lima jalur:
 1.  **Review Prompt**: ringkas, manual-first, fokus pada 3 masalah/kekuatan utama.
 2.  **Rewrite Prompt**: menulis ulang artikel final sebagai plain text, bukan JSON, untuk mengurangi risiko escape dan truncation.
 3.  **Final Quality Gate Prompt**: menilai refined draft, merangkum perubahan, dan menghasilkan readiness tanpa skor.
 4.  **SEO Prompt**: menghasilkan metadata SEO dalam JSON terpisah.
-5.  **Strategist Chat Prompt**: melakukan tanya-jawab asisten konten.
+5.  **Strategist Prompt & Assistant**:
+    - `StrategistChatComposer` (Obrolan/Brainstorming)
+    - `StrategistBlueprintComposer` (Pembuatan Rencana & Draf Kasar)
+    - `DraftFromNotesComposer` (Konversi Catatan Riset ke Artikel)
+    - `StrategistFastModeInstructionNode` (Instruksi Fast Mode Modular)
 
 Semua jalur prompt kini telah dimigrasikan untuk menggunakan skema perakitan konteks terpadu (Workspace Context XML) dan penyuntikan instruksi kepatuhan brand dinamis (Agent Instruction).
+
+### Optimasi Gemini 3.x Native Thinking & Caching
+Sejak transisi ke model Gemini 3.x, sistem prompt dan penanganan obrolan diperbarui secara radikal:
+1.  **Penghapusan CoT Manual**: Petunjuk menulis pemikiran di dalam `<thinking>` tag dihapus karena bertabrakan dengan Gemini 3.x native thinking. Mode native thinking menghasilkan penalaran model dalam event delta `thought_summary` secara terpisah (bukan inline text), sehingga manual `<thinking>` tag dibuang demi efisiensi cache dan latensi.
+2.  **Streaming Teks Penalaran**: Teks penalaran model (`thought_summary` delta) diteruskan secara real-time dari backend ke client dengan SSE event type `thinking` sehingga frontend dapat merender "Thought Process" model secara transparan.
+3.  **Pemisahan Instruksi Fast Mode & Overrides**: Mengubah instansiasi Fast Mode menjadi node statis (`StrategistFastModeInstructionNode`) agar dapat di-cache secara efisien oleh Gemini, sementara override untuk URL scraper dan dokumen lampiran dipisahkan sebagai data payload dinamis.
+4.  **Dynamic Date Injection**: Tanggal hari ini menggunakan `RenderContext.today` dinamis yang disuntikkan saat rendering node, bukan lagi tanggal hardcoded yang merusak grounding spasial waktu model.
 
 Untuk mode `polish`, sistem tidak lagi menonjolkan pemilihan role di UI. Role lama masih ada di kode sebagai fondasi, tetapi alur utama produk telah dipusatkan pada satu tindakan: `Polish Article`.
 

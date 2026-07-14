@@ -104,10 +104,26 @@ apps/backend/
 │   │       ├── seo-stage.ts            # SEO metadata generation stage — utilizes SeoPromptComposer
 │   │       ├── targeted-fix-stage.ts   # Targeted fix — utilizes RefinementPromptComposer
 │   │       └── prompt-engine/          # Composable PCA engine
-│   │           ├── core/               # Static platform instruction nodes (mission, rules, facts)
+│   │           ├── core/               # Static platform instruction nodes
+│   │           │   ├── mission.ts      # Editorial mission
+│   │           │   ├── rules.ts        # Markdown, Verification, Language & Temporal rules
+│   │           │   ├── facts.ts        # Factual guardrails & source policy
+│   │           │   └── strategist.ts   # Strategist role, general constraints, examples, tool guidelines, and Fast Mode node
 │   │           ├── tenant/             # Dynamic/tenant instruction nodes (profile, tone)
-│   │           ├── composer/           # Stage composers (SEO, Review, Rewrite, Refinement, QualityGate, Strategist)
+│   │           │   ├── profile.ts      # Brand metadata, positioning, audience
+│   │           │   └── tone.ts         # Visual tone & few-shot examples
+│   │           ├── composer/           # Stage composers (orchestrating AST nodes)
+│   │           │   ├── seo-composer.ts              # SEO metadata generation AST composer
+│   │           │   ├── review-composer.ts           # Multi-role review prompt AST composer
+│   │           │   ├── rewrite-composer.ts          # Article rewrite stage AST composer
+│   │           │   ├── refinement-composer.ts       # Iterative refinement & targeted fix AST composer
+│   │           │   ├── quality-gate-composer.ts     # Quality Gate compliance audit AST composer
+│   │           │   ├── strategist-composer.ts       # Quick draft & outline generation AST composer
+│   │           │   ├── strategist-chat-composer.ts  # Interactive strategist chat AST composer
+│   │           │   ├── strategist-blueprint-composer.ts # Blueprint & initial draft generation AST composer
+│   │           │   └── draft-from-notes-composer.ts # Research notes to article draft AST composer
 │   │           └── __tests__/          # Unit test suite for AST and composers
+│   │               └── prompt-engine.test.ts # Comprehensive AST, Composer & Node unit tests
 │   └── routes/
 │       ├── analyze.ts        # POST /api/analyze — core AI analysis pipeline (applies stripLeadingH1)
 │       ├── workspace.ts      # GET/PATCH /api/workspace — workspace management

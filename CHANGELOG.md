@@ -15,6 +15,9 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **RefinementPromptComposer**: Implemented a refinement composer for partial edits, supporting both Iterative Refinement and Targeted Fix stages with factual refinement guardrails and output constraints.
 - **QualityGatePromptComposer**: Introduced a quality gate stage composer to evaluate the quality, changes, readiness, and risks of final article drafts.
 - **StrategistPromptComposer**: Added a strategist composer to handle both rough draft generation and structured outline creation, integrating press release conversion rules.
+- **StrategistChatComposer**: Added a strategist chat prompt composer to guide interactive brainstorming sessions, traffic data analysis, page audits, and research assistance.
+- **StrategistBlueprintComposer**: Added a strategist blueprint composer to compile detailed editorial plans (angle, hook, target audience, and outline) along with a structured-output-based initial draft.
+- **DraftFromNotesComposer**: Added a draft-from-notes composer to generate clean first drafts from research notes or blueprints using a cognitive stage framework (IDENTIFY -> EXTRACT -> EXPAND).
 - **StrategistFastModeInstructionNode**: Added a new prompt node to handle Fast Mode system instructions for the strategist assistant in a modular and testable manner.
 - **Real-Time Thinking Indicator**: Added frontend SSE support to stream and display Gemini 3.x native thinking reasoning (thought_summary deltas) inside the strategist chat UI.
 
