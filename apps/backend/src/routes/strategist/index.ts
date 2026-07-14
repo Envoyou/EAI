@@ -620,7 +620,7 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
             } else if (event.delta?.type === "thought_summary" && (event.delta as { text?: string }).text) {
                 // Forward native thinking summaries to the client for UI "Thinking..." indicators.
                 // The frontend decides whether to display or discard this stream.
-                res.write(`data: ${JSON.stringify({ type: "thinking", chunk: (event.delta as { text: string }).text })}\n\n`);
+                res.write(`data: ${JSON.stringify({ type: "thinking", chunk: ((event.delta as unknown) as { text: string }).text })}\n\n`);
             } else if (event.delta?.type === "text_annotation_delta" && event.delta.annotations) {
                 globalAnnotations.push(...event.delta.annotations);
             }
