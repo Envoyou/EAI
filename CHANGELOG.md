@@ -15,8 +15,13 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **RefinementPromptComposer**: Implemented a refinement composer for partial edits, supporting both Iterative Refinement and Targeted Fix stages with factual refinement guardrails and output constraints.
 - **QualityGatePromptComposer**: Introduced a quality gate stage composer to evaluate the quality, changes, readiness, and risks of final article drafts.
 - **StrategistPromptComposer**: Added a strategist composer to handle both rough draft generation and structured outline creation, integrating press release conversion rules.
+- **StrategistFastModeInstructionNode**: Added a new prompt node to handle Fast Mode system instructions for the strategist assistant in a modular and testable manner.
+- **Real-Time Thinking Indicator**: Added frontend SSE support to stream and display Gemini 3.x native thinking reasoning (thought_summary deltas) inside the strategist chat UI.
 
 ### Changed
+- **Strategist Prompt Optimization**: Refactored strategist prompt nodes (`StrategistSystemRoleNode`, `StrategistGeneralConstraintsNode`, `StrategistExamplesNode`, `StrategistToolGuidelinesNode`, `DraftFromNotesConstraintsNode`, `StrategistBlueprintInstructionNode`) to enforce behavioral anchors, support dynamic runtime date injection via `context.today`, define web search trigger boundaries, and remove obsolete manual CoT XML blocks.
+- **Chat Stream Parser Cleanup**: Removed the legacy 75-line `<thinking>` tag buffer state machine from the strategist backend `/chat` router, replacing it with a clean event-based SSE stream forwarder.
+- **SSE Stream Data Alignment**: Aligned frontend stream handlers in `useContentStrategist` to consistently accept both `text` and `chunk` types during rewrite operations.
 - **SEO Stage Refactoring**: Refactored `runSeoStage` and `analyze.ts` to utilize the new `SeoPromptComposer` for prompt generation, optimizing static prompt blocks for Gemini prompt caching.
 - **Review Stage Refactoring**: Refactored `runEditorialReviewStage` and `analyze.ts` to utilize the new `ReviewPromptComposer` instead of the legacy `getPolishReviewPrompt` and `getPromptForRole` functions.
 - **Rewrite Stage Refactoring**: Refactored the draft rewrite process in `analyze.ts` to utilize the new `RewritePromptComposer` for prompt generation instead of the legacy `getPolishedDraftPrompt` function.

@@ -15,8 +15,13 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **RefinementPromptComposer**: Memperkenalkan komposer prompt refinement untuk penyuntingan draf parsial, mendukung tahapan Iterative Refinement dan Targeted Fixes dengan guardrail refinement fakta serta pembatasan format output.
 - **QualityGatePromptComposer**: Memperkenalkan komposer prompt Quality Gate untuk mengevaluasi kualitas, perubahan, kelayakan, dan risiko draf akhir artikel.
 - **StrategistPromptComposer**: Menambahkan komposer prompt Strategist untuk menangani pembuatan draf kasar dan outline terstruktur secara modular dengan integrasi aturan press release.
+- **StrategistFastModeInstructionNode**: Menambahkan node baru untuk menangani instruksi sistem khusus Fast Mode pada asisten strategist secara modular dan testable.
+- **Indikator Berpikir Real-Time (Thinking Indicator)**: Menambahkan dukungan SSE untuk meneruskan dan menampilkan teks penalaran (thought_summary delta) dari Gemini 3.x secara real-time di UI obrolan Strategist.
 
 ### Changed
+- **Optimasi Prompt Strategist**: Merefaktor node asisten strategist (`StrategistSystemRoleNode`, `StrategistGeneralConstraintsNode`, `StrategistExamplesNode`, `StrategistToolGuidelinesNode`, `DraftFromNotesConstraintsNode`, `StrategistBlueprintInstructionNode`) untuk menambahkan behavioral anchors, validasi tanggal dinamis (`context.today`), aturan trigger web search, dan fallback error, serta menghilangkan CoT manual yang konflik dengan mode native Gemini.
+- **Pembersihan Logika Chat Stream Strategist**: Menghapus mesin parser filter tag `<thinking>` (~75 baris) dari route handler `/chat` strategist backend dan menggantinya dengan stream filter sederhana berbasis native events.
+- **Penyelarasan Tipe SSE Event**: Menyelaraskan stream parser frontend di `useContentStrategist` agar mendukung tipe data `text` dan `chunk` secara konsisten pada penulisan ulang draft.
 - **Refaktorisasi SEO Stage**: Merefaktor `runSeoStage` dan `analyze.ts` untuk menggunakan `SeoPromptComposer` baru dalam menghasilkan prompt, mengoptimalkan blok instruksi statis agar Gemini prompt caching bekerja maksimal.
 - **Refaktorisasi Review Stage**: Merefaktor `runEditorialReviewStage` dan `analyze.ts` untuk menggunakan `ReviewPromptComposer` baru sebagai pengganti fungsi `getPolishReviewPrompt` dan `getPromptForRole` lama.
 - **Refaktorisasi Rewrite Stage**: Merefaktor proses penulisan ulang draf di `analyze.ts` agar menggunakan `RewritePromptComposer` baru sebagai pengganti fungsi `getPolishedDraftPrompt` lama.
