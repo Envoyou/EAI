@@ -3,9 +3,7 @@ import { ThinkingLevel } from '@google/genai';
 import { randomUUID } from 'node:crypto';
 import { prisma, Prisma } from '@/lib/db';
 import {
-  getPolishReviewPrompt,
   getPolishedDraftPrompt,
-  getPromptForRole,
   getIterativeRefinementPrompt,
   PROMPT_VERSION,
 } from '@/lib/prompts';
@@ -38,6 +36,7 @@ import { runFinalQualityGateSafely } from '@/lib/ai/quality-gate-stage';
 import { runTargetedFixStage } from '@/lib/ai/targeted-fix-stage';
 import { runSeoStage } from '@/lib/ai/seo-stage';
 import { SeoPromptComposer } from '@/lib/ai/prompt-engine/composer/seo-composer';
+import { ReviewPromptComposer } from '@/lib/ai/prompt-engine/composer/review-composer';
 import { getAllFeatureFlags } from '@eai/shared/server';
 import { verifyToken } from '@clerk/backend';
 import { stripLeadingH1 } from '@/lib/text-utils';
@@ -1220,15 +1219,11 @@ router.post('/', async (req: Request, res) => {
     const isPolishMode = effectiveMode === 'analyze' && role === 'polish';
     const systemPrompt = effectiveMode === 'refine'
       ? ''
-      : composePrompt(
-          isPolishMode
-            ? getPolishReviewPrompt(metadata, editorialProfile.config, {
-                includeTextSchema: effectiveProvider !== 'gemini',
-              })
-            : getPromptForRole(role!, metadata, editorialProfile.config, {
-                includeTextSchema: effectiveProvider !== 'gemini',
-              })
-        );
+      : new ReviewPromptComposer(
+          isPolishMode ? 'polish' : role!,
+          editorialProfile.config,
+          { includeTextSchema: effectiveProvider !== 'gemini' }
+        ).compose('xml');
 
     // DEV MOCK CHECK
     const missingOpenRouterKey = !process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'empty' || process.env.OPENROUTER_API_KEY === 'your-openrouter-api-key';
@@ -1589,9 +1584,11 @@ router.post('/', async (req: Request, res) => {
       const reviewModelName = executedModelName;
       usedModels.push(`${reviewModelName}(review)`);
       const reviewPrompt = isPolishMode
-        ? composePrompt(getPolishReviewPrompt(metadata, editorialProfile.config, {
-            includeTextSchema: false,
-          }))
+        ? new ReviewPromptComposer(
+            'polish',
+            editorialProfile.config,
+            { includeTextSchema: false }
+          ).compose('xml')
         : systemPrompt;
       const reviewResult = await runEditorialReviewStage({
         provider: 'gemini',
@@ -1834,9 +1831,11 @@ router.post('/', async (req: Request, res) => {
         : GROQ_SEO_MODEL);
       usedModels.push(`${reviewModelName}(review)`);
       const reviewPrompt = isPolishMode
-        ? composePrompt(getPolishReviewPrompt(metadata, editorialProfile.config, {
-            includeTextSchema: true,
-          }))
+        ? new ReviewPromptComposer(
+            'polish',
+            editorialProfile.config,
+            { includeTextSchema: true }
+          ).compose('xml')
         : systemPrompt;
 
       const recordOpenAiCompatibleTelemetry = (input: {

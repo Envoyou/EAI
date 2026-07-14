@@ -1,5 +1,6 @@
 import { CompositePromptNode, PromptNode, RenderContext } from '@eai/shared';
 import { SeoPromptComposer } from '../composer/seo-composer';
+import { ReviewPromptComposer } from '../composer/review-composer';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -91,6 +92,38 @@ assert(
 assert(
   composedPrompt.includes('<tone_calibration>'),
   'Composed prompt must contain tone calibration block'
+);
+
+// Test Case 4: ReviewPromptComposer generation
+const reviewComposerAuthor = new ReviewPromptComposer('author', mockProfile);
+const composedAuthor = reviewComposerAuthor.compose('xml');
+
+assert(
+  composedAuthor.includes('<role_instructions>'),
+  'Review author prompt must contain role instructions'
+);
+assert(
+  composedAuthor.includes('YOUR ROLE: Writing Co-Pilot'),
+  'Review author prompt must contain specific role instructions content'
+);
+assert(
+  composedAuthor.includes('<output_format_contract>'),
+  'Review author prompt must contain format contract'
+);
+assert(
+  composedAuthor.includes('<temporal_context_rules>'),
+  'Review author prompt must contain temporal context rules'
+);
+assert(
+  composedAuthor.includes('<source_policy>'),
+  'Review author prompt must contain source policy'
+);
+
+const reviewComposerPolish = new ReviewPromptComposer('polish', mockProfile);
+const composedPolish = reviewComposerPolish.compose('xml');
+assert(
+  composedPolish.includes('YOUR ROLE: Draft Transformation Editor'),
+  'Review polish prompt must contain polish role instructions'
 );
 
 console.log('✅ All prompt engine unit tests passed successfully!');
