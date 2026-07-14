@@ -706,6 +706,8 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       let buffer = '';
       let receivedDone = false;
 
+      let currentThinkingContent = '';
+
       while (!done) {
         const { value, done: readerDone } = await readWithTimeout(reader);
         done = readerDone;
@@ -719,7 +721,12 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
               const dataStr = line.trim().slice(6);
               try {
                 const data = JSON.parse(dataStr);
-                if (data.type === 'chunk') {
+                if (data.type === 'thinking' && data.chunk) {
+                  currentThinkingContent += data.chunk;
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+                    ...m, payload: { ...m.payload, status: `Thinking: ${currentThinkingContent}` }
+                  } : m));
+                } else if (data.type === 'chunk' || data.type === 'text') {
                   currentContent += data.chunk;
                   const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
@@ -1044,6 +1051,8 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       let buf = '';
       let receivedDone = false;
 
+      let currentThinkingContent = '';
+
       while (!done) {
         const { value, done: readerDone } = await readWithTimeout(reader);
         done = readerDone;
@@ -1065,6 +1074,11 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, status: "Deep Research in progress..." } } : m));
                 } else if (data.type === 'status') {
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, status: data.message } } : m));
+                } else if (data.type === 'thinking' && data.chunk) {
+                  currentThinkingContent += data.chunk;
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
+                    ...m, payload: { ...m.payload, status: `Thinking: ${currentThinkingContent}` }
+                  } : m));
                 } else if (data.type === 'text') {
                   currentContent += data.chunk;
                   const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
