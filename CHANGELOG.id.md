@@ -13,12 +13,17 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **ReviewPromptComposer**: Menambahkan komposer prompt review multi-peran yang fleksibel untuk mendukung peran author, editor, seo (feedback saran), fact-checker, dan mode polish (diagnosa transformasi).
 - **RewritePromptComposer**: Memperkenalkan komposer prompt rewrite yang komprehensif untuk menangani demonstrasi few-shot, panduan prioritas, batasan editorial, smart internal linking (artikel terkait), dan aturan pemotongan tulisan (chunking).
 - **RefinementPromptComposer**: Memperkenalkan komposer prompt refinement untuk penyuntingan draf parsial, mendukung tahapan Iterative Refinement dan Targeted Fixes dengan guardrail refinement fakta serta pembatasan format output.
+- **QualityGatePromptComposer**: Memperkenalkan komposer prompt Quality Gate untuk mengevaluasi kualitas, perubahan, kelayakan, dan risiko draf akhir artikel.
+- **StrategistPromptComposer**: Menambahkan komposer prompt Strategist untuk menangani pembuatan draf kasar dan outline terstruktur secara modular dengan integrasi aturan press release.
 
 ### Changed
 - **Refaktorisasi SEO Stage**: Merefaktor `runSeoStage` dan `analyze.ts` untuk menggunakan `SeoPromptComposer` baru dalam menghasilkan prompt, mengoptimalkan blok instruksi statis agar Gemini prompt caching bekerja maksimal.
 - **Refaktorisasi Review Stage**: Merefaktor `runEditorialReviewStage` dan `analyze.ts` untuk menggunakan `ReviewPromptComposer` baru sebagai pengganti fungsi `getPolishReviewPrompt` dan `getPromptForRole` lama.
 - **Refaktorisasi Rewrite Stage**: Merefaktor proses penulisan ulang draf di `analyze.ts` agar menggunakan `RewritePromptComposer` baru sebagai pengganti fungsi `getPolishedDraftPrompt` lama.
 - **Refaktorisasi Refinement Stage**: Merefaktor tahapan penyuntingan berulang (*iterative refinement*) dan perbaikan target teks (*targeted fix*) di `analyze.ts` dan `targeted-fix-stage.ts` agar menggunakan `RefinementPromptComposer` baru sebagai pengganti fungsi `getIterativeRefinementPrompt` dan `getTargetedFixPrompt` lama.
+- **Refaktorisasi Quality Gate Stage**: Merefaktor evaluasi gerbang kualitas akhir pada `quality-gate-stage.ts` untuk menggunakan `QualityGatePromptComposer`.
+- **Refaktorisasi Strategist Stage**: Merefaktor pembuatan draf kasar dan outline terstruktur pada `quick-draft.ts` untuk menggunakan `StrategistPromptComposer`.
+- **Pembersihan Prompts Monolitik**: Menyederhanakan `prompts.ts` dengan menghapus seluruh fungsi pembuat prompt usang, menyisakan variabel sistem dan utilitas zona waktu/tanggal bersama.
 
 ## [3.3.0] - 2026-07-14
 

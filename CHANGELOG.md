@@ -13,12 +13,17 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **ReviewPromptComposer**: Added a flexible, multi-role review prompt composer that targets author, editor, seo (feedback suggestions), fact-checker, and polish (diagnosis transformation) roles.
 - **RewritePromptComposer**: Introduced a comprehensive rewrite stage prompt composer that handles few-shot demonstrations, priority guidelines, editorial constraints, smart internal linking (published posts), and chunking boundaries.
 - **RefinementPromptComposer**: Implemented a refinement composer for partial edits, supporting both Iterative Refinement and Targeted Fix stages with factual refinement guardrails and output constraints.
+- **QualityGatePromptComposer**: Introduced a quality gate stage composer to evaluate the quality, changes, readiness, and risks of final article drafts.
+- **StrategistPromptComposer**: Added a strategist composer to handle both rough draft generation and structured outline creation, integrating press release conversion rules.
 
 ### Changed
 - **SEO Stage Refactoring**: Refactored `runSeoStage` and `analyze.ts` to utilize the new `SeoPromptComposer` for prompt generation, optimizing static prompt blocks for Gemini prompt caching.
 - **Review Stage Refactoring**: Refactored `runEditorialReviewStage` and `analyze.ts` to utilize the new `ReviewPromptComposer` instead of the legacy `getPolishReviewPrompt` and `getPromptForRole` functions.
 - **Rewrite Stage Refactoring**: Refactored the draft rewrite process in `analyze.ts` to utilize the new `RewritePromptComposer` for prompt generation instead of the legacy `getPolishedDraftPrompt` function.
 - **Refinement Stage Refactoring**: Refactored the iterative refinement and targeted fix stages in `analyze.ts` and `targeted-fix-stage.ts` to utilize the new `RefinementPromptComposer` for prompt generation instead of the legacy `getIterativeRefinementPrompt` and `getTargetedFixPrompt` functions.
+- **Quality Gate Stage Refactoring**: Refactored the final quality gate evaluation in `quality-gate-stage.ts` to use `QualityGatePromptComposer`.
+- **Strategist Stage Refactoring**: Refactored the topic drafting and outline generation in `quick-draft.ts` to use `StrategistPromptComposer`.
+- **Monolithic Prompt Cleanup**: Simplified `prompts.ts` by removing all legacy prompt generation functions, retaining only system-wide variables and shared timezone/date helpers.
 
 ## [3.3.0] - 2026-07-14
 

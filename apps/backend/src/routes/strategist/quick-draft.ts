@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { ThinkingLevel } from '@google/genai';
-import { getDraftGeneratorPrompt, getOutlineGeneratorPrompt, PROMPT_VERSION } from '@/lib/prompts';
+import { PROMPT_VERSION } from '@/lib/prompts';
+import { StrategistPromptComposer } from '@/lib/ai/prompt-engine/composer/strategist-composer';
 import { ArticleMetadata } from '@eai/shared';
 import { prisma } from '@/lib/db';
 import { verifyToken } from '@clerk/backend';
@@ -183,8 +184,8 @@ router.post('/', async (req, res) => {
     }
 
     const systemPrompt = mode === 'outline'
-      ? getOutlineGeneratorPrompt(metadata, editorialProfile.config)
-      : getDraftGeneratorPrompt(metadata, editorialProfile.config, draftMode);
+      ? new StrategistPromptComposer('outline', metadata, editorialProfile.config).compose('xml')
+      : new StrategistPromptComposer('draft', metadata, editorialProfile.config, { draftMode }).compose('xml');
 
     const isGeminiMock = provider === 'gemini' && (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'empty');
     const isGroqMock = provider === 'groq' && (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === 'empty');

@@ -4,6 +4,7 @@ import { ReviewPromptComposer } from '../composer/review-composer';
 import { RewritePromptComposer } from '../composer/rewrite-composer';
 import { RefinementPromptComposer } from '../composer/refinement-composer';
 import { QualityGatePromptComposer } from '../composer/quality-gate-composer';
+import { StrategistPromptComposer } from '../composer/strategist-composer';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -209,6 +210,54 @@ assert(
 assert(
   composedQuality.includes('<temporal_context_rules>'),
   'Quality gate prompt must contain temporal context rules'
+);
+
+// Test Case 8: StrategistPromptComposer generation
+const mockMeta = {
+  category: 'Business',
+  type: 'Analysis',
+  targetAudience: 'Executives',
+  targetLength: '1200 words'
+};
+const strategistDraftComposer = new StrategistPromptComposer(
+  'draft',
+  mockMeta,
+  mockProfile,
+  { draftMode: 'press_release' }
+);
+const composedDraft = strategistDraftComposer.compose('xml');
+
+assert(
+  composedDraft.includes('<strategist_role_instructions type="draft">'),
+  'Strategist draft prompt must contain role instructions'
+);
+assert(
+  composedDraft.includes('You are a writing co-pilot for TestBrand.'),
+  'Strategist draft prompt must contain correct brand co-pilot message'
+);
+assert(
+  composedDraft.includes('<editorial_configuration>'),
+  'Strategist draft prompt must contain configuration block'
+);
+assert(
+  composedDraft.includes('- Category: Business'),
+  'Strategist draft prompt must reflect correct category metadata'
+);
+assert(
+  composedDraft.includes('<press_release_rules>'),
+  'Strategist draft prompt must contain press release rules under press release mode'
+);
+
+const strategistOutlineComposer = new StrategistPromptComposer('outline', mockMeta, mockProfile);
+const composedOutline = strategistOutlineComposer.compose('xml');
+
+assert(
+  composedOutline.includes('<strategist_role_instructions type="outline">'),
+  'Strategist outline prompt must contain outline role instructions'
+);
+assert(
+  composedOutline.includes('generate a structured, comprehensive article outline'),
+  'Strategist outline prompt must contain outline instructions text'
 );
 
 console.log('✅ All prompt engine unit tests passed successfully!');
