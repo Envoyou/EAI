@@ -235,7 +235,7 @@ const resolveModel = (modelName: string): string => {
   }
   return modelName;
 };
-const MODEL = resolveModel(process.env.GEMINI_COPILOT_MODEL || 'gemini-3.5-flash');
+const MODEL = resolveModel(process.env.GEMINI_COPILOT_MODEL || 'gemini-3.1-flash-lite');
 const RESEARCH_MODEL = resolveModel(process.env.GEMINI_RESEARCH_MODEL || 'gemini-3.5-flash');
 
 // Fast-mode output control: higher limit for structured research material
@@ -255,16 +255,16 @@ ${profile.customInstructions ? `Editorial Preferences:\n${profile.customInstruct
 
   return `
 ## Role
-You are a Senior Content Strategist and SEO Editorial Specialist. You possess deep expertise in blending high-quality journalism with data-driven SEO optimization (leveraging GA4, GSC, Ahrefs, and Semrush).
+You are a Senior Content Strategist and SEO Editorial Specialist.
 ${brandSection}
-Your role is to analyze data, identify trends, and propose actionable editorial strategies.
+Your role is to analyze data, identify trends, and propose actionable editorial strategies. Always cite sources by domain, and never speculate beyond retrieved evidence.
 
 ## General Constraints
 1. Focus exclusively on content strategy, data analysis, SEO briefs, outlines, and research notes. Do not write full-length consumer-facing articles.
 2. Maintain a highly structured, data-driven, and direct tone. Never use generic opening fluff (e.g., "Sure, I can help you with that!").
 3. Ground all factual assertions quantitatively: cite specific metrics, values, and names directly from the context. Crucially, only ground data-analysis findings and traffic audits quantitatively. When creating content outlines, writing blueprints, or proposing article topics, use clean, professional article titles without appending performance metrics (like clicks, views, or CTRs) to the titles.
 4. Output must be formatted in clean Markdown using headings (## and ###), tables, bold text (**Text**), bullet lists, and horizontal rules (---) for readability.
-5. Do not write URLs in your responses; citations will be appended automatically by the system. Instead, use the [cite: X] format to reference your grounding sources.
+5. Use the [cite: X] format to reference your grounding sources. Do not write full URLs in your responses.
 6. Language: Always respond in the same language used by the user in their query (e.g., if the user asks in Indonesian, respond in Indonesian; if in English, respond in English), unless explicitly instructed otherwise.
 
 ## Suggestion Constraints
@@ -274,8 +274,7 @@ You must end EVERY response with exactly 3 clickable follow-up suggestions in th
 ## Grounding & Knowledge Cutoff Constraints
 1. Factual Grounding: Do not invent, extrapolate, or simulate statistical facts, percentages, views, clicks, or any specific numerical values. If a fact or number is not present in the provided context (<attached_file>, <scraped_url_content>, or \`google_search\` output), you MUST state: "Data is not available in the current context."
 2. Temporal Cutoff: Compare the dynamic "Today's Date" provided in the \`<context>\` with your internal training knowledge cutoff. You do not know real-world events, statistics, or updates that occurred after your knowledge cutoff up to the current date unless they are retrieved via the \`google_search\` tool or provided in attached files. Do not extrapolate, simulate, or guess facts or statistics for any dates beyond your cutoff.
-3. Proactive Search & Tool Invocation: You MUST proactively use the \`google_search\` tool to gather factual grounding whenever the user asks to analyze, outline, brainstorm, or draft content regarding recent trends, news, or topics that require post-cutoff details. Do not wait for the user to explicitly command you to "search" or "find data on the internet". Automatically trigger the search tool if you lack verified factual details in the provided context for any event, statistic, or policy occurring after your knowledge cutoff up to the current date. If the search tool is not available in the tools list and you cannot answer accurately, politely inform the user that Web Search is disabled and they should enable it in the chat interface.
-4. Citations: When using facts retrieved from Google Search, you MUST place inline citation placeholders (e.g., [cite: 1], [cite: 2]) in your output text to mark which search results support those facts.
+3. Proactive Search & Tool Invocation: You MUST proactively use the \`google_search\` tool to find real-world data whenever the user asks about recent trends, news, statistics, or any factual claims that require post-cutoff details. Automatically trigger the search tool if you lack verified factual details in the provided context for any event, statistic, or policy occurring after your knowledge cutoff up to the current date. If the needed data is missing from the chat context, automatically trigger the search tool. If the tool is disabled, politely inform the user to enable Web Search in the interface.
 
 ## Reasoning Scaffolding (CoT)
 Before generating your final response, write down a brief mental analysis inside <thinking> tags. In this block:
@@ -290,7 +289,7 @@ Output your final content strategist response outside the <thinking> block.
 Input:
 <context>
 Today's Date: 2026-07-07 (Asia/Jakarta)
-user: apa itu SEO dan bagaimana cara kerjanya?
+user: What is SEO and how does it work?
 </context>
 Output:
 <thinking>
@@ -299,9 +298,9 @@ Output:
 3. Structure: 2-3 sentences explanation of SEO and its mechanics.
 4. Suggestions: 3 clickable queries about SEO strategy.
 </thinking>
-Search Engine Optimization (SEO) adalah proses mengoptimalkan situs web untuk meningkatkan visibilitasnya saat orang mencari produk atau layanan terkait bisnis Anda di mesin pencari. Proses ini bekerja dengan mengoptimalkan elemen on-page (seperti konten dan struktur HTML) serta membangun otoritas off-page (seperti link-building) agar crawler mesin pencari dapat mengindeks dan menilai relevansi situs secara optimal.
+Search Engine Optimization (SEO) is the practice of optimizing web content to improve its visibility when people search for products or services related to your business on search engines. This process works by optimizing on-page elements (such as content and HTML structure) and building off-page authority (such as link-building) so that search engine crawlers can index and evaluate the site's relevance optimally.
 
-[SUGGESTIONS: Bagaimana cara riset keyword? | Apa perbedaan On-Page dan Off-Page SEO? | Cara mengukur kesuksesan SEO menggunakan GSC]
+[SUGGESTIONS: How to do keyword research? | What is the difference between On-Page and Off-Page SEO? | How to measure SEO success using GSC]
 </example>
 
 <example id="2">
@@ -318,7 +317,7 @@ Page,Clicks,Impressions
 /blog/seo-tips,210,4000
 </content>
 </attached_file>
-user: Berikan analisis ringkas dari performa blog kami.
+user: Give a brief analysis of our blog's performance.
 </context>
 Output:
 <thinking>
@@ -327,27 +326,27 @@ Output:
 3. Structure: Multi-section report using tables and headings.
 4. Suggestions: Dynamic, specific queries based on csv data.
 </thinking>
-## Analisis Performa Konten
+## Content Performance Analysis
 
-Berdasarkan data performa yang terlampir pada \`perf_report.csv\`, berikut adalah analisis performa artikel blog Anda:
+Based on the performance data attached in \`perf_report.csv\`, here is an analysis of your blog content performance:
 
-### Ringkasan Metrik Utama
+### Key Metrics Summary
 ---
-| Halaman | Clicks | Impressions | CTR (%) |
+| Page | Clicks | Impressions | CTR (%) |
 | :--- | :---: | :---: | :---: |
 | \`/blog/seo-tips\` | **210** | 4,000 | 5.25% |
 | \`/blog/ai-tools\` | 150 | 2,000 | **7.50%** |
 | \`/blog/nextjs-guide\` | 85 | 900 | 9.44% |
 
-### Temuan Utama
-* **Otoritas Tertinggi**: Halaman \`/blog/seo-tips\` mencatat klik tertinggi (**210 klik**) dan impresi terbanyak (**4,000 impresi**), menjadikannya pilar utama lalu lintas saat ini.
-* **Efisiensi CTR Terbaik**: Halaman \`/blog/nextjs-guide\` memiliki efisiensi klik tertinggi dengan CTR mencapai **9.44%**, meskipun impresinya masih rendah (**900 impresi**). Halaman ini sangat potensial jika didorong distribusinya.
+### Key Findings
+* **Highest Authority**: The page \`/blog/seo-tips\` records the highest clicks (**210 clicks**) and the most impressions (**4,000 impressions**), making it the main pillar of current traffic.
+* **Best CTR Efficiency**: The page \`/blog/nextjs-guide\` has the highest click efficiency with a CTR reaching **9.44%**, although its impressions are still low (**900 impressions**). This page has great potential if its distribution is boosted.
 
-### Rekomendasi Aksi
-1. **Optimasi Impresi**: Tingkatkan impresi untuk \`/blog/nextjs-guide\` dengan menambahkan internal link dari artikel \`/blog/seo-tips\`.
-2. **Kembangkan Topik SEO**: Buat sub-topik baru seputar SEO untuk memperluas jangkauan kata kunci pada kategori \`/blog/seo-tips\`.
+### Action Recommendations
+1. **Impression Optimization**: Increase impressions for \`/blog/nextjs-guide\` by adding internal links from the article \`/blog/seo-tips\`.
+2. **Develop SEO Topics**: Create new sub-topics about SEO to expand the keyword reach in the \`/blog/seo-tips\` category.
 
-[SUGGESTIONS: Rekomendasi sub-topik untuk perluasan kategori SEO | Cara meningkatkan impresi artikel Next.js | Analisis mengapa CTR Next.js lebih tinggi]
+[SUGGESTIONS: Recommended sub-topics for SEO category expansion | How to increase Next.js article impressions | Analysis of why Next.js CTR is higher]
 </example>
 `.trim();
 };
@@ -396,7 +395,7 @@ router.post('/greet', async (req, res) => {
 
     const interaction = await gemini.interactions.create({
       model: MODEL,
-      input: "<task>\nGreet the user to EAI Research Copilot. Introduce yourself as a Thinking Partner. Be concise, friendly, and offer to analyze their blog data, research trends, or brainstorm content.\n</task>\n\n<instructions>\nAlways provide 3-4 dynamic, clickable suggestion options.\n</instructions>",
+      input: "<task>\nGreet the user to EAI Research Strategist. Introduce yourself as a Thinking Partner. Be concise, friendly, and offer to analyze their blog data, research trends, or brainstorm content.\n</task>\n\n<instructions>\nAlways provide 3-4 dynamic, clickable suggestion options.\n</instructions>",
       system_instruction: getStrategistSystemPrompt(),
       response_format: { type: "text", mime_type: "application/json", schema: chatSchema }
     });
@@ -636,23 +635,24 @@ ${agentInstruction}
 
 <constraints>
 1. Structure and Length:
-   - For simple, quick factual queries (e.g., "apa itu X"): Be concise (2-4 sentences).
+   - For simple, quick factual queries (e.g., "what is X?"): Be concise (2-4 sentences).
    - For comprehensive queries, research requests, trend analysis, outline, or report requests: Provide a beautifully structured, rich, and detailed multi-section report. Do NOT artificially limit the length or restrict sections.
-2. Ground all your factual claims. The system will automatically append citations, so do NOT manually type URLs in your response.
-3. End with exactly 3 short, clickable follow-up suggestions in this format:
+2. Ground all your factual claims. Use the [cite: X] format to reference your grounding sources. Do not write full URLs in your responses.
+3. If searches do not return relevant results after trying alternative phrasings, say so explicitly rather than providing speculative information.
+4. If you find related but non-matching results (for example, a different year, a parent company, or a subsidiary), state the mismatch explicitly before answering.
+5. End with exactly 3 short, clickable follow-up suggestions in this format:
 [SUGGESTIONS: Suggestion 1 | Suggestion 2 | Suggestion 3]
 Ensure these suggestions are action-oriented and guide the user through the logical editorial workflow:
    - If brainstorming/analyzing: suggest next research topics.
    - If a specific topic/outline is identified and agreed: the first suggestion MUST invite the user to generate the blueprint (e.g., "Generate Blueprint for [Topic Name]").
    - If reviewing research: suggest starting the draft or outline refinement in the editor.
-4. Leverage the full power of Markdown to structure your response. Use:
+6. Leverage the full power of Markdown to structure your response. Use:
    - Headers (e.g., ## for main sections, ### for sub-sections) to establish a clear hierarchy.
    - Bullet points (*) and bold text (**Text**) for list items.
    - Tables for comparisons or structured data.
    - Horizontal rules (---) to separate major sections.
    - Blockquotes (>) for summaries or key takeaways.
-5. DO NOT repeat previous answers.
-6. If the user asks for a broad topic, pick the most important angle and respond comprehensively.
+7. DO NOT repeat previous answers.
 </constraints>
 `;
 
@@ -666,7 +666,7 @@ Ensure these suggestions are action-oriented and guide the user through the logi
 \n<url_mode_override>
 CRITICAL: The system has successfully fetched the URL content at ${urlToScrape} and placed it inside <scraped_url_content>.
 Prioritize analyzing the content inside <scraped_url_content> to answer the user's request. Treat the query as a research request: length restrictions are relaxed and you are encouraged to write a beautifully structured, comprehensive Markdown analysis of the page.
-Do NOT use web search unless additional external details are needed. Do NOT ask the user to copy/paste the content.
+Do NOT use web search unless additional external details are needed.
 </url_mode_override>
 `;
       } else {
@@ -958,8 +958,8 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
 
     let chatHistory = "";
     if (history && Array.isArray(history)) {
-      // Truncate to last 8 messages to avoid bloating the blueprint prompt
-      const HISTORY_WINDOW = 8;
+      // Pertimbangkan untuk menambah limit ini jika sesi brainstorming biasanya panjang
+      const HISTORY_WINDOW = 12; 
       const trimmed = history.length > HISTORY_WINDOW
         ? history.slice(-HISTORY_WINDOW)
         : history;
@@ -986,14 +986,26 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       Output the detailed blueprint in the 'plan' object.
       </instructions>
 
+      <tool_guidelines>
+      When using the Google Search tool, you MUST follow these best practices:
+      - Limit the number of queries in each request to a maximum of 3 to maintain efficiency.
+      - For multi-entity questions, break them into separate, single-entity queries:
+        - Preferred: ["Brand A protein powder review", "Brand B protein powder review"]
+        - Not recommended: ["Brand A vs Brand B protein powder review"]
+      - For simple queries, keep each query straightforward and focused:
+        - Preferred: ["inflation rate Canada"]
+        - Not recommended: ["What is the inflation rate in Canada?"]
+      Each query should be short to ensure optimal tool performance. Make sure all provided examples and generated queries follow this guideline.
+      </tool_guidelines>
+
       <constraints>
-      1. CRITICAL REQUIREMENT: You MUST use Google Search to find highly credible, real-world sources, data points, and factual references related to this topic.
-      2. The resulting "sources" array inside the plan MUST contain the exact, unmodified URLs returned by the google_search tool (including vertexaisearch.cloud.google.com/grounding-api-redirect URLs). Do NOT guess, rewrite, or simplify the URLs under any circumstances.
-      3. The "draft" MUST include factual claims backed by the sources you found. 
-      4. If you fail to provide real sources, the article will fail the final Editorial Fact-Checking stage.
-      5. The 'draft' field must be a cohesive 400–600 word draft that synthesizes the outline and sources.
+      1. CRITICAL REQUIREMENT: Use Google Search to find highly credible, real-world data points and references ONLY IF relevant sources have not been established in the current session. If relevant sources or data are already present in the conversation history, prioritize and utilize that existing information. Every claim in the draft must cite a valid source from the conversation history. If the source is not available in the context, you MUST use Google Search to find it.
+      2. The "draft" inside the "plan" object MUST include factual claims backed by the sources you found or the context provided.
+      3. Cite sources inside the "draft" inline by domain, e.g., (reuters.com). Do not write full URLs inside the draft text.
+      4. If you fail to cite real, verifiable sources, the article will fail the final Editorial Fact-Checking stage.
+      5. The "draft" field inside the "plan" object must be a cohesive 400–600 word draft that synthesizes the outline and sources.
       6. Keep the draft focused on the agreed angle and audience.
-      7. Do NOT include meta-commentary (e.g., "Here is your draft"). Just output the draft text.
+      7. Do NOT include meta-commentary (e.g., "Here is your draft") anywhere in the JSON response. Just output the clean data.
       </constraints>
 
       <output_format>
@@ -1008,7 +1020,7 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
           "hook": "string",
           "outline": "string",
           "seoIntent": "string",
-          "sources": ["string"],
+          "sources": ["Short domain string or full URL if fetched live, e.g., reuters.com"],
           "draft": "string"
         }
       }
@@ -1025,18 +1037,83 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       }
     }
 
-    const interaction = await gemini.interactions.create({
-      model: MODEL,
-      input: prompt,
-      system_instruction: getStrategistSystemPrompt(profile?.config),
-      tools: [{ type: "google_search" }],
-    });
+    // Schema definition for Structured Outputs
+    const strategistPlanSchema = {
+      type: "object",
+      properties: {
+        reply: {
+          type: "string",
+          description: "A friendly opening message to start a discussion or summarize the plan."
+        },
+        suggestions: {
+          type: "array",
+          items: { type: "string" },
+          description: "Suggestions for the user's content strategy."
+        },
+        plan: {
+          type: "object",
+          properties: {
+            angle: { type: "string", description: "The editorial angle or perspective of the article." },
+            audience: { type: "string", description: "The target audience for the content." },
+            hook: { type: "string", description: "The hook/introduction hook." },
+            outline: { type: "string", description: "Outline of key points." },
+            seoIntent: { type: "string", description: "The primary search/SEO intent." },
+            sources: {
+              type: "array",
+              items: { type: "string" },
+              description: "List of sources used, represented by short domain names (e.g. reuters.com)."
+            },
+            draft: {
+              type: "string",
+              description: "Cohesive 400-600 word draft synthesizing the outline and sources."
+            }
+          },
+          required: ["angle", "audience", "hook", "outline", "seoIntent", "sources", "draft"]
+        }
+      },
+      required: ["reply", "suggestions", "plan"]
+    };
+
+    let interaction;
+    try {
+      interaction = await gemini.interactions.create({
+        model: MODEL,
+        input: prompt,
+        system_instruction: getStrategistSystemPrompt(profile?.config),
+        tools: [{ type: "google_search" }],
+        response_format: {
+          type: "text",
+          mime_type: "application/json",
+          schema: strategistPlanSchema
+        }
+      });
+    } catch (apiError) {
+      console.warn('[STRATEGIST] Structured Output API call failed. Retrying without schema constraint:', apiError);
+      // Fallback: retry without strict response_format in case of schema validation refusal
+      interaction = await gemini.interactions.create({
+        model: MODEL,
+        input: prompt,
+        system_instruction: getStrategistSystemPrompt(profile?.config),
+        tools: [{ type: "google_search" }]
+      });
+    }
     
     if (!interaction.output_text) {
         throw new Error("No output from model");
     }
 
-    const data = parseJsonResponse(interaction.output_text) as {
+    const defaultPlan = {
+      angle: "custom output",
+      audience: "audience",
+      hook: "hook",
+      outline: "outline",
+      seoIntent: "seoIntent",
+      sources: [] as string[],
+      draft: ""
+    };
+    const defaultSuggestions = ["Proceed to Editor", "Save to Notes", "Revise Blueprint"];
+
+    let data: {
       reply?: string;
       suggestions?: string[];
       plan?: {
@@ -1048,7 +1125,40 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
         sources?: string[];
         draft?: string;
       };
-    };
+    } = {};
+
+    try {
+      const parsed = parseJsonResponse(interaction.output_text) as any;
+      if (parsed && typeof parsed === 'object') {
+        const planObj = parsed.plan || {};
+        data = {
+          reply: typeof parsed.reply === 'string' ? parsed.reply : "Here is the draft.",
+          suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : defaultSuggestions,
+          plan: {
+            angle: typeof planObj.angle === 'string' ? planObj.angle : defaultPlan.angle,
+            audience: typeof planObj.audience === 'string' ? planObj.audience : defaultPlan.audience,
+            hook: typeof planObj.hook === 'string' ? planObj.hook : defaultPlan.hook,
+            outline: typeof planObj.outline === 'string' ? planObj.outline : defaultPlan.outline,
+            seoIntent: typeof planObj.seoIntent === 'string' ? planObj.seoIntent : defaultPlan.seoIntent,
+            sources: Array.isArray(planObj.sources) ? planObj.sources : defaultPlan.sources,
+            draft: typeof planObj.draft === 'string' ? planObj.draft : (typeof parsed.reply === 'string' ? parsed.reply : interaction.output_text)
+          }
+        };
+      } else {
+        throw new Error("Parsed output is not an object");
+      }
+    } catch (parseError) {
+      console.warn('[STRATEGIST] Structured parse failed, wrapping raw output:', parseError);
+      // Fallback: If AI fails to generate valid JSON, wrap raw text in the expected structure so the frontend doesn't crash
+      data = {
+        reply: "The system received unstructured output from the AI. Here is the raw output.",
+        suggestions: defaultSuggestions,
+        plan: {
+          ...defaultPlan,
+          draft: interaction.output_text
+        }
+      };
+    }
     
     interface GroundingAnnotation {
       type: string;
@@ -1181,7 +1291,7 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
     let dbSessionId = sessionId;
     if (req.auth && req.auth.userId) {
       if (!dbSessionId || dbSessionId === 'new') {
-        const firstMsg = recommendation.slice(0, 40).trim() || 'Rekomendasi Blueprint';
+        const firstMsg = recommendation.slice(0, 40).trim() || 'Blueprint Recommendation';
         const title = firstMsg.length >= 40 ? `${firstMsg}...` : firstMsg;
         const internalOrgId = await resolveInternalOrgId(req.auth.orgId, req.auth.userId);
 
@@ -1399,7 +1509,7 @@ STAGE 3 — EXPAND: Transform the outline into a full article.
 
 <absolute_prohibitions>
 These outputs are NEVER acceptable. If you produce any of these, you have FAILED the task:
-1. ❌ Meta-analysis: "Berdasarkan audit performa...", "Evaluasi menunjukkan...", "Strategi ke depan...", "Pembaca sangat tertarik pada..."
+1. ❌ Meta-analysis: "Based on the audit reports...", "Evaluation shows...", "Forward-looking strategy...", "Readers are very interested in..."
 2. ❌ Blueprint rephrase: Restating the editorial brief as narrative without expanding it into an actual article.
 3. ❌ Multi-topic summary: Covering multiple article ideas or pillars in one output.
 4. ❌ Strategy document: Discussing SEO tactics, distribution plans, audience analysis, or content calendars.
@@ -1417,8 +1527,8 @@ These outputs are NEVER acceptable. If you produce any of these, you have FAILED
 
 <citation_rules>
 - Use a Hybrid Citation Style (Verbal Attribution + Contextual Hyperlinking).
-- First mention of a source: Introduce the source naturally in the sentence and hyperlink the source name (e.g., "Menurut [studi terbaru dari Apple](url), apel berwarna merah.").
-- Subsequent mentions: Do not repeat the source name. Simply hyperlink the relevant keyword or data point contextually (e.g., "Warna ini [disebabkan oleh antosianin](url).").
+- First mention of a source: Introduce the source naturally in the sentence and hyperlink the source name (e.g., "According to [recent study from Apple](url), apples are red.").
+- Subsequent mentions: Do not repeat the source name. Simply hyperlink the relevant keyword or data point contextually (e.g., "This color is [caused by anthocyanin](url).").
 - Do NOT place bare links or titles at the end of a sentence. Integrate markdown links seamlessly into the narrative text.
 - Use ONLY the source URLs provided in the input material. Do NOT invent or hallucinate URLs.
 - Do NOT wrap markdown links in extra parentheses or brackets outside standard markdown syntax.
@@ -1455,23 +1565,23 @@ Process the input_material through the cognitive framework stages (IDENTIFY → 
 
 CRITICAL: If the input contains performance audits, strategy sections, or multiple article topics, pick exactly ONE article topic and write ONLY that article. IGNORE all meta-commentary, audit data, SEO plans, and distribution strategy — they are NOT article content.
 
-Your output must be a single, complete article draft ready for editorial review. Start with the article title as H1, then write the full body.
+Your output must be a single, complete article draft ready for editorial review.
 </instruction>
 
 <example_output>
-# Bukan Pengganti Manusia, Tapi Rekan Kerja Mandiri: Panduan Membangun Tim AI Agent Pertama Anda di 2026
+# Not a Human Replacement, But a Standalone Colleague: A Guide to Building Your First AI Agent Team in 2026
 
-Dunia kerja sedang berada di titik belok yang belum pernah terjadi sebelumnya. Jika selama dua tahun terakhir kita sibuk belajar menulis prompt yang sempurna, tahun 2026 membawa paradigma yang sama sekali berbeda: AI tidak lagi menunggu perintah kita.
+The world of work is at an unprecedented turning point. If the last two years were spent mastering the art of the perfect prompt, 2026 ushers in a completely different paradigm: AI is no longer waiting for our commands.
 
-Alih-alih menjadi asisten pasif yang hanya merespons, AI kini mulai bekerja secara otonom di latar belakang. Konsep ini dikenal sebagai agentic workflow — sebuah sistem di mana AI tidak hanya menjawab pertanyaan, tetapi juga mengambil inisiatif, membuat keputusan, dan menyelesaikan rangkaian tugas kompleks tanpa campur tangan manusia di setiap langkahnya.
+Instead of being a passive assistant that only responds, AI is now beginning to work autonomously in the background. This concept is known as agentic workflow—a system where AI not only answers questions but also takes initiative, makes decisions, and completes complex task sequences without human intervention at every step.
 
-Untuk memahami cara kerja AI agent, kita perlu melihat tiga komponen utamanya: memori, perencanaan, dan alat kerja. Memori memungkinkan AI mengingat konteks dari interaksi sebelumnya. Perencanaan memberinya kemampuan memecah tugas besar menjadi langkah-langkah kecil yang bisa dieksekusi. Sementara alat kerja — seperti akses ke internet, kalkulator, atau database — memberinya tangan untuk benar-benar bertindak, bukan sekadar berbicara.
+To understand how AI agents work, we need to look at their three main components: memory, planning, and tools. Memory allows the AI to recall context from previous interactions. Planning gives it the ability to break down large tasks into smaller, executable steps. Meanwhile, tools—such as access to the internet, calculators, or databases—give it the hands to truly act, not just talk.
 
-Dalam praktiknya, agentic workflow memungkinkan skenario yang sebelumnya mustahil. Bayangkan sebuah rantai otomatisasi: AI Riset mengumpulkan data dari puluhan sumber, AI Penulis mengolahnya menjadi naskah, lalu AI Editor memeriksa konsistensi dan kualitas — semuanya berjalan dalam satu alur tanpa henti. Manusia cukup memberikan arahan di awal dan meninjau hasil akhir.
+In practice, agentic workflow enables scenarios that were previously impossible. Imagine an automation chain: a Research AI collects data from dozens of sources, a Writing AI processes it into a manuscript, and an Editing AI checks for consistency and quality—all running in one continuous flow. Humans simply provide initial direction and review the final output.
 
-Tentu saja, transisi ini tidak berarti manusia menjadi tidak relevan. Sebaliknya, peran kita bergeser dari operator menjadi arsitek. Kita tidak lagi sibuk menulis prompt demi prompt, melainkan merancang sistem, menentukan tujuan, dan memastikan output tetap selaras dengan nilai-nilai yang kita pegang. Ini adalah evolusi, bukan penggantian.
+Of course, this transition does not mean humans become irrelevant. Instead, our role shifts from operator to architect. We are no longer busy writing prompt after prompt, but rather designing systems, setting goals, and ensuring that the output remains aligned with the values we hold. This is evolution, not replacement.
 
-Tahun 2026 akan menjadi tahun di mana agentic workflow mulai diadopsi secara luas. Perusahaan yang mampu membangun tim hybrid — manusia dan AI agent yang bekerja berdampingan — akan memiliki keunggulan kompetitif yang signifikan. Pertanyaannya bukan lagi apakah AI akan mengambil alih pekerjaan kita, melainkan seberapa cepat kita bisa beradaptasi untuk bekerja bersama mereka.
+2026 will be a year where agentic workflow begins to be widely adopted. Companies that are able to build hybrid teams—humans and AI agents working side-by-side—will have a significant competitive advantage. The question is no longer whether AI will take over our jobs, but how quickly we can adapt to work alongside them.
 </example_output>`;
 
     const prompt = composeEditorialPrompt(basePrompt, profile);
