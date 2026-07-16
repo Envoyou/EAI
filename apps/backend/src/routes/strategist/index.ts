@@ -1004,6 +1004,18 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       }
     }
 
+    const uniqueSourcesList: string[] = [];
+    const urlToIndex = new Map<string, number>();
+    for (const annotation of extractedAnnotations) {
+      if (annotation.url) {
+        const realUrl = resolvedUrls.get(annotation.url) || annotation.url;
+        if (!urlToIndex.has(realUrl)) {
+          uniqueSourcesList.push(realUrl);
+          urlToIndex.set(realUrl, uniqueSourcesList.length);
+        }
+      }
+    }
+
     // Compile a registry of all verified candidate URLs from current search and chat history
     const rawRegistry = [...new Set([...chatHistoryUrls, ...uniqueSourcesList])];
     const validUrlsRegistry: string[] = [];
