@@ -314,7 +314,7 @@ If ANY answer is NO, rewrite before outputting.
 </self_check>
 
 <writing_spec>
-- Output format: Start with the article title as an H1 (# Title), followed by flowing prose body paragraphs.
+- Output format: Start the draft strictly with the article title as an H1 Markdown heading (e.g., "# Title") on the very first line. Do NOT write the title as plain text or omit the "# " prefix.
 - Length: 600–800 words (4–6 paragraphs minimum of substantive prose).
 - Tone: Match the angle specified in the topic brief (e.g., practical-strategic, macro-geopolitical, critical/contrarian).
 - Language: Follow the Output Language specified in the ARTICLE METADATA. If not specified, use the language of the input material.
@@ -391,6 +391,7 @@ Output the detailed blueprint in the 'plan' object with the following fields:
 5. The "draft" field inside the "plan" object must be a cohesive 400–600 word draft that synthesizes the outline and sources.
 6. Keep the draft focused on the agreed angle and audience.
 7. Do NOT include meta-commentary (e.g., "Here is your draft") anywhere in the JSON response. Just output the clean data.
+8. The "draft" inside the "plan" object MUST start with the article title formatted strictly as an H1 Markdown heading (e.g., "# Article Title") on the very first line. Do NOT write the title as plain text without the "# " prefix.
 </constraints>
 
 <output_format>
