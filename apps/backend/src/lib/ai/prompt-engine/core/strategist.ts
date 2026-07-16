@@ -386,7 +386,7 @@ Output the detailed blueprint in the 'plan' object with the following fields:
 <constraints>
 1. Use Google Search to find highly credible, real-world data points ONLY IF relevant sources have not been established in the current session. If relevant sources or data are already present in the conversation history, prioritize and utilize that existing information.
 2. The "draft" inside the "plan" object MUST include factual claims backed by the sources you found or the context provided.
-3. Cite sources inside the "draft" inline by domain, e.g., (reuters.com). Do not write full URLs inside the draft text.
+3. Cite sources inside the "draft" inline using Hybrid Citation Style (verbal attribution + markdown contextual link, e.g., "...according to [McKinsey](https://mckinsey.com/example)..."). Ensure the links match the full URLs in your sources array. Do NOT use simple parenthetical text domains like (reuters.com).
 4. If you fail to cite real, verifiable sources, the article will fail the final Editorial Fact-Checking stage.
 5. The "draft" field inside the "plan" object must be a cohesive 400–600 word draft that synthesizes the outline and sources.
 6. Keep the draft focused on the agreed angle and audience.
