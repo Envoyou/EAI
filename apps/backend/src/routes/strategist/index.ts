@@ -662,9 +662,8 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
             await Promise.all(urlsToResolve.map(async (u) => {
                 if (u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
                     try {
-                        const res = await fetchWithTimeout(u, { method: 'HEAD', redirect: 'manual', timeout: 3000 });
-                        const loc = res.headers.get('location');
-                        resolvedUrls.set(u, loc || u);
+                        const res = await fetchWithTimeout(u, { method: 'HEAD', redirect: 'follow', timeout: 4000 });
+                        resolvedUrls.set(u, res.url || u);
                     } catch (_e) {
                         resolvedUrls.set(u, u);
                     }
@@ -993,9 +992,8 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
     for (const u of uniqueUrlsToResolve) {
       if (u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
         try {
-          const res = await fetchWithTimeout(u, { method: 'HEAD', redirect: 'manual', timeout: 3000 });
-          const loc = res.headers.get('location');
-          resolvedUrls.set(u, loc || u);
+          const res = await fetchWithTimeout(u, { method: 'HEAD', redirect: 'follow', timeout: 4000 });
+          resolvedUrls.set(u, res.url || u);
         } catch (_e) {
           resolvedUrls.set(u, u);
         }
@@ -1025,9 +1023,8 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       if (typeof u === 'string') {
         if (u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
           try {
-            const res = await fetchWithTimeout(u, { method: 'HEAD', redirect: 'manual', timeout: 3000 });
-            const loc = res.headers.get('location');
-            validUrlsRegistry.push(loc || u);
+            const res = await fetchWithTimeout(u, { method: 'HEAD', redirect: 'follow', timeout: 4000 });
+            validUrlsRegistry.push(res.url || u);
           } catch (_e) {
             validUrlsRegistry.push(u);
           }
