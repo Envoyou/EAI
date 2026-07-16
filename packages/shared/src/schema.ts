@@ -3,7 +3,6 @@ import type { Role } from './types';
 
 export const FEEDBACK_OUTPUT_PROMPT_SCHEMA = `
 {
-  "thinking": string (detailed step-by-step thinking or reasoning trace before making any conclusions),
   "score": number (integer 0-100),
   "verdict": "approve" | "revise" | "reject",
   "summary": string (1-2 kalimat, max 280 karakter),
@@ -24,7 +23,6 @@ export const FEEDBACK_OUTPUT_PROMPT_SCHEMA = `
 
 export const POLISH_DIAGNOSIS_OUTPUT_PROMPT_SCHEMA = `
 {
-  "thinking": string (detailed step-by-step thinking or reasoning trace before making any conclusions),
   "summary": string (1-2 kalimat netral tentang arah transformasi, max 280 karakter),
   "feedback": Array<{
     "category": string,
@@ -43,7 +41,6 @@ export const POLISH_DIAGNOSIS_OUTPUT_PROMPT_SCHEMA = `
 
 export const FINAL_QUALITY_GATE_OUTPUT_PROMPT_SCHEMA = `
 {
-  "thinking": string (detailed step-by-step thinking or reasoning trace before making any conclusions),
   "readiness": "ready" | "needs_review" | "blocked",
   "summary": string,
   "changes": Array<string>,

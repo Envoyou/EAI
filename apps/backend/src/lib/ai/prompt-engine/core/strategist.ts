@@ -330,6 +330,26 @@ If ANY answer is NO, rewrite before outputting.
 - Use ONLY the source URLs provided in the input material. Do NOT invent or hallucinate URLs.
 - Do NOT wrap markdown links in extra parentheses or brackets outside standard markdown syntax.
 </citation_rules>
+
+<few_shot_demonstration>
+=== DRAFT FROM NOTES DEMONSTRATION ===
+[INPUT MATERIAL]
+# Blueprint: Kebijakan Pajak Kripto Global Baru
+- Title: Mengurai Kompleksitas Pajak Kripto Global 2026
+- Angle: Praktis-Strategis
+- Outline:
+  1. Pengantar aturan pajak kripto 2026
+  2. Dampak regulasi terhadap investor ritel
+- Sources:
+  - OECD Report: https://oecd.org/tax-crypto
+
+[OUTPUT DRAFT]
+# Mengurai Kompleksitas Pajak Kripto Global 2026
+
+Pemberlakuan aturan kepatuhan aset digital di tahun 2026 memaksa para pelaku pasar meninjau ulang strategi portofolio mereka. Berdasarkan laporan terbaru yang dirilis oleh [OECD](https://oecd.org/tax-crypto), kerangka pelaporan pajak aset digital kini diharmonisasi secara global untuk menutup celah penghindaran pajak.
+
+Bagi investor ritel, aturan baru ini membawa dampak administratif yang cukup signifikan. Kewajiban pelaporan transaksi lintas batas kini [diterapkan secara ketat](https://oecd.org/tax-crypto), mewajibkan pertukaran data otomatis antar-yurisdiksi negara.
+</few_shot_demonstration>
 `.trim();
 
     if (context.format === 'xml') {

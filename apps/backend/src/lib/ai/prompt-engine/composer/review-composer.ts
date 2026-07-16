@@ -142,12 +142,6 @@ Focus on:
 - Are there sentences or paragraphs that can be cut without losing meaning?
 - Does the tone match ${this.brandName}'s standards?
 
-Before deciding the verdict, score, or feedback items, you MUST output a structured step-by-step reasoning trace in the "thinking" field. Use this structure:
-1. DECONSTRUCT: List the main points and tone of the draft.
-2. AUDIT TONE & STYLE: Identify any passive voice, forbidden phrases, or generic openings.
-3. STRUCTURE: Verify that the H2/H3 headings and intro hook conform to the tenant structure.
-4. PROPOSED OPERATIONS: Outline the specific revisions needed.
-
 Note: the "verdict" for the author role must always be "approve" or "revise" (never "reject").
 Include at least 4 feedback categories. Include "suggestion" on every item with status "fail" or "warning".
 `.trim();
@@ -180,11 +174,6 @@ ROLE-SPECIFIC FACTUAL RULES:
   "high_risk_factual_claim" = the sensitive claim is high-risk and must be verified before publication.
 - For sensitive factual feedback with operation "manual", still fill "targetText" when possible so the system can attach a verification annotation to the final draft.
 
-Before deciding the verdict, score, or feedback items, you MUST output a structured step-by-step reasoning trace in the "thinking" field. Use this structure:
-1. RISK DETECTION: Identify any AI-spam patterns, generic structures, or unsourced claims.
-2. VERIFICATION CHECK: Cross-reference numbers/entities against cited sources.
-3. RESOLUTION: Outline the feedback category and status (fail/warning/pass) for each issue.
-
 Note: Use all three verdict options when appropriate ("approve" / "revise" / "reject").
 Scores below 60 must include at least 1 item in "flags".
 Include at least 5 feedback categories.
@@ -200,12 +189,6 @@ Focus on:
 - Natural keyword density and placement, especially in the headline, H2s, and first paragraph
 - Readability and content hierarchy: are H2/H3 headings clear and easy to skim?
 - Internal/external linking opportunities: are there specific recommendations?
-
-Before deciding the verdict, score, or feedback items, you MUST output a structured step-by-step reasoning trace in the "thinking" field. Use this structure:
-1. KEYWORD ANALYSIS: Identify primary keywords and keyword density.
-2. INTENT AUDIT: Determine if the content addresses search intent.
-3. SKIMMABILITY: Assess heading hierarchy (H2/H3).
-4. SUGGESTIONS: Formulate keyword placement or linking opportunities.
 
 Note: the "verdict" for the SEO role can be "approve" or "revise".
 Include at least 4 SEO-specific feedback categories. Include "suggestion" on every item with status "fail" or "warning".
@@ -229,12 +212,6 @@ ROLE-SPECIFIC FACTUAL RULES:
   "high_risk_factual_claim" = the sensitive claim is high-risk and must be verified before publication.
 - For sensitive factual feedback with operation "manual", still fill "targetText" when possible so the system can attach a verification annotation to the final draft.
 
-Before deciding the verdict, score, or feedback items, you MUST output a structured step-by-step reasoning trace in the "thinking" field. Use this structure:
-1. CLAIM EXTRACTION: List all statistical, numerical, superlative, and factual claims.
-2. SOURCE CHECK: Verify if each claim is directly backed by the source draft.
-3. RISK CLASSIFICATION: Classify verificationStatus (source_backed, needs_citation, high_risk_factual_claim).
-4. RECOMMENDATION: Formulate the feedback message and correction operations.
-
 Note: the "verdict" for the fact-checker role can be "approve", "revise", or "reject".
 Scores below 60 must include at least 1 item in "flags".
 Include at least 4 fact-checking-specific feedback categories. Include "suggestion" on every item with status "fail" or "warning".
@@ -248,11 +225,6 @@ Task:
 - Diagnose at most 3 transformation priorities that will be most useful for the rewrite process.
 - Identify parts that need sharpening without judging the writer's ability or the raw draft's publishability.
 - Protect numbers, names, quotes, dates, and factual claims that must not change during rewrite.
-
-Before generating the summary, feedback, or flags, you MUST output a structured step-by-step reasoning trace in the "thinking" field. Use this structure:
-1. CORE DISCOVERY: Summarize the draft category and core topic.
-2. TRANSFORMATION NEEDS: Identify the main structural, stylistic, or factual gaps.
-3. REVISION TASKS: Plan exactly which text operations ('replace', 'insert_before', etc.) are required.
 
 Output rules:
 - Do not give a score, verdict, approval, rejection, or pass/fail judgment on the raw draft.

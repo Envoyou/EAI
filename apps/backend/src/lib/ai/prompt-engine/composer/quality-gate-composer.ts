@@ -36,11 +36,6 @@ Readiness status:
 - "needs_review": the final draft is generally strong, but specific parts still need an editor's decision or correction.
 - "blocked": there is factual risk, broken structure, missing content, or a serious issue that must be resolved before export.
 
-Before deciding the readiness, summary, feedback, or flags, you MUST output a structured step-by-step reasoning trace in the "thinking" field. Use this structure:
-1. AUDIT DRAFT CHANGES: Compare the final draft to the source draft and summarize differences.
-2. FIDELITY VERIFICATION: Verify that numbers, names, quotes, and facts from the source draft were not distorted, deleted, or fabricated.
-3. RESOLUTION: Determine the readiness status, compile feedback, and set flags if needed.
-
 Output rules:
 - Reply ONLY with JSON.
 - Feedback must contain only specific, actionable corrections that a human editor or a refinement step can execute directly on the final draft.
@@ -54,6 +49,40 @@ Output rules:
       return `<quality_gate_role_instructions brand="${this.brandName}">\n${roleInstructions}\n</quality_gate_role_instructions>`;
     }
     return `## Quality Gate Role Instructions\n${roleInstructions}`;
+  }
+}
+
+export class QualityGateExamplesNode implements PromptNode {
+  id = 'core:quality_gate_examples';
+  type = 'core' as const;
+  isStatic = true;
+
+  render(context: RenderContext): string {
+    const examples = `
+=== QUALITY GATE EVALUATION DEMONSTRATION ===
+[INPUT SOURCE DRAFT]
+"In today's digital era, AI technology is extremely important. Companies are spending billions to adopt AI advisors. Valuations are hitting all-time highs of $500 billion, which many experts say is the future."
+
+[INPUT FINAL POLISHED DRAFT]
+"The race for artificial intelligence has shifted from experimental features to institutional deployment. Corporate investments in autonomous agents (Agentic OS) are climbing rapidly. The market projection for this integration now approaches $500 billion, driven by the need for process automation."
+
+[POLISHED QUALITY GATE OUTPUT]
+{
+  "readiness": "ready",
+  "summary": "The final draft successfully removes the generic AI opening and localizes the asset projection factually. Factual integrity of the $500 billion projection is maintained.",
+  "changes": [
+    "Removed AI opening cliché ('In today's digital era...') and replaced it with a direct hook.",
+    "Polished claim regarding $500B market cap to reflect it as an industry projection rather than an absolute fact, resolving verification risks."
+  ],
+  "feedback": [],
+  "flags": []
+}
+`.trim();
+
+    if (context.format === 'xml') {
+      return `<quality_gate_examples>\n${examples}\n</quality_gate_examples>`;
+    }
+    return examples;
   }
 }
 
@@ -83,6 +112,7 @@ export class QualityGatePromptComposer {
     // Quality Gate Role Node & Output Format
     const roleNode = new QualityGateRoleNode(brandName);
     const schemaNode = new OutputSchemaNode(FINAL_QUALITY_GATE_OUTPUT_PROMPT_SCHEMA, this.options);
+    const qgExamplesNode = new QualityGateExamplesNode();
 
     // Inisialisasi Tenant Nodes (Dynamic/Tenant specific)
     const brandNode = this.profile
@@ -105,6 +135,7 @@ export class QualityGatePromptComposer {
     root.addChild(markdownRulesNode);
     root.addChild(verifLockNode);
     root.addChild(schemaNode);
+    root.addChild(qgExamplesNode);
 
     if (brandNode) {
       root.addChild(brandNode);
