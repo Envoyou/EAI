@@ -24,3 +24,24 @@ export function stripLeadingH1(draft: string): StrippedDraft {
 
   return { title: null, body: draft };
 }
+
+/**
+ * Strips the leading "Excerpt: ..." paragraph from a draft body if it exists.
+ * Returns the remaining body of the draft.
+ */
+export function stripLeadingExcerpt(text: string): string {
+  if (!text) {
+    return text;
+  }
+
+  const cleanText = text.trim();
+  // Match "**Excerpt:**" or "Excerpt:" at the very start, followed by its content
+  // up to the next double newline (end of paragraph) or end of text.
+  const excerptRegex = /^\*?\*?Excerpt\*?\*?:?\s*([\s\S]*?)(?:\n\s*\n|$)/i;
+
+  if (excerptRegex.test(cleanText)) {
+    return cleanText.replace(excerptRegex, '').trimStart();
+  }
+
+  return text;
+}

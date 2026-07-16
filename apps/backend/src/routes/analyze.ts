@@ -38,7 +38,7 @@ import { RewritePromptComposer } from '@/lib/ai/prompt-engine/composer/rewrite-c
 import { RefinementPromptComposer } from '@/lib/ai/prompt-engine/composer/refinement-composer';
 import { getAllFeatureFlags } from '@eai/shared/server';
 import { verifyToken } from '@clerk/backend';
-import { stripLeadingH1 } from '@/lib/text-utils';
+import { stripLeadingH1, stripLeadingExcerpt } from '@/lib/text-utils';
 
 
 const router = Router();
@@ -457,7 +457,7 @@ const stripGeneratedVerificationNotes = (text: string) =>
 const preparePublicationDraft = (text: string) =>
   removeEmptyHeadings(
     cleanupRewriteArtifacts(
-      stripVerificationMarkers(stripGeneratedVerificationNotes(text))
+      stripVerificationMarkers(stripLeadingExcerpt(stripGeneratedVerificationNotes(text)))
     )
   );
 
