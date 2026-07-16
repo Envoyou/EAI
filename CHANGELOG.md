@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-07-16
+
 ### Added
 - **Composable Prompt Component Architecture (PCA)**: Introduced a modular, AST-based prompt composition engine under `packages/shared/src/prompt-engine` and `apps/backend/src/lib/ai/prompt-engine/`.
 - **Core and Tenant Prompt Nodes**: Separated static platform prompts into independent Core nodes (`EditorialMissionNode`, `MarkdownRulesNode`, `VerificationLockNode`, `LanguagePolicyNode`, `TemporalContextNode`, `StrictnessConstraintNode`, `InputBoundaryNode`, and `OutputSchemaNode`) and dynamic workspace configurations into Tenant nodes (`BrandIdentityNode`, `ToneCalibrationNode`).

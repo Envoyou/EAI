@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-07-16
+
 ### Added
 - **Composable Prompt Component Architecture (PCA)**: Memperkenalkan mesin penyusunan prompt modular berbasis AST di folder `packages/shared/src/prompt-engine` dan `apps/backend/src/lib/ai/prompt-engine/`.
 - **Core dan Tenant Prompt Nodes**: Memisahkan instruksi statis platform ke dalam node Core independen (`EditorialMissionNode`, `MarkdownRulesNode`, `VerificationLockNode`, `LanguagePolicyNode`, `TemporalContextNode`, `StrictnessConstraintNode`, `InputBoundaryNode`, dan `OutputSchemaNode`) serta konfigurasi workspace dinamis ke dalam node Tenant (`BrandIdentityNode`, `ToneCalibrationNode`).
