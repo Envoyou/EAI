@@ -382,12 +382,28 @@ export default function StrategistTab({
                       return (
                         <div className="flex justify-start w-full">
                           <div className="max-w-[95%] min-w-0 overflow-hidden bg-[var(--background)] border border-[var(--border)] rounded-xl rounded-bl-sm p-2.5 shadow-sm">
-                            {msg.payload?.status ? (
-                              <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)] px-1 py-1">
-                                <Loader2 className="w-3 h-3 animate-spin text-[var(--primary)]" />
-                                <span>{msg.payload.status}</span>
-                              </div>
-                            ) : (
+                            {msg.payload?.status ? (() => {
+                              const statusText = msg.payload.status;
+                              const isThinkingStatus = statusText.startsWith("Thinking:");
+                              const thinkingText = isThinkingStatus ? statusText.replace(/^Thinking:\s*/, '') : '';
+                              
+                              return (
+                                <div className="flex flex-col gap-2 px-1 py-1">
+                                  <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--primary)]" />
+                                    <span className="font-medium">{isThinkingStatus ? "Thinking..." : statusText}</span>
+                                  </div>
+                                  {isThinkingStatus && thinkingText && (
+                                    <div className="mt-1.5 p-2.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[10px] text-[var(--muted-foreground)] font-mono whitespace-pre-wrap leading-relaxed max-h-[140px] overflow-y-auto animate-fade-in shadow-inner">
+                                      <div className="text-[9px] uppercase tracking-wider font-bold text-[var(--primary)] opacity-90 mb-1 select-none">
+                                        Thinking Process
+                                      </div>
+                                      {thinkingText}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })() : (
                               <>
                                 <div className="prose strategist-prose max-w-none text-[var(--foreground)] text-xs">
                                   <ReactMarkdown remarkPlugins={[remarkGfm]}>

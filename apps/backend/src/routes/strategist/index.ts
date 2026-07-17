@@ -600,7 +600,13 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
         }
         if (event.event_type === "step.start") {
             if (event.step?.type === "google_search_call") {
-                const queries = (event.step as { arguments?: { queries?: string[] } }).arguments?.queries;
+                const stepObj = event.step as Record<string, unknown>;
+                const queries = 
+                  (stepObj.arguments as { queries?: string[] })?.queries || 
+                  (stepObj.args as { queries?: string[] })?.queries || 
+                  (stepObj.google_search_call as { queries?: string[] })?.queries || 
+                  ((stepObj.google_search_call as { query?: string })?.query ? [(stepObj.google_search_call as { query: string }).query] : undefined);
+
                 if (queries && queries.length > 0) {
                     res.write(`data: ${JSON.stringify({ type: "status", message: `Searching: "${queries[0]}"...` })}\n\n`);
                 } else {
@@ -617,10 +623,18 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
                 // inline <thinking> tags. Simply forward text deltas directly.
                 finalOutputText += event.delta.text;
                 res.write(`data: ${JSON.stringify({ type: "text", chunk: event.delta.text })}\n\n`);
-            } else if (event.delta?.type === "thought_summary" && (event.delta as { text?: string }).text) {
+            } else if (event.delta?.type === "thought_summary") {
                 // Forward native thinking summaries to the client for UI "Thinking..." indicators.
                 // The frontend decides whether to display or discard this stream.
-                res.write(`data: ${JSON.stringify({ type: "thinking", chunk: ((event.delta as unknown) as { text: string }).text })}\n\n`);
+                const thoughtDelta = event.delta as Record<string, unknown>;
+                const thinkingChunk = 
+                  (thoughtDelta.text as string | undefined) || 
+                  (thoughtDelta.content as { text?: string } | undefined)?.text ||
+                  (thoughtDelta.content as string | undefined) || '';
+                
+                if (thinkingChunk) {
+                    res.write(`data: ${JSON.stringify({ type: "thinking", chunk: thinkingChunk })}\n\n`);
+                }
             } else if (event.delta?.type === "text_annotation_delta" && event.delta.annotations) {
                 globalAnnotations.push(...event.delta.annotations);
             }
