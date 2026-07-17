@@ -17,6 +17,7 @@
     "turbo": "^2.0.0"
   },
   "dependencies": {
+    "@ai-sdk/devtools": "^1.0.6",
     "ai": "^7.0.30"
   }
 }
