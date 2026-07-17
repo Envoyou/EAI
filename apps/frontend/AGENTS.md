@@ -114,7 +114,7 @@ apps/frontend/
 │   │   │   ├── sidebar-item.tsx  # Sidebar navigation item
 │   │   │   └── sonner.tsx        # Toast provider (Sonner)
 │   │   ├── editor/               # Tiptap editor extensions & components
-│   │   ├── EditorialWorkspace.tsx  # Main workspace orchestrator (80KB)
+│   │   ├── EditorialWorkspace.tsx  # Pure UI orchestrator / shell (delegates logic to useEditorialWorkspace)
 │   │   ├── Editor.tsx            # Tiptap editor wrapper
 │   │   ├── EditorCanvas.tsx      # Tiptap canvas
 │   │   ├── FeedbackPanel.tsx     # AI feedback panel
@@ -127,6 +127,14 @@ apps/frontend/
 │   │   ├── AICopilotPanel.tsx    # AI copilot chat panel
 │   │   ├── DocumentHistoryPanel.tsx  # Document history/versioning
 │   │   └── ...                   # Other feature components
+│   ├── workspace/                # Custom React hook framework for the workspace component
+│   │   ├── useEditorialWorkspace.ts  # Facade orchestration hook
+│   │   ├── types.ts              # Strictly typed state interfaces
+│   │   ├── constants.ts          # Static demo texts
+│   │   ├── utils.ts              # Stateless helpers (metadata, readiness, missing sources)
+│   │   ├── hooks/                # Sub-hooks (Storage, Config, Keyboard, Autosave, Streaming)
+│   │   ├── actions/              # Isolated side effects / API streaming triggers
+│   │   └── __tests__/            # Unit test suites (vitest)
 │   ├── i18n/                     # next-intl routing + locale config
 │   ├── lib/                      # Frontend utilities, hooks, API client
 │   └── messages/                 # i18n translation files (en / id)

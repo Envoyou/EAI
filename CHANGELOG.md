@@ -6,6 +6,29 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-07-17
+
+### Changed
+- **Decomposed EditorialWorkspace Component (Zero Logic / UI Change)**: Refactored the monolithic 88KB `EditorialWorkspace.tsx` frontend component into a modular, strictly-typed React custom hook framework located under a dedicated `src/workspace/` domain folder:
+  - `useEditorialWorkspace.ts`: Serving as a clean facade orchestrator that delegates state management, workspace configurations, window shortcut events, and network operations to sub-hooks.
+  - `types.ts`: Strictly types all properties, states, options, speed levels, and pending actions to ensure type safety.
+  - `constants.ts`: Isolates default static assets such as English and Indonesian demo texts.
+  - `utils.ts`: Gathers pure helpers for metadata parsing, readiness checks, quality gates, and domain verification.
+  - `hooks/`: Compartmentalizes core subsystem logic into specialized hooks:
+    - `useWorkspaceStorage.ts`: Handles two-way sync, state retrieval, and backup of workspace preferences with local and session storage.
+    - `useWorkspaceConfig.ts`: Pulls workspace tenant parameters, categorizations, and default app settings.
+    - `useWorkspaceKeyboard.ts`: Standardizes global key bindings (e.g., `?` for help, `Cmd+B` / `Ctrl+B` for sidebar toggle) and viewport checks.
+    - `useWorkspaceAutosave.ts`: Implements debounced cloud autosaving to secure history records in the database.
+    - `useWorkspaceStreaming.ts`: Manages stream buffers, stage progress indicators, and requestAnimationFrame rendering batches to optimize DOM updates.
+  - `actions/`: Extracts API streaming requests and side effects into testable, isolated functions:
+    - `analyze.ts`: Polish and rewrite streaming coordinator.
+    - `refine.ts`: Refine stage and instruction applicator.
+    - `targetedFix.ts`: Sentence and framework correction.
+    - `strategist.ts`: Content blueprint and strategist first-draft generation.
+- **Frontend Test Suite Integration**: Installed `vitest` in the frontend workspace, added a custom alias resolution in `vitest.config.ts`, and wrote unit tests under `src/workspace/__tests__/` to validate:
+  - Utility helpers (metadata extraction, missing domain checking, quality gate readiness).
+  - Actions orchestration (executeAnalyze edge cases with mock context payloads).
+
 ## [3.5.0] - 2026-07-17
 
 ### Changed

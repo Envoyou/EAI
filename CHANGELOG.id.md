@@ -6,6 +6,29 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-07-17
+
+### Changed
+- **Pecah Komponen EditorialWorkspace (Zero Logic / UI Change)**: Merefaktor komponen frontend monolitik 88KB `EditorialWorkspace.tsx` ke dalam framework custom hook React yang modular dan strictly-typed di bawah folder domain terdedikasi `src/workspace/`:
+  - `useEditorialWorkspace.ts`: Berfungsi sebagai facade orchestrator hook yang mendelegasikan state management, konfigurasi workspace, pintasan keyboard, dan aksi jaringan ke sub-hooks.
+  - `types.ts`: Menentukan tipe data TS strictly-typed untuk semua properti, state, dan aksi tertunda untuk menjamin keamanan tipe data.
+  - `constants.ts`: Mengisolasi aset statis bawaan seperti teks demo Bahasa Inggris dan Bahasa Indonesia.
+  - `utils.ts`: Mengumpulkan helper murni untuk parsing metadata, pengecekan ketersediaan domain (missing sources), readiness gerbang kualitas, dan verifikasi domain rujukan.
+  - `hooks/`: Membagi logika subsystem inti menjadi hooks yang lebih spesifik:
+    - `useWorkspaceStorage.ts`: Mengelola sinkronisasi dua arah, pemulihan state, dan backup preferensi workspace dengan local & session storage.
+    - `useWorkspaceConfig.ts`: Mengambil parameter tenant workspace, daftar kategori, dan default metadata.
+    - `useWorkspaceKeyboard.ts`: Menstandarkan pintasan keyboard global (`?` untuk manual bantuan, `Cmd+B` / `Ctrl+B` untuk sidebar toggle) dan pengecekan ukuran viewport.
+    - `useWorkspaceAutosave.ts`: Mengimplementasikan autosave cloud debounced untuk mengamankan riwayat draf ke database.
+    - `useWorkspaceStreaming.ts`: Mengelola buffer data streaming, progress stage, dan batching render requestAnimationFrame untuk mencegah lag UI.
+  - `actions/`: Mengekstrak panggilan streaming API dan efek samping ke fungsi yang terisolasi dan mudah diuji:
+    - `analyze.ts`: Koordinator stream polish & rewrite.
+    - `refine.ts`: Alur refine dan eksekusi instruksi kustom.
+    - `targetedFix.ts`: Perbaikan parsial kalimat dan struktur klaim.
+    - `strategist.ts`: Pembuatan blueprint tulisan dan draf awal asisten strategist dari catatan riset.
+- **Integrasi Unit Testing Frontend**: Memasang `vitest` pada workspace frontend, menambahkan konfigurasi alias resolver di `vitest.config.ts`, serta menulis pengujian unit di folder `src/workspace/__tests__/` untuk memvalidasi:
+  - Helper utilitas (ekstraksi metadata, missing domain check, kalkulasi readiness).
+  - Orkestrasi aksi (edge cases executeAnalyze dengan mock context payload).
+
 ## [3.5.0] - 2026-07-17
 
 ### Changed
