@@ -85,7 +85,7 @@ export default clerkMiddleware(async (auth, request) => {
 
   if (featureFlagReadBypass) {
     if (!isPublicRoute(request)) {
-      await auth.protect();
+      auth.protect();
     }
     return intlMiddleware(request);
   }
@@ -105,11 +105,11 @@ export default clerkMiddleware(async (auth, request) => {
   }
 
   if (!featureFlags.demo_enabled && pathWithoutLocale === '/') {
-    await auth.protect();
+    auth.protect();
   }
 
   if (!isPublicRoute(request)) {
-    await auth.protect();
+    auth.protect();
   }
 
   // Apply next-intl middleware for all non-API routes

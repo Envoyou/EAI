@@ -1,4 +1,27 @@
-import { getAll, parseConnectionString } from '@vercel/edge-config';
+/**
+ * Parse a Vercel Edge Config connection string into its components.
+ * This is a minimal inline implementation to avoid importing @vercel/edge-config
+ * which bundles @vercel/edge-config-fs — a Node.js filesystem adapter that
+ * crashes with EnvFileReadError in the Vercel Edge Runtime.
+ *
+ * Format: https://edge-config.vercel.com/<id>?token=<token>
+ */
+function parseEdgeConfigConnectionString(
+  connectionString: string
+): { baseUrl: string; token: string; version: string } | null {
+  try {
+    const url = new URL(connectionString);
+    const token = url.searchParams.get('token');
+    if (!token) return null;
+    // Strip query params to get the base URL (e.g. https://edge-config.vercel.com/ecfg_xxx)
+    const baseUrl = `${url.origin}${url.pathname}`;
+    // Version pinning — Vercel uses 1 by default
+    const version = url.searchParams.get('version') ?? '1';
+    return { baseUrl, token, version };
+  } catch {
+    return null;
+  }
+}
 import {
   BILLING_ENABLED,
   DEMO_ENABLED,
@@ -44,13 +67,33 @@ const normalizeFeatureFlags = (
   );
 
 export async function getAllFeatureFlags(): Promise<Record<FeatureFlagKey, boolean>> {
-  if (!process.env.EDGE_CONFIG) {
+  const connectionString = process.env.EDGE_CONFIG;
+  if (!connectionString) {
+    return { ...DEFAULT_FLAGS };
+  }
+
+  const connection = parseEdgeConfigConnectionString(connectionString);
+  if (!connection) {
+    console.error('EDGE_CONFIG is not a valid Edge Config connection string.');
     return { ...DEFAULT_FLAGS };
   }
 
   try {
-    const allItems = await getAll();
-    return normalizeFeatureFlags(allItems);
+    const response = await fetch(
+      `${connection.baseUrl}/items?version=${connection.version}`,
+      {
+        headers: {
+          Authorization: `Bearer ${connection.token}`,
+        },
+      }
+    );
+    if (!response.ok) {
+      console.error('Edge Config read failed:', response.status);
+      return { ...DEFAULT_FLAGS };
+    }
+    return normalizeFeatureFlags(
+      (await response.json()) as Record<string, unknown>
+    );
   } catch (error) {
     console.error('Error fetching all feature flags:', error);
     return { ...DEFAULT_FLAGS };
@@ -65,7 +108,7 @@ export async function getMiddlewareFeatureFlags(
     return { ...DEFAULT_FLAGS };
   }
 
-  const connection = parseConnectionString(connectionString);
+  const connection = parseEdgeConfigConnectionString(connectionString);
   if (!connection) {
     console.error('EDGE_CONFIG is not a valid Edge Config connection string.');
     return { ...DEFAULT_FLAGS };

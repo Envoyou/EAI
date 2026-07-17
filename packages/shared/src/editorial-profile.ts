@@ -256,12 +256,12 @@ export const normalizeProfileConfig = (value: unknown): EditorialProfileConfig |
     timezone: timezone || undefined,
     allowedEditorialTerms: Array.isArray(source.allowedEditorialTerms)
       ? (source.allowedEditorialTerms as AllowedEditorialTerm[]).filter(
-          (item) =>
-            item &&
-            typeof item === 'object' &&
-            typeof item.value === 'string' &&
-            item.value.trim().length > 0
-        ).slice(0, 100)
+        (item) =>
+          item &&
+          typeof item === 'object' &&
+          typeof item.value === 'string' &&
+          item.value.trim().length > 0
+      ).slice(0, 100)
       : [],
   });
 
