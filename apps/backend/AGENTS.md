@@ -100,11 +100,21 @@ apps/backend/
 │   │   └── ai/               # AI pipeline stages
 │   │       ├── workspace-context.ts    # composeWorkspaceContext + getWorkspaceAgentInstruction
 │   │       ├── prompt-context.ts       # Prompt context assembly
-│   │       ├── provider-runtime.ts     # Provider config helpers: getNativeGeminiConfig / getOpenRouterSamplingConfig
+│   │       ├── provider-runtime.ts     # Legacy config helpers (deprecated)
 │   │       ├── review-stage.ts         # Editorial review — utilizes ReviewPromptComposer
 │   │       ├── quality-gate-stage.ts   # Quality gate — utilizes QualityGatePromptComposer
 │   │       ├── seo-stage.ts            # SEO metadata generation stage — utilizes SeoPromptComposer
 │   │       ├── targeted-fix-stage.ts   # Targeted fix — utilizes RefinementPromptComposer
+│   │       ├── model-router.ts         # Sub-system for resolving model and output limit configs
+│   │       ├── providers/              # Unified AIProvider abstraction layer
+│   │       │   ├── interface.ts        # Contract, capabilities, and token usage schemas
+│   │       │   ├── registry.ts         # getProvider() factory returning provider singletons
+│   │       │   ├── gemini/             # GeminiProvider wrapping @google/genai
+│   │       │   ├── openrouter/         # OpenRouterProvider wrapping openai
+│   │       │   └── groq/               # GroqProvider wrapping groq-sdk
+│   │       ├── runtime/                # Orchestrator for telemetry tracking
+│   │       │   ├── execute-stream.ts   # Streaming telemetry collector
+│   │       │   └── execute-generate.ts # Non-streaming telemetry collector
 │   │       └── prompt-engine/          # Composable PCA engine
 │   │           ├── core/               # Static platform instruction nodes
 │   │           │   ├── mission.ts      # Editorial mission
@@ -126,14 +136,12 @@ apps/backend/
 │   │           │   └── draft-from-notes-composer.ts # Research notes to article draft AST composer
 │   │           └── __tests__/          # Unit test suite for AST and composers
 │   │               └── prompt-engine.test.ts # Comprehensive AST, Composer & Node unit tests
-│   └── routes/
-│       ├── analyze/          # /api/analyze — modular AI analysis pipeline folder
-│       │   ├── index.ts      # Router export (backward-compatible entry)
-│       │   ├── controller.ts # Orchestrator (auth, workspace, SSE init, keep-alive)
-│       │   ├── types.ts      # Shared types and constants
-│       │   ├── handlers/     # Stage/mode execution paths (analyze, refine, fix-targeted, dev-mock)
-│       │   ├── providers/    # AI provider execution placeholders (Gemini, Groq, OpenRouter)
-│       │   └── utils/        # Decomposed utility helpers (signals, factual, verification, text, markdown)
+        ├── analyze/          # /api/analyze — modular AI analysis pipeline folder
+        │   ├── index.ts      # Router export (backward-compatible entry)
+        │   ├── controller.ts # Orchestrator (auth, workspace, SSE init, keep-alive)
+        │   ├── types.ts      # Shared types and constants
+        │   ├── handlers/     # Stage/mode execution paths (analyze, refine, fix-targeted, dev-mock)
+        │   └── utils/        # Decomposed utility helpers (signals, factual, verification, text, markdown)
 │       ├── workspace.ts      # GET/PATCH /api/workspace — workspace management
 │       ├── history.ts        # GET /api/history — analysis log history
 │       ├── export.ts         # POST /api/export — article export

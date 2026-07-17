@@ -6,6 +6,30 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-07-17
+
+### Added
+- **AI Provider Abstraction Layer**: Replaced scattered provider-specific SDK branching with a unified, capability-driven `AIProvider` interface under `src/lib/ai/providers/`:
+  - `interface.ts`: Defines `AIProvider`, `StreamChunk` (normalized delta + usage), `StreamRequest`, `GenerateResult`, and `ProviderCapabilities`.
+  - `registry.ts`: Exports `getProvider()` factory returning singletons for `'gemini'`, `'groq'`, and `'openrouter'`.
+  - `gemini/`: GeminiProvider wrapping `@google/genai` with custom stream generators, output mapping, and thinking level configs.
+  - `openrouter/`: OpenRouterProvider wrapping `openai` SDK mapped to OpenRouter endpoints.
+  - `groq/`: GroqProvider wrapping `groq-sdk` sharing common OpenAI-compatible mapping logic.
+- **Model Router Subsystem**: Consolidated editorial routing rules into `lib/ai/model-router.ts`:
+  - `resolveModel()`: Maps editorial roles and speeds to the optimal model based on provider context.
+  - `resolveOutputLimit()`: Standardizes maximum token responses based on standard, compact, or manual fallback modes.
+- **Centralized Telemetry Runtime**: Introduced unified orchestrators at `src/lib/ai/runtime/`:
+  - `executeStream()`: Iterates normalized streams, captures usage from the final chunk, and records telemetry automatically.
+  - `executeGenerate()`: Executes non-streaming generation and dispatches telemetry records.
+- **Backend Test Suite Integration**: Configured `vitest` in the backend workspace. Created tests validating:
+  - `providers/__tests__/contract.test.ts`: Capability profiles and interface contracts.
+  - `runtime/__tests__/execute-stream.test.ts` & `execute-generate.test.ts`: Telemetry dispatching and stream chunk mapping using a mock `FakeAIProvider`.
+  - `__tests__/review-stage.test.ts`: Retry and compact fallback execution paths.
+
+### Changed
+- **Unified Handlers & Stages (Zero Logic Change)**: Refactored stage files (`review-stage.ts`, `quality-gate-stage.ts`, `seo-stage.ts`, `targeted-fix-stage.ts`) and handlers (`analyze.ts`, `refine.ts`) to use the new `AIProvider` registry and runtime orchestrators, collapsing multi-branch transport code into clean, provider-agnostic execution flows.
+- **Cleanup and Deprecations**: Removed obsolete route stubs (`routes/analyze/providers/*`) and marked legacy functions/clients inside `provider-runtime.ts` as `@deprecated` while preserving full backward compatibility for strategist and onboarding endpoints.
+
 ## [3.6.0] - 2026-07-17
 
 ### Changed

@@ -1,19 +1,10 @@
-import { ThinkingLevel } from '@google/genai';
 import type { ArticleMetadata } from '@eai/shared';
 import type { EditorialProfileSnapshot } from '@eai/shared/server';
 import { RefinementPromptComposer } from './prompt-engine/composer/refinement-composer';
-import {
-  type AiProvider,
-  type AnalysisSpeed,
-  extractGeminiText,
-  extractOpenRouterText,
-  gemini,
-  getNativeGeminiConfig,
-  getOpenRouterModelForRole,
-  GROQ_MODEL,
-  groq,
-  openrouter,
-} from './provider-runtime';
+import type { AiProvider, AnalysisSpeed } from './provider-runtime';
+import { getProvider } from './providers/registry';
+import { resolveModel } from './model-router';
+import { executeGenerate } from './runtime/execute-generate';
 import { composeWorkspaceContext } from './workspace-context';
 
 export const runTargetedFixStage = async ({
@@ -82,53 +73,32 @@ export const runTargetedFixStage = async ({
     '</task>'
   ].join('\n');
 
-  let replacementText: string;
-  let modelName: string;
+  const aiProvider = getProvider(provider);
+  const modelName = resolveModel(provider, 'editor', analysisSpeed ?? 'balanced');
 
-  if (provider === 'groq') {
-    modelName = GROQ_MODEL;
-    const response = await groq.chat.completions.create({
+  const result = await executeGenerate({
+    provider: aiProvider,
+    request: {
+      systemInstruction,
+      userContent: contents,
       model: modelName,
-      messages: [
-        { role: 'system', content: systemInstruction },
-        { role: 'user', content: contents },
-      ],
-      max_tokens: 800,
+      maxOutputTokens: 800,
       temperature: 0.2,
-    });
-    replacementText = response.choices[0]?.message?.content?.trim() || '';
-  } else if (provider === 'openrouter') {
-    modelName = getOpenRouterModelForRole('editor', analysisSpeed);
-    const response = await openrouter.chat.completions.create({
-      model: modelName,
-      messages: [
-        { role: 'system', content: systemInstruction },
-        { role: 'user', content: contents },
-      ],
-      max_tokens: 800,
-      temperature: 0.2,
-    });
-    replacementText = extractOpenRouterText(response).trim();
-  } else {
-    modelName = process.env.GEMINI_MODEL || (analysisSpeed === 'fast'
-      ? 'gemini-3.1-flash-lite'
-      : 'gemini-3.5-flash');
-    const response = await gemini.models.generateContent({
-      model: modelName,
-      contents,
-      config: {
-        systemInstruction,
-        ...getNativeGeminiConfig(),
-        candidateCount: 1,
-        maxOutputTokens: 800,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
-      },
-    });
-    replacementText = extractGeminiText(response).trim();
-  }
+      thinkingLevel: provider === 'gemini' ? 'medium' : undefined,
+    },
+    // targeted-fix has no telemetry collector in its signature — pass a no-op
+    telemetry: {
+      recordGemini: () => undefined,
+      recordGroq: () => undefined,
+      recordOpenRouter: () => undefined,
+      markFallback: () => undefined,
+      snapshot: () => ({ stages: [] } as never),
+    } as import('@/lib/ai-telemetry').AiTelemetryCollector,
+    stage: 'targeted_fix',
+  });
 
   return {
     modelName,
-    replacementText: replacementText.replace(/^["']|["']$/g, '').trim(),
+    replacementText: result.text.replace(/^["']|["']$/g, '').trim(),
   };
 };

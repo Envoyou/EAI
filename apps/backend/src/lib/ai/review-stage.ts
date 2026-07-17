@@ -1,22 +1,10 @@
-import { ThinkingLevel } from '@google/genai';
 import type { AiTelemetryCollector } from '@/lib/ai-telemetry';
 import { FeedbackOutputSchema, PolishDiagnosisSchema, getFeedbackResponseJsonSchema, type FeedbackOutput, type PolishDiagnosisOutput } from '@eai/shared';
 import { extractCompleteObjectsFromJsonArray, extractJsonFromText, extractJsonNumberValue, extractJsonStringValue, parseJsonResponse } from '@eai/shared';
 import type { ArticleMetadata, FeedbackItem, ResponseMode, Role } from '@eai/shared';
-import {
-  type AiProvider,
-  extractGeminiText,
-  extractOpenRouterText,
-  extractOpenRouterUsage,
-  gemini,
-  getGeminiFinishReason,
-  getGeminiReviewOutputLimit,
-  getNativeGeminiConfig,
-  getGroqReviewOutputLimit,
-  getOpenRouterReviewOutputLimit,
-  groq,
-  openrouter,
-} from './provider-runtime';
+import type { AiProvider } from './provider-runtime';
+import { getProvider } from './providers/registry';
+import { resolveOutputLimit } from './model-router';
 import {
   buildCompactReviewInstruction,
   buildEditorialUserContent,
@@ -191,97 +179,43 @@ export const runEditorialReviewStage = async ({
     const startedAt = Date.now();
     let rawBuffer = '';
     let truncated = false;
-    let geminiUsage: Parameters<AiTelemetryCollector['recordGemini']>[0]['usage'];
-    let groqUsage: Parameters<AiTelemetryCollector['recordGroq']>[0]['usage'];
-    let openRouterUsage: Parameters<AiTelemetryCollector['recordOpenRouter']>[0]['usage'];
 
-    if (provider === 'gemini') {
-      let lastChunk: unknown = null;
-      const stream = await gemini.models.generateContentStream({
-        model: modelName,
-        contents,
-        config: {
-          systemInstruction: prompt,
-          ...getNativeGeminiConfig(),
-          candidateCount: 1,
-          maxOutputTokens: getGeminiReviewOutputLimit(role, mode),
-          thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
-          responseMimeType: 'application/json',
-          responseJsonSchema: getFeedbackResponseJsonSchema(role),
-        },
+    // Provider-agnostic streaming via the AIProvider interface.
+    // The review stream is intentionally NOT delegated to executeStream() because
+    // it requires incremental JSON parsing (emitIncrementalReview) and
+    // Gemini-specific config (responseMimeType / responseJsonSchema).
+    // We consume StreamChunks directly and record telemetry ourselves.
+    const aiProvider = getProvider(provider);
+    const outputLimit = resolveOutputLimit(provider, role, mode);
+    const streamRequest = {
+      systemInstruction: prompt,
+      userContent: contents,
+      model: modelName,
+      maxOutputTokens: outputLimit,
+      thinkingLevel: 'medium' as const,
+      temperature: 0.2,
+      responseFormat: 'json' as const,
+      // Gemini-specific JSON schema is injected via GeminiProvider internals;
+      // for OpenAI-compatible providers response_format: json_object is used.
+      _reviewJsonSchema: provider === 'gemini' ? getFeedbackResponseJsonSchema(role) : undefined,
+    };
+
+    // Open the stream — provider normalizes chunks to StreamChunk
+    const streamIterable = await aiProvider.stream(streamRequest);
+    let lastChunkUsage: import('./providers/interface').UsageMetadata | undefined;
+
+    for await (const chunk of streamIterable) {
+      rawBuffer += chunk.text;
+      if (chunk.usage) lastChunkUsage = chunk.usage;
+      if (chunk.finishReason === 'MAX_TOKENS' || chunk.finishReason === 'length') truncated = true;
+      emitIncrementalReview({
+        rawBuffer,
+        isPolishMode,
+        draftText,
+        sendEvent,
+        sanitizeFeedback,
+        emitted,
       });
-
-      for await (const chunk of stream) {
-        lastChunk = chunk;
-        rawBuffer += extractGeminiText(chunk);
-        emitIncrementalReview({
-          rawBuffer,
-          isPolishMode,
-          draftText,
-          sendEvent,
-          sanitizeFeedback,
-          emitted,
-        });
-      }
-
-      truncated = getGeminiFinishReason(
-        lastChunk as Parameters<typeof getGeminiFinishReason>[0]
-      ) === 'MAX_TOKENS';
-      geminiUsage = (lastChunk as {
-        usageMetadata?: Parameters<AiTelemetryCollector['recordGemini']>[0]['usage'];
-      } | null)?.usageMetadata;
-    } else if (provider === 'openrouter') {
-      const stream = await openrouter.chat.completions.create({
-        model: modelName,
-        messages: [
-          { role: 'system', content: prompt },
-          { role: 'user', content: contents },
-        ],
-        stream: true,
-        max_tokens: getOpenRouterReviewOutputLimit(mode),
-        temperature: 0.2,
-        response_format: { type: 'json_object' },
-      });
-
-      for await (const chunk of stream) {
-        openRouterUsage = extractOpenRouterUsage(chunk) ?? openRouterUsage;
-        rawBuffer += extractOpenRouterText(chunk);
-        if (chunk.choices[0]?.finish_reason === 'length') truncated = true;
-        emitIncrementalReview({
-          rawBuffer,
-          isPolishMode,
-          draftText,
-          sendEvent,
-          sanitizeFeedback,
-          emitted,
-        });
-      }
-    } else {
-      const stream = await groq.chat.completions.create({
-        model: modelName,
-        messages: [
-          { role: 'system', content: prompt },
-          { role: 'user', content: contents },
-        ],
-        stream: true,
-        max_tokens: getGroqReviewOutputLimit(mode),
-        temperature: 0.2,
-        response_format: { type: 'json_object' },
-      });
-
-      for await (const chunk of stream) {
-        groqUsage = chunk.x_groq?.usage ?? groqUsage;
-        rawBuffer += chunk.choices[0]?.delta?.content ?? '';
-        if (chunk.choices[0]?.finish_reason === 'length') truncated = true;
-        emitIncrementalReview({
-          rawBuffer,
-          isPolishMode,
-          draftText,
-          sendEvent,
-          sanitizeFeedback,
-          emitted,
-        });
-      }
     }
 
     let parsed: unknown = null;
@@ -293,34 +227,16 @@ export const runEditorialReviewStage = async ({
     }
 
     const status = truncated || parsed === null ? 'error' : 'success';
-    if (provider === 'gemini') {
-      telemetry.recordGemini({
-        stage: 'review',
-        model: modelName,
-        usage: geminiUsage,
-        durationMs: Date.now() - startedAt,
-        attempt: attempt + 1,
-        status,
-      });
-    } else if (provider === 'openrouter') {
-      telemetry.recordOpenRouter({
-        stage: 'review',
-        model: modelName,
-        usage: openRouterUsage,
-        durationMs: Date.now() - startedAt,
-        attempt: attempt + 1,
-        status,
-      });
-    } else {
-      telemetry.recordGroq({
-        stage: 'review',
-        model: modelName,
-        usage: groqUsage,
-        durationMs: Date.now() - startedAt,
-        attempt: attempt + 1,
-        status,
-      });
-    }
+    recordReviewTelemetry({
+      telemetry,
+      provider,
+      stage: 'review',
+      model: modelName,
+      usage: lastChunkUsage,
+      durationMs: Date.now() - startedAt,
+      attempt: attempt + 1,
+      status,
+    });
 
     if (truncated || parsed === null) {
       if (attempt < 2) {
@@ -353,3 +269,74 @@ export const runEditorialReviewStage = async ({
 
   throw new Error('Editorial review stage exhausted all attempts.');
 };
+
+// ── Internal telemetry dispatch ───────────────────────────────────────────────
+
+/**
+ * Routes telemetry recording to the correct method on AiTelemetryCollector
+ * based on provider name. Replaces scattered recordGemini/recordGroq/recordOpenRouter
+ * calls in the review loop — the single place where usage shape is matched to normalizer.
+ */
+function recordReviewTelemetry(input: {
+  telemetry: AiTelemetryCollector;
+  provider: AiProvider;
+  stage: string;
+  model: string;
+  usage: import('./providers/interface').UsageMetadata | undefined;
+  durationMs: number;
+  attempt: number;
+  status: 'success' | 'error';
+}): void {
+  const { telemetry, provider, stage, model, usage, durationMs, attempt, status } = input;
+  const base = { stage, model, durationMs, attempt, status };
+
+  // Convert normalized UsageMetadata back to the shape expected by each telemetry method.
+  // This is the single seam where we bridge between the provider interface and telemetry.
+  const normalizedUsage = usage
+    ? {
+        promptTokenCount: usage.promptTokens,
+        candidatesTokenCount: usage.completionTokens,
+        cachedContentTokenCount: usage.cachedTokens,
+        thoughtsTokenCount: usage.reasoningTokens,
+        totalTokenCount: usage.totalTokens,
+      }
+    : undefined;
+
+  try {
+    switch (provider) {
+      case 'gemini':
+        telemetry.recordGemini({ ...base, usage: normalizedUsage });
+        break;
+      case 'groq':
+        telemetry.recordGroq({
+          ...base,
+          usage: usage
+            ? {
+                prompt_tokens: usage.promptTokens,
+                completion_tokens: usage.completionTokens,
+                total_tokens: usage.totalTokens,
+                prompt_tokens_details: { cached_tokens: usage.cachedTokens ?? 0 },
+                completion_tokens_details: { reasoning_tokens: usage.reasoningTokens ?? 0 },
+              }
+            : undefined,
+        });
+        break;
+      case 'openrouter':
+        telemetry.recordOpenRouter({
+          ...base,
+          usage: usage
+            ? {
+                prompt_tokens: usage.promptTokens,
+                completion_tokens: usage.completionTokens,
+                total_tokens: usage.totalTokens,
+                prompt_tokens_details: { cached_tokens: usage.cachedTokens ?? 0 },
+                completion_tokens_details: { reasoning_tokens: usage.reasoningTokens ?? 0 },
+              }
+            : undefined,
+        });
+        break;
+    }
+  } catch (err) {
+    console.warn('[review-stage] Telemetry record failed:', err);
+  }
+}

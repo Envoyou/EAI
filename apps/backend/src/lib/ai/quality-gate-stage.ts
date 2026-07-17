@@ -1,4 +1,4 @@
-import { ThinkingLevel } from '@google/genai';
+// ThinkingLevel is handled inside GeminiProvider — not needed here.
 import type { AiTelemetryCollector } from '@/lib/ai-telemetry';
 import { FinalQualityGateResponseJsonSchema, FinalQualityGateResponseSchema, FinalQualityGateSchema, type FinalQualityGateOutput, normalizeFinalQualityGateResponseCandidate } from '@eai/shared';
 import {
@@ -8,19 +8,10 @@ import type { EditorialProfileSnapshot } from '@eai/shared/server';
 import { QualityGatePromptComposer } from './prompt-engine/composer/quality-gate-composer';
 import { parseJsonResponse } from '@eai/shared';
 import type { ArticleMetadata, FeedbackItem, ResearchNote } from '@eai/shared';
-import {
-  type AiProvider,
-  type AnalysisSpeed,
-  extractGeminiText,
-  extractOpenRouterText,
-  extractOpenRouterUsage,
-  gemini,
-  getNativeGeminiConfig,
-  getOpenRouterModelForRole,
-  GROQ_MODEL,
-  groq,
-  openrouter,
-} from './provider-runtime';
+import type { AiProvider, AnalysisSpeed } from './provider-runtime';
+import { getProvider } from './providers/registry';
+import { resolveModel } from './model-router';
+import { executeGenerate } from './runtime/execute-generate';
 import { composeWorkspaceContext } from './workspace-context';
 
 const detectLanguage = (text: string): 'id' | 'en' => {
@@ -123,93 +114,31 @@ const runFinalQualityGate = async ({
     '</task>'
   ].filter(Boolean).join('\n');
 
-  let parsed: unknown;
-  let modelName: string;
+  const aiProvider = getProvider(provider);
+  const modelName = resolveModel(provider, 'editor', analysisSpeed ?? 'balanced');
 
-  if (provider === 'gemini') {
-    modelName = process.env.GEMINI_MODEL || (analysisSpeed === 'fast'
-      ? 'gemini-3.1-flash-lite'
-      : 'gemini-3.5-flash');
-    const startedAt = Date.now();
-    const response = await gemini.models.generateContent({
+  const systemInstruction = `${new QualityGatePromptComposer(
+    editorialProfile.config,
+    provider === 'gemini' ? { includeTextSchema: false } : {}
+  ).compose('xml')}\n\n${agentInstruction}`;
+
+  const text = await executeGenerate({
+    provider: aiProvider,
+    request: {
+      systemInstruction,
+      userContent: contents,
       model: modelName,
-      contents,
-      config: {
-        systemInstruction: `${new QualityGatePromptComposer(
-          editorialProfile.config,
-          { includeTextSchema: false }
-        ).compose('xml')}\n\n${agentInstruction}`,
-        ...getNativeGeminiConfig(),
-        candidateCount: 1,
-        maxOutputTokens: 4000,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
-        responseMimeType: 'application/json',
-        responseJsonSchema: FinalQualityGateResponseJsonSchema,
-      },
-    });
-    telemetry.recordGemini({
-      stage: 'quality_gate',
-      model: modelName,
-      usage: response.usageMetadata,
-      durationMs: Date.now() - startedAt,
-      attempt,
-    });
-    parsed = parseJsonResponse(extractGeminiText(response));
-  } else if (provider === 'openrouter') {
-    modelName = getOpenRouterModelForRole('editor', analysisSpeed);
-    const startedAt = Date.now();
-    const response = await openrouter.chat.completions.create({
-      model: modelName,
-      messages: [
-        {
-          role: 'system',
-          content: `${new QualityGatePromptComposer(
-            editorialProfile.config
-          ).compose('xml')}\n\n${agentInstruction}`,
-        },
-        { role: 'user', content: contents },
-      ],
-      stream: false,
-      max_tokens: 4000,
+      maxOutputTokens: 4000,
       temperature: 0.15,
-      response_format: { type: 'json_object' },
-    });
-    telemetry.recordOpenRouter({
-      stage: 'quality_gate',
-      model: modelName,
-      usage: extractOpenRouterUsage(response),
-      durationMs: Date.now() - startedAt,
-      attempt,
-    });
-    parsed = parseJsonResponse(extractOpenRouterText(response));
-  } else {
-    modelName = GROQ_MODEL;
-    const startedAt = Date.now();
-    const response = await groq.chat.completions.create({
-      model: modelName,
-      messages: [
-        {
-          role: 'system',
-          content: `${new QualityGatePromptComposer(
-            editorialProfile.config
-          ).compose('xml')}\n\n${agentInstruction}`,
-        },
-        { role: 'user', content: contents },
-      ],
-      stream: false,
-      max_tokens: 4000,
-      temperature: 0.15,
-      response_format: { type: 'json_object' },
-    });
-    telemetry.recordGroq({
-      stage: 'quality_gate',
-      model: modelName,
-      usage: response.usage,
-      durationMs: Date.now() - startedAt,
-      attempt,
-    });
-    parsed = parseJsonResponse(response.choices[0]?.message?.content ?? '');
-  }
+      thinkingLevel: provider === 'gemini' ? 'medium' : undefined,
+      responseFormat: 'json',
+      _reviewJsonSchema: provider === 'gemini' ? FinalQualityGateResponseJsonSchema : undefined,
+    },
+    telemetry,
+    stage: 'quality_gate',
+    attempt,
+  });
+  const parsed = parseJsonResponse(text.text);
 
   let result: FinalQualityGateOutput = FinalQualityGateResponseSchema.parse(
     normalizeFinalQualityGateResponseCandidate(parsed)

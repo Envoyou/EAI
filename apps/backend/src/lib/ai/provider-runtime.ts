@@ -18,14 +18,26 @@ export const GROQ_SEO_MODEL = 'llama-3.1-8b-instant';
 export const OPENROUTER_DEFAULT_MODEL = 'openai/gpt-4o-mini';
 export const OPENROUTER_DEFAULT_SEO_MODEL = 'openai/gpt-4o-mini';
 
+/**
+ * Legacy GoogleGenAI client singleton.
+ * @deprecated Use getProvider('gemini') for unified abstraction.
+ */
 export const gemini = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || 'empty',
 });
 
+/**
+ * Legacy Groq client singleton.
+ * @deprecated Use getProvider('groq') for unified abstraction.
+ */
 export const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || 'empty',
 });
 
+/**
+ * Legacy OpenAI client singleton pointed to OpenRouter.
+ * @deprecated Use getProvider('openrouter') for unified abstraction.
+ */
 export const openrouter = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY || 'empty',
   baseURL: 'https://openrouter.ai/api/v1',
@@ -50,6 +62,9 @@ export const getGeminiSamplingConfig = (model: string, temperature: number) =>
     ? getNativeGeminiConfig()
     : { temperature };
 
+/**
+ * @deprecated Use providers/gemini/mapper.ts extractGeminiText instead.
+ */
 export const extractGeminiText = (response: {
   text?: string;
   candidates?: Array<{
@@ -68,12 +83,18 @@ export const extractGeminiText = (response: {
     .join('') ?? '';
 };
 
+/**
+ * @deprecated Use providers/gemini/mapper.ts extractGeminiFinishReason instead.
+ */
 export const getGeminiFinishReason = (response: {
   candidates?: Array<{
     finishReason?: string;
   }>;
 }) => response.candidates?.[0]?.finishReason;
 
+/**
+ * @deprecated Use resolveModel from model-router.ts instead.
+ */
 export const getGeminiModelForRole = (
   role: Role,
   analysisSpeed: AnalysisSpeed = 'balanced'
@@ -110,6 +131,9 @@ export const getGeminiModelForRole = (
   }
 };
 
+/**
+ * @deprecated Use resolveOutputLimit from model-router.ts instead.
+ */
 export const getGeminiReviewOutputLimit = (
   role: Role,
   mode: ResponseMode
@@ -120,13 +144,22 @@ export const getGeminiReviewOutputLimit = (
   return GEMINI_REVIEW_OUTPUT_TOKENS[mode];
 };
 
+/**
+ * @deprecated Use resolveOutputLimit from model-router.ts instead.
+ */
 export const getGroqReviewOutputLimit = (mode: ResponseMode) =>
   GEMINI_REVIEW_OUTPUT_TOKENS[mode];
 
+/**
+ * @deprecated Use resolveOutputLimit from model-router.ts instead.
+ */
 export const getOpenRouterReviewOutputLimit = (mode: ResponseMode) => {
   return mode === 'standard' ? 6000 : 4000;
 };
 
+/**
+ * @deprecated Use resolveModel from model-router.ts instead.
+ */
 export const getOpenRouterModelForRole = (
   role: Role,
   _analysisSpeed: AnalysisSpeed = 'balanced'
@@ -140,6 +173,9 @@ export const getOpenRouterModelForRole = (
   return defaultModel;
 };
 
+/**
+ * @deprecated Use providers/openrouter/mapper.ts extractOpenRouterText instead.
+ */
 export const extractOpenRouterText = (chunk: {
   choices?: Array<{
     delta?: {
@@ -151,6 +187,9 @@ export const extractOpenRouterText = (chunk: {
   }>;
 }) => chunk.choices?.[0]?.delta?.content ?? chunk.choices?.[0]?.message?.content ?? '';
 
+/**
+ * @deprecated Use providers/openrouter/mapper.ts extractOpenRouterUsage instead.
+ */
 export const extractOpenRouterUsage = (response: {
   usage?: {
     prompt_tokens?: number;
@@ -160,3 +199,6 @@ export const extractOpenRouterUsage = (response: {
     completion_tokens_details?: { reasoning_tokens?: number } | null;
   } | null;
 }) => response.usage;
+
+// Re-export registry functions for convenience
+export { getProvider } from './providers/registry';

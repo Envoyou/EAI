@@ -6,6 +6,30 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-07-17
+
+### Added
+- **Abstraksi Penyedia Layanan AI (AI Provider Abstraction)**: Menggantikan logika pencabangan SDK yang tersebar dengan satu interface `AIProvider` terpadu yang berbasis kemampuan (capability-driven) di bawah `src/lib/ai/providers/`:
+  - `interface.ts`: Mendefinisikan tipe data kontrak `AIProvider`, `StreamChunk` (normalized delta + usage), `StreamRequest`, `GenerateResult`, dan `ProviderCapabilities`.
+  - `registry.ts`: Menyediakan pabrikasi `getProvider()` yang mengembalikan singleton untuk `'gemini'`, `'groq'`, dan `'openrouter'`.
+  - `gemini/`: GeminiProvider membungkus `@google/genai` dengan custom stream generator, pemetaan output, dan konfigurasi level thinking.
+  - `openrouter/`: OpenRouterProvider membungkus SDK `openai` yang dipetakan ke endpoint OpenRouter.
+  - `groq/`: GroqProvider membungkus `groq-sdk` dengan berbagi logika pemetaan OpenAI-compatible yang sama.
+- **Sub-sistem Model Router**: Mengkonsolidasikan aturan perutean editorial ke dalam `lib/ai/model-router.ts`:
+  - `resolveModel()`: Memetakan peran editorial dan tingkat kecepatan analisis ke model optimal berdasarkan konteks penyedia layanan AI.
+  - `resolveOutputLimit()`: Menstandarkan batas token maksimum respons model berdasarkan mode standar, kompak, maupun fallback manual.
+- **Runtime Telemetry Terpusat**: Memperkenalkan orkestrator terpadu di `src/lib/ai/runtime/`:
+  - `executeStream()`: Mengiterasi stream ternormalisasi, mengumpulkan metrik penggunaan (usage) di chunk terakhir, dan mencatat data telemetry secara otomatis.
+  - `executeGenerate()`: Mengeksekusi pemanggilan generate non-streaming dan mengorkestrasi pencatatan telemetry.
+- **Integrasi Test Suite Backend**: Mengonfigurasi `vitest` pada workspace backend dan menulis pengujian unit untuk memvalidasi:
+  - `providers/__tests__/contract.test.ts`: Profil kapabilitas penyedia layanan AI dan kesesuaian kontrak antarmuka (interface).
+  - `runtime/__tests__/execute-stream.test.ts` & `execute-generate.test.ts`: Orkestrasi pengiriman telemetry serta pemetaan chunk stream dengan bantuan mock `FakeAIProvider`.
+  - `__tests__/review-stage.test.ts`: Jalur eksekusi retry dan fallback kompak pada kegagalan parsing.
+
+### Changed
+- **Penyederhanaan Handler & Stage (Zero Logic Change)**: Merefaktor file stage (`review-stage.ts`, `quality-gate-stage.ts`, `seo-stage.ts`, `targeted-fix-stage.ts`) serta handler (`analyze.ts`, `refine.ts`) agar menggunakan registry `AIProvider` dan orkestrator runtime baru, menyederhanakan kode transport bercabang banyak menjadi alur eksekusi bersih yang provider-agnostic.
+- **Pembersihan & Deprekasi**: Menghapus berkas stub placeholder lama di `routes/analyze/providers/*` dan menandai fungsi/klien lama di `provider-runtime.ts` sebagai `@deprecated` seraya mempertahankan kompatibilitas penuh untuk endpoint strategist dan onboarding.
+
 ## [3.6.0] - 2026-07-17
 
 ### Changed
