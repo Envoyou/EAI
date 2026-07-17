@@ -349,8 +349,19 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
   let heartbeatInterval: NodeJS.Timeout | undefined;
   try {
     const { messages, mode, notesSummary, attachments, enableSearch, activeHistoryId, sessionId } = req.body;
+    const chatInput = messages[messages.length - 1]?.content || '';
+
+    const GREETING_WORDS = new Set([
+      'halo', 'hi', 'hey', 'hello', 'p', 'tes', 'test', 'pagi', 'siang', 'sore', 'malam', 'apa kabar', 'assalamualaikum', 'ask'
+    ]);
+    const isSimpleGreeting = (text: string): boolean => {
+      const clean = text.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "");
+      if (clean.length < 3) return true;
+      if (clean.split(/\s+/).length > 3) return false;
+      return GREETING_WORDS.has(clean) || clean.split(/\s+/).every(word => GREETING_WORDS.has(word));
+    };
     
-    const isSearchEnabled = mode !== 'deep' && enableSearch !== false;
+    const isSearchEnabled = mode !== 'deep' && enableSearch !== false && !isSimpleGreeting(chatInput);
     const requiredCredits = mode === 'deep' ? 5 : (isSearchEnabled ? 1 : 0);
 
     if (requiredCredits > 0) {
@@ -379,8 +390,6 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
       // Store resolved org ID on the request for downstream billing use.
       (req as Request & { resolvedOrgId?: string | null }).resolvedOrgId = internalOrgId;
     }
-
-    const chatInput = messages[messages.length - 1].content;
 
     // Resolve brand editorial profile for tenant context
     let profile = null;
