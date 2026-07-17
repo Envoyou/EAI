@@ -15,5 +15,8 @@
   },
   "devDependencies": {
     "turbo": "^2.0.0"
+  },
+  "dependencies": {
+    "ai": "^7.0.30"
   }
 }
