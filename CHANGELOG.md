@@ -6,6 +6,27 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-07-17
+
+### Changed
+- **Decomposed analyze.ts Route (Zero Logic Change)**: Refactored the monolithic 82KB `analyze.ts` file under `apps/backend/src/routes/analyze.ts` into a structured, modular subfolder at `src/routes/analyze/` with clear concerns:
+  - `controller.ts`: Orchestrates request pre-flights, authentication (Clerk JWT validation), user workspace state checks, and SSE stream initialization/keep-alive heartbeats.
+  - `types.ts`: Defines shared types, interfaces, and transport-level constants.
+  - `utils/`: Decomposed 40+ helper functions into specific domain utility modules:
+    - `signals.ts`: Factual signal and citation indicators detection.
+    - `factual.ts`: Editorial review feedback sanitization and neutralization.
+    - `verification.ts`: Factual claim verification lock injection and annotations.
+    - `text.ts`: Article segment chunking, metadata logging helpers, and internal link matching.
+    - `markdown.ts`: Cleaners for Markdown tables, heading artifacts, and OpenAI stream adapters.
+  - `handlers/`: Isolated stage execution paths into specific sub-handlers:
+    - `analyze.ts`: Runs core review stages and polish/rewrite chunks for both Gemini and OpenAI-compatible endpoints.
+    - `refine.ts`: Drives the iterative refinement path using Zod-schema validations, final Quality Gates, and SEO generation.
+    - `fix-targeted.ts`: Executes targeted paragraph corrections.
+    - `dev-mock.ts`: Serves local mock editorial streams when API provider keys are missing.
+  - `providers/`: Added Gemini, Groq, and OpenRouter stub placeholders in preparation for the upcoming Sprint 2 provider abstraction.
+  - `index.ts`: Re-exports the router to maintain full backward compatibility with `server.ts` without modifying imports.
+- **Analysis Log Service Isolation**: Extracted `createAnalysisLogAndDebitCredit` into a standalone domain service at `src/lib/services/analysis-log.service.ts` to manage Prisma database operations, credit bucket logic, and telemetry metrics independently of the route controller.
+
 ## [3.4.0] - 2026-07-16
 
 ### Added

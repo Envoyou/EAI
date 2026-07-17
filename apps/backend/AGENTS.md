@@ -89,6 +89,8 @@ apps/backend/
 │   │   ├── cms-adapter.ts    # CMS adapter abstraction
 │   │   ├── credential-vault.ts  # Encrypted credential read/write
 │   │   ├── editorial-profile-server.ts  # Editorial profile server helpers
+│   │   ├── services/         # Domain services
+│   │   │   └── analysis-log.service.ts # AnalysisLog + credit transactional ledger operations
 │   │   ├── email.ts          # Transactional email sender
 │   │   ├── payment.ts        # Payment gateway integration
 │   │   ├── payment-processing.ts  # Payment event processing
@@ -125,7 +127,13 @@ apps/backend/
 │   │           └── __tests__/          # Unit test suite for AST and composers
 │   │               └── prompt-engine.test.ts # Comprehensive AST, Composer & Node unit tests
 │   └── routes/
-│       ├── analyze.ts        # POST /api/analyze — core AI analysis pipeline (applies stripLeadingH1)
+│       ├── analyze/          # /api/analyze — modular AI analysis pipeline folder
+│       │   ├── index.ts      # Router export (backward-compatible entry)
+│       │   ├── controller.ts # Orchestrator (auth, workspace, SSE init, keep-alive)
+│       │   ├── types.ts      # Shared types and constants
+│       │   ├── handlers/     # Stage/mode execution paths (analyze, refine, fix-targeted, dev-mock)
+│       │   ├── providers/    # AI provider execution placeholders (Gemini, Groq, OpenRouter)
+│       │   └── utils/        # Decomposed utility helpers (signals, factual, verification, text, markdown)
 │       ├── workspace.ts      # GET/PATCH /api/workspace — workspace management
 │       ├── history.ts        # GET /api/history — analysis log history
 │       ├── export.ts         # POST /api/export — article export
@@ -191,7 +199,7 @@ Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes l
 * **Gemini Prompt Caching**: Composers automatically group static Core nodes at the beginning of the prompt and append dynamic Tenant nodes at the end to maximize cache reuse and minimize Gemini API token costs.
 * **Master Prompts File**: Berkas `src/lib/prompts.ts` is simplified and **only** exports timezone, date, and prompt version helpers. All prompt content must be updated inside the AST nodes and stage composers. Never inline raw system prompt blocks in route handlers or stages.
 
-> **H1 Contract**: `analyze.ts` applies `stripLeadingH1` (from `src/lib/text-utils.ts`) to the input draft **before** the rewrite stage. This removes any top-level heading that would duplicate the article title rendered by the frontend.
+> **H1 Contract**: `routes/analyze/` (specifically the rewrite stage handler) applies `stripLeadingH1` (from `src/lib/text-utils.ts`) to the input draft **before** the rewrite stage. This removes any top-level heading that would duplicate the article title rendered by the frontend.
 
 * **Chain-of-Thought (CoT)**: When designing JSON output schemas for AI reviewers or quality gates, ensure the Zod schema includes a `"thinking"` string property at the very top to hold the LLM reasoning process before yielding the final evaluation.
 * **Workspace Context & Compliance Helpers**:

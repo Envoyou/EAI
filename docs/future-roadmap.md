@@ -109,7 +109,7 @@ Fase ini mengembangkan AI Drafting Assistant menjadi workspace berbasis sumber d
     *   **Penyempurnaan Parser Rekomendasi/Saran**: Menstabilkan penanganan saran Copilot agar format parser `[SUGGESTIONS:]` lebih tangguh (*fault-tolerant*) terhadap variasi luaran model.
 6.  **Modularisasi AI Provider untuk Strategist — `generate-draft-from-notes`**:
 
-    Saat ini seluruh endpoint di `apps/backend/src/routes/strategist/index.ts` secara *hard-coded* menggunakan Gemini melalui konstanta `GEMINI_COPILOT_MODEL`. Ini berbeda dengan `analyze.ts` dan `quick-draft.ts` yang sudah mendukung tiga provider (Gemini, OpenRouter, Groq) melalui `resolveActiveAiProvider()`. Rencana ini membawa sebagian endpoint Strategist ke sistem provider yang sama.
+    Saat ini seluruh endpoint di `apps/backend/src/routes/strategist/index.ts` secara *hard-coded* menggunakan Gemini melalui konstanta `GEMINI_COPILOT_MODEL`. Ini berbeda dengan rute `/api/analyze` (yang dikelola oleh subfolder `src/routes/analyze/`) dan `quick-draft.ts` yang sudah mendukung tiga provider (Gemini, OpenRouter, Groq) melalui `resolveActiveAiConfig()`. Rencana ini membawa sebagian endpoint Strategist ke sistem provider yang sama.
 
     **Decision framework untuk mengevaluasi modularisasi setiap endpoint:**
 

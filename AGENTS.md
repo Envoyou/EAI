@@ -77,7 +77,7 @@ To guarantee that all AI assistant operations (Chat, SEO Optimizer, Fact-Checker
 * **Input Boundary Guidelines**: Place references and context inside the `<workspace_context>` tag, and dynamic system rules inside the `<agent_instruction>` tag.
 * **Never Duplicate Instructions**: Always fetch instructions through the shared helper `getWorkspaceAgentInstruction` and inject them as system guidelines (`systemInstruction` or provider-specific system prompts) instead of hardcoding them in endpoints.
 * **Provider Config Helpers**: For native Gemini calls, use `getNativeGeminiConfig(thinkingLevel)` from `apps/backend/src/lib/ai/provider-runtime.ts`. Do **not** use the deprecated `getGeminiSamplingConfig` — the `temperature` param is silently ignored by the Gemini 2.5 SDK when `thinkingConfig` is active.
-* **H1 Format Contract**: The input draft passed to the rewrite stage must **never** contain a leading `# H1` heading. `analyze.ts` automatically applies `stripLeadingH1` before invoking the rewrite stage. If you add a new entry point that feeds content into the rewrite pipeline, ensure this utility is applied first.
+* **H1 Format Contract**: The input draft passed to the rewrite stage must **never** contain a leading `# H1` heading. `routes/analyze/` (specifically the rewrite stage handler) automatically applies `stripLeadingH1` before invoking the rewrite stage. If you add a new entry point that feeds content into the rewrite pipeline, ensure this utility is applied first.
 
 ---
 

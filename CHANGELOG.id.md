@@ -6,6 +6,27 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-07-17
+
+### Changed
+- **Pecah Rute Monolitik analyze.ts (Zero Logic Change)**: Merefaktor file monolitik 82KB `analyze.ts` di `apps/backend/src/routes/analyze.ts` ke dalam subfolder terstruktur dan modular di `src/routes/analyze/` dengan pembagian tanggung jawab yang jelas:
+  - `controller.ts`: Mengorkestrasi pemeriksaan pra-flight request, autentikasi (validasi Clerk JWT), validasi status workspace user, serta inisialisasi stream SSE dan heartbeat keep-alive.
+  - `types.ts`: Mendefinisikan tipe data, interface, dan konstanta tingkat transport bersama.
+  - `utils/`: Memecah 40+ fungsi pembantu ke dalam modul utilitas domain yang spesifik:
+    - `signals.ts`: Mendeteksi sinyal faktual dan indikator sitasi/rujukan dalam teks.
+    - `factual.ts`: Melakukan sanitasi dan netralisasi masukan feedback review editorial.
+    - `verification.ts`: Melakukan injeksi pengunci verifikasi klaim data faktual beserta anotasi.
+    - `text.ts`: Mengelola pemotongan segmen artikel (chunking), helper pencatatan metadata log, serta pencocokan tautan internal terkait.
+    - `markdown.ts`: Membersihkan tabel Markdown, artefak heading kosong, dan adapter stream OpenAI.
+  - `handlers/`: Mengisolasi jalur eksekusi stage ke dalam sub-handler khusus:
+    - `analyze.ts`: Menjalankan tahapan inti review serta pemolesan/penulisan ulang chunk draf untuk endpoint Gemini dan OpenAI-compatible.
+    - `refine.ts`: Mengatur alur refinement berulang (*iterative refinement*) dengan validasi skema Zod, evaluasi gerbang kualitas (Quality Gate) akhir, dan pembuatan SEO.
+    - `fix-targeted.ts`: Menjalankan perbaikan parsial paragraf/kalimat tertentu yang ditargetkan.
+    - `dev-mock.ts`: Menyediakan stream data simulasi (mock) lokal apabila API key penyedia AI tidak terdeteksi.
+  - `providers/`: Menambahkan berkas stub placeholder untuk Gemini, Groq, dan OpenRouter sebagai persiapan abstraksi penyedia AI di Sprint 2.
+  - `index.ts`: Melakukan re-export router untuk menjaga kompatibilitas penuh dengan `server.ts` tanpa mengubah kode import di dalamnya.
+- **Isolasi Service Log Analisis**: Mengekstrak fungsi `createAnalysisLogAndDebitCredit` menjadi domain service mandiri di `src/lib/services/analysis-log.service.ts` untuk mengelola operasi database Prisma, alur alokasi bucket kredit, dan metrik telemetri secara independen dari controller rute.
+
 ## [3.4.0] - 2026-07-16
 
 ### Added
