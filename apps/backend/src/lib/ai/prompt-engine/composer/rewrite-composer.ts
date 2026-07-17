@@ -224,7 +224,7 @@ export class RewritePromptComposer {
     private options?: RewriteComposerOptions
   ) {}
 
-  compose(format: 'xml' | 'markdown' | 'text' = 'xml'): string {
+  compile(_format: 'xml' | 'markdown' | 'text' = 'xml'): CompositePromptNode {
     const brandName = this.profile?.brandName || 'Envoyou';
     const positioning = this.profile?.positioning || 'Modern tech editorial.';
     const tone = this.profile?.tone || ['professional', 'insightful'];
@@ -288,12 +288,16 @@ export class RewritePromptComposer {
       root.addChild(toneNode);
     }
 
-    // Render dengan format sasaran
+    return root;
+  }
+
+  compose(format: 'xml' | 'markdown' | 'text' = 'xml'): string {
+    const brandName = this.profile?.brandName || 'Envoyou';
+    const root = this.compile(format);
     const context: RenderContext = {
       format,
       brandName
     };
-
     return root.render(context);
   }
 }

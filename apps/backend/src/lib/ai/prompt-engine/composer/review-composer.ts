@@ -253,7 +253,7 @@ export class ReviewPromptComposer {
     private options?: OutputSchemaNodeOptions
   ) {}
 
-  compose(format: 'xml' | 'markdown' | 'text' = 'xml'): string {
+  compile(_format: 'xml' | 'markdown' | 'text' = 'xml'): CompositePromptNode {
     const brandName = this.profile?.brandName || 'Envoyou';
 
     // Inisialisasi Core Nodes (Static)
@@ -320,12 +320,16 @@ export class ReviewPromptComposer {
       root.addChild(toneNode);
     }
 
-    // Render dengan format sasaran
+    return root;
+  }
+
+  compose(format: 'xml' | 'markdown' | 'text' = 'xml'): string {
+    const brandName = this.profile?.brandName || 'Envoyou';
+    const root = this.compile(format);
     const context: RenderContext = {
       format,
       brandName
     };
-
     return root.render(context);
   }
 }

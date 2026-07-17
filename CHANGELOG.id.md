@@ -6,6 +6,20 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.8.0] - 2026-07-17
+
+### Added
+- **Estimator Token Prompt**: Memperkenalkan `PromptTokenEstimator` di bawah `src/lib/ai/prompt-engine/` yang mendukung estimasi token offline tertimbang karakter (XML tags ~3.5 karakter/token vs plain text ~4.2 karakter/token) serta kalkulasi token online.
+- **Cache Perhitungan Token Online**: Mengintegrasikan in-memory cache SHA-256 dengan TTL 30 menit untuk membungkus pemanggilan API `countTokens` spesifik provider guna mengurangi latency jaringan secara drastis.
+- **Planner Cache Prompt**: Menambahkan `PromptCachePlanner` untuk menelusuri node AST prompt, memetakan token statis vs dinamis, memverifikasi urutan struktur prompt, dan menghitung persentase efisiensi caching.
+- **Optimizer Cache Prompt**: Membuat `PromptCacheOptimizer` untuk memberikan saran perbaikan posisi node yang melanggar aturan prefix caching (misal node statis diletakkan setelah node dinamis) serta memperingatkan jika prefix statis di bawah batas minimal provider (misal 32.768 token pada Gemini).
+- **API Developer Console Prompt Inspector**: Memasang endpoint `POST /api/prompt-inspector/` dan `/diff` di bawah `routes/prompt-inspector.ts`:
+  - `/`: Mengembalikan representasi pohon visual AST, teks hasil render, rincian token per node, laporan cache planner & optimizer, serta estimasi biaya transaksi.
+  - `/diff`: Melakukan analisis komparatif token, efisiensi cache, serta perbedaan (delta) node breakdown antara dua konfigurasi.
+  - Mendukung simulasi konteks workspace database via `workspaceId`.
+- **Kontrak Kompilasi AST Composer**: Menambahkan metode `.compile()` pada 5 komposer prompt utama (`SeoPromptComposer`, `ReviewPromptComposer`, `RewritePromptComposer`, `RefinementPromptComposer`, `QualityGatePromptComposer`) yang mengembalikan struktur pohon AST.
+- **Unit Test Suite Terintegrasi**: Membuat file pengujian unit baru berbasis Vitest di bawah `src/lib/ai/prompt-engine/__tests__/` dan `src/lib/ai/__tests__/` untuk memverifikasi fungsionalitas estimator, planner, optimizer, serta integrasi route handler.
+
 ## [3.7.0] - 2026-07-17
 
 ### Added

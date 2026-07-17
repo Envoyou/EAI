@@ -107,7 +107,35 @@ Dengan struktur di atas, seluruh porsi **Core Nodes** yang menempati ~80% ukuran
 
 ---
 
-## 5. Rencana Perluasan Masa Depan
+## 5. Implementasi Sub-sistem & Observabilitas (Sprint 4)
+
+Pada Sprint 4, EAI memperkenalkan sub-sistem analisis dan observabilitas prompt dinamis:
+
+```text
+Composer ➔ AST ➔ Inspector ➔ Estimator ➔ Planner ➔ Optimizer ➔ Renderer ➔ Provider
+```
+
+### A. Prompt Token Estimator (`token-estimator.ts`)
+*   **Estimasi Offline**: Mengkalkulasi ukuran token draf sistem menggunakan rasio bobot karakter (XML tags: ~3.5 karakter/token vs plain text: ~4.2 karakter/token).
+*   **Pencacahan Online (Cached)**: Memanggil API online `countTokens` secara dinamis (didukung oleh `GeminiProvider`). Hasil pemanggilan dibungkus oleh memory cache menggunakan kunci hash SHA-256 dengan waktu kedaluwarsa (TTL) 30 menit untuk mereduksi latency jaringan.
+
+### B. Prompt Cache Planner & Optimizer (`cache-planner.ts` & `cache-optimizer.ts`)
+*   **Planner**: Melakukan *parsing* terhadap seluruh pohon AST komponen komposit, menghitung persentase efisiensi caching, dan memetakan segmen statis vs dinamis. Planner juga memverifikasi apakah ada node statis yang secara salah diletakkan di bawah/setelah node dinamis (*order violation*).
+*   **Optimizer**: Beroperasi di atas laporan Planner dan parameter `cachePolicy` dari masing-masing provider untuk memberikan rekomendasi nyata (misalnya: deteksi jika prefix statis di bawah batas minimal provider—seperti 32,768 tokens pada Gemini—atau merekomendasikan penggabungan node duplikat).
+
+### C. Prompt Inspector API (`routes/prompt-inspector.ts`)
+*   Menyediakan endpoint `POST /api/prompt-inspector` untuk audit visual prompt sebelum dikirimkan ke model LLM. Endpoint ini mengembalikan:
+    *   `tree`: Struktur hierarki AST komponen prompt.
+    *   `renderedPrompt`: Teks prompt utuh hasil render akhir.
+    *   `tokenBreakdown`: Rincian alokasi token per masing-masing ID node (Mission, Brand, Facts, dsb.).
+    *   `cacheAnalysis`: Laporan planner dan rekomendasi optimizer.
+    *   `estimatedCost`: Perkiraan biaya input (cached & regular rate) dan output berdasarkan konfigurasi catalog harga model (`pricing.ts`).
+*   Menyediakan endpoint `POST /api/prompt-inspector/diff` untuk membandingkan perbedaan token, status caching, serta visualisasi perubahan node breakdown antara dua konfigurasi (sangat berguna untuk debugging multi-tenant).
+*   Mendukung simulasi multi-tenant produksi melalui parameter `workspaceId` opsional untuk memuat profil editorial dari database.
+
+---
+
+## 6. Rencana Perluasan Masa Depan
 
 ### A. Hierarki Konteks Berjenjang (Scope-Leveling)
 Untuk memfasilitasi integrasi SaaS multi-tenant dengan granularity tinggi, struktur penyimpanan komponen prompt akan diperluas menjadi folder-folder khusus dengan level pewarisan (*inheritance*) sebagai berikut:
@@ -123,32 +151,8 @@ core/             # Kebijakan sistem global EAI
 Dengan hierarki ini, composer dapat memproses pewarisan aturan secara berjenjang dari atas ke bawah:
 $$\text{Core Policy} \rightarrow \text{Tenant Brand} \rightarrow \text{Workspace Config} \rightarrow \text{User Preference} \rightarrow \text{Article Context}$$
 
-### B. Prompt Component Metadata & Automagic Sorting
-Mengubah deklarasi `PromptNode` sederhana agar memiliki skema metadata terstruktur:
+### B. Topological Sort & Automagic Sorting
+Mengubah deklarasi `PromptNode` agar mendukung relasi dependensi antarnode (`dependsOn`) untuk membolehkan composer menyusun tata letak node secara topologi otomatis (misal: `ToneCalibrationNode` harus diletakkan setelah `BrandIdentityNode` karena membutuhkan referensi industri brand).
 
-```typescript
-interface PromptNodeMetadata {
-  priority: number;         // Prioritas pengurutan
-  cacheable: boolean;       // Status untuk Gemini prompt caching
-  estimatedTokens: number;  // Estimasi token statis komponen
-  dependsOn?: string[];     // Relasi dependensi antar node instruksi
-}
-
-interface PromptNode {
-  id: string;
-  type: 'core' | 'tenant' | 'context' | 'composite';
-  metadata: PromptNodeMetadata;
-  render(context: RenderContext): string;
-}
-```
-
-#### Alur Kerja Otomatis Composer:
-1.  **Topological Sort**: Composer menggunakan informasi `dependsOn` untuk menyusun node secara otomatis (misal: `ToneCalibrationNode` harus diletakkan setelah `BrandIdentityNode` karena membutuhkan referensi industri brand).
-2.  **Cache Segmentation**: Composer memisahkan node secara otomatis berdasarkan properti `cacheable` tanpa intervensi manual dari developer saat menulis kelas komposer baru.
-3.  **Token Budgeting**: Jika akumulasi `estimatedTokens` mendekati batas limit jendela konteks model, composer dapat memangkas komponen-komponen sekunder (seperti few-shot demonstrations yang memiliki prioritas rendah).
-
-### C. Prompt Inspector & Observability
-Membangun visualizer interaktif di frontend Next.js menggunakan tipe abstrak bersama dari `@eai/shared`. Ini memungkinkan human editor untuk:
-*   Melihat representasi pohon AST prompt secara visual.
-*   Mengaudit alokasi biaya token per komponen prompt sebelum kueri dikirimkan ke model LLM.
-*   Melakukan simulasi efek perubahan nada brand (*tone*) terhadap hasil komposisi rendering sistem prompt.
+### C. Token Budgeting
+Jika akumulasi token AST mendekati batas limit jendela konteks model, composer dapat secara otomatis memangkas komponen-komponen sekunder (seperti few-shot demonstrations yang memiliki prioritas rendah).

@@ -9,7 +9,7 @@ import { getGeminiClient } from './client';
 import { normalizeGeminiChunk, extractGeminiText, normalizeGeminiUsage } from './mapper';
 
 const THINKING_LEVEL_MAP: Record<NonNullable<StreamRequest['thinkingLevel']>, ThinkingLevel> = {
-  none: ThinkingLevel.NONE,
+  none: ThinkingLevel.THINKING_LEVEL_UNSPECIFIED,
   minimal: ThinkingLevel.MINIMAL,
   low: ThinkingLevel.LOW,
   medium: ThinkingLevel.MEDIUM,
@@ -89,6 +89,19 @@ export class GeminiProvider implements AIProvider {
       grounding: true,
       thinking: true,
       caching: true,
+      cachePolicy: {
+        minimumPrefixTokens: 32768,
+        prefixOnly: true,
+      },
     };
+  }
+
+  async countTokens(model: string, text: string): Promise<number> {
+    const client = getGeminiClient();
+    const result = await client.models.countTokens({
+      model,
+      contents: text,
+    });
+    return result.totalTokens ?? 0;
   }
 }

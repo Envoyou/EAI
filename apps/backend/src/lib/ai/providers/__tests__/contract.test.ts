@@ -27,6 +27,10 @@ describe('AIProvider contract compliance', () => {
       grounding: true,
       thinking: true,
       caching: true,
+      cachePolicy: {
+        minimumPrefixTokens: 32768,
+        prefixOnly: true,
+      },
     });
   });
 

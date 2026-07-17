@@ -67,7 +67,12 @@ export interface GenerateResult {
   usage?: UsageMetadata;
 }
 
-// ── Capabilities ──────────────────────────────────────────────────────────────
+export interface ProviderCachePolicy {
+  /** The minimum token size of static prefix to activate caching */
+  minimumPrefixTokens: number;
+  /** Whether the provider only supports caching on prefix (top of the prompt) */
+  prefixOnly: boolean;
+}
 
 export interface ProviderCapabilities {
   /** Whether the provider supports structured JSON output via response_format. */
@@ -78,6 +83,8 @@ export interface ProviderCapabilities {
   thinking: boolean;
   /** Whether the provider supports context caching for repeated prompts. */
   caching: boolean;
+  /** Caching policy configuration for CachePlanner and CacheOptimizer */
+  cachePolicy?: ProviderCachePolicy;
 }
 
 // ── Provider Interface ────────────────────────────────────────────────────────
@@ -104,6 +111,12 @@ export interface AIProvider {
    * This reflects the provider's intrinsic capabilities, not the selected model.
    */
   getCapabilities(): ProviderCapabilities;
+
+  /**
+   * Online token-counting method.
+   * Returns precise token count of text for a given model.
+   */
+  countTokens?(model: string, text: string): Promise<number>;
 }
 
 // ── Re-export helpers ─────────────────────────────────────────────────────────

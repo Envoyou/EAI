@@ -6,6 +6,20 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.8.0] - 2026-07-17
+
+### Added
+- **Prompt Token Estimator**: Introduced `PromptTokenEstimator` under `src/lib/ai/prompt-engine/` supporting character-weighted offline token estimation (XML tags ~3.5 chars/token vs text ~4.2 chars/token) and online cached token estimation.
+- **Online Token Counting Cache**: Integrated a SHA-256 in-memory cache with a 30-minute TTL to wrap the provider-specific `countTokens` API calls, drastically reducing network latency.
+- **Prompt Cache Planner**: Added `PromptCachePlanner` to traverse prompt AST nodes, map static vs. dynamic tokens, verify prompt structure order, and compute prompt caching efficiency.
+- **Prompt Cache Optimizer**: Created `PromptCacheOptimizer` to suggest fixes for position violations (e.g. static nodes after dynamic nodes) and alert if static prefixes fall below provider-defined thresholds (e.g., 32,768 tokens on Gemini).
+- **Prompt Inspector Developer Console API**: Mounted `POST /api/prompt-inspector/` and `/diff` endpoints under `routes/prompt-inspector.ts`:
+  - `/`: Returns visual tree representation, rendered text, node-by-node token breakdown, caching report, recommendations, and pricing estimation.
+  - `/diff`: Performs comparative token, cache efficiency, and node-level delta analysis between two prompt configurations.
+  - Supports database workspace context simulation via `workspaceId`.
+- **Composer AST Compilation Contract**: Added `.compile()` method to all 5 prompt composers (`SeoPromptComposer`, `ReviewPromptComposer`, `RewritePromptComposer`, `RefinementPromptComposer`, `QualityGatePromptComposer`) returning AST structures.
+- **Comprehensive Backend Unit Test Suite**: Added Vitest test files under `src/lib/ai/prompt-engine/__tests__/` and `src/lib/ai/__tests__/` for the estimator, planner, optimizer, and route handler integrations.
+
 ## [3.7.0] - 2026-07-17
 
 ### Added

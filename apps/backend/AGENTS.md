@@ -134,14 +134,22 @@ apps/backend/
 │   │           │   ├── strategist-chat-composer.ts  # Interactive strategist chat AST composer
 │   │           │   ├── strategist-blueprint-composer.ts # Blueprint & initial draft generation AST composer
 │   │           │   └── draft-from-notes-composer.ts # Research notes to article draft AST composer
-│   │           └── __tests__/          # Unit test suite for AST and composers
-│   │               └── prompt-engine.test.ts # Comprehensive AST, Composer & Node unit tests
-        ├── analyze/          # /api/analyze — modular AI analysis pipeline folder
-        │   ├── index.ts      # Router export (backward-compatible entry)
-        │   ├── controller.ts # Orchestrator (auth, workspace, SSE init, keep-alive)
-        │   ├── types.ts      # Shared types and constants
-        │   ├── handlers/     # Stage/mode execution paths (analyze, refine, fix-targeted, dev-mock)
-        │   └── utils/        # Decomposed utility helpers (signals, factual, verification, text, markdown)
+│   │           ├── pricing.ts          # Model pricing catalog & cost estimation utility
+│   │           ├── token-estimator.ts  # Offline character-weighted estimator & online cached token counter
+│   │           ├── cache-planner.ts    # Prompt caching prefix analyzer (static vs dynamic segments)
+│   │           ├── cache-optimizer.ts  # Suggestion engine for prompt optimizations & AST layout ordering
+│   │           └── __tests__/          # Unit test suite for AST, estimators, and planners
+│   │               ├── prompt-engine.test.ts # Comprehensive AST, Composer & Node unit tests
+│   │               ├── token-estimator.test.ts # Token estimator unit tests
+│   │               ├── cache-planner.test.ts   # Caching layout planner tests
+│   │               └── cache-optimizer.test.ts # Caching optimization rule tests
+│       ├── analyze/          # /api/analyze — modular AI analysis pipeline folder
+│       │   ├── index.ts      # Router export (backward-compatible entry)
+│       │   ├── controller.ts # Orchestrator (auth, workspace, SSE init, keep-alive)
+│       │   ├── types.ts      # Shared types and constants
+│       │   ├── handlers/     # Stage/mode execution paths (analyze, refine, fix-targeted, dev-mock)
+│       │   └── utils/        # Decomposed utility helpers (signals, factual, verification, text, markdown)
+│       ├── prompt-inspector.ts # POST /api/prompt-inspector & /diff — dev console AST audit
 │       ├── workspace.ts      # GET/PATCH /api/workspace — workspace management
 │       ├── history.ts        # GET /api/history — analysis log history
 │       ├── export.ts         # POST /api/export — article export

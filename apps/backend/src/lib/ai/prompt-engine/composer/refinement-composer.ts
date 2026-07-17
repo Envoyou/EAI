@@ -131,7 +131,7 @@ export class RefinementPromptComposer {
     private profile?: EditorialProfileConfig
   ) {}
 
-  compose(format: 'xml' | 'markdown' | 'text' = 'xml'): string {
+  compile(_format: 'xml' | 'markdown' | 'text' = 'xml'): CompositePromptNode {
     const brandName = this.profile?.brandName || 'Envoyou';
     const tone = this.profile?.tone || ['professional', 'insightful'];
     const audience = this.profile?.audience || 'professionals';
@@ -182,12 +182,16 @@ export class RefinementPromptComposer {
       root.addChild(toneNode);
     }
 
-    // Render dengan format sasaran
+    return root;
+  }
+
+  compose(format: 'xml' | 'markdown' | 'text' = 'xml'): string {
+    const brandName = this.profile?.brandName || 'Envoyou';
+    const root = this.compile(format);
     const context: RenderContext = {
       format,
       brandName
     };
-
     return root.render(context);
   }
 }
