@@ -355,7 +355,7 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
       'halo', 'hi', 'hey', 'hello', 'p', 'tes', 'test', 'pagi', 'siang', 'sore', 'malam', 'apa kabar', 'assalamualaikum', 'ask'
     ]);
     const isSimpleGreeting = (text: string): boolean => {
-      const clean = text.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "");
+      const clean = text.trim().toLowerCase().replace(/[^\w\s]/g, "");
       if (clean.length < 3) return true;
       if (clean.split(/\s+/).length > 3) return false;
       return GREETING_WORDS.has(clean) || clean.split(/\s+/).every(word => GREETING_WORDS.has(word));
