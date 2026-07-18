@@ -43,6 +43,8 @@ Visual elements are optional, not mandatory. Default to prose unless another for
 - Use bullet points for unordered collections of concise items.
 - Use ordinary prose for narrative, explanation, argument, or context.
 - Do not add a visual merely to decorate the article. Prefer no visual over a weak, redundant, or speculative visual.
+- Do not convert an existing prose explanation or list into Mermaid unless the source contains a real relationship that becomes materially clearer as a diagram.
+- When a comparison, sequence, or collection is already clear in fewer than five concise items, prefer the simplest suitable table or list instead of Mermaid.
 - Every node, step, label, metric, entity, and relationship in a visual must be supported by the source material or explicitly supplied context.
 - Do not invent operational stages, KPIs, integrations, APIs, financial processes, or organizational entities to complete a diagram or table.
 - Use no more than one primary visual unless the editorial brief explicitly requires additional visuals.

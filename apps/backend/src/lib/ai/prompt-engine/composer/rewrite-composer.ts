@@ -6,7 +6,7 @@ import {
 import type { EditorialProfileConfig } from '@eai/shared/server';
 import { EditorialMissionNode } from '../core/mission';
 import { LanguagePolicyNode, StrictnessConstraintNode, TemporalContextNode, InputBoundaryNode, MarkdownRulesNode, VerificationLockNode } from '../core/rules';
-import { FactualGuardrailNode, SourcePolicyNode } from '../core/facts';
+import { FactualGuardrailNode, FastSourceFidelityNode, SourcePolicyNode } from '../core/facts';
 import { BrandIdentityNode } from '../tenant/profile';
 import { ToneCalibrationNode } from '../tenant/tone';
 import { VisualFormatSelectionPolicyNode } from '../core/format';
@@ -197,7 +197,7 @@ export class RewriteOutputFormatNode implements PromptNode {
 Output rules:
 - Reply ONLY with the final article text.
 - Preserve and use rich Markdown formatting (headings, list bullets, bold **, etc.) so the article is CMS-ready.
-- Heading rule: do not write the article title at the top of the output. The output must begin directly with the first paragraph (Hook). Use H2 (##) or H3 (###) for subheadings. Never use H1 (#) inside the article body.
+- Heading rule: do not write the article title at the top of the output. The output must begin directly with the first paragraph (Hook). Use H2 (##) for every primary section. Use H3 (###) only beneath a preceding H2, never as the first or only heading. Never use H1 (#) inside the article body.
 - Use **bold** for important terms and bullet points (-) for long lists.
 - Do not output JSON.
 - Do not add an opening or closing explanation.
@@ -217,6 +217,7 @@ ${chunkRules}
 export interface RewriteComposerOptions {
   isChunkMode?: boolean;
   publishedPosts?: { title: string; slug: string }[];
+  sourceOnly?: boolean;
 }
 
 export class RewritePromptComposer {
@@ -249,6 +250,9 @@ export class RewritePromptComposer {
     const roleNode = new RewriteRoleNode(brandName, positioning, tone, audience);
     const fewShotNode = new RewriteFewShotDemoNode();
     const prioritiesNode = new RewritePrioritiesNode(audience, brandName);
+    const fastSourceFidelityNode = this.options?.sourceOnly
+      ? new FastSourceFidelityNode()
+      : null;
     const outputFormatNode = new RewriteOutputFormatNode(!!this.options?.isChunkMode);
 
     // Rewrite-Specific Dynamic Nodes (Internal Linking)
@@ -276,6 +280,7 @@ export class RewritePromptComposer {
     root.addChild(factualNode);
     root.addChild(sourcePolicyNode);
     root.addChild(prioritiesNode);
+    if (fastSourceFidelityNode) root.addChild(fastSourceFidelityNode);
     root.addChild(fewShotNode);
     root.addChild(markdownRulesNode);
     root.addChild(visualFormatNode);

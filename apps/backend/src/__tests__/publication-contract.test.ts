@@ -1,7 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import type { FinalQualityGateOutput } from '@eai/shared';
-import { applyDeterministicQualityChecks, detectSourceFidelitySignals } from '@/lib/final-quality';
+import { normalizeSeoMetadata, type FinalQualityGateOutput } from '@eai/shared';
+import { applyDeterministicQualityChecks, detectSourceFidelitySignals, hasIncompleteMetadataEnding } from '@/lib/final-quality';
 import { VisualFormatSelectionPolicyNode } from '@/lib/ai/prompt-engine/core/format';
+import { SeoPromptComposer } from '@/lib/ai/prompt-engine/composer/seo-composer';
+import { RewritePromptComposer } from '@/lib/ai/prompt-engine/composer/rewrite-composer';
+import { ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { preparePublicationDraft, resolvePublicationPackageStatus } from '@/routes/analyze/utils/text';
 import { sanitizeSuppressiveFeedbackItem } from '@/routes/analyze/utils/factual';
 
@@ -25,6 +28,18 @@ describe('publication title contract', () => {
   test('publication preparation removes a rogue leading H1 deterministically', () => {
     expect(preparePublicationDraft('# Working Title\n\nOpening paragraph.'))
       .toBe('Opening paragraph.');
+  });
+
+  test('publication preparation promotes orphaned H3 headings without touching Mermaid', () => {
+    expect(preparePublicationDraft([
+      'Opening paragraph.',
+      '',
+      '### First section',
+      '',
+      '```mermaid',
+      '### diagram label',
+      '```',
+    ].join('\n'))).toContain('## First section\n\n```mermaid\n### diagram label');
   });
 
   test('body mutations invalidate a current publication package', () => {
@@ -67,6 +82,29 @@ describe('publication title contract', () => {
 
     expect(result.feedback).toHaveLength(0);
     expect(result.flags).not.toContain('No H1 Title');
+  });
+
+  test('Publish Ready cannot be ready with a dangling metadata ending', () => {
+    const result = applyDeterministicQualityChecks(
+      { ...missingH1Result(), readiness: 'ready', feedback: [], flags: [] },
+      'Opening paragraph.',
+      'Opening paragraph.',
+      {
+        publicationMode: 'publish_ready',
+        documentTitle: 'Canonical CMS Article Title',
+        language: 'en',
+        publicationPackage: {
+          title: 'Canonical CMS Article Title',
+          slug: 'canonical-cms-article-title',
+          metaTitle: 'A complete search title',
+          metaDescription: 'Learn how teams improve publication metadata through',
+          tags: ['Editorial', 'SEO', 'Publishing'],
+        },
+      }
+    );
+
+    expect(result.readiness).toBe('needs_review');
+    expect(result.feedback[0]?.targetField).toBe('publication.metaDescription');
   });
 
   test('publication-field feedback cannot become a body text operation', () => {
@@ -126,6 +164,14 @@ describe('visual and acronym policy', () => {
     expect(prompt).toContain('Do not invent operational stages, KPIs, integrations, APIs');
   });
 
+  test('Fast rewrite prompt activates the strict source boundary', () => {
+    const prompt = new RewritePromptComposer(ENVOYOU_EDITORIAL_PROFILE.config, {
+      sourceOnly: true,
+    }).compose('xml');
+    expect(prompt).toContain('<fast_source_fidelity>');
+    expect(prompt).toContain('Do not add examples, entities, products, platforms, metrics');
+  });
+
   test('generic API and KPI abbreviations are not treated as novel entities', () => {
     const signals = detectSourceFidelitySignals(
       'The team measures operational performance.',
@@ -133,5 +179,37 @@ describe('visual and acronym policy', () => {
     );
     expect(signals.novelEntities).not.toContain('API');
     expect(signals.novelEntities).not.toContain('KPI');
+  });
+});
+
+describe('SEO metadata boundaries', () => {
+  test('normalizes long metadata without cutting words or sentences', () => {
+    const metadata = normalizeSeoMetadata({
+      title: 'Generative Engine Optimization for Sustainable AI Citation Authority',
+      slug: 'generative-engine-optimization',
+      excerpt: 'A complete excerpt for editorial readers.',
+      metaTitle: 'Generative Engine Optimization (GEO): The Future of AI Citation Authority',
+      metaDescription: 'Discover why traditional SEO is shifting to Generative Engine Optimization. Learn how to secure your brand authority through entity signals and structured data.',
+      coverImageAltText: 'A digital visualization of connected entities and citation authority signals',
+      tags: ['SEO', 'Artificial Intelligence', 'Publishing'],
+    }, 'Opening paragraph.\n\nA sufficiently long article description for fallback metadata generation.');
+
+    expect(metadata.metaTitle).toBe('Generative Engine Optimization (GEO): The Future of AI');
+    expect(metadata.metaTitle).not.toContain('Citat');
+    expect(metadata.metaDescription).toBe('Discover why traditional SEO is shifting to Generative Engine Optimization.');
+  });
+
+  test('publishes active tenant limits in the SEO prompt', () => {
+    const prompt = new SeoPromptComposer(ENVOYOU_EDITORIAL_PROFILE.config).compose('xml');
+    expect(prompt).toContain('metaTitle: maximum 60 characters');
+    expect(prompt).toContain('metaDescription: 50-155 characters');
+    expect(prompt).toContain('never cut a word');
+  });
+
+  test('detects dangling metadata connectors', () => {
+    expect(hasIncompleteMetadataEnding('Learn how teams publish with')).toBe(true);
+    expect(hasIncompleteMetadataEnding('Learn how teams publish with confidence\u2026')).toBe(true);
+    expect(hasIncompleteMetadataEnding('Learn how teams publish with confidence.')).toBe(false);
+    expect(hasIncompleteMetadataEnding('The Future of AI')).toBe(false);
   });
 });

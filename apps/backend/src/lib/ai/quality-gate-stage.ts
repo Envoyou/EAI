@@ -178,6 +178,7 @@ The previous response failed structural validation. Return one JSON object only.
     language,
     publicationMode,
     documentTitle: publicationPackage?.title || workingTitle,
+    publicationPackage,
   });
 
   return { result, modelName };

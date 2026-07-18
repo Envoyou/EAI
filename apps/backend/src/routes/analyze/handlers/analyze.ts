@@ -164,6 +164,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
     const rewriteSystemInstruction = new RewritePromptComposer(editorialProfile.config, {
       isChunkMode: !isSingleChunk,
       publishedPosts,
+      sourceOnly: analysisSpeed === 'fast',
     }).compose('xml');
 
     const rewriteModelName = resolveModelName('rewrite' as typeof role);

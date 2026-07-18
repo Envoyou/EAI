@@ -48,8 +48,8 @@ export class SeoExamplesNode implements PromptNode {
   "title": "The WealthTech Paradigm Shift: How Agentic OS is Democratizing Elite Asset Management",
   "slug": "wealthtech-paradigm-shift-agentic-os-democratization",
   "excerpt": "Traditional asset management is facing a radical disruption. Autonomous Agentic OS platforms are democratizing elite wealth planning for a new generation of investors.",
-  "metaTitle": "The WealthTech Paradigm Shift: How Agentic OS Changes Asset Management",
-  "metaDescription": "Explore the rise of autonomous financial planners (Agentic OS) and how they democratize elite asset management for young mass-affluent investors.",
+  "metaTitle": "Agentic OS Is Reshaping WealthTech",
+  "metaDescription": "Explore how autonomous financial planners are reshaping wealth management and widening access for a new generation of investors.",
   "coverImageAltText": "A conceptual illustration of interconnected digital nodes forming a modern network on a sleek dark interface representing financial assets.",
   "tags": ["Technology & AI", "WealthTech", "Asset Management"]
 }
@@ -59,6 +59,34 @@ export class SeoExamplesNode implements PromptNode {
       return `<seo_metadata_examples>\n${examples}\n</seo_metadata_examples>`;
     }
     return examples;
+  }
+}
+
+export class SeoLengthContractNode implements PromptNode {
+  id = 'tenant:seo_length_contract';
+  type = 'tenant' as const;
+  isStatic = false;
+
+  constructor(private profile: EditorialProfileConfig) {}
+
+  render(context: RenderContext): string {
+    const { seoRules } = this.profile;
+    const contract = `
+Active publication limits for this tenant:
+- title: maximum ${seoRules.titleMaxLength} characters.
+- metaTitle: maximum ${seoRules.metaTitleMaxLength} characters.
+- metaDescription: ${Math.min(50, seoRules.metaDescriptionMaxLength)}-${seoRules.metaDescriptionMaxLength} characters.
+- excerpt: maximum 300 characters.
+- coverImageAltText: maximum 120 characters.
+- tags: ${seoRules.tagCountMin}-${seoRules.tagCountMax} items.
+
+Write every field as a complete phrase or sentence inside its active limit. Shorten and rephrase before returning JSON. Never rely on downstream truncation, never cut a word, and never end a description with a dangling conjunction or preposition.
+`.trim();
+
+    if (context.format === 'xml') {
+      return `<seo_length_contract>\n${contract}\n</seo_length_contract>`;
+    }
+    return `## SEO Length Contract\n${contract}`;
   }
 }
 
@@ -79,6 +107,9 @@ export class SeoPromptComposer {
     const schemaNode = new OutputSchemaNode(SEO_METADATA_OUTPUT_PROMPT_SCHEMA, this.options);
     const seoRoleNode = new SeoRoleNode(brandName);
     const seoExamplesNode = new SeoExamplesNode();
+    const lengthContractNode = this.profile
+      ? new SeoLengthContractNode(this.profile)
+      : null;
 
     // Inisialisasi Tenant Nodes (Dynamic/Tenant specific)
     const brandNode = this.profile
@@ -98,6 +129,9 @@ export class SeoPromptComposer {
     root.addChild(schemaNode);
     root.addChild(seoExamplesNode);
 
+    if (lengthContractNode) {
+      root.addChild(lengthContractNode);
+    }
     if (brandNode) {
       root.addChild(brandNode);
     }

@@ -433,7 +433,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                       if (wizardAttachments && wizardAttachments.length > 0) setAttachments(wizardAttachments);
                     }}
                     feedbackResult={hasResult || analysis.status === 'loading' ? analysis : null}
-                    feedbackTitle={analysis.generatedMetadata?.title as string | undefined}
+                    feedbackTitle={(analysis.generatedMetadata?.title || analysis.workingTitle) as string | undefined}
                     onApplyFix={handleApplyFix}
                     onApplyAll={handleApplyAllFixes}
                     hoveredFeedbackIndex={hoveredFeedbackIndex}
@@ -529,7 +529,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     if (wizardAttachments && wizardAttachments.length > 0) setAttachments(wizardAttachments);
                   }}
                   feedbackResult={hasResult || analysis.status === 'loading' ? analysis : null}
-                  feedbackTitle={analysis.generatedMetadata?.title as string | undefined}
+                  feedbackTitle={(analysis.generatedMetadata?.title || analysis.workingTitle) as string | undefined}
                   onApplyFix={handleApplyFix}
                   onApplyAll={handleApplyAllFixes}
                   hoveredFeedbackIndex={hoveredFeedbackIndex}

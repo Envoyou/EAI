@@ -5,6 +5,44 @@ import {
 } from './editorial-profile';
 import type { ArticleMetadata } from './types/index';
 
+const normalizeMetadataText = (value: string): string =>
+  value.trim().replace(/\s+/g, ' ');
+
+/** Keeps a metadata safety limit without leaving a partial word at the boundary. */
+export const truncateAtWordBoundary = (value: string, maxLength: number): string => {
+  const normalized = normalizeMetadataText(value);
+  if (normalized.length <= maxLength) return normalized;
+
+  const window = normalized.slice(0, maxLength + 1);
+  const boundary = window.lastIndexOf(' ');
+  const candidate = boundary >= Math.floor(maxLength * 0.5)
+    ? window.slice(0, boundary)
+    : normalized.slice(0, maxLength);
+
+  return candidate.trim().replace(/[,:;/\-\u2013\u2014]+$/u, '').trim();
+};
+
+/** Prefers a complete sentence, then falls back to an intentional word-boundary ellipsis. */
+export const truncateAtSentenceBoundary = (
+  value: string,
+  maxLength: number,
+  minSentenceLength = 0
+): string => {
+  const normalized = normalizeMetadataText(value);
+  if (normalized.length <= maxLength) return normalized;
+
+  const window = normalized.slice(0, maxLength + 1);
+  let sentenceEnd = -1;
+  for (const match of window.matchAll(/[.!?](?=\s|$)/g)) {
+    const end = (match.index ?? -1) + 1;
+    if (end >= minSentenceLength && end <= maxLength) sentenceEnd = end;
+  }
+  if (sentenceEnd > 0) return window.slice(0, sentenceEnd).trim();
+
+  const shortened = truncateAtWordBoundary(normalized, Math.max(1, maxLength - 1));
+  return `${shortened}\u2026`;
+};
+
 const slugify = (value: string) =>
   value
     .toLowerCase()
@@ -29,16 +67,17 @@ export const buildFallbackSeoMetadata = (
   const rawTitle = (lines[0] || metadata?.category || `${editorialProfile.config.brandName} Editorial`)
     .replace(/^#+\s*/, '')
     .trim();
-  const title = (
+  const title = truncateAtWordBoundary((
     rawTitle.length >= 10
       ? rawTitle
       : `${rawTitle || 'Editorial'} ${editorialProfile.config.brandName}`
-  ).slice(0, seoRules.titleMaxLength);
+  ), seoRules.titleMaxLength);
   const descriptionSource = lines.slice(1).join(' ');
-  const metaDescription = descriptionSource
-    .slice(0, seoRules.metaDescriptionMaxLength)
-    .trim()
-    .replace(/\s+/g, ' ');
+  const metaDescription = truncateAtSentenceBoundary(
+    descriptionSource,
+    seoRules.metaDescriptionMaxLength,
+    50
+  );
   const tagCandidates = Array.from(new Set([
     metadata?.category,
     metadata?.type,
@@ -54,22 +93,25 @@ export const buildFallbackSeoMetadata = (
     if (!tags.includes(fallbackTag)) tags.push(fallbackTag);
   }
 
-  let safeMetaDescription = (
+  let safeMetaDescription = truncateAtSentenceBoundary((
     metaDescription ||
     `${title} for ${editorialProfile.config.brandName} readers seeking sharp and relevant insights.`
-  ).slice(0, seoRules.metaDescriptionMaxLength);
+  ), seoRules.metaDescriptionMaxLength, 50);
   if (safeMetaDescription.length < 50) {
-    safeMetaDescription = `${safeMetaDescription} Editorial analysis with context, impact, and practical implications.`
-      .slice(0, seoRules.metaDescriptionMaxLength);
+    safeMetaDescription = truncateAtSentenceBoundary(
+      `${safeMetaDescription} Editorial analysis with context, impact, and practical implications.`,
+      seoRules.metaDescriptionMaxLength,
+      50
+    );
   }
 
   return SeoMetadataSchema.parse({
     title,
     slug: slugify(title) || fallbackSlug,
     excerpt: safeMetaDescription,
-    metaTitle: title.slice(0, seoRules.metaTitleMaxLength),
+    metaTitle: truncateAtWordBoundary(title, seoRules.metaTitleMaxLength),
     metaDescription: safeMetaDescription,
-    coverImageAltText: `Illustration for the article: ${title}`.slice(0, 120),
+    coverImageAltText: truncateAtWordBoundary(`Illustration for the article: ${title}`, 120),
     tags,
   });
 };
@@ -89,10 +131,10 @@ export const normalizeSeoMetadata = (
 
   const source = raw as Record<string, unknown>;
   const title = typeof source.title === 'string' && source.title.trim()
-    ? source.title.trim().slice(0, seoRules.titleMaxLength)
+    ? truncateAtWordBoundary(source.title, seoRules.titleMaxLength)
     : fallback.title;
   const metaDescription = typeof source.metaDescription === 'string' && source.metaDescription.trim()
-    ? source.metaDescription.trim().slice(0, seoRules.metaDescriptionMaxLength)
+    ? truncateAtSentenceBoundary(source.metaDescription, seoRules.metaDescriptionMaxLength, 50)
     : fallback.metaDescription;
   const slug = typeof source.slug === 'string' && source.slug.trim()
     ? slugify(source.slug)
@@ -104,13 +146,13 @@ export const normalizeSeoMetadata = (
     : fallback.tags;
 
   const excerpt = typeof source.excerpt === 'string' && source.excerpt.trim()
-    ? source.excerpt.trim().slice(0, 300)
+    ? truncateAtSentenceBoundary(source.excerpt, 300)
     : fallback.excerpt;
   const metaTitle = typeof source.metaTitle === 'string' && source.metaTitle.trim()
-    ? source.metaTitle.trim().slice(0, seoRules.metaTitleMaxLength)
+    ? truncateAtWordBoundary(source.metaTitle, seoRules.metaTitleMaxLength)
     : fallback.metaTitle;
   const coverImageAltText = typeof source.coverImageAltText === 'string' && source.coverImageAltText.trim()
-    ? source.coverImageAltText.trim().slice(0, 120)
+    ? truncateAtWordBoundary(source.coverImageAltText, 120)
     : fallback.coverImageAltText;
 
   return SeoMetadataSchema.parse({

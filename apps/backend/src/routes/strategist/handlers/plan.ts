@@ -11,6 +11,7 @@ import {
 } from '../utils/helpers';
 import { redisRateLimiter } from '@/middleware/rate-limit';
 import { resolveGroundingUrl, sanitizeGroundingLeaks } from '../utils/grounding';
+import { normalizeStrategistPlanResponse } from '../utils/plan';
 import { GeneratePlanSchema, type GroundingAnnotation } from '../types';
 
 const router = Router();
@@ -214,36 +215,11 @@ router.post(
         throw new Error('No output from model');
       }
 
-      const defaultPlan = {
-        angle: 'custom output',
-        audience: 'audience',
-        hook: 'hook',
-        outline: 'outline',
-        seoIntent: 'informational',
-        sources: [] as string[],
-        draft: 'draft',
-      };
-
       const parsed = parseJsonResponse(interaction.output_text) as Record<string, unknown> | null;
-      const parsedPlan = (parsed?.plan && typeof parsed.plan === 'object' ? parsed.plan : {}) as Record<string, unknown>;
-
-      const data =
-        parsed && typeof parsed === 'object'
-          ? {
-              reply:
-                typeof parsed.reply === 'string'
-                  ? parsed.reply
-                  : 'Here is your editorial blueprint and draft.',
-              suggestions: Array.isArray(parsed.suggestions)
-                ? (parsed.suggestions as string[])
-                : ['Refine outline', 'Generate draft', 'Check SEO'],
-              plan: { ...defaultPlan, ...parsedPlan },
-            }
-          : {
-              reply: interaction.output_text,
-              suggestions: [],
-              plan: defaultPlan,
-            };
+      const data = normalizeStrategistPlanResponse(parsed);
+      if (!data) {
+        throw new Error('Model returned an incomplete strategist plan');
+      }
 
       const extractedAnnotations: GroundingAnnotation[] = [];
 

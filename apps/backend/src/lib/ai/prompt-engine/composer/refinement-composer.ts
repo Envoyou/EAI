@@ -6,7 +6,7 @@ import {
 import type { EditorialProfileConfig } from '@eai/shared/server';
 import { EditorialMissionNode } from '../core/mission';
 import { LanguagePolicyNode, StrictnessConstraintNode, TemporalContextNode, InputBoundaryNode, MarkdownRulesNode, VerificationLockNode } from '../core/rules';
-import { SourcePolicyNode } from '../core/facts';
+import { FastSourceFidelityNode, SourcePolicyNode } from '../core/facts';
 import { BrandIdentityNode } from '../tenant/profile';
 import { ToneCalibrationNode } from '../tenant/tone';
 import { VisualFormatSelectionPolicyNode } from '../core/format';
@@ -101,7 +101,7 @@ export class RefinementOutputFormatNode implements PromptNode {
 Output rules:
 - Reply ONLY with the updated article text that applies the instruction.
 - Preserve existing Markdown formatting (headings, bold, lists, and mermaid diagrams/code blocks).
-- Heading rule: do not write the article title at the top of the output. The output must begin directly with the first paragraph (Hook). Use H2 (##) or H3 (###) for subheadings. Never use H1 (#) inside the article body.
+- Heading rule: do not write the article title at the top of the output. The output must begin directly with the first paragraph (Hook). Use H2 (##) for every primary section. Use H3 (###) only beneath a preceding H2, never as the first or only heading. Never use H1 (#) inside the article body.
 - Strictly forbid repeating the editor instruction inside the output.
 - Strictly forbid adding prefaces, notes, code change advice, or commentary such as "Here is the result:", "The draft has solid data", "Change #333 to...", or "Berikut hasilnya:".
 - Do not inject conversational notes or code modification advice into the article body text.
@@ -131,7 +131,8 @@ Output rules:
 export class RefinementPromptComposer {
   constructor(
     private roleType: 'iterative' | 'targeted_fix',
-    private profile?: EditorialProfileConfig
+    private profile?: EditorialProfileConfig,
+    private options?: { sourceOnly?: boolean }
   ) {}
 
   compile(_format: 'xml' | 'markdown' | 'text' = 'xml'): CompositePromptNode {
@@ -154,6 +155,9 @@ export class RefinementPromptComposer {
 
     // Refinement-Specific Nodes
     const refinementGuardrailNode = new FactualRefinementGuardrailNode();
+    const fastSourceFidelityNode = this.options?.sourceOnly
+      ? new FastSourceFidelityNode()
+      : null;
     const roleNode = new RefinementRoleNode(this.roleType, brandName, tone, audience);
     const outputFormatNode = new RefinementOutputFormatNode(this.roleType);
 
@@ -175,6 +179,7 @@ export class RefinementPromptComposer {
     root.addChild(temporalContextNode);
     root.addChild(sourcePolicyNode);
     root.addChild(refinementGuardrailNode);
+    if (fastSourceFidelityNode) root.addChild(fastSourceFidelityNode);
     root.addChild(markdownRulesNode);
     root.addChild(visualFormatNode);
     root.addChild(verifLockNode);

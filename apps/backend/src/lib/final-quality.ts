@@ -1,5 +1,5 @@
 import type { FinalQualityGateOutput } from '@eai/shared';
-import type { AllowedEditorialTerm } from '@eai/shared';
+import type { AllowedEditorialTerm, PublicationPackage } from '@eai/shared';
 
 type QualityFeedbackItem = FinalQualityGateOutput['feedback'][number];
 
@@ -56,7 +56,21 @@ export interface SourceFidelityOptions {
   language?: 'id' | 'en';
   publicationMode?: 'fast' | 'publish_ready';
   documentTitle?: string;
+  publicationPackage?: PublicationPackage | null;
 }
+
+const DANGLING_METADATA_WORD_PATTERN = /\b(?:a|an|the|and|or|but|of|to|in|on|for|with|from|through|by|as|at|dan|atau|serta|yang|di|ke|dari|untuk|dengan|melalui|pada)$/i;
+
+export const hasIncompleteMetadataEnding = (value: string): boolean => {
+  const normalized = value.trim();
+  if (!normalized) return true;
+  if (/\u2026$/.test(normalized)) return true;
+  if (/[,;:/\-\u2013\u2014]$/u.test(normalized)) return true;
+  if (DANGLING_METADATA_WORD_PATTERN.test(normalized)) return true;
+  const terminalWord = normalized.match(/([\p{L}]+)$/u)?.[1] ?? '';
+  if (/^[A-Z]{2,}$/.test(terminalWord)) return false;
+  return terminalWord.length > 0 && terminalWord.length <= 2;
+};
 
 const getCurrentEditorialYear = () => {
   const year = new Intl.DateTimeFormat('en-US', {
@@ -666,6 +680,38 @@ export const applyDeterministicQualityChecks = (
       item.reason,
     ].filter(Boolean).join(' ')));
     flags = flags.filter((flag) => !isMissingBodyH1Finding(flag));
+  }
+
+  if (options.publicationMode === 'publish_ready' && options.publicationPackage) {
+    const incompleteFields = [
+      {
+        label: 'meta title',
+        value: options.publicationPackage.metaTitle,
+        targetField: 'publication.metaTitle' as const,
+      },
+      {
+        label: 'meta description',
+        value: options.publicationPackage.metaDescription,
+        targetField: 'publication.metaDescription' as const,
+      },
+    ].filter((field) => field.value && hasIncompleteMetadataEnding(field.value));
+
+    for (const field of incompleteFields) {
+      readiness = readiness === 'ready' ? 'needs_review' : readiness;
+      feedback.unshift({
+        category: 'Publication Metadata',
+        status: 'fail',
+        message: isEn
+          ? `The ${field.label} ends with an incomplete phrase.`
+          : `${field.label === 'meta title' ? 'Meta title' : 'Meta description'} berakhir dengan frasa yang tidak lengkap.`,
+        suggestion: isEn
+          ? `Shorten and rewrite the ${field.label} as a complete phrase within the configured character limit.`
+          : `Pendekkan dan tulis ulang ${field.label} sebagai frasa lengkap dalam batas karakter yang dikonfigurasi.`,
+        operation: 'manual',
+        targetField: field.targetField,
+      });
+      flags.push('Incomplete Publication Metadata');
+    }
   }
 
   if (hasAsciiTable(finalDraft)) {

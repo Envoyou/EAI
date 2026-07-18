@@ -100,6 +100,7 @@ LLM modern seperti Google Gemini mendukung fitur *prompt caching* (Context Cachi
 +-------------------------------------------------------------+
 | [Tenant] BrandIdentityNode (Dinamis per Workspace)          |
 | [Tenant] ToneCalibrationNode (Dinamis per Workspace)        |
+| [Tenant] SeoLengthContractNode (Dinamis per SEO Rules)      |
 | [Context] ArticleMetadata & Date Context (Dinamis)           |
 +-------------------------------------------------------------+
 ```

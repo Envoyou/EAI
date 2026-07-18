@@ -22,6 +22,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Moved Publication Package generation before Final Quality Gate so the gate audits the canonical CMS title and metadata together with the H1-free article body.
   - Made Fast mode content-only while preserving an extracted working title for previews and downloads.
   - Made publication-field findings target explicit metadata fields instead of inserting Markdown H1 text into the article body.
+  - Added tenant-specific SEO length contracts to the SEO prompt and made Fast rewrites source-only for facts, entities, metrics, examples, and visual relationships.
+  - Normalized orphaned Markdown headings so primary body sections use H2 and H3 appears only beneath an established H2.
 - **AI Request & Usage Boundaries**:
   - Activated runtime Zod validation for Analyze, Strategist Chat, Generate Plan, Quick Draft, Draft From Notes, and attachment payloads before opening streams or consuming AI resources.
   - Removed client-controlled AI provider selection from Analyze and Quick Draft; provider resolution now follows server/workspace configuration.
@@ -33,6 +35,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Prevented Final Quality Gate from reporting a missing H1 when the CMS title field is present or when Fast mode intentionally omits publication metadata.
   - Marked publication metadata stale after targeted fixes, applied suggestions, or source-link mutations; stale packages and mismatched stored bodies are now blocked from CMS export.
   - Reconciled Quality Gate change summaries so unsupported diagrams or tables are not simultaneously praised as improvements, and stopped generic API/KPI abbreviations from being misclassified as novel entities.
+  - Replaced hard character slicing with word- and sentence-boundary metadata truncation, preventing partial outputs such as `Infrast`, `AI Citat`, or dangling meta descriptions.
+  - Prevented Publish Ready results with dangling metadata phrases from being marked ready, while allowing valid terminal acronyms such as `AI`.
+  - Strengthened visual selection so short collections remain lists/tables instead of being routinely converted to Mermaid.
+  - Restored Fast-mode feedback titles from `workingTitle` when no Publication Package is generated.
+  - Validated Strategist plans after JSON parsing and extracted the article-only Draft section when a model returns a composite Blueprint payload.
 - **Tenant & Network Security**:
   - Enforced user ownership before updating Strategist sessions or inserting chat messages, including blocking guest-supplied session IDs.
   - Restricted Prompt Inspector and prompt diff endpoints to configured platform owners.

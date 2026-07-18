@@ -152,7 +152,7 @@ Dalam masa pengembangan awal, ditemukan beberapa kendala pada respon model AI. B
 *   **Kendala**: Asisten Chat Strategist sebelumnya menggunakan pencarian teks manual (`<output_format>`) untuk menghasilkan draf dan saran dalam format JSON. Tanpa validasi skema di tingkat API, model rentan menghasilkan format JSON yang rusak atau terpotong, memicu kegagalan parse JSON di backend.
 *   **Solusi**:
     1.  Menerapkan **Structured Outputs** pada pemanggilan API `gemini.interactions.create` dengan menyertakan konfigurasi `response_format` yang mendefinisikan `strategistPlanSchema`. Hal ini menjamin keluaran model selalu valid secara sintaksis JSON dan mematuhi skema terstruktur.
-    2.  Membangun sistem perlindungan ganda: jika pemanggilan API dengan skema gagal, sistem melakukan *retry* otomatis tanpa pembatasan skema. Jika parsing JSON masih gagal (misal karena terpotong), teks mentah akan otomatis dibungkus ke dalam field `plan.draft` agar frontend tidak crash dan pengguna tetap dapat melihat hasil teks AI.
+    2.  Membangun sistem perlindungan ganda: jika pemanggilan API dengan skema gagal, sistem melakukan *retry* otomatis tanpa pembatasan skema. Hasil retry tetap dinormalisasi dan seluruh field plan wajib lengkap; payload parsial tidak lagi diisi dengan placeholder semu.
 
 ### O. Refaktorisasi Konstanta Bersama & Pembersihan Batasan Panjang (v2.4.0)
 *   **Kendala**:
@@ -192,3 +192,13 @@ Dalam masa pengembangan awal, ditemukan beberapa kendala pada respon model AI. B
         *   Menambahkan `QualityGateExamplesNode` ke dalam `QualityGatePromptComposer` untuk melatih model membedakan draf ready vs needs_review secara presisi.
         *   Menambahkan contoh kognitif modular ke dalam `DraftFromNotesConstraintsNode` di `core/strategist.ts` guna memandu konversi draf dari blueprint tanpa meta-commentary.
     3.  **Hasil Dampak**: Latensi pemanggilan model pada tahap Reviewer dan Quality Gate berkurang secara terukur tanpa memengaruhi fungsionalitas dan logika validasi backend.
+
+### S. Kontrak Metadata, Source Boundary, dan Struktur Draft (Unreleased)
+*   **Kendala**: Batas metadata aktif tenant (misalnya meta title 60 karakter dan meta description 155 karakter) hanya diterapkan sesudah generation melalui `.slice()`. Model melihat batas schema umum yang lebih besar, sehingga kata dan kalimat dapat terpotong. Mode Fast juga masih berpotensi menambah detail dari model memory, dan keluaran rewrite dapat memakai H3 sebagai heading pertama.
+*   **Solusi**:
+    1.  Menambahkan `SeoLengthContractNode` dinamis yang mengirim batas tenant aktual dan mewajibkan frasa/kalimat lengkap sebelum model mengembalikan JSON.
+    2.  Mengganti hard slicing dengan pemotongan batas kata/kalimat serta pemeriksaan deterministik untuk akhiran metadata menggantung sebelum status Publish Ready ditetapkan.
+    3.  Menambahkan `FastSourceFidelityNode` yang melarang contoh, entitas, metrik, tanggal, relasi, dan detail teknis baru di luar sumber pada mode Fast.
+    4.  Memperjelas kebijakan visual: prosa tetap default, koleksi singkat memakai list/tabel, dan Mermaid hanya untuk relasi yang benar-benar memerlukan diagram serta didukung sumber.
+    5.  Menormalisasi hierarki Markdown di luar fenced code sehingga heading body pertama selalu H2 dan loncatan level dipromosikan secara aman.
+    6.  Memvalidasi payload Strategist secara penuh serta mengekstrak bagian Draft ketika model mengembalikan Blueprint komposit.

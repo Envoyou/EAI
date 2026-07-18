@@ -22,6 +22,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Memindahkan pembuatan Publication Package sebelum Final Quality Gate agar gate mengaudit canonical CMS title dan metadata bersama body artikel tanpa H1.
   - Menjadikan Fast mode content-only sambil mempertahankan working title hasil ekstraksi untuk preview dan download.
   - Membuat finding field publikasi menargetkan metadata secara eksplisit, bukan menyisipkan H1 Markdown ke body artikel.
+  - Menambahkan kontrak panjang SEO spesifik tenant ke prompt SEO dan membatasi rewrite Fast hanya pada fakta, entitas, metrik, contoh, serta relasi visual yang tersedia di sumber.
+  - Menormalisasi heading Markdown yatim agar section utama body memakai H2 dan H3 hanya muncul di bawah H2 yang sudah ada.
 - **Boundary Request AI & Pemakaian Kredit**:
   - Mengaktifkan validasi Zod runtime untuk Analyze, Strategist Chat, Generate Plan, Quick Draft, Draft From Notes, dan payload lampiran sebelum stream dibuka atau resource AI digunakan.
   - Menghapus pemilihan provider AI oleh client pada Analyze dan Quick Draft; provider kini mengikuti konfigurasi server/workspace.
@@ -33,6 +35,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Mencegah Final Quality Gate melaporkan H1 hilang ketika field title CMS tersedia atau ketika Fast mode memang tidak membuat metadata publikasi.
   - Menandai metadata publikasi stale setelah targeted fix, apply suggestion, atau mutasi source link; package stale dan body yang berbeda dari versi tersimpan kini diblokir dari export CMS.
   - Merekonsiliasi ringkasan perubahan Quality Gate agar diagram atau tabel unsupported tidak sekaligus dipuji sebagai improvement, serta mencegah akronim umum API/KPI salah diklasifikasikan sebagai entitas baru.
+  - Mengganti pemotongan karakter keras dengan pemotongan metadata pada batas kata dan kalimat sehingga tidak lagi menghasilkan potongan seperti `Infrast`, `AI Citat`, atau meta description yang menggantung.
+  - Mencegah hasil Publish Ready dengan frasa metadata menggantung berstatus ready, tanpa salah menandai akronim terminal yang valid seperti `AI`.
+  - Memperketat pemilihan visual agar koleksi singkat tetap berupa list/tabel dan tidak rutin diubah menjadi Mermaid.
+  - Memulihkan title feedback mode Fast dari `workingTitle` ketika Publication Package memang tidak dibuat.
+  - Memvalidasi plan Strategist setelah parsing JSON dan mengambil hanya bagian Draft artikel ketika model mengembalikan payload Blueprint komposit.
 - **Keamanan Tenant & Jaringan**:
   - Mewajibkan ownership user sebelum memperbarui sesi Strategist atau menambahkan pesan chat, termasuk memblokir session ID yang dipasok guest.
   - Membatasi endpoint Prompt Inspector dan prompt diff hanya untuk owner platform yang dikonfigurasi.

@@ -21,6 +21,27 @@ export class FactualGuardrailNode implements PromptNode {
   }
 }
 
+export class FastSourceFidelityNode implements PromptNode {
+  id = 'core:fast_source_fidelity';
+  type = 'core' as const;
+  isStatic = true;
+
+  render(context: RenderContext): string {
+    const content = `
+FAST MODE SOURCE BOUNDARY:
+- Improve wording and organization using only information already present in the draft, brief, research notes, or cited sources supplied in context.
+- Do not add examples, entities, products, platforms, metrics, dates, causal relationships, implementation steps, or technical capabilities from model memory.
+- Do not turn a general source statement into a specific operational workflow or diagram.
+- If support for a detail is uncertain, omit the detail. A shorter source-faithful article is preferable to a richer speculative article.
+`.trim();
+
+    if (context.format === 'xml') {
+      return `<fast_source_fidelity>\n${content}\n</fast_source_fidelity>`;
+    }
+    return `## Fast Mode Source Boundary\n${content}`;
+  }
+}
+
 export class SourcePolicyNode implements PromptNode {
   id = 'core:source_policy';
   type = 'core' as const;

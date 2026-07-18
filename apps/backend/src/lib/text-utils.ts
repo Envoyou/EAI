@@ -45,3 +45,29 @@ export function stripLeadingExcerpt(text: string): string {
 
   return text;
 }
+
+/** Promotes orphaned/deep Markdown headings without touching fenced code. */
+export function normalizeMarkdownHeadingHierarchy(text: string): string {
+  if (!text) return text;
+
+  let inFence = false;
+  let previousHeadingLevel: number | null = null;
+  return text.split('\n').map((line) => {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      return line;
+    }
+    if (inFence) return line;
+
+    const match = line.match(/^(\s*)(#{2,6})(\s+.+)$/);
+    if (!match) return line;
+
+    const requestedLevel = match[2].length;
+    const maximumLevel = previousHeadingLevel === null
+      ? 2
+      : Math.min(6, previousHeadingLevel + 1);
+    const normalizedLevel = Math.min(requestedLevel, maximumLevel);
+    previousHeadingLevel = normalizedLevel;
+    return `${match[1]}${'#'.repeat(normalizedLevel)}${match[3]}`;
+  }).join('\n');
+}

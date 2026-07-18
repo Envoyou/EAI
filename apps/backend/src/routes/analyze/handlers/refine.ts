@@ -66,7 +66,8 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
 
   const refinePrompt = new RefinementPromptComposer(
     'iterative',
-    editorialProfile.config
+    editorialProfile.config,
+    { sourceOnly: analysisSpeed === 'fast' }
   ).compose('xml');
 
   let refinedText = '';
