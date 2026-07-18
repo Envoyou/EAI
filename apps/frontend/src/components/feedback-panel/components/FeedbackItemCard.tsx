@@ -1,6 +1,6 @@
 'use client';
 
-import { FeedbackItem, VerificationStatus, canAutoApplyFeedback } from '@eai/shared';
+import { FeedbackItem, VerificationStatus } from '@eai/shared';
 import {
   AlertCircle,
   CheckCircle2,
@@ -129,9 +129,18 @@ export function FeedbackItemCard({
   setActiveSourceInput,
   setSourceText,
 }: FeedbackItemCardProps) {
-  const showApplyFeature =
+  const targetText = item.targetText;
+  const replacementText = item.replacementText || item.suggestion;
+  const operation =
+    item.operation && item.operation !== 'manual' ? item.operation : 'replace';
+
+  // Allow 1-click apply box whenever we have target text & replacement text/suggestion for warning or fail items
+  const showApplyFeature = Boolean(
     (item.status === 'warning' || item.status === 'fail') &&
-    canAutoApplyFeedback(item);
+      targetText &&
+      replacementText
+  );
+
   const verificationMeta = item.verificationStatus
     ? verificationBadgeMap[item.verificationStatus]
     : null;
@@ -249,7 +258,7 @@ export function FeedbackItemCard({
                 </div>
               )}
 
-              {item.targetText && !showApplyFeature && (
+              {targetText && !showApplyFeature && (
                 <div className="ui-card-soft px-4 py-3 min-w-0 w-full">
                   <span
                     className="text-[12px] font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5"
@@ -263,7 +272,7 @@ export function FeedbackItemCard({
                     {verificationMeta ? 'Flagged claim' : 'Target text'}
                   </span>
                   <p className="text-xs leading-relaxed break-all whitespace-pre-wrap font-mono text-[var(--foreground)] opacity-90 w-full">
-                    {item.targetText}
+                    {targetText}
                   </p>
                 </div>
               )}
@@ -289,7 +298,7 @@ export function FeedbackItemCard({
                 </div>
               )}
 
-              {showApplyFeature && (
+              {showApplyFeature && targetText && replacementText && (
                 <div className="ui-card overflow-hidden min-w-0 w-full">
                   <div className="px-3.5 py-2.5 bg-[var(--surface-2)]">
                     <span
@@ -297,9 +306,9 @@ export function FeedbackItemCard({
                       style={{ color: 'var(--primary)' }}
                     >
                       <ArrowRightCircle className="w-3.5 h-3.5" />
-                      {item.operation === 'insert_before'
+                      {operation === 'insert_before'
                         ? 'Insert Before Target'
-                        : item.operation === 'insert_after'
+                        : operation === 'insert_after'
                           ? 'Insert After Target'
                           : 'Auto-Replace'}
                     </span>
@@ -320,7 +329,7 @@ export function FeedbackItemCard({
                           textDecorationColor: 'rgba(248,113,113,0.4)',
                         }}
                       >
-                        {item.targetText}
+                        {targetText}
                       </p>
                     </div>
                     <div>
@@ -338,16 +347,16 @@ export function FeedbackItemCard({
                           opacity: 0.9,
                         }}
                       >
-                        {item.replacementText}
+                        {replacementText}
                       </p>
                     </div>
                     <div className="flex justify-end pt-1">
                       <button
                         onClick={() =>
                           onApplyClick(
-                            item.targetText!,
-                            item.replacementText!,
-                            item.operation!,
+                            targetText,
+                            replacementText,
+                            operation,
                             index
                           )
                         }
@@ -395,6 +404,36 @@ export function FeedbackItemCard({
               {/* Interactive Actions for Post-Polish Review Loop */}
               {!isAccepted && !isVerified && (
                 <div className="mt-3 pt-3 border-t border-[var(--border)]/50 flex flex-wrap gap-2">
+                  {!showApplyFeature &&
+                    (item.status === 'warning' || item.status === 'fail') &&
+                    replacementText && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onApplyClick(
+                            targetText || '',
+                            replacementText,
+                            operation,
+                            index
+                          );
+                        }}
+                        disabled={isApplied}
+                        className={`ui-btn ui-btn-xs ${
+                          isApplied ? 'ui-btn-success' : 'ui-btn-primary'
+                        }`}
+                      >
+                        {isApplied ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" /> Applied
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-3.5 h-3.5" /> Apply Suggestion
+                          </>
+                        )}
+                      </button>
+                    )}
+
                   {item.category === 'Editorial Addition' && (
                     <>
                       <button
@@ -468,7 +507,7 @@ export function FeedbackItemCard({
                     </>
                   )}
 
-                  {item.targetText &&
+                  {targetText &&
                     (item.category === 'Source Fidelity' ||
                       item.category === 'Internal Linking') && (
                       <button
@@ -489,7 +528,7 @@ export function FeedbackItemCard({
                       </button>
                     )}
 
-                  {item.targetText && (
+                  {targetText && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

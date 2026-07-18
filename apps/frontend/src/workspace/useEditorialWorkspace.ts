@@ -305,6 +305,16 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     const item = analysis.feedback?.[index];
     if (!item || operation === 'manual') return false;
     const finalDraft = analysis.polishedDraft || '';
+    if (!target && replacement) {
+      setAnalysis(prev => ({
+        ...prev,
+        polishedDraft: `${finalDraft}\n\n${replacement}`,
+        readiness: 'needs_review',
+        verdict: 'needs_review',
+      }));
+      toast.success('Suggestion applied!');
+      return true;
+    }
     const result = applyFeedbackOperation(finalDraft, {
       ...item,
       targetText: target,
