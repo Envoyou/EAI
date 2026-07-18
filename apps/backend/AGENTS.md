@@ -207,7 +207,7 @@ The AI analysis pipeline is composed of stages in `src/lib/ai/` and managed dyna
 | `workspace-context.ts` | Builds `<workspace_context>` XML + `<agent_instruction>` block via `composeWorkspaceContext` and `getWorkspaceAgentInstruction` |
 | `prompt-context.ts` | Assembles the full prompt context (profile + content + notes + attachments) |
 | `provider-runtime.ts` | Provider config helpers: `getNativeGeminiConfig` (native SDK calls) and `getOpenRouterSamplingConfig` (OpenRouter). `getGeminiSamplingConfig` is **deprecated** — do not use. |
-| `review-stage.ts` | Editorial review — utilizes `ReviewPromptComposer` (`ThinkingLevel.LOW`), returns structured feedback with `thinking` CoT field |
+| `review-stage.ts` | Editorial review — utilizes `ReviewPromptComposer` and returns schema-constrained structured feedback; provider-native thinking is not copied into the JSON response |
 | `quality-gate-stage.ts` | Final quality gate — utilizes `QualityGatePromptComposer` (`ThinkingLevel.LOW`), deterministic source-fidelity checks via `final-quality.ts` |
 | `seo-stage.ts` | SEO metadata analysis and optimization recommendations — utilizes `SeoPromptComposer` |
 | `targeted-fix-stage.ts` | Targeted fix — utilizes `RefinementPromptComposer` (`ThinkingLevel.LOW`), tenant-aware prompt with brand guidelines |
@@ -223,7 +223,7 @@ Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes l
 
 > **H1 Contract**: `routes/analyze/` (specifically the rewrite stage handler) applies `stripLeadingH1` (from `src/lib/text-utils.ts`) to the input draft **before** the rewrite stage. This removes any top-level heading that would duplicate the article title rendered by the frontend.
 
-* **Chain-of-Thought (CoT)**: When designing JSON output schemas for AI reviewers or quality gates, ensure the Zod schema includes a `"thinking"` string property at the very top to hold the LLM reasoning process before yielding the final evaluation.
+* **Provider-Native Thinking**: Reviewer and Quality Gate stages may enable provider-native thinking for model quality, but JSON response schemas must contain only the final editorial result. Do not request or persist manual chain-of-thought fields such as `"thinking"`.
 * **Workspace Context & Compliance Helpers**:
   * All AI pipeline stages (SEO Optimizer, Fact-Checker, Targeted Fixes, Chat, Strategist) must utilize the shared prompt helper functions from `src/lib/ai/workspace-context.ts`:
     * `composeWorkspaceContext`: Builds a structured workspace context object and renders it as XML (`<workspace_context>`).

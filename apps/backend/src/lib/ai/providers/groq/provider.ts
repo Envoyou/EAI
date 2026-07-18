@@ -49,6 +49,9 @@ export class GroqProvider implements AIProvider {
       stream: true,
       ...(request.maxOutputTokens ? { max_tokens: request.maxOutputTokens } : {}),
       ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
+      ...(request.responseFormat === 'json'
+        ? { response_format: { type: 'json_object' } }
+        : {}),
     });
 
     async function* normalize(): AsyncIterable<StreamChunk> {
@@ -79,6 +82,9 @@ export class GroqProvider implements AIProvider {
       stream: false,
       ...(request.maxOutputTokens ? { max_tokens: request.maxOutputTokens } : {}),
       ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
+      ...(request.responseFormat === 'json'
+        ? { response_format: { type: 'json_object' } }
+        : {}),
     });
 
     return {

@@ -159,6 +159,36 @@ const truncateSchemaText = (value: string, maxLength: number) => {
   return `${clipped || normalized.slice(0, hardLimit).trim()}${suffix}`;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const normalizeQualityGateFeedbackItem = (value: unknown) => {
+  if (isRecord(value)) return value;
+  if (typeof value !== 'string' || value.trim().length === 0) return null;
+
+  return {
+    category: 'Editorial Review',
+    status: 'warning',
+    message: value.trim(),
+    suggestion: 'Review this issue manually before export.',
+    operation: 'manual',
+  };
+};
+
+const normalizeQualityGateFlag = (value: unknown) => {
+  if (typeof value === 'string' && value.trim().length > 0) return value.trim();
+  if (!isRecord(value)) return null;
+
+  for (const key of ['flag', 'label', 'category', 'message', 'name']) {
+    const candidate = value[key];
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate.trim();
+    }
+  }
+
+  return null;
+};
+
 export const normalizeFinalQualityGateResponseCandidate = (candidate: unknown) => {
   if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return candidate;
   const nextCandidate = candidate as Record<string, unknown>;
@@ -177,18 +207,23 @@ export const normalizeFinalQualityGateResponseCandidate = (candidate: unknown) =
     changes = changes.slice(0, 5);
   }
 
-  let feedback = Array.isArray(nextCandidate.feedback) ? nextCandidate.feedback : [];
-  if (feedback.length > 5) {
-    feedback = feedback.slice(0, 5);
-  }
+  const rawFeedback = Array.isArray(nextCandidate.feedback) ? nextCandidate.feedback : [];
+  const repairedFeedback = rawFeedback.some((item) => typeof item === 'string');
+  const feedback = rawFeedback
+    .map(normalizeQualityGateFeedbackItem)
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+    .slice(0, 5);
 
-  let flags = Array.isArray(nextCandidate.flags) ? nextCandidate.flags : [];
-  if (flags.length > 3) {
-    flags = flags.slice(0, 3);
-  }
+  const flags = (Array.isArray(nextCandidate.flags) ? nextCandidate.flags : [])
+    .map(normalizeQualityGateFlag)
+    .filter((flag): flag is string => flag !== null)
+    .slice(0, 3);
 
   return {
     ...nextCandidate,
+    readiness: repairedFeedback && nextCandidate.readiness === 'ready'
+      ? 'needs_review'
+      : nextCandidate.readiness,
     summary: typeof nextCandidate.summary === 'string'
       ? truncateSchemaText(nextCandidate.summary, 280)
       : nextCandidate.summary,
@@ -279,4 +314,3 @@ export const AttachmentSchema = z.object({
 });
 
 export const AttachmentsArraySchema = z.array(AttachmentSchema);
-

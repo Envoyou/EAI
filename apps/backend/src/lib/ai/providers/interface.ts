@@ -55,11 +55,11 @@ export interface StreamRequest {
    */
   responseFormat?: 'text' | 'json';
   /**
-   * @internal Gemini-specific: JSON schema for structured output.
-   * Injected by review-stage when calling Gemini to enforce the feedback schema.
-   * Ignored by OpenAI-compatible providers (they use responseFormat: 'json' instead).
+   * JSON schema for providers that support schema-constrained structured output.
+   * OpenAI-compatible providers currently use responseFormat: 'json' as a
+   * json_object constraint and may ignore this schema.
    */
-  _reviewJsonSchema?: unknown;
+  responseJsonSchema?: unknown;
 }
 
 export interface GenerateResult {

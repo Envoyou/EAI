@@ -70,7 +70,7 @@ export const runSeoStage = async ({
       temperature: 0.2,
       thinkingLevel: provider === 'gemini' ? 'minimal' : undefined,
       responseFormat: 'json',
-      _reviewJsonSchema: provider === 'gemini' ? SeoMetadataResponseJsonSchema : undefined,
+      responseJsonSchema: provider === 'gemini' ? SeoMetadataResponseJsonSchema : undefined,
     },
     telemetry,
     stage: 'seo',

@@ -120,7 +120,11 @@ const runFinalQualityGate = async ({
   const systemInstruction = `${new QualityGatePromptComposer(
     editorialProfile.config,
     provider === 'gemini' ? { includeTextSchema: false } : {}
-  ).compose('xml')}\n\n${agentInstruction}`;
+  ).compose('xml')}\n\n${agentInstruction}${attempt > 1 ? `
+
+<retry_correction>
+The previous response failed structural validation. Return one JSON object only. "feedback" must be an array of objects matching the configured feedback schema, and "flags" must be an array of short strings. Do not swap these fields or return prose items in place of objects.
+</retry_correction>` : ''}`;
 
   const text = await executeGenerate({
     provider: aiProvider,
@@ -132,7 +136,7 @@ const runFinalQualityGate = async ({
       temperature: 0.15,
       thinkingLevel: provider === 'gemini' ? 'medium' : undefined,
       responseFormat: 'json',
-      _reviewJsonSchema: provider === 'gemini' ? FinalQualityGateResponseJsonSchema : undefined,
+      responseJsonSchema: provider === 'gemini' ? FinalQualityGateResponseJsonSchema : undefined,
     },
     telemetry,
     stage: 'quality_gate',

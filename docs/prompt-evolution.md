@@ -182,10 +182,9 @@ Dalam masa pengembangan awal, ditemukan beberapa kendala pada respon model AI. B
     1.  Meskipun model Gemini 3.x native thinking (`thinkingConfig` dengan `thought_summary` delta) sudah diaktifkan di backend untuk asisten evaluasi, model Reviewer dan Quality Gate masih diwajibkan menulis analisis CoT secara manual pada field `"thinking"` di skema JSON keluaran. Hal ini memicu duplikasi penalaran, pemborosan token output, dan memperlambat latensi respon.
     2.  Tahapan SEO Metadata dan Quality Gate Audit tidak memiliki visualisasi contoh input-output (*few-shot demonstrations*) konkret, sehingga model rentan menyimpang dari format/verdict ideal pada data marginal.
 *   **Solusi**:
-    1.  **Penghapusan CoT Manual pada JSON Schema**: Properti `"thinking"` dihapus dari deskripsi skema JSON di `packages/shared/src/schema.ts` serta dari instruksi sistem pada `ReviewRoleNode` dan `QualityGateRoleNode`. Zod schema tetap membiarkan field `thinking` sebagai `.optional()` demi kompatibilitas ke belakang.
+    1.  **Penghapusan CoT Manual pada JSON Schema**: Properti `"thinking"` dihapus dari deskripsi dan Zod schema di `packages/shared/src/schema.ts` serta dari instruksi sistem pada `ReviewRoleNode` dan `QualityGateRoleNode`. Provider-native thinking tetap digunakan secara internal bila tersedia, tetapi tidak diminta atau disimpan sebagai bagian dari JSON editorial.
     2.  **Few-Shot Demonstrations Baru**:
         *   Menambahkan `SeoExamplesNode` ke dalam `SeoPromptComposer` untuk memberikan visualisasi target output metadata SEO.
         *   Menambahkan `QualityGateExamplesNode` ke dalam `QualityGatePromptComposer` untuk melatih model membedakan draf ready vs needs_review secara presisi.
         *   Menambahkan contoh kognitif modular ke dalam `DraftFromNotesConstraintsNode` di `core/strategist.ts` guna memandu konversi draf dari blueprint tanpa meta-commentary.
     3.  **Hasil Dampak**: Latensi pemanggilan model pada tahap Reviewer dan Quality Gate berkurang secara terukur tanpa memengaruhi fungsionalitas dan logika validasi backend.
-

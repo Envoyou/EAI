@@ -49,6 +49,9 @@ export class OpenRouterProvider implements AIProvider {
       stream: true,
       ...(request.maxOutputTokens ? { max_tokens: request.maxOutputTokens } : {}),
       ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
+      ...(request.responseFormat === 'json'
+        ? { response_format: { type: 'json_object' as const } }
+        : {}),
     });
 
     async function* normalize(): AsyncIterable<StreamChunk> {
@@ -77,6 +80,9 @@ export class OpenRouterProvider implements AIProvider {
       stream: false,
       ...(request.maxOutputTokens ? { max_tokens: request.maxOutputTokens } : {}),
       ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
+      ...(request.responseFormat === 'json'
+        ? { response_format: { type: 'json_object' as const } }
+        : {}),
     });
 
     return {

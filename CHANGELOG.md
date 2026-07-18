@@ -6,6 +6,32 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.12.2] - 2026-07-18
+
+### Fixed
+- **Structured Output Transport Contract**:
+  - Restored Gemini `responseMimeType` and `responseJsonSchema` forwarding in the non-streaming provider path used by Final Quality Gate and SEO metadata generation.
+  - Restored `response_format: { type: "json_object" }` forwarding for Groq and OpenRouter streaming and non-streaming requests.
+  - Replaced the review-specific `_reviewJsonSchema` request field with the stage-neutral `responseJsonSchema` contract.
+- **Quality Gate Recovery & Regression Coverage**:
+  - Normalized malformed string feedback and object flags into safe manual-review output, and added an explicit schema correction instruction on the second attempt.
+  - Added provider transport and Quality Gate regression tests covering the exact `feedback`/`flags` type mismatch observed in staging.
+- **Deterministic Grounding Test**:
+  - Replaced the live Vertex grounding redirect dependency with a mocked redirect response while testing the production grounding utility directly.
+- **Release & Architecture Metadata**:
+  - Synchronized workspace package versions and lockfile metadata to `3.12.2`.
+  - Aligned backend guidance with provider-native thinking: manual chain-of-thought is no longer requested or persisted in editorial JSON schemas.
+
+## [3.12.1] - 2026-07-18
+
+### Fixed
+- **Quality Gate Zod Validation & Fallback Normalization**:
+  - Adjusted `FinalQualityGateResponseSchema` `changes` array requirements in `@eai/shared` from `.min(2)` to `.min(1).max(5)` to allow targeted edits and single-improvement refinements without triggering `ZodError` (`expected array to have >=2 items`).
+  - Enhanced `normalizeFinalQualityGateResponseCandidate` with automatic fallback `['Processed draft according to editorial brief.']` when `changes` array is empty, and clipped oversized arrays (`changes` > 5, `feedback` > 5, `flags` > 3).
+- **Feedback Action & Safe Apply Logic**:
+  - Removed dangerous fallback in `useEditorialWorkspace.ts` that appended raw suggestion text to the bottom of the draft when `targetText` was empty.
+  - Updated `FeedbackItemCard.tsx` to require a non-empty `targetText` for 1-click apply. Replaced the unsafe "Apply Suggestion" button for suggestion-only feedback items with a "Copy Suggestion" button to prevent draft text corruption.
+
 ## [3.12.0] - 2026-07-18
 
 ### Changed

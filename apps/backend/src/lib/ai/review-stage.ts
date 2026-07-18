@@ -195,9 +195,9 @@ export const runEditorialReviewStage = async ({
       thinkingLevel: 'medium' as const,
       temperature: 0.2,
       responseFormat: 'json' as const,
-      // Gemini-specific JSON schema is injected via GeminiProvider internals;
-      // for OpenAI-compatible providers response_format: json_object is used.
-      _reviewJsonSchema: provider === 'gemini' ? getFeedbackResponseJsonSchema(role) : undefined,
+      // Gemini receives the full JSON schema; OpenAI-compatible providers use
+      // response_format: json_object through their adapters.
+      responseJsonSchema: provider === 'gemini' ? getFeedbackResponseJsonSchema(role) : undefined,
     };
 
     // Open the stream — provider normalizes chunks to StreamChunk

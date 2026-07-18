@@ -6,6 +6,32 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.12.2] - 2026-07-18
+
+### Fixed
+- **Kontrak Transport Structured Output**:
+  - Memulihkan penerusan `responseMimeType` dan `responseJsonSchema` Gemini pada jalur provider non-streaming yang digunakan Final Quality Gate dan pembuatan metadata SEO.
+  - Memulihkan penerusan `response_format: { type: "json_object" }` untuk request Groq dan OpenRouter streaming maupun non-streaming.
+  - Mengganti field request khusus-review `_reviewJsonSchema` dengan kontrak netral-stage `responseJsonSchema`.
+- **Pemulihan Quality Gate & Cakupan Regresi**:
+  - Menormalisasi feedback string dan flag object yang salah format menjadi output manual-review yang aman, serta menambahkan instruksi koreksi schema eksplisit pada percobaan kedua.
+  - Menambahkan test regresi transport provider dan Quality Gate untuk mismatch tipe `feedback`/`flags` yang persis terjadi di staging.
+- **Test Grounding Deterministik**:
+  - Mengganti ketergantungan pada redirect Vertex grounding live dengan respons redirect mock sambil menguji utility produksi secara langsung.
+- **Metadata Rilis & Arsitektur**:
+  - Menyinkronkan versi package workspace dan metadata lockfile ke `3.12.2`.
+  - Menyelaraskan panduan backend dengan provider-native thinking; chain-of-thought manual tidak lagi diminta atau disimpan dalam schema JSON editorial.
+
+## [3.12.1] - 2026-07-18
+
+### Fixed
+- **Validasi Zod & Normalisasi Fallback Quality Gate**:
+  - Menyelaraskan batasan array `changes` pada `FinalQualityGateResponseSchema` di `@eai/shared` dari `.min(2)` menjadi `.min(1).max(5)` agar perbaikan terfokus dengan 1 poin perubahan tidak lagi memicu `ZodError` (`expected array to have >=2 items`).
+  - Memperkuat `normalizeFinalQualityGateResponseCandidate` dengan penambahan fallback otomatis `['Processed draft according to editorial brief.']` jika array `changes` dari LLM kosong, serta pemangkasan array berukuran lebih (`changes` > 5, `feedback` > 5, `flags` > 3).
+- **Aksi Feedback & Keamanan Tombol Apply**:
+  - Menghapus fallback berbahaya di `useEditorialWorkspace.ts` yang menambahkan teks saran langsung ke akhir draf artikel saat `targetText` kosong.
+  - Mengubah tombol tindakan di `FeedbackItemCard.tsx` untuk item saran tanpa `targetText` dari "Apply Suggestion" menjadi **"Copy Suggestion"** guna mencegah korupsi teks draf.
+
 ## [3.12.0] - 2026-07-18
 
 ### Changed

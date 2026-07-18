@@ -15,6 +15,16 @@ const THINKING_LEVEL_MAP: Record<NonNullable<StreamRequest['thinkingLevel']>, Th
   medium: ThinkingLevel.MEDIUM,
 };
 
+const getStructuredOutputConfig = (request: StreamRequest) =>
+  request.responseFormat === 'json'
+    ? {
+        responseMimeType: 'application/json',
+        ...(request.responseJsonSchema
+          ? { responseJsonSchema: request.responseJsonSchema }
+          : {}),
+      }
+    : {};
+
 export class GeminiProvider implements AIProvider {
   readonly name = 'gemini' as const;
 
@@ -33,14 +43,7 @@ export class GeminiProvider implements AIProvider {
         candidateCount: 1,
         ...(request.maxOutputTokens ? { maxOutputTokens: request.maxOutputTokens } : {}),
         ...(thinkingLevel !== undefined ? { thinkingConfig: { thinkingLevel } } : {}),
-        // Apply structured output config when requested.
-        // _reviewJsonSchema carries the Gemini schema for the review stage.
-        ...(request.responseFormat === 'json' && request._reviewJsonSchema
-          ? {
-              responseMimeType: 'application/json',
-              responseJsonSchema: request._reviewJsonSchema,
-            }
-          : {}),
+        ...getStructuredOutputConfig(request),
         // temperature is intentionally excluded — Gemini 3.x ignores it when thinkingConfig is set
       },
     });
@@ -70,6 +73,7 @@ export class GeminiProvider implements AIProvider {
         candidateCount: 1,
         ...(request.maxOutputTokens ? { maxOutputTokens: request.maxOutputTokens } : {}),
         ...(thinkingLevel !== undefined ? { thinkingConfig: { thinkingLevel } } : {}),
+        ...getStructuredOutputConfig(request),
       },
     });
 
