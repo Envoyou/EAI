@@ -8,7 +8,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ### Added
 - **Infrastruktur Keamanan & Ledger**:
-  - Menambahkan `safe-url-fetch.ts` untuk memvalidasi target HTTP(S), menolak URL berkredensial serta alamat IPv4/IPv6 privat/lokal, meresolusi hostname, dan memvalidasi ulang setiap redirect sebelum outbound fetch.
+  - Menambahkan `safe-url-fetch.ts` untuk memvalidasi target HTTP(S), menolak URL berkredensial serta alamat IPv4/IPv6 privat/lokal, mengikat socket ke hasil DNS tervalidasi, menerapkan policy outbound host/port/ukuran/timeout, dan memvalidasi ulang setiap redirect sebelum outbound fetch.
+  - Menambahkan HTTP rate limiter atomic berbasis Redis yang digunakan lintas instance aplikasi, dengan namespace terisolasi untuk traffic Strategist dan autosave History.
   - Menambahkan `serializable-transaction.ts` untuk menjalankan write ledger kredit dengan isolasi serializable dan retry konflik write yang terbatas.
   - Menambahkan regression test SSRF untuk loopback, jaringan privat, cloud metadata, IPv6, URL berkredensial, dan protokol yang tidak didukung.
 

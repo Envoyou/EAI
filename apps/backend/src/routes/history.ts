@@ -1,10 +1,11 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import { z } from 'zod';
 import { prisma, Prisma } from '@/lib/db';
 import { requireAuth } from '@/middleware/auth';
 import { ResearchNotesArraySchema } from '@eai/shared';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { preparePublicationDraft } from '@/routes/analyze/utils/text';
+import { redisRateLimiter } from '@/middleware/rate-limit';
 
 const router = Router();
 
@@ -243,38 +244,12 @@ const AutosaveSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
-interface RateLimitBucket {
-  tokens: number;
-  lastRefill: number;
-}
-const autosaveRateLimitStore = new Map<string, RateLimitBucket>();
-
-function autosaveRateLimiter(req: Request, res: Response, next: NextFunction) {
-  const userId = req.auth?.userId || 'anonymous';
-  const key = `autosave:${userId}`;
-  const now = Date.now();
-  const windowMs = 60000; // 1 minute
-  const max = 100; // 100 requests per minute
-
-  let bucket = autosaveRateLimitStore.get(key);
-  if (!bucket) {
-    bucket = { tokens: max, lastRefill: now };
-    autosaveRateLimitStore.set(key, bucket);
-  }
-
-  const elapsed = now - bucket.lastRefill;
-  if (elapsed > windowMs) {
-    bucket.tokens = max;
-    bucket.lastRefill = now;
-  }
-
-  if (bucket.tokens <= 0) {
-    return res.status(429).json({ error: 'Too many autosave requests. Please try again later.' });
-  }
-
-  bucket.tokens--;
-  next();
-}
+const autosaveRateLimiter = redisRateLimiter({
+  namespace: 'history:autosave',
+  windowMs: 60_000,
+  max: 100,
+  message: 'Too many autosave requests. Please try again later.',
+});
 
 // PATCH /api/history/:id/autosave
 router.patch('/:id/autosave', requireAuth, autosaveRateLimiter, async (req, res) => {

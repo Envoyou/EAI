@@ -1,16 +1,7 @@
 import { Queue, QueueEvents } from 'bullmq';
-import Redis from 'ioredis';
+import { redisConnection } from './redis';
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-
-// BullMQ requires maxRetriesPerRequest to be null
-export const redisConnection = new Redis(redisUrl, {
-  maxRetriesPerRequest: null,
-});
-
-redisConnection.on('error', (error) => {
-  console.error('[Redis] Connection error:', error);
-});
+export { redisConnection } from './redis';
 
 export const AI_QUEUE_NAME = 'ai-processing-queue';
 

@@ -5,11 +5,12 @@ import { ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { DraftFromNotesComposer } from '@/lib/ai/prompt-engine/composer/draft-from-notes-composer';
 import { gemini, getNativeGeminiConfig } from '@/lib/ai/provider-runtime';
 import { MODEL } from '../utils/helpers';
-import { rateLimiter, resolveInternalOrgId, softAuth } from '../utils/helpers';
+import { resolveInternalOrgId, softAuth } from '../utils/helpers';
 import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
 import { prisma } from '@/lib/db';
 import { PROMPT_VERSION } from '@/lib/prompts';
 import { GenerateDraftFromNotesSchema } from '../types';
+import { redisRateLimiter } from '@/middleware/rate-limit';
 
 const router = Router();
 
@@ -17,7 +18,8 @@ const router = Router();
 router.post(
   '/generate-draft-from-notes',
   softAuth,
-  rateLimiter({
+  redisRateLimiter({
+    namespace: 'strategist:draft-from-notes',
     windowMs: 60_000,
     max: 5,
     message: 'Too many draft requests. Please try again later.',

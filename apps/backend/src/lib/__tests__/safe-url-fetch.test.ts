@@ -1,7 +1,13 @@
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vitest';
 import { validatePublicHttpUrl } from '../safe-url-fetch';
 
 describe('validatePublicHttpUrl', () => {
+  afterEach(() => {
+    delete process.env.OUTBOUND_HTTP_ALLOWED_HOSTS;
+    delete process.env.OUTBOUND_HTTP_BLOCKED_HOSTS;
+    delete process.env.OUTBOUND_HTTP_ALLOWED_PORTS;
+  });
+
   test.each([
     'http://127.0.0.1/admin',
     'http://10.0.0.1/',
@@ -26,6 +32,23 @@ describe('validatePublicHttpUrl', () => {
     );
     await expect(validatePublicHttpUrl('file:///etc/passwd')).rejects.toThrow(
       'Only HTTP and HTTPS'
+    );
+  });
+
+  test('enforces outbound port and hostname policy', async () => {
+    await expect(validatePublicHttpUrl('https://93.184.216.34:8443/')).rejects.toThrow(
+      'Outbound port 8443 is not allowed'
+    );
+
+    process.env.OUTBOUND_HTTP_ALLOWED_HOSTS = 'example.com';
+    await expect(validatePublicHttpUrl('https://93.184.216.34/')).rejects.toThrow(
+      'Outbound hostname is not allowed by policy'
+    );
+
+    delete process.env.OUTBOUND_HTTP_ALLOWED_HOSTS;
+    process.env.OUTBOUND_HTTP_BLOCKED_HOSTS = '93.184.216.34';
+    await expect(validatePublicHttpUrl('https://93.184.216.34/')).rejects.toThrow(
+      'Outbound hostname is blocked by policy'
     );
   });
 });

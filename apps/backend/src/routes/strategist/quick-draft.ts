@@ -19,7 +19,7 @@ import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { getAllFeatureFlags } from '@eai/shared/server';
 import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
-import { rateLimiter } from './utils/helpers';
+import { redisRateLimiter } from '@/middleware/rate-limit';
 import { QuickDraftSchema } from './types';
 
 const router = Router();
@@ -38,7 +38,8 @@ const parseCookies = (cookieHeader: string | undefined): Record<string, string> 
 // POST /api/strategist/quick-draft
 router.post(
   '/',
-  rateLimiter({
+  redisRateLimiter({
+    namespace: 'strategist:quick-draft',
     windowMs: 60_000,
     max: 6,
     message: 'Too many draft requests. Please try again later.',

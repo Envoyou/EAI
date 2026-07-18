@@ -8,7 +8,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ### Added
 - **Security & Ledger Infrastructure**:
-  - Added `safe-url-fetch.ts` to validate HTTP(S) targets, reject credentials and private/local IPv4/IPv6 addresses, resolve hostnames, and revalidate every redirect before outbound fetches.
+  - Added `safe-url-fetch.ts` to validate HTTP(S) targets, reject credentials and private/local IPv4/IPv6 addresses, pin sockets to the validated DNS result, enforce outbound host/port/size/timeout policy, and revalidate every redirect before outbound fetches.
+  - Added an atomic Redis-backed HTTP rate limiter shared across application instances, including isolated namespaces for Strategist and History autosave traffic.
   - Added `serializable-transaction.ts` to run credit-ledger writes at serializable isolation with bounded write-conflict retries.
   - Added SSRF regression coverage for loopback, private network, cloud metadata, IPv6, credential-bearing, and unsupported-protocol URLs.
 

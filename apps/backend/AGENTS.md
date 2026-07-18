@@ -73,11 +73,13 @@ apps/backend/
 │   ├── server.ts             # Express entry point — mounts all routers
 │   ├── worker.ts             # BullMQ job worker
 │   ├── middleware/
-│   │   └── auth.ts           # Clerk JWT verification (requireAuth)
+│   │   ├── auth.ts           # Clerk JWT verification (requireAuth)
+│   │   └── rate-limit.ts     # Atomic Redis-backed distributed HTTP rate limiter
 │   ├── lib/
 │   │   ├── db.ts             # Prisma + Neon serverless driver setup
 │   │   ├── r2.ts             # Cloudflare R2 client (AWS S3 SDK)
 │   │   ├── queue.ts          # BullMQ + Redis connection
+│   │   ├── redis.ts          # Shared BullMQ and fail-fast request Redis clients
 │   │   ├── prompts.ts        # Timezone, date, and prompt version helpers (no prompt bodies)
 │   │   ├── text-utils.ts     # Text utilities (e.g., stripLeadingH1 — removes rogue H1 before rewrite stage)
 │   │   ├── final-quality.ts  # Final quality gate pipeline — deterministic source-fidelity checks
@@ -89,7 +91,7 @@ apps/backend/
 │   │   ├── cms-adapter.ts    # CMS adapter abstraction
 │   │   ├── credential-vault.ts  # Encrypted credential read/write
 │   │   ├── editorial-profile-server.ts  # Editorial profile server helpers
-│   │   ├── safe-url-fetch.ts # SSRF-safe HTTP(S) validation and redirect fetching
+│   │   ├── safe-url-fetch.ts # DNS-pinned HTTP(S) egress policy and SSRF protection
 │   │   ├── serializable-transaction.ts # Serializable Prisma transaction retry helper
 │   │   ├── __tests__/        # Backend service and security regression tests
 │   │   ├── services/         # Domain services

@@ -27,8 +27,15 @@ import promptInspectorRouter from './routes/prompt-inspector';
 const app = express();
 const port = process.env.PORT || 5001;
 
-// Trust upstream reverse proxies (like Railway edge proxy / Cloudflare)
-app.set('trust proxy', true);
+// Trust only the configured number of upstream hops so clients cannot spoof
+// X-Forwarded-For to evade Redis-backed IP rate limits.
+const configuredProxyHops = Number(process.env.TRUST_PROXY_HOPS || '1');
+app.set(
+  'trust proxy',
+  Number.isInteger(configuredProxyHops) && configuredProxyHops >= 0
+    ? configuredProxyHops
+    : 1
+);
 
 // CORS configuration
 const allowedOrigins = [
@@ -107,4 +114,3 @@ app.use((err: unknown, req: express.Request, res: express.Response, _next: expre
 app.listen(port, () => {
   console.log(`[EAI Backend] Server is running on port ${port} in ${process.env.NODE_ENV || 'development'} mode.`);
 });
-

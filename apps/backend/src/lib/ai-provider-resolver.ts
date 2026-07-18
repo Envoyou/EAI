@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db';
-import { redisConnection } from '@/lib/queue';
+import { redisConnection } from '@/lib/redis';
 import { AiProvider } from '@/lib/ai/provider-runtime';
 
 const CACHE_TTL_SECONDS = 3600; // 1 hour

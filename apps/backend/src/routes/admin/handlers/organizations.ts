@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
 import { logAuditEvent } from '@/lib/audit';
-import { redisConnection } from '@/lib/queue';
+import { redisConnection } from '@/lib/redis';
 import {
   adjustOrganizationCredits,
   getBillingOrganizationDetail,

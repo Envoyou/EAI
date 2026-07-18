@@ -36,7 +36,7 @@ export async function scrapeUrlContent(url: string): Promise<string> {
     const id = setTimeout(() => controller.abort(), 6000);
 
     const jinaUrl = `https://r.jina.ai/${url}`;
-    const jinaRes = await fetch(jinaUrl, {
+    const jinaRes = await fetchPublicUrl(jinaUrl, {
       signal: controller.signal,
       headers: {
         Accept: 'text/plain',
@@ -120,39 +120,6 @@ export async function scrapeUrlContent(url: string): Promise<string> {
     console.error(`[SCRAPER] Fallback scrape also failed for ${url}:`, error);
     return '';
   }
-}
-
-interface RateLimitBucket {
-  count: number;
-  resetTime: number;
-}
-
-const rateLimitStore = new Map<string, RateLimitBucket>();
-
-export function rateLimiter(options: { windowMs: number; max: number; message: string }) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const xffHeader = req.headers['x-forwarded-for'];
-    const xff = Array.isArray(xffHeader) ? xffHeader[0] : xffHeader;
-    const key = req.auth?.userId || req.ip || xff || req.socket.remoteAddress || 'unknown';
-    const now = Date.now();
-    let bucket = rateLimitStore.get(key);
-
-    if (!bucket || now > bucket.resetTime) {
-      bucket = {
-        count: 1,
-        resetTime: now + options.windowMs,
-      };
-      rateLimitStore.set(key, bucket);
-      return next();
-    }
-
-    if (bucket.count >= options.max) {
-      return res.status(429).json({ error: options.message });
-    }
-
-    bucket.count++;
-    next();
-  };
 }
 
 export async function softAuth(req: Request, res: Response, next: NextFunction) {

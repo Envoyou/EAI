@@ -8,7 +8,6 @@ import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import {
   resolveInternalOrgId,
   scrapeUrlContent,
-  rateLimiter,
   softAuth,
   truncateAtParagraphBoundary,
   MODEL,
@@ -19,6 +18,7 @@ import {
   URL_OVERRIDE_NO_CONTENT,
   DOCUMENT_MODE_OVERRIDE,
 } from '../utils/helpers';
+import { redisRateLimiter } from '@/middleware/rate-limit';
 import { resolveGroundingUrl } from '../utils/grounding';
 import { ChatInputSchema, type GroundingAnnotation, type UniqueSource } from '../types';
 
@@ -108,7 +108,8 @@ router.get('/chat/status/:id', async (req: Request, res: Response) => {
 router.post(
   '/chat',
   softAuth,
-  rateLimiter({
+  redisRateLimiter({
+    namespace: 'strategist:chat',
     windowMs: 60000,
     max: 20,
     message: 'Too many requests. Please try again later.',

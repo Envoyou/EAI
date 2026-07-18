@@ -6,10 +6,10 @@ import { parseJsonResponse } from '@eai/shared';
 import { prisma } from '@/lib/db';
 import {
   resolveInternalOrgId,
-  rateLimiter,
   softAuth,
   MODEL,
 } from '../utils/helpers';
+import { redisRateLimiter } from '@/middleware/rate-limit';
 import { resolveGroundingUrl, sanitizeGroundingLeaks } from '../utils/grounding';
 import { GeneratePlanSchema, type GroundingAnnotation } from '../types';
 
@@ -19,7 +19,8 @@ const router = Router();
 router.post(
   '/generate-plan',
   softAuth,
-  rateLimiter({
+  redisRateLimiter({
+    namespace: 'strategist:plan',
     windowMs: 60000,
     max: 10,
     message: 'Too many requests. Please try again later.',
