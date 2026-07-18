@@ -1,16 +1,28 @@
 import { Router, Request, Response } from 'express';
-import { verifyToken } from '@clerk/backend';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { DraftFromNotesComposer } from '@/lib/ai/prompt-engine/composer/draft-from-notes-composer';
 import { gemini, getNativeGeminiConfig } from '@/lib/ai/provider-runtime';
 import { MODEL } from '../utils/helpers';
+import { rateLimiter, resolveInternalOrgId, softAuth } from '../utils/helpers';
+import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
+import { prisma } from '@/lib/db';
+import { PROMPT_VERSION } from '@/lib/prompts';
+import { GenerateDraftFromNotesSchema } from '../types';
 
 const router = Router();
 
 // POST /api/strategist/generate-draft-from-notes
-router.post('/generate-draft-from-notes', async (req: Request, res: Response) => {
+router.post(
+  '/generate-draft-from-notes',
+  softAuth,
+  rateLimiter({
+    windowMs: 60_000,
+    max: 5,
+    message: 'Too many draft requests. Please try again later.',
+  }),
+  async (req: Request, res: Response) => {
   let heartbeatInterval: NodeJS.Timeout | undefined;
   try {
     let userId: string | null = null;
@@ -18,25 +30,51 @@ router.post('/generate-draft-from-notes', async (req: Request, res: Response) =>
     let orgSlug: string | null = null;
     let orgRole: string | null = null;
 
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.split(' ')[1];
-        if (token) {
-          const payload = await verifyToken(token, {
-            secretKey: process.env.CLERK_SECRET_KEY,
-          });
-          userId = payload.sub;
-          orgId = (payload.org_id as string) || null;
-          orgSlug = (payload.org_slug as string) || null;
-          orgRole = (payload.org_role as string) || null;
-        }
-      } catch (authError) {
-        console.warn('[Generate Draft Auth] Token verification failed:', authError);
-      }
+    if (req.auth) {
+      userId = req.auth.userId;
+      orgId = req.auth.orgId;
+      orgSlug = req.auth.orgSlug;
+      orgRole = req.auth.orgRole;
     }
 
-    const { notes, metadata } = req.body;
+    const parsedInput = GenerateDraftFromNotesSchema.safeParse(req.body);
+    if (!parsedInput.success) {
+      return res.status(400).json({
+        error: 'Invalid draft request',
+        issues: parsedInput.error.issues,
+      });
+    }
+    const { notes, metadata } = parsedInput.data;
+
+    if (!userId) {
+      const cookies = Object.fromEntries(
+        (req.headers.cookie ?? '')
+          .split(';')
+          .map((cookie) => cookie.trim().split('='))
+          .filter(([key, value]) => Boolean(key && value))
+      );
+      const currentDemoCount = Number.parseInt(cookies.eai_demo_count ?? '0', 10) || 0;
+      if (currentDemoCount >= 2) {
+        return res.status(429).json({
+          error: 'Create a free account to continue. Get 10 free Editorial Credits.',
+        });
+      }
+      res.cookie('eai_demo_count', String(currentDemoCount + 1), {
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax',
+      });
+    }
+
+    let billingOrgId: string | null = null;
+    if (userId) {
+      billingOrgId = await resolveInternalOrgId(orgId, userId);
+      const remainingCredits = await checkCreditsRemaining(userId, billingOrgId);
+      if (remainingCredits < 1) {
+        return res.status(402).json({ error: 'Insufficient credits' });
+      }
+    }
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -44,12 +82,14 @@ router.post('/generate-draft-from-notes', async (req: Request, res: Response) =>
     res.setHeader('X-Accel-Buffering', 'no');
 
     let isDisconnected = false;
-    req.on('close', () => {
-      isDisconnected = true;
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        isDisconnected = true;
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval);
+        }
+        console.log('[generate-draft-from-notes] Client closed connection.');
       }
-      console.log('[generate-draft-from-notes] Client closed connection.');
     });
 
     heartbeatInterval = setInterval(() => {
@@ -155,6 +195,7 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
       },
     });
 
+    let generatedText = '';
     for await (const event of stream) {
       if (isDisconnected) {
         console.log(
@@ -167,6 +208,7 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
         event.delta?.type === 'text' &&
         event.delta.text
       ) {
+        generatedText += event.delta.text;
         res.write(
           `data: ${JSON.stringify({ type: 'text', chunk: event.delta.text })}\n\n`
         );
@@ -186,6 +228,31 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
       }
     }
 
+    if (isDisconnected) return;
+
+    if (userId && generatedText.trim()) {
+      const savedLog = await prisma.analysisLog.create({
+        data: {
+          userId,
+          organizationId: billingOrgId,
+          role: 'draft_generation',
+          content: generatedText,
+          metadata: { source: 'strategist_notes' },
+          promptVersion: PROMPT_VERSION,
+          modelName: MODEL,
+          status: 'success',
+        },
+      });
+      await deductCredits(
+        userId,
+        billingOrgId,
+        1,
+        'article_refine',
+        'Draft generation from strategist notes',
+        savedLog.id
+      );
+    }
+
     res.end();
   } catch (error) {
     console.error('Error generating draft from notes:', error);
@@ -202,6 +269,7 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
       clearInterval(heartbeatInterval);
     }
   }
-});
+  }
+);
 
 export default router;

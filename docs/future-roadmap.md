@@ -105,11 +105,12 @@ Fase ini mengembangkan AI Drafting Assistant menjadi workspace berbasis sumber d
     *   Saat di mode *Deep*, Copilot secara independen mencari informasi terbaru di web, memverifikasi klaim, dan mensintesis hasilnya untuk dikumpulkan ke dalam *Research Notes*.
 5.  **Pengembangan & Optimasi EAI Chat & Draft**:
     *   ~~**Persistensi Catatan Riset**~~ (Diimplementasikan pada v2.0.0): Mengalihkan penyimpanan catatan dari *session storage* lokal ke database permanen (PostgreSQL/Prisma) agar catatan pengguna tidak hilang dan dapat diakses lintas perangkat secara stabil.
-    *   ~~**Integrasi Ledger Pelacakan Kredit**~~ (Diimplementasikan pada v2.0.0 & v2.0.1): Menghubungkan log telemetry token Gemini yang dicatat saat ini ke database pemotongan kredit internal pengguna untuk penagihan koin otomatis.
+    *   ~~**Integrasi Ledger Pelacakan Kredit**~~ (Diimplementasikan pada v2.0.0, v2.0.1, dan diperluas pada v3.12.2): Menghubungkan pemakaian Analyze, Chat, Quick Draft, serta Draft From Notes ke ledger kredit internal. Debit menolak saldo tidak cukup dan dijalankan melalui transaksi serializable dengan retry konflik write agar request paralel tidak menghasilkan saldo negatif.
+    *   ~~**Hardening Boundary Strategist**~~ (Diimplementasikan pada v3.12.2): Mengaktifkan validasi Zod runtime untuk Chat, Generate Plan, Quick Draft, Draft From Notes, dan lampiran; menambahkan throttling serta batas demo pada generator berbiaya; memverifikasi ownership sesi sebelum write; dan menghentikan logging/billing lanjutan ketika client memutus stream.
     *   **Penyempurnaan Parser Rekomendasi/Saran**: Menstabilkan penanganan saran Copilot agar format parser `[SUGGESTIONS:]` lebih tangguh (*fault-tolerant*) terhadap variasi luaran model.
 6.  **Modularisasi AI Provider untuk Strategist — `generate-draft-from-notes`**:
 
-    Saat ini seluruh endpoint di `apps/backend/src/routes/strategist/index.ts` secara *hard-coded* menggunakan Gemini melalui konstanta `GEMINI_COPILOT_MODEL`. Ini berbeda dengan rute `/api/analyze` (yang dikelola oleh subfolder `src/routes/analyze/`) dan `quick-draft.ts` yang sudah mendukung tiga provider (Gemini, OpenRouter, Groq) melalui `resolveActiveAiConfig()`. Rencana ini membawa sebagian endpoint Strategist ke sistem provider yang sama.
+    Rute Strategist saat ini sudah didekomposisi ke subfolder `apps/backend/src/routes/strategist/`, tetapi endpoint berbasis Gemini Interactions—termasuk `generate-draft-from-notes`—masih menggunakan model Gemini yang ditetapkan server. `quick-draft.ts` mendukung Gemini, OpenRouter, dan Groq, namun pemilihannya dikunci oleh `ACTIVE_AI_PROVIDER`; body request dari client tidak dapat mengoverride provider. Rencana ini mengevaluasi endpoint Strategist mana yang layak dipindahkan ke abstraksi provider terpadu tanpa melemahkan grounding, structured output, atau kontrol biaya.
 
     **Decision framework untuk mengevaluasi modularisasi setiap endpoint:**
 

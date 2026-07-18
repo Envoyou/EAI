@@ -1,5 +1,9 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { checkCreditsRemaining, deductCredits } from '../chat-billing';
+import {
+  checkCreditsRemaining,
+  deductCredits,
+  InsufficientCreditsError,
+} from '../chat-billing';
 import { prisma } from '../db';
 import { CreditBucket } from '@prisma/client';
 
@@ -103,6 +107,19 @@ describe('chat-billing service', () => {
           creditsConsumed: 2,
         }),
       });
+    });
+
+    test('should reject instead of creating a negative balance', async () => {
+      vi.mocked(prisma.subscription.findFirst).mockResolvedValue(null);
+      vi.mocked(prisma.creditTransaction.groupBy).mockResolvedValue(
+        [] as unknown as GroupByResult
+      );
+
+      await expect(
+        deductCredits('user_123', null, 1, 'copilot_chat', 'Deduct test')
+      ).rejects.toBeInstanceOf(InsufficientCreditsError);
+      expect(prisma.creditTransaction.create).not.toHaveBeenCalled();
+      expect(prisma.creditUsage.create).not.toHaveBeenCalled();
     });
   });
 });

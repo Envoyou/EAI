@@ -10,3 +10,8 @@ export {
   extractOpenAiResponseText as extractGroqResponseText,
   extractOpenAiText as extractGroqText,
 } from '../openrouter/mapper';
+
+export type {
+  OpenAiCompatibleResponse,
+  OpenAiCompatibleStreamChunk,
+} from '../openrouter/mapper';

@@ -85,10 +85,13 @@ apps/backend/
 │   │   ├── admin-billing-core.ts  # Core billing primitives
 │   │   ├── ai-provider-resolver.ts  # AI provider selection logic (resolveModel, provider overrides)
 │   │   ├── ai-telemetry.ts   # AI usage telemetry (token, cost, stage duration)
-│   │   ├── chat-billing.ts   # Chat credit accounting
+│   │   ├── chat-billing.ts   # Credit accounting with insufficient-balance guards
 │   │   ├── cms-adapter.ts    # CMS adapter abstraction
 │   │   ├── credential-vault.ts  # Encrypted credential read/write
 │   │   ├── editorial-profile-server.ts  # Editorial profile server helpers
+│   │   ├── safe-url-fetch.ts # SSRF-safe HTTP(S) validation and redirect fetching
+│   │   ├── serializable-transaction.ts # Serializable Prisma transaction retry helper
+│   │   ├── __tests__/        # Backend service and security regression tests
 │   │   ├── services/         # Domain services
 │   │   │   └── analysis-log.service.ts # AnalysisLog + credit transactional ledger operations
 │   │   ├── email.ts          # Transactional email sender

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '@clerk/backend';
 import { prisma } from '@/lib/db';
+import { fetchPublicUrl, validatePublicHttpUrl } from '@/lib/safe-url-fetch';
 import { StrategistFastModeInstructionNode } from '@/lib/ai/prompt-engine/core/strategist';
 
 export async function resolveInternalOrgId(
@@ -23,6 +24,13 @@ export async function resolveInternalOrgId(
 }
 
 export async function scrapeUrlContent(url: string): Promise<string> {
+  try {
+    await validatePublicHttpUrl(url);
+  } catch (error) {
+    console.warn('[SCRAPER] Blocked unsafe URL:', error);
+    return '';
+  }
+
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 6000);
@@ -50,7 +58,7 @@ export async function scrapeUrlContent(url: string): Promise<string> {
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch(url, {
+    const res = await fetchPublicUrl(url, {
       signal: controller.signal,
       headers: {
         'User-Agent':

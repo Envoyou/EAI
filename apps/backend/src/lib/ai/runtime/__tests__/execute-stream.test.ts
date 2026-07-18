@@ -88,7 +88,7 @@ describe('executeStream runtime orchestration', () => {
         status: 'success',
         usage: expect.objectContaining({
           promptTokenCount: 10,
-          candidatesTokenCount: 20,
+          candidatesTokenCount: 18,
           cachedContentTokenCount: 5,
           thoughtsTokenCount: 2,
           totalTokenCount: 30,

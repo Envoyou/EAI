@@ -1,5 +1,13 @@
 import { prisma } from './db';
 import { CreditBucket, CreditTransactionType } from '@prisma/client';
+import { runSerializableTransaction } from './serializable-transaction';
+
+export class InsufficientCreditsError extends Error {
+  constructor() {
+    super('Insufficient credits');
+    this.name = 'InsufficientCreditsError';
+  }
+}
 
 /**
  * Checks remaining credits for a user or organization.
@@ -50,7 +58,7 @@ export async function deductCredits(
 ): Promise<void> {
   if (amount <= 0) return;
 
-  await prisma.$transaction(async (tx) => {
+  await runSerializableTransaction(async (tx) => {
     // 1. Check active subscription
     const activeSub = await tx.subscription.findFirst({
       where: {
@@ -86,8 +94,7 @@ export async function deductCredits(
     } else if (addonBalance >= amount) {
       chosenBucket = CreditBucket.addon;
     } else {
-      // Fallback if balance is tight
-      chosenBucket = activeSub ? CreditBucket.subscription : CreditBucket.addon;
+      throw new InsufficientCreditsError();
     }
 
     // 4. Create the negative transaction

@@ -13,9 +13,6 @@ import {
   type OpenAiCompatibleResponse,
 } from './mapper';
 
-// Re-export the compatible types from the shared mapper
-import type {} from '../openrouter/mapper';
-
 let _client: Groq | null = null;
 
 function getClient(): Groq {

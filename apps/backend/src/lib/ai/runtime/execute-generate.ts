@@ -85,7 +85,10 @@ function recordTelemetry(input: TelemetryInput): void {
           usage: usage
             ? {
                 promptTokenCount: usage.promptTokens,
-                candidatesTokenCount: usage.completionTokens,
+                candidatesTokenCount: Math.max(
+                  (usage.completionTokens ?? 0) - (usage.reasoningTokens ?? 0),
+                  0
+                ),
                 cachedContentTokenCount: usage.cachedTokens,
                 thoughtsTokenCount: usage.reasoningTokens,
                 totalTokenCount: usage.totalTokens,

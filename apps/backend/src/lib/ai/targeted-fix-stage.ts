@@ -6,6 +6,7 @@ import { getProvider } from './providers/registry';
 import { resolveModel } from './model-router';
 import { executeGenerate } from './runtime/execute-generate';
 import { composeWorkspaceContext } from './workspace-context';
+import { AiTelemetryCollector } from '@/lib/ai-telemetry';
 
 export const runTargetedFixStage = async ({
   provider,
@@ -86,14 +87,7 @@ export const runTargetedFixStage = async ({
       temperature: 0.2,
       thinkingLevel: provider === 'gemini' ? 'medium' : undefined,
     },
-    // targeted-fix has no telemetry collector in its signature — pass a no-op
-    telemetry: {
-      recordGemini: () => undefined,
-      recordGroq: () => undefined,
-      recordOpenRouter: () => undefined,
-      markFallback: () => undefined,
-      snapshot: () => ({ stages: [] } as never),
-    } as import('@/lib/ai-telemetry').AiTelemetryCollector,
+    telemetry: new AiTelemetryCollector(),
     stage: 'targeted_fix',
   });
 

@@ -97,7 +97,12 @@ export function UserTable({
             {/* Filter by Plan */}
             <Select
               value={planFilter || 'all'}
-              onValueChange={(val) => setPlanFilter(val === 'all' || !val ? '' : val)}
+              onValueChange={(val) => {
+                if (val !== null) {
+                  setPlanFilter(val === 'all' ? '' : val);
+                  setPage(1);
+                }
+              }}
             >
               <SelectTrigger className="h-9 min-w-[120px] border border-[var(--border)] bg-[var(--surface-2)] text-[var(--foreground)] text-xs font-semibold rounded-lg px-3 flex items-center gap-1.5 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 cursor-pointer">
                 <SelectValue />
@@ -114,7 +119,12 @@ export function UserTable({
             {/* Filter by Status */}
             <Select
               value={statusFilter || 'all'}
-              onValueChange={(val) => setStatusFilter(val === 'all' || !val ? '' : val)}
+              onValueChange={(val) => {
+                if (val !== null) {
+                  setStatusFilter(val === 'all' ? '' : val);
+                  setPage(1);
+                }
+              }}
             >
               <SelectTrigger className="h-9 min-w-[130px] border border-[var(--border)] bg-[var(--surface-2)] text-[var(--foreground)] text-xs font-semibold rounded-lg px-3 flex items-center gap-1.5 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 cursor-pointer">
                 <SelectValue />

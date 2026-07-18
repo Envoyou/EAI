@@ -7,8 +7,8 @@
 
 import { Router, Request } from 'express';
 import { PROMPT_VERSION } from '@/lib/prompts';
-import type { Role, ArticleMetadata, AnalyzeMode } from '@eai/shared';
-import type { FeedbackItem } from '@eai/shared';
+import { FeedbackItemSchema } from '@eai/shared';
+import type { AnalyzeMode } from '@eai/shared';
 import { AiTelemetryCollector } from '@/lib/ai-telemetry';
 import { buildEditorialAuditContext, ENVOYOU_EDITORIAL_PROFILE, getAllFeatureFlags } from '@eai/shared/server';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
@@ -16,6 +16,7 @@ import { getWorkspaceState } from '@/lib/user-workspace';
 import { resolveActiveAiConfig } from '@/lib/ai-provider-resolver';
 import { ReviewPromptComposer } from '@/lib/ai/prompt-engine/composer/review-composer';
 import { verifyToken } from '@clerk/backend';
+import { z } from 'zod';
 
 import type { AnalyzeState } from './types';
 import { parseCookies } from './utils/text';
@@ -25,6 +26,43 @@ import { handleRefine } from './handlers/refine';
 import { handleAnalyze } from './handlers/analyze';
 
 const router = Router();
+
+const AnalyzeRequestSchema = z
+  .object({
+    text: z.string().max(100_000).optional(),
+    role: z.enum(['polish', 'author', 'editor', 'seo', 'fact-checker']).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+    mode: z.enum(['analyze', 'refine', 'fix_targeted']).optional(),
+    userInstruction: z.string().max(5_000).optional(),
+    previousFeedback: z.array(FeedbackItemSchema).max(20).optional(),
+    analysisSpeed: z.enum(['fast', 'balanced', 'deep']).optional(),
+    targetText: z.string().max(25_000).optional(),
+    feedbackMessage: z.string().max(5_000).optional(),
+    instruction: z.string().max(5_000).optional(),
+  })
+  .superRefine((value, ctx) => {
+    const mode = value.mode ?? (value.targetText ? 'fix_targeted' : 'analyze');
+    if (!value.text?.trim()) {
+      ctx.addIssue({ code: 'custom', path: ['text'], message: 'Text is required' });
+    }
+    if (mode === 'analyze' && !value.role) {
+      ctx.addIssue({ code: 'custom', path: ['role'], message: 'Role is required' });
+    }
+    if (mode === 'refine' && !value.userInstruction?.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['userInstruction'],
+        message: 'Refinement instruction is required',
+      });
+    }
+    if (mode === 'fix_targeted' && !value.targetText?.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['targetText'],
+        message: 'Target text is required',
+      });
+    }
+  });
 
 // POST /api/analyze
 router.post('/', async (req: Request, res) => {
@@ -36,6 +74,15 @@ router.post('/', async (req: Request, res) => {
       error: featureFlags.maintenance_mode
         ? 'Editorial processing is temporarily paused for maintenance.'
         : 'AI processing is temporarily disabled.',
+    });
+    return;
+  }
+
+  const parsedRequest = AnalyzeRequestSchema.safeParse(req.body);
+  if (!parsedRequest.success) {
+    res.status(400).json({
+      error: 'Invalid analyze request',
+      issues: parsedRequest.error.issues,
     });
     return;
   }
@@ -159,7 +206,9 @@ router.post('/', async (req: Request, res) => {
   res.flushHeaders();
 
   const sendEvent = (type: string, data: unknown) => {
-    res.write(JSON.stringify({ type, data }) + '\n');
+    if (!state.isDisconnected && !res.writableEnded) {
+      res.write(JSON.stringify({ type, data }) + '\n');
+    }
   };
 
   // Shared mutable state — passed to handlers by reference so they can update
@@ -174,9 +223,11 @@ router.post('/', async (req: Request, res) => {
     responseMode: 'standard',
   };
 
-  req.on('close', () => {
-    state.isDisconnected = true;
-    console.log('[analyze] Client closed connection.');
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      state.isDisconnected = true;
+      console.log('[analyze] Client closed connection.');
+    }
   });
 
   // Start keep-alive heartbeat interval to prevent stream idle timeout
@@ -210,24 +261,11 @@ router.post('/', async (req: Request, res) => {
       mode,
       userInstruction,
       previousFeedback,
-      provider: bodyProvider,
       analysisSpeed: requestedAnalysisSpeed,
       targetText,
       feedbackMessage,
       instruction,
-    } = req.body as {
-      text?: string;
-      role?: Role;
-      metadata?: ArticleMetadata;
-      mode?: AnalyzeMode;
-      userInstruction?: string;
-      previousFeedback?: FeedbackItem[];
-      provider?: 'gemini' | 'groq' | 'openrouter';
-      analysisSpeed?: 'fast' | 'balanced' | 'deep';
-      targetText?: string;
-      feedbackMessage?: string;
-      instruction?: string;
-    };
+    } = parsedRequest.data;
 
     const analysisSpeed = userId ? (requestedAnalysisSpeed ?? 'deep') : 'fast';
     const looksLikeTargetedFix = Boolean(
@@ -248,8 +286,7 @@ router.post('/', async (req: Request, res) => {
         | 'openrouter';
     }
 
-    const effectiveProvider: 'gemini' | 'groq' | 'openrouter' =
-      bodyProvider || resolvedAiProvider;
+    const effectiveProvider: 'gemini' | 'groq' | 'openrouter' = resolvedAiProvider;
 
     // Populate shared logging state
     state.textToLog = text || '';

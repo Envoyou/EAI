@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '@/middleware/auth';
+import { fetchPublicUrl, validatePublicHttpUrl } from '@/lib/safe-url-fetch';
 
 const router = Router();
 
@@ -57,15 +58,17 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     try {
-      new URL(url);
-    } catch {
-      return res.status(400).json({ error: 'Invalid URL format' });
+      await validatePublicHttpUrl(url);
+    } catch (error) {
+      return res.status(400).json({
+        error: error instanceof Error ? error.message : 'Invalid URL format',
+      });
     }
 
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 8000); // 8-second timeout
 
-    const response = await fetch(url, {
+    const response = await fetchPublicUrl(url, {
       signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'

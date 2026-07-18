@@ -11,7 +11,7 @@ import {
   MODEL,
 } from '../utils/helpers';
 import { resolveGroundingUrl, sanitizeGroundingLeaks } from '../utils/grounding';
-import type { GroundingAnnotation } from '../types';
+import { GeneratePlanSchema, type GroundingAnnotation } from '../types';
 
 const router = Router();
 
@@ -26,7 +26,24 @@ router.post(
   }),
   async (req: Request, res: Response) => {
     try {
-      const { recommendation, history, sessionId } = req.body;
+      const parsedInput = GeneratePlanSchema.safeParse(req.body);
+      if (!parsedInput.success) {
+        return res.status(400).json({
+          error: 'Invalid plan request',
+          issues: parsedInput.error.issues,
+        });
+      }
+      const { recommendation, history, sessionId } = parsedInput.data;
+
+      if (req.auth?.userId && sessionId && sessionId !== 'new') {
+        const ownedSession = await prisma.chatSession.findFirst({
+          where: { id: sessionId, userId: req.auth.userId },
+          select: { id: true },
+        });
+        if (!ownedSession) {
+          return res.status(404).json({ error: 'Chat session not found' });
+        }
+      }
 
       const chatHistoryUrls: string[] = [];
       let chatHistory = '';
@@ -455,7 +472,7 @@ router.post(
         }
       }
 
-      let dbSessionId = sessionId;
+      let dbSessionId = req.auth?.userId ? sessionId : undefined;
       if (req.auth && req.auth.userId) {
         if (!dbSessionId || dbSessionId === 'new') {
           const firstMsg =

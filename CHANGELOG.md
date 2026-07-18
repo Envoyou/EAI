@@ -6,6 +6,32 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Security & Ledger Infrastructure**:
+  - Added `safe-url-fetch.ts` to validate HTTP(S) targets, reject credentials and private/local IPv4/IPv6 addresses, resolve hostnames, and revalidate every redirect before outbound fetches.
+  - Added `serializable-transaction.ts` to run credit-ledger writes at serializable isolation with bounded write-conflict retries.
+  - Added SSRF regression coverage for loopback, private network, cloud metadata, IPv6, credential-bearing, and unsupported-protocol URLs.
+
+### Changed
+- **AI Request & Usage Boundaries**:
+  - Activated runtime Zod validation for Analyze, Strategist Chat, Generate Plan, Quick Draft, Draft From Notes, and attachment payloads before opening streams or consuming AI resources.
+  - Removed client-controlled AI provider selection from Analyze and Quick Draft; provider resolution now follows server/workspace configuration.
+  - Added request throttling, demo usage limits, authenticated credit checks, analysis logging, and credit deduction to Strategist draft-generation flows.
+  - Made credit deduction serializable and rejected insufficient balances instead of writing fallback transactions that could produce negative ledger balances.
+
+### Fixed
+- **Tenant & Network Security**:
+  - Enforced user ownership before updating Strategist sessions or inserting chat messages, including blocking guest-supplied session IDs.
+  - Restricted Prompt Inspector and prompt diff endpoints to configured platform owners.
+  - Protected Strategist and authenticated scrape flows against private-network SSRF and unsafe redirects.
+- **Streaming & Frontend State Integrity**:
+  - Stopped Analyze, Refine, Quick Draft, and Draft From Notes pipelines from continuing into Quality Gate, SEO, logging, or billing after client disconnects.
+  - Prevented Targeted Fix from resolving feedback when its target text was not found, restored the complete analysis snapshot after cancelled/failed refinements, and removed stale chat placeholders on cancellation.
+  - Reset User Directory pagination when filters change, cleared recoverable errors on retry, and ignored stale out-of-order fetch responses.
+- **AI Telemetry & Provider Types**:
+  - Corrected Gemini reasoning-token accounting to avoid double-counting and added pricing for the default `openai/gpt-4o-mini` OpenRouter model.
+  - Restored Groq-compatible mapper type exports and replaced the unsafe targeted-fix telemetry cast with a real collector.
+
 ## [3.12.2] - 2026-07-18
 
 ### Fixed

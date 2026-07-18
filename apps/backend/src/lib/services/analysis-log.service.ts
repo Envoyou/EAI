@@ -6,9 +6,11 @@
  * Extracted from analyze.ts L810–921 (zero logic change).
  */
 
-import { prisma, Prisma } from '@/lib/db';
+import type { Prisma } from '@/lib/db';
 import type { Role } from '@eai/shared';
 import type { AiTelemetrySnapshot } from '@/lib/ai-telemetry';
+import { InsufficientCreditsError } from '@/lib/chat-billing';
+import { runSerializableTransaction } from '@/lib/serializable-transaction';
 
 export type CreateAnalysisLogInput = {
   userId: string;
@@ -38,7 +40,7 @@ export type CreateAnalysisLogInput = {
  * credit, and records a CreditUsage entry — all within a single transaction.
  */
 export async function createAnalysisLogAndDebitCredit(data: CreateAnalysisLogInput) {
-  return await prisma.$transaction(async (tx) => {
+  return await runSerializableTransaction(async (tx) => {
     const savedLog = await tx.analysisLog.create({
       data: {
         userId: data.userId,
@@ -88,14 +90,14 @@ export async function createAnalysisLogAndDebitCredit(data: CreateAnalysisLogInp
     const addonBalance = transactions.find((t) => t.bucket === 'addon')?._sum.amount ?? 0;
 
     let chosenBucket: 'trial' | 'subscription' | 'addon';
-    if (trialBalance > 0) {
+    if (trialBalance >= 1) {
       chosenBucket = 'trial';
-    } else if (activeSub && subBalance > 0) {
+    } else if (activeSub && subBalance >= 1) {
       chosenBucket = 'subscription';
-    } else if (addonBalance > 0) {
+    } else if (addonBalance >= 1) {
       chosenBucket = 'addon';
     } else {
-      chosenBucket = activeSub ? 'subscription' : 'addon';
+      throw new InsufficientCreditsError();
     }
 
     await tx.creditTransaction.create({

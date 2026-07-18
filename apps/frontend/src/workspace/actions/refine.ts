@@ -242,13 +242,15 @@ export async function executeRefine(
       localStorage.setItem('eai-demo-refine-count', nextCount.toString());
     }
   } catch (error) {
+    draftChunkBufferRef.current = '';
     if (controller.signal.aborted) {
       console.log('Refinement aborted.');
+      setAnalysis(() => analysis);
       return;
     }
     const msg = error instanceof Error ? error.message : 'Refinement failed';
     toast.error('Refine Failed', { description: msg });
-    setAnalysis(prev => ({ ...prev, polishedDraft: currentDraft }));
+    setAnalysis(() => analysis);
   } finally {
     if (rafIdRef.current !== null) {
       cancelAnimationFrame(rafIdRef.current);

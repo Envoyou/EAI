@@ -752,6 +752,12 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       }
 
       if (controller.signal.aborted) {
+        setMessages(prev => prev.flatMap(m => {
+          if (m.id !== assistantMsgId) return [m];
+          return m.content.trim()
+            ? [{ ...m, payload: { ...m.payload, status: undefined } }]
+            : [];
+        }));
         return;
       }
 
@@ -776,6 +782,12 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     } catch (error) {
       if (controller.signal.aborted) {
         console.log('Chat stream aborted.');
+        setMessages(prev => prev.flatMap(m => {
+          if (m.id !== assistantMsgId) return [m];
+          return m.content.trim()
+            ? [{ ...m, payload: { ...m.payload, status: undefined } }]
+            : [];
+        }));
         return;
       }
       toast.error(error instanceof Error ? error.message : 'Failed to rewrite message');
@@ -798,7 +810,6 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       topic: quickDraftTopic,
       mode: isOutlineMode ? 'outline' : 'draft',
       draftMode: isOutlineMode ? 'topic' : quickDraftMode,
-      provider: 'gemini',
     };
 
     if (!isOutlineMode && quickDraftOutline.trim()) body.outline = quickDraftOutline;
@@ -1105,6 +1116,12 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       }
 
       if (controller.signal.aborted) {
+        setMessages(prev => prev.flatMap(m => {
+          if (m.id !== assistantMsgId) return [m];
+          return m.content.trim()
+            ? [{ ...m, payload: { ...m.payload, status: undefined } }]
+            : [];
+        }));
         return;
       }
 
@@ -1129,6 +1146,12 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     } catch (error) {
       if (controller.signal.aborted) {
         console.log('Chat stream aborted.');
+        setMessages(prev => prev.flatMap(m => {
+          if (m.id !== assistantMsgId) return [m];
+          return m.content.trim()
+            ? [{ ...m, payload: { ...m.payload, status: undefined } }]
+            : [];
+        }));
         return;
       }
       toast.error(error instanceof Error ? error.message : 'Failed to send message');

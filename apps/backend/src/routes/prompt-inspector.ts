@@ -1,7 +1,11 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
-import { ENVOYOU_EDITORIAL_PROFILE, normalizeProfileConfig } from '@eai/shared/server';
+import {
+  ENVOYOU_EDITORIAL_PROFILE,
+  isOwnerUser,
+  normalizeProfileConfig,
+} from '@eai/shared/server';
 import type { EditorialProfileConfig } from '@eai/shared/server';
 import { SeoPromptComposer } from '@/lib/ai/prompt-engine/composer/seo-composer';
 import { ReviewPromptComposer } from '@/lib/ai/prompt-engine/composer/review-composer';
@@ -17,6 +21,14 @@ import { resolveModel, resolveOutputLimit } from '@/lib/ai/model-router';
 import type { Role } from '@eai/shared';
 
 const router = Router();
+
+function requireOwner(req: Request, res: Response, next: NextFunction) {
+  if (!isOwnerUser(req.auth?.userId)) {
+    res.status(403).json({ error: 'Forbidden' });
+    return;
+  }
+  next();
+}
 
 interface ComposerOptions {
   isChunkMode?: boolean;
@@ -245,7 +257,7 @@ export async function handleDiff(req: Request, res: Response): Promise<Response>
   }
 }
 
-router.post('/', requireAuth, handleInspect);
-router.post('/diff', requireAuth, handleDiff);
+router.post('/', requireAuth, requireOwner, handleInspect);
+router.post('/diff', requireAuth, requireOwner, handleDiff);
 
 export default router;

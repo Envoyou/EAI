@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type {
   DirectoryUser,
@@ -28,6 +28,7 @@ export const getInitials = (name: string | null, email: string) => {
 };
 
 export function useUserDirectory() {
+  const fetchSequenceRef = useRef(0);
   const [users, setUsers] = useState<DirectoryUser[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta>({
     totalCount: 0,
@@ -72,8 +73,10 @@ export function useUserDirectory() {
 
   // Fetch Users
   const fetchUsers = () => {
+    const fetchSequence = ++fetchSequenceRef.current;
     Promise.resolve().then(() => {
       setLoading(true);
+      setError(null);
     });
     const query = new URLSearchParams({
       page: page.toString(),
@@ -91,6 +94,7 @@ export function useUserDirectory() {
         return res.json();
       })
       .then((data) => {
+        if (fetchSequence !== fetchSequenceRef.current) return;
         setUsers(data.users || []);
         if (data.pagination) {
           setPagination(data.pagination);
@@ -98,6 +102,7 @@ export function useUserDirectory() {
         setLoading(false);
       })
       .catch((err) => {
+        if (fetchSequence !== fetchSequenceRef.current) return;
         setError(err.message);
         setLoading(false);
         toast.error('Failed to load user directory');

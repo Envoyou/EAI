@@ -6,6 +6,32 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Infrastruktur Keamanan & Ledger**:
+  - Menambahkan `safe-url-fetch.ts` untuk memvalidasi target HTTP(S), menolak URL berkredensial serta alamat IPv4/IPv6 privat/lokal, meresolusi hostname, dan memvalidasi ulang setiap redirect sebelum outbound fetch.
+  - Menambahkan `serializable-transaction.ts` untuk menjalankan write ledger kredit dengan isolasi serializable dan retry konflik write yang terbatas.
+  - Menambahkan regression test SSRF untuk loopback, jaringan privat, cloud metadata, IPv6, URL berkredensial, dan protokol yang tidak didukung.
+
+### Changed
+- **Boundary Request AI & Pemakaian Kredit**:
+  - Mengaktifkan validasi Zod runtime untuk Analyze, Strategist Chat, Generate Plan, Quick Draft, Draft From Notes, dan payload lampiran sebelum stream dibuka atau resource AI digunakan.
+  - Menghapus pemilihan provider AI oleh client pada Analyze dan Quick Draft; provider kini mengikuti konfigurasi server/workspace.
+  - Menambahkan throttling request, batas pemakaian demo, pemeriksaan kredit user terautentikasi, analysis logging, dan pemotongan kredit pada alur pembuatan draft Strategist.
+  - Membuat pemotongan kredit bersifat serializable dan menolak saldo tidak cukup alih-alih menulis transaksi fallback yang dapat menghasilkan saldo ledger negatif.
+
+### Fixed
+- **Keamanan Tenant & Jaringan**:
+  - Mewajibkan ownership user sebelum memperbarui sesi Strategist atau menambahkan pesan chat, termasuk memblokir session ID yang dipasok guest.
+  - Membatasi endpoint Prompt Inspector dan prompt diff hanya untuk owner platform yang dikonfigurasi.
+  - Melindungi alur Strategist dan authenticated scrape dari SSRF jaringan privat serta redirect yang tidak aman.
+- **Integritas Streaming & State Frontend**:
+  - Menghentikan pipeline Analyze, Refine, Quick Draft, dan Draft From Notes agar tidak melanjutkan Quality Gate, SEO, logging, atau billing setelah client disconnect.
+  - Mencegah Targeted Fix menyelesaikan feedback ketika target text tidak ditemukan, memulihkan seluruh snapshot analisis setelah refine dibatalkan/gagal, dan menghapus placeholder chat usang saat cancellation.
+  - Mereset pagination User Directory ketika filter berubah, membersihkan error yang dapat dipulihkan saat retry, dan mengabaikan respons fetch lama yang datang tidak berurutan.
+- **Telemetri AI & Tipe Provider**:
+  - Memperbaiki perhitungan reasoning token Gemini agar tidak terhitung ganda dan menambahkan harga model default OpenRouter `openai/gpt-4o-mini`.
+  - Memulihkan export tipe mapper kompatibel-Groq dan mengganti cast telemetry targeted-fix yang tidak aman dengan collector sebenarnya.
+
 ## [3.12.2] - 2026-07-18
 
 ### Fixed

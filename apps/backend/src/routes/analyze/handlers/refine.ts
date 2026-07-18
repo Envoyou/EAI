@@ -99,6 +99,7 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
     refinedText += chunk;
     sendEvent('draft_chunk', chunk);
   }
+  if (state.isDisconnected) return;
 
   // Import ensureTitleAndOpening and removeDisallowedRefineTargets inline/locally to match existing behavior
   const { ensureTitleAndOpening } = await import('../utils/text');
@@ -124,6 +125,7 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
     sanitizeSummary: sanitizeFactualSummary,
     researchNotes: ((metadata as Record<string, unknown>)?.researchNotes as ResearchNote[] | undefined) || [],
   });
+  if (state.isDisconnected) return;
   const refineQualityGate = refineQualityGateResponse.result;
   state.usedModels.push(`${refineQualityGateResponse.modelName}(quality-gate)`);
   sendEvent('feedback_reset', null);
@@ -154,6 +156,7 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
       ).compose('xml'),
       telemetry,
     })) as Record<string, unknown>;
+    if (state.isDisconnected) return;
     sendEvent('seo_metadata', refineSeo);
   }
 

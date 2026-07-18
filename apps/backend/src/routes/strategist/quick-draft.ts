@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { ThinkingLevel } from '@google/genai';
 import { PROMPT_VERSION } from '@/lib/prompts';
 import { StrategistPromptComposer } from '@/lib/ai/prompt-engine/composer/strategist-composer';
-import { ArticleMetadata } from '@eai/shared';
 import { prisma } from '@/lib/db';
 import { verifyToken } from '@clerk/backend';
 import {
@@ -19,6 +18,9 @@ import { buildEditorialAuditContext, ENVOYOU_EDITORIAL_PROFILE } from '@eai/shar
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { getAllFeatureFlags } from '@eai/shared/server';
+import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
+import { rateLimiter } from './utils/helpers';
+import { QuickDraftSchema } from './types';
 
 const router = Router();
 
@@ -34,13 +36,28 @@ const parseCookies = (cookieHeader: string | undefined): Record<string, string> 
 };
 
 // POST /api/strategist/quick-draft
-router.post('/', async (req, res) => {
+router.post(
+  '/',
+  rateLimiter({
+    windowMs: 60_000,
+    max: 6,
+    message: 'Too many draft requests. Please try again later.',
+  }),
+  async (req, res) => {
   const featureFlags = await getAllFeatureFlags();
   if (featureFlags.maintenance_mode || !featureFlags.ai_processing_enabled) {
     return res.status(503).json({
       error: featureFlags.maintenance_mode
         ? 'Editorial processing is temporarily paused for maintenance.'
         : 'AI processing is temporarily disabled.',
+    });
+  }
+
+  const parsedInput = QuickDraftSchema.safeParse(req.body);
+  if (!parsedInput.success) {
+    return res.status(400).json({
+      error: 'Invalid quick draft request',
+      issues: parsedInput.error.issues,
     });
   }
 
@@ -120,6 +137,14 @@ router.post('/', async (req, res) => {
     }
     workspace = fetchedWorkspace;
 
+    const remainingCredits = await checkCreditsRemaining(
+      userId,
+      fetchedWorkspace.organizationId
+    );
+    if (remainingCredits < 1) {
+      return res.status(402).json({ error: 'Insufficient credits' });
+    }
+
     try {
       editorialProfile = await resolveEditorialProfileForUser(userId, workspace.organizationId as string | null);
     } catch (profileError) {
@@ -147,9 +172,11 @@ router.post('/', async (req, res) => {
   };
 
   let isDisconnected = false;
-  req.on('close', () => {
-    isDisconnected = true;
-    console.log('[quick-draft] Client closed connection.');
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      isDisconnected = true;
+      console.log('[quick-draft] Client closed connection.');
+    }
   });
 
   const heartbeatInterval = setInterval(() => {
@@ -164,18 +191,15 @@ router.post('/', async (req, res) => {
       outline,
       referenceText,
       metadata,
-      provider = 'gemini',
       draftMode = 'topic',
       mode = 'draft',
-    } = req.body as {
-      topic: string;
-      outline?: string;
-      referenceText?: string;
-      metadata?: ArticleMetadata;
-      provider?: 'gemini' | 'groq' | 'openrouter';
-      draftMode?: 'topic' | 'outline' | 'reference' | 'press_release';
-      mode?: 'draft' | 'outline';
-    };
+    } = parsedInput.data;
+
+    const configuredProvider = process.env.ACTIVE_AI_PROVIDER;
+    const provider: 'gemini' | 'groq' | 'openrouter' =
+      configuredProvider === 'groq' || configuredProvider === 'openrouter'
+        ? configuredProvider
+        : 'gemini';
 
     if (!topic || !topic.trim()) {
       sendEvent('error', 'Topic is required');
@@ -234,6 +258,7 @@ router.post('/', async (req, res) => {
 
       const chunks = mockContent.split(' ');
       for (const chunk of chunks) {
+        if (isDisconnected) return;
         sendEvent('draft_chunk', chunk + ' ');
         await new Promise((resolve) => setTimeout(resolve, 30));
       }
@@ -263,6 +288,14 @@ router.post('/', async (req, res) => {
             }
           });
           savedLogId = savedLog.id;
+          await deductCredits(
+            userId,
+            workspaceOrganizationId,
+            1,
+            'article_refine',
+            `${mode === 'outline' ? 'Outline' : 'Draft'} generation`,
+            savedLog.id
+          );
         } catch (dbError) {
           console.error('Failed to log mock draft/outline to database:', dbError);
         }
@@ -338,6 +371,8 @@ router.post('/', async (req, res) => {
       }
     }
 
+    if (isDisconnected) return;
+
     let savedLogId: string | undefined;
     if (userId) {
       try {
@@ -363,6 +398,14 @@ router.post('/', async (req, res) => {
           }
         });
         savedLogId = savedLog.id;
+        await deductCredits(
+          userId,
+          workspaceOrganizationId,
+          1,
+          'article_refine',
+          `${mode === 'outline' ? 'Outline' : 'Draft'} generation`,
+          savedLog.id
+        );
       } catch (dbError) {
         console.error('Failed to log live draft/outline to database:', dbError);
       }
@@ -377,6 +420,7 @@ router.post('/', async (req, res) => {
   } finally {
     clearInterval(heartbeatInterval);
   }
-});
+  }
+);
 
 export default router;

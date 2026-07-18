@@ -119,7 +119,8 @@ export async function executeTargetedFix(
     if (result.success) {
       nextDraft = result.nextText;
     } else {
-      toast.info('Target text was already modified or removed. Marking as resolved.');
+      toast.info('Target text was already modified or removed. Refresh the analysis before retrying.');
+      return;
     }
 
     const nextFeedback = [...(analysis.feedback || [])];
@@ -141,6 +142,7 @@ export async function executeTargetedFix(
       polishedDraft: nextDraft,
       feedback: nextFeedback,
       readiness: nextReadiness,
+      verdict: nextReadiness,
       flags: nextFlags,
     }));
 
@@ -149,6 +151,9 @@ export async function executeTargetedFix(
     const msg = error instanceof Error ? error.message : 'Targeted fix failed';
     toast.error('Fix Failed', { description: msg });
   } finally {
+    if (analyzeAbortControllerRef.current === controller) {
+      analyzeAbortControllerRef.current = null;
+    }
     setIsTargetedFixing(null);
   }
 }

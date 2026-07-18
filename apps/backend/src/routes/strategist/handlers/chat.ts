@@ -20,7 +20,7 @@ import {
   DOCUMENT_MODE_OVERRIDE,
 } from '../utils/helpers';
 import { resolveGroundingUrl } from '../utils/grounding';
-import type { GroundingAnnotation, UniqueSource } from '../types';
+import { ChatInputSchema, type GroundingAnnotation, type UniqueSource } from '../types';
 
 const router = Router();
 
@@ -116,6 +116,13 @@ router.post(
   async (req: Request, res: Response) => {
     let heartbeatInterval: NodeJS.Timeout | undefined;
     try {
+      const parsedInput = ChatInputSchema.safeParse(req.body);
+      if (!parsedInput.success) {
+        return res.status(400).json({
+          error: 'Invalid chat request',
+          issues: parsedInput.error.issues,
+        });
+      }
       const {
         messages,
         mode,
@@ -124,8 +131,18 @@ router.post(
         enableSearch,
         activeHistoryId,
         sessionId,
-      } = req.body;
+      } = parsedInput.data;
       const chatInput = messages[messages.length - 1]?.content || '';
+
+      if (req.auth?.userId && sessionId && sessionId !== 'new') {
+        const ownedSession = await prisma.chatSession.findFirst({
+          where: { id: sessionId, userId: req.auth.userId },
+          select: { id: true },
+        });
+        if (!ownedSession) {
+          return res.status(404).json({ error: 'Chat session not found' });
+        }
+      }
 
       const GREETING_WORDS = new Set([
         'halo',
@@ -201,7 +218,7 @@ router.post(
         }
       }
 
-      let dbSessionId = sessionId;
+      let dbSessionId = req.auth?.userId ? sessionId : undefined;
       if (req.auth && req.auth.userId) {
         if (!dbSessionId || dbSessionId === 'new') {
           const firstMsg = chatInput.slice(0, 40).trim() || 'Percakapan Baru';

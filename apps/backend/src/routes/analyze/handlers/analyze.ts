@@ -88,6 +88,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
     sanitizeFeedback: sanitizeSuppressiveFeedbackItem,
     sanitizeSummary: sanitizeFactualSummary,
   });
+  if (state.isDisconnected) return;
   state.responseMode = reviewResult.responseMode;
   const validatedData: ReviewOutput = reviewResult.data;
 
@@ -207,6 +208,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
         polishedText += chunkText2;
         sendEvent('draft_chunk', chunkText2);
       }
+      if (state.isDisconnected) return;
     }
 
     polishedText = ensureTitleAndOpening(polishedText, sourceTextToPolish);
@@ -230,6 +232,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
       researchNotes:
         ((metadata as Record<string, unknown>)?.researchNotes as ResearchNote[] | undefined) || [],
     });
+    if (state.isDisconnected) return;
     finalQualityGate = qualityGateResponse.result;
     state.usedModels.push(`${qualityGateResponse.modelName}(quality-gate)`);
 
@@ -264,6 +267,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
       }).compose('xml'),
       telemetry,
     })) as Record<string, unknown>;
+    if (state.isDisconnected) return;
     sendEvent('seo_metadata', seo);
   }
 

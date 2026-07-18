@@ -87,6 +87,10 @@ const DEFAULT_MODEL_PRICES: Record<string, ModelPrice> = {
     inputUsdPerMillion: 0.40,
     outputUsdPerMillion: 1.60,
   },
+  'openai/gpt-4o-mini': {
+    inputUsdPerMillion: 0.15,
+    outputUsdPerMillion: 0.60,
+  },
   'openai/gpt-4.1': {
     inputUsdPerMillion: 2.00,
     outputUsdPerMillion: 8.00,

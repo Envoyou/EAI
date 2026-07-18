@@ -124,6 +124,7 @@ Composer ➔ AST ➔ Inspector ➔ Estimator ➔ Planner ➔ Optimizer ➔ Rende
 *   **Optimizer**: Beroperasi di atas laporan Planner dan parameter `cachePolicy` dari masing-masing provider untuk memberikan rekomendasi nyata (misalnya: deteksi jika prefix statis di bawah batas minimal provider—seperti 32,768 tokens pada Gemini—atau merekomendasikan penggabungan node duplikat).
 
 ### C. Prompt Inspector API (`routes/prompt-inspector.ts`)
+*   **Boundary Akses Owner-Only**: Kedua endpoint mewajibkan Clerk authentication dan pemeriksaan `isOwnerUser`. Prompt Inspector bukan API inspeksi tenant yang dapat digunakan user biasa karena hasil render dapat memuat brand identity, tone, dan aturan editorial organisasi.
 *   Menyediakan endpoint `POST /api/prompt-inspector` untuk audit visual prompt sebelum dikirimkan ke model LLM. Endpoint ini mengembalikan:
     *   `tree`: Struktur hierarki AST komponen prompt.
     *   `renderedPrompt`: Teks prompt utuh hasil render akhir.
@@ -131,7 +132,7 @@ Composer ➔ AST ➔ Inspector ➔ Estimator ➔ Planner ➔ Optimizer ➔ Rende
     *   `cacheAnalysis`: Laporan planner dan rekomendasi optimizer.
     *   `estimatedCost`: Perkiraan biaya input (cached & regular rate) dan output berdasarkan konfigurasi catalog harga model (`pricing.ts`).
 *   Menyediakan endpoint `POST /api/prompt-inspector/diff` untuk membandingkan perbedaan token, status caching, serta visualisasi perubahan node breakdown antara dua konfigurasi (sangat berguna untuk debugging multi-tenant).
-*   Mendukung simulasi multi-tenant produksi melalui parameter `workspaceId` opsional untuk memuat profil editorial dari database.
+*   Mendukung simulasi multi-tenant produksi melalui parameter `workspaceId` opsional untuk memuat profil editorial dari database. Parameter ini hanya diproses setelah request lolos owner guard; caller non-owner menerima `403 Forbidden` dan tidak dapat membaca konfigurasi workspace lain.
 
 ### D. Formal Renderer, AST Serializer, & Pruning Optimizer (Sprint 5)
 *   **`PromptNode` Priority Attribute**: Properti `priority?: number` pada antarmuka `PromptNode` (skala 1-5, dengan 1 = Mandatory/Utama dan 5 = Optional/Dapat Dipangkas).
@@ -159,4 +160,3 @@ $$\text{Core Policy} \rightarrow \text{Tenant Brand} \rightarrow \text{Workspace
 
 ### B. Topological Sort & Automagic Sorting
 Mengubah deklarasi `PromptNode` agar mendukung relasi dependensi antarnode (`dependsOn`) untuk membolehkan composer menyusun tata letak node secara topologi otomatis (misal: `ToneCalibrationNode` harus diletakkan setelah `BrandIdentityNode` karena membutuhkan referensi industri brand).
-
