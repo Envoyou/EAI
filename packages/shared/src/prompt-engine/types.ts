@@ -12,6 +12,8 @@ export interface PromptNode {
   id: string;
   type: 'core' | 'tenant' | 'context' | 'composite';
   isStatic: boolean;
+  /** Node priority level: 1 (Mandatory) to 5 (Optional/Pruneable). Defaults to 1 if omitted. */
+  priority?: number;
   render(context: RenderContext): string;
 }
 
@@ -24,11 +26,14 @@ export class CompositePromptNode implements PromptNode {
   id: string;
   type = 'composite' as const;
   isStatic: boolean;
+  /** Priority level: 1 (Mandatory) to 5 (Optional/Pruneable). Defaults to 1. */
+  priority: number;
   private children: PromptNode[] = [];
 
-  constructor(id: string, children: PromptNode[] = []) {
+  constructor(id: string, children: PromptNode[] = [], priority = 1) {
     this.id = id;
     this.children = children;
+    this.priority = priority;
     // A composite node is only static if all its children are static
     this.isStatic = children.every((child) => child.isStatic);
   }

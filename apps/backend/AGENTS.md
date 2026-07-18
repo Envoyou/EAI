@@ -138,6 +138,9 @@ apps/backend/
 │   │           ├── token-estimator.ts  # Offline character-weighted estimator & online cached token counter
 │   │           ├── cache-planner.ts    # Prompt caching prefix analyzer (static vs dynamic segments)
 │   │           ├── cache-optimizer.ts  # Suggestion engine for prompt optimizations & AST layout ordering
+│   │           ├── renderer.ts         # PromptRenderer class for formal visual rendering & XML boundary checks
+│   │           ├── serializer.ts       # PromptSerializer class for bidirectional AST <-> JSON serialization
+│   │           └── pruning-optimizer.ts # PromptPruningOptimizer for token budget-based node pruning
 │   │           └── __tests__/          # Unit test suite for AST, estimators, and planners
 │   │               ├── prompt-engine.test.ts # Comprehensive AST, Composer & Node unit tests
 │   │               ├── token-estimator.test.ts # Token estimator unit tests

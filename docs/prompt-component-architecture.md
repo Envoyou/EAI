@@ -133,6 +133,12 @@ Composer ➔ AST ➔ Inspector ➔ Estimator ➔ Planner ➔ Optimizer ➔ Rende
 *   Menyediakan endpoint `POST /api/prompt-inspector/diff` untuk membandingkan perbedaan token, status caching, serta visualisasi perubahan node breakdown antara dua konfigurasi (sangat berguna untuk debugging multi-tenant).
 *   Mendukung simulasi multi-tenant produksi melalui parameter `workspaceId` opsional untuk memuat profil editorial dari database.
 
+### D. Formal Renderer, AST Serializer, & Pruning Optimizer (Sprint 5)
+*   **`PromptNode` Priority Attribute**: Properti `priority?: number` pada antarmuka `PromptNode` (skala 1-5, dengan 1 = Mandatory/Utama dan 5 = Optional/Dapat Dipangkas).
+*   **Prompt Renderer (`renderer.ts`)**: Kelas `PromptRenderer` menstandarkan format visual rendering, melakukan sanitasi baris baru (`\r\n` ➔ `\n`), menghapus spasi berlebih (`\n{3,}` ➔ `\n\n`), serta menjalankan pemeriksaan validasi kelengkapan penutupan tag XML jika format output adalah XML.
+*   **AST Serializer (`serializer.ts`)**: Kelas `PromptSerializer` mendukung konversi dua arah (*bidirectional*) antara pohon AST `PromptNode` runtime dengan objek JSON polos (`SerializedPromptNode`) untuk kemudahan transfer wire/API maupun logging inspeksi.
+*   **Pruning Node Optimizer (`pruning-optimizer.ts`)**: Kelas `PromptPruningOptimizer` secara otomatis memotong (*prune*) node AST opsional (prioritas 5 hingga 2) ketika estimasi token kueri melebihi budget limit token yang ditentukan. Node prioritas 1 (*Mandatory*) dijamin tidak pernah dipangkas.
+
 ---
 
 ## 6. Rencana Perluasan Masa Depan
@@ -154,5 +160,3 @@ $$\text{Core Policy} \rightarrow \text{Tenant Brand} \rightarrow \text{Workspace
 ### B. Topological Sort & Automagic Sorting
 Mengubah deklarasi `PromptNode` agar mendukung relasi dependensi antarnode (`dependsOn`) untuk membolehkan composer menyusun tata letak node secara topologi otomatis (misal: `ToneCalibrationNode` harus diletakkan setelah `BrandIdentityNode` karena membutuhkan referensi industri brand).
 
-### C. Token Budgeting
-Jika akumulasi token AST mendekati batas limit jendela konteks model, composer dapat secara otomatis memangkas komponen-komponen sekunder (seperti few-shot demonstrations yang memiliki prioritas rendah).

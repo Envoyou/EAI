@@ -6,6 +6,15 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.9.0] - 2026-07-18
+
+### Added
+- **Atribut Prioritas Node Prompt**: Menambahkan properti `priority?: number` opsional (skala 1-5, dengan 1 = Mandatory/Utama dan 5 = Optional/Dapat dipangkas) pada interface `PromptNode` dan kelas `CompositePromptNode` di `@eai/shared`.
+- **Renderer Formal Prompt**: Membuat kelas `PromptRenderer` di bawah `apps/backend/src/lib/ai/prompt-engine/renderer.ts` untuk pembersihan whitespace terstandarisasi, normalisasi baris baru, dan validasi pembatas tag XML.
+- **Serializer AST Prompt Dua Arah**: Membuat kelas `PromptSerializer` di bawah `apps/backend/src/lib/ai/prompt-engine/serializer.ts` untuk mengubah pohon AST `PromptNode` ke format JSON dan merekonstruksi kembali instance AST runtime dari JSON.
+- **Optimizer Pemotongan Node (Pruning)**: Membuat kelas `PromptPruningOptimizer` di bawah `apps/backend/src/lib/ai/prompt-engine/pruning-optimizer.ts` yang memotong node opsional (prioritas 5 hingga 2) secara otomatis ketika estimasi token prompt melebihi alokasi budget token model LLM.
+- **Cakupan Pengujian Sub-sistem Prompt Engine**: Membuat suite pengujian unit untuk `PromptRenderer`, `PromptSerializer`, dan `PromptPruningOptimizer` dengan tingkat kelulusan 100% pada 50 total unit test backend.
+
 ## [3.8.0] - 2026-07-17
 
 ### Added

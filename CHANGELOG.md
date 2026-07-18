@@ -6,6 +6,15 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.9.0] - 2026-07-18
+
+### Added
+- **Prompt Node Priority Attribute**: Added optional `priority?: number` property (scale 1-5, where 1 is Mandatory and 5 is Optional/Pruneable) to `PromptNode` interface and `CompositePromptNode` class in `@eai/shared`.
+- **Formal Prompt Renderer**: Created `PromptRenderer` class under `apps/backend/src/lib/ai/prompt-engine/renderer.ts` for standardized prompt whitespace cleanup, line ending normalization, and XML tag boundary validation checks.
+- **Bidirectional AST Prompt Serializer**: Created `PromptSerializer` class under `apps/backend/src/lib/ai/prompt-engine/serializer.ts` to convert `PromptNode` AST trees to JSON format and reconstruct runtime AST objects back from JSON.
+- **Node Pruning Optimizer**: Created `PromptPruningOptimizer` class under `apps/backend/src/lib/ai/prompt-engine/pruning-optimizer.ts` that automatically prunes optional nodes (priority 5 down to 2) when estimated prompt tokens exceed LLM model token limits.
+- **Prompt Engine Test Coverage**: Created unit test suites for `PromptRenderer`, `PromptSerializer`, and `PromptPruningOptimizer` with 100% pass rate across 50 total backend unit tests.
+
 ## [3.8.0] - 2026-07-17
 
 ### Added
