@@ -267,27 +267,66 @@ router.post(
         }
       }
 
-      const resolvedUrls = new Map<string, string>();
-      const uniqueUrlsToResolve = [
-        ...new Set(extractedAnnotations.map((a) => a.url).filter(Boolean)),
+      const VERTEX_URL_REGEX =
+        /https:\/\/vertexaisearch\.cloud\.google\.com\/grounding-api-redirect\/[^\s"')]+/g;
+      const matchedVertexUrlsInText = Array.from(
+        (interaction.output_text || '').matchAll(VERTEX_URL_REGEX),
+        (m) => m[0]
+      );
+
+      const rawPlanSources =
+        data.plan && Array.isArray(data.plan.sources)
+          ? (data.plan.sources as string[]).filter(
+              (s) => typeof s === 'string' && s.length > 0
+            )
+          : [];
+
+      const rawUrlsToResolve = [
+        ...extractedAnnotations.map((a) => a.url).filter(Boolean),
+        ...matchedVertexUrlsInText,
+        ...rawPlanSources.filter((s) =>
+          s.includes('vertexaisearch.cloud.google.com')
+        ),
       ] as string[];
+
+      const resolvedUrls = new Map<string, string>();
+      const uniqueUrlsToResolve = [...new Set(rawUrlsToResolve)];
 
       await Promise.all(
         uniqueUrlsToResolve.map(async (u) => {
           const resolved = await resolveGroundingUrl(u);
-          resolvedUrls.set(u, resolved);
+          if (resolved && !resolved.includes('vertexaisearch.cloud.google.com')) {
+            resolvedUrls.set(u, resolved);
+          }
         })
       );
 
       const uniqueSourcesList: string[] = [];
       const urlToIndex = new Map<string, number>();
+
       for (const annotation of extractedAnnotations) {
         if (annotation.url) {
           const realUrl = resolvedUrls.get(annotation.url) || annotation.url;
-          if (!urlToIndex.has(realUrl)) {
+          if (
+            realUrl &&
+            !realUrl.includes('vertexaisearch.cloud.google.com') &&
+            !urlToIndex.has(realUrl)
+          ) {
             uniqueSourcesList.push(realUrl);
             urlToIndex.set(realUrl, uniqueSourcesList.length);
           }
+        }
+      }
+
+      for (const u of matchedVertexUrlsInText) {
+        const realUrl = resolvedUrls.get(u);
+        if (
+          realUrl &&
+          !realUrl.includes('vertexaisearch.cloud.google.com') &&
+          !urlToIndex.has(realUrl)
+        ) {
+          uniqueSourcesList.push(realUrl);
+          urlToIndex.set(realUrl, uniqueSourcesList.length);
         }
       }
 
@@ -300,7 +339,9 @@ router.post(
         rawRegistry.map(async (u) => {
           if (typeof u === 'string') {
             const resolved = await resolveGroundingUrl(u);
-            validUrlsRegistry.push(resolved);
+            if (resolved && !resolved.includes('vertexaisearch.cloud.google.com')) {
+              validUrlsRegistry.push(resolved);
+            }
           }
         })
       );
@@ -350,11 +391,24 @@ router.post(
         return sourceInput;
       };
 
-      if (data.plan && Array.isArray(data.plan.sources)) {
-        const alignedSources = (data.plan.sources as string[]).map((src: string) =>
-          resolveToFullVerifiedUrl(src, validUrlsRegistry)
-        );
-        data.plan.sources = [...new Set(alignedSources)];
+      if (data.plan) {
+        const unfurledSources: string[] = [];
+        for (const src of rawPlanSources) {
+          let resolved = resolvedUrls.get(src) || (await resolveGroundingUrl(src));
+          resolved = resolveToFullVerifiedUrl(resolved, validUrlsRegistry);
+          if (!resolved.includes('vertexaisearch.cloud.google.com')) {
+            unfurledSources.push(resolved);
+          }
+        }
+
+        if (unfurledSources.length === 0 && validUrlsRegistry.length > 0) {
+          const cleanRegistry = validUrlsRegistry.filter(
+            (u) => !u.includes('vertexaisearch.cloud.google.com')
+          );
+          unfurledSources.push(...cleanRegistry);
+        }
+
+        data.plan.sources = [...new Set(unfurledSources)];
       }
 
       if (

@@ -99,12 +99,14 @@ export class RefinementOutputFormatNode implements PromptNode {
       rules = `
 Output rules:
 - Reply ONLY with the updated article text that applies the instruction.
-- Preserve existing Markdown formatting (headings, bold, lists).
+- Preserve existing Markdown formatting (headings, bold, lists, and mermaid diagrams/code blocks).
 - Heading rule: do not write the article title at the top of the output. The output must begin directly with the first paragraph (Hook). Use H2 (##) or H3 (###) for subheadings. Never use H1 (#) inside the article body.
 - Strictly forbid repeating the editor instruction inside the output.
-- Strictly forbid adding prefaces such as "Here is the result:", "The draft has solid data", "Berikut hasilnya:", or any other commentary.
+- Strictly forbid adding prefaces, notes, code change advice, or commentary such as "Here is the result:", "The draft has solid data", "Change #333 to...", or "Berikut hasilnya:".
+- Do not inject conversational notes or code modification advice into the article body text.
+- Preserve all \`\`\`mermaid diagrams and code blocks intact unless explicitly instructed to edit diagram structure.
 - Output must be 100% final publish-ready article text.
-- Do not wrap the response in a Markdown code block.
+- Do not wrap the response in an outer Markdown code block.
 - If the instruction is not specific to one section, improve the article comprehensively according to the instruction.
 `.trim();
     } else {

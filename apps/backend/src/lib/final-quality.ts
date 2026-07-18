@@ -483,15 +483,20 @@ export const detectSourceFidelitySignals = (
   const sourceUrls = collectMatches(originalDraft, URL_PATTERN).map((url) => url.replace(/[.,;:!?]+$/, ''));
   const finalUrls = collectMatches(finalDraft, URL_PATTERN).map((url) => url.replace(/[.,;:!?]+$/, ''));
 
-  const originalWithoutUrls = originalDraft.replace(URL_PATTERN, '');
-  const finalWithoutUrls = finalDraft.replace(URL_PATTERN, '');
+  const stripCodeBlocks = (text: string) =>
+    text
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`[^`\n]+`/g, '');
 
-  const sourceNumbers = collectNumericSignals(originalWithoutUrls);
-  const finalNumbers = collectNumericSignals(finalWithoutUrls, {
+  const originalWithoutUrlsOrCode = stripCodeBlocks(originalDraft.replace(URL_PATTERN, ''));
+  const finalWithoutUrlsOrCode = stripCodeBlocks(finalDraft.replace(URL_PATTERN, ''));
+
+  const sourceNumbers = collectNumericSignals(originalWithoutUrlsOrCode);
+  const finalNumbers = collectNumericSignals(finalWithoutUrlsOrCode, {
     permitCurrentTemporalOrientation: true,
   });
-  const sourceEntities = collectEntityCandidates(originalWithoutUrls);
-  const finalEntities = collectEntityCandidates(finalWithoutUrls);
+  const sourceEntities = collectEntityCandidates(originalWithoutUrlsOrCode);
+  const finalEntities = collectEntityCandidates(finalWithoutUrlsOrCode);
   const trustedInternalUrls = new Set(
     (options.trustedInternalUrls ?? []).map((url) => url.replace(/[.,;:!?]+$/, ''))
   );
