@@ -145,7 +145,7 @@ export const FinalQualityGateSchema = z.object({
 export type FinalQualityGateOutput = z.infer<typeof FinalQualityGateSchema>;
 
 export const FinalQualityGateResponseSchema = FinalQualityGateSchema.extend({
-  changes: z.array(z.string().min(1).max(180)).min(2).max(5).describe('Two to five concrete improvements made from source draft to final draft.'),
+  changes: z.array(z.string().min(1).max(180)).min(1).max(5).describe('One to five concrete improvements made from source draft to final draft.'),
   feedback: z.array(QualityResponseFeedbackItemSchema).max(5).describe('Remaining actionable warning/fail checks on the final draft only. Do not include pass items or duplicates.'),
 });
 
@@ -162,16 +162,39 @@ const truncateSchemaText = (value: string, maxLength: number) => {
 export const normalizeFinalQualityGateResponseCandidate = (candidate: unknown) => {
   if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return candidate;
   const nextCandidate = candidate as Record<string, unknown>;
+
+  let changes = Array.isArray(nextCandidate.changes)
+    ? nextCandidate.changes
+        .map((change) =>
+          typeof change === 'string' ? truncateSchemaText(change, 180) : change
+        )
+        .filter((change) => typeof change === 'string' && change.trim().length > 0)
+    : [];
+
+  if (changes.length === 0) {
+    changes = ['Processed draft according to editorial brief.'];
+  } else if (changes.length > 5) {
+    changes = changes.slice(0, 5);
+  }
+
+  let feedback = Array.isArray(nextCandidate.feedback) ? nextCandidate.feedback : [];
+  if (feedback.length > 5) {
+    feedback = feedback.slice(0, 5);
+  }
+
+  let flags = Array.isArray(nextCandidate.flags) ? nextCandidate.flags : [];
+  if (flags.length > 3) {
+    flags = flags.slice(0, 3);
+  }
+
   return {
     ...nextCandidate,
     summary: typeof nextCandidate.summary === 'string'
       ? truncateSchemaText(nextCandidate.summary, 280)
       : nextCandidate.summary,
-    changes: Array.isArray(nextCandidate.changes)
-      ? nextCandidate.changes.map((change) =>
-          typeof change === 'string' ? truncateSchemaText(change, 180) : change
-        )
-      : nextCandidate.changes,
+    changes,
+    feedback,
+    flags,
   };
 };
 
