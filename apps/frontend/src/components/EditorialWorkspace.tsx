@@ -98,7 +98,6 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
     handleAddNewCategoryOrType,
     loadHistory,
     handleAcceptFeedback,
-    handleMarkFeedbackVerified,
     handleAddFeedbackSource,
     handleTargetedFix,
     handleProceedRefinement,
@@ -448,7 +447,6 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     onAcceptFeedback={handleAcceptFeedback}
                     onRemoveFeedbackAddition={idx => handleTargetedFix(idx, 'remove')}
                     onAddFeedbackSource={handleAddFeedbackSource}
-                    onMarkFeedbackVerified={handleMarkFeedbackVerified}
                     onFixFeedbackWithEAI={idx => handleTargetedFix(idx, 'fix')}
                     isTargetedFixing={isTargetedFixing}
                     researchNotes={researchNotes}
@@ -545,7 +543,6 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                   onAcceptFeedback={handleAcceptFeedback}
                   onRemoveFeedbackAddition={idx => handleTargetedFix(idx, 'remove')}
                   onAddFeedbackSource={handleAddFeedbackSource}
-                  onMarkFeedbackVerified={handleMarkFeedbackVerified}
                   onFixFeedbackWithEAI={idx => handleTargetedFix(idx, 'fix')}
                   isTargetedFixing={isTargetedFixing}
                   researchNotes={researchNotes}

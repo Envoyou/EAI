@@ -9,40 +9,40 @@ export function useFeedbackActions(
     replacementText: string,
     operation: 'replace' | 'insert_before' | 'insert_after' | 'manual',
     index: number
-  ) => boolean
+  ) => Promise<boolean>
 ) {
-  const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set());
-  const [failedSuggestions, setFailedSuggestions] = useState<Set<number>>(new Set());
-  const [expandedFeedback, setExpandedFeedback] = useState<Set<number>>(new Set());
+  const [expandedFeedback, setExpandedFeedback] = useState<Set<string>>(new Set());
   const [isSEOExpanded, setIsSEOExpanded] = useState(false);
-  const [activeSourceInput, setActiveSourceInput] = useState<number | null>(null);
+  const [activeSourceInput, setActiveSourceInput] = useState<string | null>(null);
   const [sourceText, setSourceText] = useState('');
+  const [applyingFeedback, setApplyingFeedback] = useState<string | null>(null);
+  const [submittingSource, setSubmittingSource] = useState<string | null>(null);
 
-  const toggleFeedback = (index: number) => {
+  const toggleFeedback = (feedbackKey: string) => {
     setExpandedFeedback((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
+      if (next.has(feedbackKey)) {
+        next.delete(feedbackKey);
       } else {
-        next.add(index);
+        next.add(feedbackKey);
       }
       return next;
     });
   };
 
-  const handleApplyClick = (
+  const handleApplyClick = async (
     target: string,
     replacement: string,
     operation: 'replace' | 'insert_before' | 'insert_after' | 'manual',
-    index: number
-  ) => {
-    if (onApplyFix) {
-      const success = onApplyFix(target, replacement, operation, index);
-      if (success) {
-        setAppliedSuggestions((prev) => new Set(prev).add(index));
-      } else {
-        setFailedSuggestions((prev) => new Set(prev).add(index));
-      }
+    index: number,
+    feedbackKey: string
+  ): Promise<void> => {
+    if (!onApplyFix || applyingFeedback !== null) return;
+    setApplyingFeedback(feedbackKey);
+    try {
+      await onApplyFix(target, replacement, operation, index);
+    } finally {
+      setApplyingFeedback(null);
     }
   };
 
@@ -86,8 +86,6 @@ export function useFeedbackActions(
   };
 
   return {
-    appliedSuggestions,
-    failedSuggestions,
     expandedFeedback,
     isSEOExpanded,
     setIsSEOExpanded,
@@ -95,6 +93,9 @@ export function useFeedbackActions(
     setActiveSourceInput,
     sourceText,
     setSourceText,
+    applyingFeedback,
+    submittingSource,
+    setSubmittingSource,
     toggleFeedback,
     handleApplyClick,
     handleCopy,

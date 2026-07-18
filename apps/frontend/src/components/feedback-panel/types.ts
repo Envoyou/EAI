@@ -8,8 +8,8 @@ export interface FeedbackPanelProps {
     replacementText: string,
     operation: 'replace' | 'insert_before' | 'insert_after' | 'manual',
     index: number
-  ) => boolean;
-  onApplyAll?: () => void;
+  ) => Promise<boolean>;
+  onApplyAll?: () => Promise<void>;
   isFocused?: boolean;
   onFocusToggle?: () => void;
   hoveredFeedbackIndex: number | null;
@@ -21,10 +21,9 @@ export interface FeedbackPanelProps {
   processStage?: EditorialProcessStage;
   processStartedAt?: number | null;
   isRefining?: boolean;
-  onAcceptFeedback?: (index: number) => void;
+  onAcceptFeedback?: (index: number) => Promise<void>;
   onRemoveFeedbackAddition?: (index: number) => Promise<void>;
-  onAddFeedbackSource?: (index: number, url: string) => void;
-  onMarkFeedbackVerified?: (index: number) => void;
+  onAddFeedbackSource?: (index: number, url: string) => Promise<boolean>;
   onFixFeedbackWithEAI?: (index: number) => Promise<void>;
   isTargetedFixing?: number | null;
 }

@@ -136,7 +136,13 @@ export const replaceFirstTargetMatch = (
 };
 
 export const canAutoApplyFeedback = (item: FeedbackItem) => {
-  if (item.status === 'pass' || item.verificationStatus) return false;
+  if (
+    item.status === 'pass'
+    || item.verificationStatus
+    || item.isApplied
+    || item.isAccepted
+    || item.isVerified
+  ) return false;
   if (!item.operation || item.operation === 'manual') return false;
   if (!item.targetText || !item.replacementText) return false;
   return true;

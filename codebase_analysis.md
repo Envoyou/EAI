@@ -218,6 +218,10 @@ src/lib/ai/prompt-engine/
 7. **Quality Gate Recovery & Test Deterministik (Sprint 8.2)**:
    - Memperbaiki respons salah bentuk (`feedback: string[]`, `flags: object[]`) menjadi manual-review output yang aman dan memberi retry kedua instruksi koreksi schema.
    - Mengganti test grounding berbasis URL eksternal live dengan mock redirect yang menguji utility produksi secara langsung.
+8. **Hardening Feedback Preview (Sprint 8.3)**:
+   - Menjadikan `canAutoApplyFeedback` sebagai kontrak tunggal untuk tombol Apply per kartu, Apply All, dan handler workspace; item manual, verifikasi, suggestion-only, accepted, verified, atau applied tidak dapat dieksekusi otomatis.
+   - Menyimpan polished draft dan status `isApplied` ke history, menghapus verifikasi tanpa bukti, serta mengamankan Add Source dengan URL HTTP(S), pencegahan nested link, dan sanitasi verification notes pada history/export.
+   - Menambahkan regression test frontend untuk kontrak auto-apply, readiness, validasi sumber, dan Markdown linking.
 
 ---
 
@@ -228,7 +232,7 @@ src/lib/ai/prompt-engine/
 | Versi Project | 3.12.2 |
 | Node.js / npm | Node v24.15.0 / npm 11.14.1 |
 | Build System | Turborepo v2 |
-| Test Suites Passed | **19 backend test files (70 tests passed 100%)** |
+| Test Suites Passed | **19 backend files (70 tests) + 3 frontend files (20 tests), 100% passed** |
 | Modular Backend Routes | 3 Major Modular Folders (`routes/analyze/`, `routes/admin/`, `routes/strategist/`) |
 | Modular Frontend UI | 4 Major Modular Subsystems (`editorial-workspace/`, `user-directory/`, `feedback-panel/`, `strategist-tab/`) |
 | Prompt Engine Components | 3-Layer PCA (9 Composers + Inspector API + Renderer + Serializer + Pruner) |

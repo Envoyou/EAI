@@ -16,6 +16,12 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Quality Gate Recovery & Regression Coverage**:
   - Normalized malformed string feedback and object flags into safe manual-review output, and added an explicit schema correction instruction on the second attempt.
   - Added provider transport and Quality Gate regression tests covering the exact `feedback`/`flags` type mismatch observed in staging.
+- **Feedback Preview Safety & Persistence**:
+  - Unified per-card and bulk Apply eligibility with the shared editorial contract; manual, verification, resolved, and suggestion-only feedback can no longer be auto-applied.
+  - Persisted applied feedback and polished draft updates to analysis history, preventing repeated Apply actions and lost changes after reload.
+  - Removed evidence-free “Mark Verified”; Add Source now requires a valid HTTP(S) URL, waits for persistence, avoids nested Markdown links, and never appends internal verification notes to publication content.
+  - Corrected insert-before/after previews, feedback identity/state reset behavior, active-card toggling, bulk counts, and async loading guards.
+  - Added frontend regression coverage for auto-apply eligibility, readiness, source URL safety, and Markdown linking behavior.
 - **Deterministic Grounding Test**:
   - Replaced the live Vertex grounding redirect dependency with a mocked redirect response while testing the production grounding utility directly.
 - **Release & Architecture Metadata**:

@@ -13,7 +13,6 @@ import {
   ChevronUp,
   ArrowRightCircle,
   Check,
-  HelpCircle,
   Loader2,
   Trash2,
   Link,
@@ -21,6 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, Variants, AnimatePresence } from 'framer-motion';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { canShowAutoApply } from '../utils';
 
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
@@ -59,6 +59,9 @@ const verificationBadgeMap: Record<
 const getSourceDisplay = (source: string) => {
   try {
     const parsed = new URL(source);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('Unsupported source protocol');
+    }
     const path = `${parsed.pathname}${parsed.search}${parsed.hash}`.replace(
       /^\/$/,
       ''
@@ -80,39 +83,45 @@ const getSourceDisplay = (source: string) => {
 interface FeedbackItemCardProps {
   item: FeedbackItem;
   index: number;
+  feedbackKey: string;
   isExpanded: boolean;
   isActiveCard: boolean;
   isApplied: boolean;
-  isFailed: boolean;
-  activeSourceInput: number | null;
+  isApplying: boolean;
+  isSubmittingSource: boolean;
+  autoApplyDisabled: boolean;
+  activeSourceInput: string | null;
   sourceText: string;
   isTargetedFixing: number | null;
-  onToggleFeedback: (index: number) => void;
+  onToggleFeedback: (feedbackKey: string) => void;
   onActiveFeedbackChange?: (index: number | null) => void;
   onHoveredFeedbackChange?: (index: number | null) => void;
   onApplyClick: (
     target: string,
     replacement: string,
     operation: 'replace' | 'insert_before' | 'insert_after' | 'manual',
-    index: number
-  ) => void;
+    index: number,
+    feedbackKey: string
+  ) => Promise<void>;
   onCopy: (text: string, label: string) => void;
-  onAcceptFeedback?: (index: number) => void;
+  onAcceptFeedback?: (index: number) => Promise<void>;
   onRemoveFeedbackAddition?: (index: number) => Promise<void>;
-  onAddFeedbackSource?: (index: number, url: string) => void;
-  onMarkFeedbackVerified?: (index: number) => void;
+  onSubmitSource: (index: number, feedbackKey: string) => Promise<void>;
   onFixFeedbackWithEAI?: (index: number) => Promise<void>;
-  setActiveSourceInput: (index: number | null) => void;
+  setActiveSourceInput: (feedbackKey: string | null) => void;
   setSourceText: (text: string) => void;
 }
 
 export function FeedbackItemCard({
   item,
   index,
+  feedbackKey,
   isExpanded,
   isActiveCard,
   isApplied,
-  isFailed,
+  isApplying,
+  isSubmittingSource,
+  autoApplyDisabled,
   activeSourceInput,
   sourceText,
   isTargetedFixing,
@@ -123,23 +132,15 @@ export function FeedbackItemCard({
   onCopy,
   onAcceptFeedback,
   onRemoveFeedbackAddition,
-  onAddFeedbackSource,
-  onMarkFeedbackVerified,
+  onSubmitSource,
   onFixFeedbackWithEAI,
   setActiveSourceInput,
   setSourceText,
 }: FeedbackItemCardProps) {
   const targetText = item.targetText;
-  const replacementText = item.replacementText || item.suggestion;
-  const operation =
-    item.operation && item.operation !== 'manual' ? item.operation : 'replace';
-
-  // Allow 1-click apply box whenever we have target text & replacement text/suggestion for warning or fail items
-  const showApplyFeature = Boolean(
-    (item.status === 'warning' || item.status === 'fail') &&
-      targetText &&
-      replacementText
-  );
+  const replacementText = item.replacementText;
+  const operation = item.operation;
+  const showApplyFeature = canShowAutoApply(item, autoApplyDisabled);
 
   const verificationMeta = item.verificationStatus
     ? verificationBadgeMap[item.verificationStatus]
@@ -148,7 +149,7 @@ export function FeedbackItemCard({
 
   const isAccepted = item.isAccepted;
   const isVerified = item.isVerified;
-  const isResolved = isAccepted || isVerified || item.status === 'pass';
+  const isResolved = isApplied || isAccepted || isVerified || item.status === 'pass';
   const sourceDisplay = item.verifiedSource
     ? getSourceDisplay(item.verifiedSource)
     : null;
@@ -185,9 +186,9 @@ export function FeedbackItemCard({
       <button
         type="button"
         onClick={() => {
-          onToggleFeedback(index);
+          onToggleFeedback(feedbackKey);
           if (onActiveFeedbackChange) {
-            onActiveFeedbackChange(index);
+            onActiveFeedbackChange(isActiveCard ? null : index);
           }
         }}
         className="flex w-full items-center justify-between border-0 bg-transparent px-3 py-2.5 text-left cursor-pointer select-none transition-colors hover:bg-[var(--surface-2)]"
@@ -298,7 +299,7 @@ export function FeedbackItemCard({
                 </div>
               )}
 
-              {showApplyFeature && targetText && replacementText && (
+              {showApplyFeature && targetText && replacementText && operation && (
                 <div className="ui-card overflow-hidden min-w-0 w-full">
                   <div className="px-3.5 py-2.5 bg-[var(--surface-2)]">
                     <span
@@ -317,14 +318,22 @@ export function FeedbackItemCard({
                     <div>
                       <span
                         className="text-[12px] font-bold uppercase tracking-wider mb-1 block"
-                        style={{ color: 'var(--error)' }}
+                        style={{
+                          color: operation === 'replace'
+                            ? 'var(--error)'
+                            : 'var(--muted-foreground)',
+                        }}
                       >
-                        Before
+                        {operation === 'replace' ? 'Before' : 'Target retained'}
                       </span>
                       <p
-                        className="rounded-md px-3 py-2 text-xs line-through break-all whitespace-pre-wrap font-mono border-none w-full"
+                        className={`rounded-md px-3 py-2 text-xs break-all whitespace-pre-wrap font-mono border-none w-full ${
+                          operation === 'replace' ? 'line-through' : ''
+                        }`}
                         style={{
-                          background: 'rgba(248,113,113,0.06)',
+                          background: operation === 'replace'
+                            ? 'rgba(248,113,113,0.06)'
+                            : 'var(--surface-2)',
                           color: 'var(--muted-foreground)',
                           textDecorationColor: 'rgba(248,113,113,0.4)',
                         }}
@@ -337,7 +346,11 @@ export function FeedbackItemCard({
                         className="text-[12px] font-bold uppercase tracking-wider mb-1 block"
                         style={{ color: 'var(--success)' }}
                       >
-                        After
+                        {operation === 'replace'
+                          ? 'After'
+                          : operation === 'insert_before'
+                            ? 'Insert before target'
+                            : 'Insert after target'}
                       </span>
                       <p
                         className="rounded-md px-3 py-2 text-xs break-all whitespace-pre-wrap font-mono border-none w-full"
@@ -357,12 +370,13 @@ export function FeedbackItemCard({
                             targetText,
                             replacementText,
                             operation,
-                            index
+                            index,
+                            feedbackKey
                           )
                         }
-                        disabled={isApplied}
+                        disabled={isApplied || isApplying}
                         className={`ui-btn ui-btn-sm ${
-                          isApplied || isFailed ? '' : 'ui-btn-primary'
+                          isApplied ? '' : 'ui-btn-primary'
                         }`}
                         style={
                           isApplied
@@ -370,12 +384,7 @@ export function FeedbackItemCard({
                                 background: 'rgba(74,222,128,0.1)',
                                 color: 'var(--success)',
                               }
-                            : isFailed
-                              ? {
-                                  background: 'rgba(245,158,11,0.1)',
-                                  color: 'var(--warning)',
-                                }
-                              : {
+                            : {
                                   background: 'var(--primary)',
                                   color: 'var(--primary-foreground)',
                                 }
@@ -385,10 +394,9 @@ export function FeedbackItemCard({
                           <>
                             <Check className="w-3.5 h-3.5" /> Applied
                           </>
-                        ) : isFailed ? (
+                        ) : isApplying ? (
                           <>
-                            <HelpCircle className="w-3.5 h-3.5" /> Review
-                            Manually
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Applying
                           </>
                         ) : (
                           <>
@@ -404,15 +412,14 @@ export function FeedbackItemCard({
               {/* Interactive Actions for Post-Polish Review Loop */}
               {!isAccepted && !isVerified && (
                 <div className="mt-3 pt-3 border-t border-[var(--border)]/50 flex flex-wrap gap-2">
-                  {/* Suggestion-only items (no targetText): offer Copy instead of Apply */}
+                  {/* Manual or incomplete suggestions remain copy-only. */}
                   {!showApplyFeature &&
-                    !targetText &&
                     (item.status === 'warning' || item.status === 'fail') &&
-                    replacementText && (
+                    item.suggestion && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onCopy(replacementText, 'Suggestion');
+                          onCopy(item.suggestion!, 'Suggestion');
                         }}
                         className="ui-btn ui-btn-xs ui-btn-muted"
                       >
@@ -471,7 +478,7 @@ export function FeedbackItemCard({
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveSourceInput(
-                            activeSourceInput === index ? null : index
+                            activeSourceInput === feedbackKey ? null : feedbackKey
                           );
                           setSourceText('');
                         }}
@@ -479,17 +486,6 @@ export function FeedbackItemCard({
                       >
                         <Link className="w-3.5 h-3.5" />
                         Add Source
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (onMarkFeedbackVerified)
-                            onMarkFeedbackVerified(index);
-                        }}
-                        className="ui-btn ui-btn-success ui-btn-xs"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        Mark Verified
                       </button>
                     </>
                   )}
@@ -536,42 +532,37 @@ export function FeedbackItemCard({
               )}
 
               {/* Inline Input for Add Source */}
-              {activeSourceInput === index && (
+              {activeSourceInput === feedbackKey && (
                 <div
                   className="mt-3 p-3 rounded-md bg-[var(--surface-2)] space-y-2"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
-                    Enter Source URL or Citation
+                    Enter Source URL
                   </div>
                   <div className="flex min-w-0 gap-2">
                     <input
                       type="text"
                       name={`feedback-source-${index}`}
                       autoComplete="off"
-                      aria-label="Source URL or citation"
+                      aria-label="Source URL"
                       placeholder="https://example.com/source…"
                       value={sourceText}
                       onChange={(e) => setSourceText(e.target.value)}
                       className="ui-control ui-input min-w-0 flex-1 text-xs"
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          if (onAddFeedbackSource) {
-                            onAddFeedbackSource(index, sourceText);
-                            setActiveSourceInput(null);
-                          }
+                        if (e.key === 'Enter' && !isSubmittingSource) {
+                          e.preventDefault();
+                          void onSubmitSource(index, feedbackKey);
                         }
                       }}
                     />
                     <button
-                      onClick={() => {
-                        if (onAddFeedbackSource) {
-                          onAddFeedbackSource(index, sourceText);
-                          setActiveSourceInput(null);
-                        }
-                      }}
+                      onClick={() => void onSubmitSource(index, feedbackKey)}
+                      disabled={isSubmittingSource}
                       className="ui-btn ui-btn-primary ui-btn-xs"
                     >
+                      {isSubmittingSource && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                       Submit
                     </button>
                     <button
@@ -589,6 +580,13 @@ export function FeedbackItemCard({
                 <div className="mt-2 ui-badge ui-badge-success w-max">
                   <Check className="w-3.5 h-3.5" />
                   <span>Accepted as Editorial Choice</span>
+                </div>
+              )}
+
+              {isApplied && (
+                <div className="mt-2 ui-badge ui-badge-success w-max">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Applied to draft</span>
                 </div>
               )}
 

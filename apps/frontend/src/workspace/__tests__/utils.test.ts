@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { checkMissingSources, calculateReadiness, extractArticleMetadata, extractQualityGate } from '../utils';
+import {
+  addSourceLinkToDraft,
+  checkMissingSources,
+  calculateReadiness,
+  extractArticleMetadata,
+  extractQualityGate,
+  normalizeHttpSourceUrl,
+} from '../utils';
 import type { FeedbackItem, ResearchNote } from '@eai/shared';
 
 describe('checkMissingSources', () => {
@@ -50,6 +57,55 @@ describe('calculateReadiness', () => {
       { status: 'fail', message: 'Issue 2', isAccepted: false, isVerified: true, category: 'style' }
     ];
     expect(calculateReadiness(feedback)).toBe('ready');
+  });
+
+  it('should treat applied feedback as resolved', () => {
+    const feedback: FeedbackItem[] = [
+      { status: 'fail', message: 'Issue', category: 'style', isApplied: true }
+    ];
+    expect(calculateReadiness(feedback)).toBe('ready');
+  });
+});
+
+describe('feedback source URLs', () => {
+  it('accepts only HTTP and HTTPS URLs', () => {
+    expect(normalizeHttpSourceUrl('https://example.com/report')).toBe('https://example.com/report');
+    expect(normalizeHttpSourceUrl('http://example.com')).toBe('http://example.com/');
+    expect(normalizeHttpSourceUrl('https://example.com/report_(final)')).toBe(
+      'https://example.com/report_%28final%29'
+    );
+    expect(normalizeHttpSourceUrl('javascript:alert(1)')).toBeNull();
+    expect(normalizeHttpSourceUrl('not a URL')).toBeNull();
+  });
+
+  it('links a matching claim without appending internal verification notes', () => {
+    const result = addSourceLinkToDraft(
+      'Revenue grew by 20% in 2025.',
+      'Revenue grew by 20% in 2025.',
+      'https://example.com/report'
+    );
+    expect(result).toEqual({
+      nextDraft: '[Revenue grew by 20% in 2025.](https://example.com/report)',
+      linked: true,
+    });
+    expect(result.nextDraft).not.toContain('Verification Notes');
+  });
+
+  it('updates an existing claim link instead of nesting markdown links', () => {
+    const result = addSourceLinkToDraft(
+      '[Revenue grew by 20% in 2025.](https://old.example/report)',
+      'Revenue grew by 20% in 2025.',
+      'https://new.example/report'
+    );
+    expect(result.nextDraft).toBe(
+      '[Revenue grew by 20% in 2025.](https://new.example/report)'
+    );
+  });
+
+  it('leaves publication content unchanged when the claim cannot be located', () => {
+    expect(
+      addSourceLinkToDraft('Different content.', 'Missing claim', 'https://example.com')
+    ).toEqual({ nextDraft: 'Different content.', linked: false });
   });
 });
 

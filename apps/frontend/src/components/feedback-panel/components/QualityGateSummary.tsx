@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { AnalysisResult } from '@eai/shared';
-import { ShieldAlert, Wand2, Maximize2, Minimize2 } from 'lucide-react';
+import { ShieldAlert, Wand2, Maximize2, Minimize2, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface QualityGateSummaryProps {
@@ -9,7 +10,7 @@ interface QualityGateSummaryProps {
   title?: string;
   isFocused?: boolean;
   onFocusToggle?: () => void;
-  onApplyAll?: () => void;
+  onApplyAll?: () => Promise<void>;
   autoApplicableCount: number;
   isManualFallback: boolean;
   isCompactFallback: boolean;
@@ -25,6 +26,7 @@ export function QualityGateSummary({
   isManualFallback,
   isCompactFallback,
 }: QualityGateSummaryProps) {
+  const [isApplyingAll, setIsApplyingAll] = useState(false);
   const readiness = result.readiness;
   const readinessClass =
     readiness === 'ready'
@@ -131,8 +133,24 @@ export function QualityGateSummary({
             <span className="font-semibold">{autoApplicableCount}</span> suggested
             edits can be applied.
           </p>
-          <button onClick={onApplyAll} className="ui-btn ui-btn-primary ui-btn-xs">
-            <Wand2 className="w-3.5 h-3.5" />
+          <button
+            onClick={async () => {
+              if (isApplyingAll) return;
+              setIsApplyingAll(true);
+              try {
+                await onApplyAll();
+              } finally {
+                setIsApplyingAll(false);
+              }
+            }}
+            disabled={isApplyingAll}
+            className="ui-btn ui-btn-primary ui-btn-xs"
+          >
+            {isApplyingAll ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Wand2 className="w-3.5 h-3.5" />
+            )}
             Apply All
           </button>
         </div>

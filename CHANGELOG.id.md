@@ -16,6 +16,12 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Pemulihan Quality Gate & Cakupan Regresi**:
   - Menormalisasi feedback string dan flag object yang salah format menjadi output manual-review yang aman, serta menambahkan instruksi koreksi schema eksplisit pada percobaan kedua.
   - Menambahkan test regresi transport provider dan Quality Gate untuk mismatch tipe `feedback`/`flags` yang persis terjadi di staging.
+- **Keamanan & Persistensi Feedback Preview**:
+  - Menyatukan kelayakan tombol Apply per kartu dan massal dengan kontrak editorial bersama; feedback manual, verifikasi, sudah selesai, dan suggestion-only tidak lagi dapat di-auto-apply.
+  - Menyimpan status feedback yang telah diterapkan beserta polished draft ke riwayat analisis agar perubahan tidak hilang setelah reload dan tidak dapat diterapkan berulang kali.
+  - Menghapus aksi “Mark Verified” tanpa bukti; Add Source kini mewajibkan URL HTTP(S) valid, menunggu persistensi, mencegah nested Markdown link, dan tidak pernah menambahkan verification notes internal ke konten publikasi.
+  - Memperbaiki preview insert-before/after, identitas/reset state feedback, toggle kartu aktif, jumlah Apply All, serta loading guard async.
+  - Menambahkan regression test frontend untuk kelayakan auto-apply, readiness, keamanan URL sumber, dan perilaku Markdown link.
 - **Test Grounding Deterministik**:
   - Mengganti ketergantungan pada redirect Vertex grounding live dengan respons redirect mock sambil menguji utility produksi secara langsung.
 - **Metadata Rilis & Arsitektur**:

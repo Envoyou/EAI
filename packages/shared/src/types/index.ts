@@ -38,6 +38,7 @@ export interface FeedbackItem {
   replacementText?: string;
   reason?: string;
   operation?: 'replace' | 'insert_before' | 'insert_after' | 'manual';
+  isApplied?: boolean;
   isAccepted?: boolean;
   isVerified?: boolean;
   verifiedSource?: string;
@@ -102,4 +103,3 @@ export interface Attachment {
   extractedText: string;
   uploadedAt: string; // ISO timestamp
 }
-

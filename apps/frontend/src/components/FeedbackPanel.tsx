@@ -18,6 +18,10 @@ import { FeedbackPanelProps } from './feedback-panel/types';
 import { useFeedbackActions } from './feedback-panel/hooks/useFeedbackActions';
 import { QualityGateSummary } from './feedback-panel/components/QualityGateSummary';
 import { FeedbackItemCard } from './feedback-panel/components/FeedbackItemCard';
+import {
+  countAutoApplicableFeedback,
+  getFeedbackIdentity,
+} from './feedback-panel/utils';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -80,13 +84,10 @@ export default function FeedbackPanel({
   onAcceptFeedback,
   onRemoveFeedbackAddition,
   onAddFeedbackSource,
-  onMarkFeedbackVerified,
   onFixFeedbackWithEAI,
   isTargetedFixing = null,
 }: FeedbackPanelProps) {
   const {
-    appliedSuggestions,
-    failedSuggestions,
     expandedFeedback,
     isSEOExpanded,
     setIsSEOExpanded,
@@ -94,6 +95,9 @@ export default function FeedbackPanel({
     setActiveSourceInput,
     sourceText,
     setSourceText,
+    applyingFeedback,
+    submittingSource,
+    setSubmittingSource,
     toggleFeedback,
     handleApplyClick,
     handleCopy,
@@ -151,10 +155,10 @@ export default function FeedbackPanel({
   const readiness = result.readiness;
   const isManualFallback = result.responseMode === 'manual_fallback';
   const isCompactFallback = result.responseMode === 'compact';
-  const autoApplicableCount =
-    result.feedback?.filter(
-      (item) => item.status === 'warning' || item.status === 'fail'
-    ).length || 0;
+  const autoApplicableCount = countAutoApplicableFeedback(
+    result.feedback,
+    isManualFallback
+  );
   const visibleFlags = (result.flags ?? []).filter(
     (flag) => !BENIGN_DISPLAY_FLAG_PATTERN.test(flag.trim())
   );
@@ -378,32 +382,49 @@ export default function FeedbackPanel({
             </motion.div>
           )}
 
-          {result.feedback?.map((item, index) => (
-            <FeedbackItemCard
-              key={index}
-              item={item}
-              index={index}
-              isExpanded={expandedFeedback.has(index)}
-              isActiveCard={activeFeedbackIndex === index}
-              isApplied={appliedSuggestions.has(index)}
-              isFailed={failedSuggestions.has(index)}
-              activeSourceInput={activeSourceInput}
-              sourceText={sourceText}
-              isTargetedFixing={isTargetedFixing}
-              onToggleFeedback={toggleFeedback}
-              onActiveFeedbackChange={onActiveFeedbackChange}
-              onHoveredFeedbackChange={onHoveredFeedbackChange}
-              onApplyClick={handleApplyClick}
-              onCopy={handleCopy}
-              onAcceptFeedback={onAcceptFeedback}
-              onRemoveFeedbackAddition={onRemoveFeedbackAddition}
-              onAddFeedbackSource={onAddFeedbackSource}
-              onMarkFeedbackVerified={onMarkFeedbackVerified}
-              onFixFeedbackWithEAI={onFixFeedbackWithEAI}
-              setActiveSourceInput={setActiveSourceInput}
-              setSourceText={setSourceText}
-            />
-          ))}
+          {result.feedback?.map((item, index) => {
+            const feedbackKey = getFeedbackIdentity(item, index);
+            return (
+              <FeedbackItemCard
+                key={feedbackKey}
+                item={item}
+                index={index}
+                feedbackKey={feedbackKey}
+                isExpanded={expandedFeedback.has(feedbackKey)}
+                isActiveCard={activeFeedbackIndex === index}
+                isApplied={Boolean(item.isApplied)}
+                isApplying={applyingFeedback === feedbackKey}
+                isSubmittingSource={submittingSource === feedbackKey}
+                autoApplyDisabled={isManualFallback}
+                activeSourceInput={activeSourceInput}
+                sourceText={sourceText}
+                isTargetedFixing={isTargetedFixing}
+                onToggleFeedback={toggleFeedback}
+                onActiveFeedbackChange={onActiveFeedbackChange}
+                onHoveredFeedbackChange={onHoveredFeedbackChange}
+                onApplyClick={handleApplyClick}
+                onCopy={handleCopy}
+                onAcceptFeedback={onAcceptFeedback}
+                onRemoveFeedbackAddition={onRemoveFeedbackAddition}
+                onSubmitSource={async (feedbackIndex, key) => {
+                  if (!onAddFeedbackSource || submittingSource !== null) return;
+                  setSubmittingSource(key);
+                  try {
+                    const saved = await onAddFeedbackSource(feedbackIndex, sourceText);
+                    if (saved) {
+                      setActiveSourceInput(null);
+                      setSourceText('');
+                    }
+                  } finally {
+                    setSubmittingSource(null);
+                  }
+                }}
+                onFixFeedbackWithEAI={onFixFeedbackWithEAI}
+                setActiveSourceInput={setActiveSourceInput}
+                setSourceText={setSourceText}
+              />
+            );
+          })}
         </motion.div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import type {
   ResearchNote,
   EditorialProcessStage,
 } from '@eai/shared';
+import { findTargetMatch } from '@eai/shared';
 
 export const extractArticleMetadata = (metadata: unknown): ArticleMetadata => {
   if (!metadata || typeof metadata !== 'object') return {};
@@ -85,7 +86,11 @@ export const getApiErrorMessage = async (response: Response, fallback: string) =
 
 export const calculateReadiness = (feedback: FeedbackItem[], originalReadiness?: EditorialReadiness): EditorialReadiness => {
   const unresolved = (feedback || []).filter(
-    (item) => item.status !== 'pass' && !item.isAccepted && !item.isVerified
+    (item) =>
+      item.status !== 'pass'
+      && !item.isApplied
+      && !item.isAccepted
+      && !item.isVerified
   );
 
   if (unresolved.length === 0) {
@@ -98,6 +103,46 @@ export const calculateReadiness = (feedback: FeedbackItem[], originalReadiness?:
   }
 
   return 'needs_review';
+};
+
+export const normalizeHttpSourceUrl = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    return parsed.toString().replaceAll('(', '%28').replaceAll(')', '%29');
+  } catch {
+    return null;
+  }
+};
+
+export const addSourceLinkToDraft = (
+  draft: string,
+  targetText: string,
+  sourceUrl: string
+): { nextDraft: string; linked: boolean } => {
+  const match = findTargetMatch(draft, targetText);
+  if (!match) return { nextDraft: draft, linked: false };
+
+  const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+  for (const linkMatch of draft.matchAll(markdownLinkPattern)) {
+    const start = linkMatch.index ?? -1;
+    const end = start + linkMatch[0].length;
+    if (start <= match.start && end >= match.end) {
+      return {
+        nextDraft: `${draft.slice(0, start)}[${linkMatch[1]}](${sourceUrl})${draft.slice(end)}`,
+        linked: true,
+      };
+    }
+  }
+
+  const label = match.text.replace(/([\[\]])/g, '\\$1');
+  return {
+    nextDraft: `${draft.slice(0, match.start)}[${label}](${sourceUrl})${draft.slice(match.end)}`,
+    linked: true,
+  };
 };
 
 export const checkMissingSources = (draftText: string, notes: ResearchNote[]) => {

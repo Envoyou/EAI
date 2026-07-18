@@ -4,8 +4,14 @@ import { prisma, Prisma } from '@/lib/db';
 import { requireAuth } from '@/middleware/auth';
 import { ResearchNotesArraySchema } from '@eai/shared';
 import { getWorkspaceState } from '@/lib/user-workspace';
+import { preparePublicationDraft } from '@/routes/analyze/utils/text';
 
 const router = Router();
+
+const HttpSourceUrlSchema = z.string().max(2000).url().refine((value) => {
+  const protocol = new URL(value).protocol;
+  return protocol === 'http:' || protocol === 'https:';
+}, 'Source URL must use HTTP or HTTPS');
 
 const EditorialFeedbackSchema = z.object({
   category: z.string().nullable().optional(),
@@ -17,9 +23,10 @@ const EditorialFeedbackSchema = z.object({
   replacementText: z.string().nullable().optional(),
   reason: z.string().nullable().optional(),
   operation: z.string().nullable().optional(),
+  isApplied: z.boolean().nullable().optional(),
   isAccepted: z.boolean().nullable().optional(),
   isVerified: z.boolean().nullable().optional(),
-  verifiedSource: z.string().max(2000).nullable().optional(),
+  verifiedSource: HttpSourceUrlSchema.nullable().optional(),
 }).passthrough();
 
 const EditorialResolutionSchema = z.object({
@@ -380,7 +387,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         : {};
 
     const unresolved = resolution.data.feedback.filter(
-      (item) => item.status !== 'pass' && !item.isAccepted && !item.isVerified
+      (item) => item.status !== 'pass' && !item.isApplied && !item.isAccepted && !item.isVerified
     );
     const systemMetadata =
       metadata._system && typeof metadata._system === 'object' && !Array.isArray(metadata._system)
@@ -402,7 +409,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
           ...metadata,
           _system: {
             ...systemMetadata,
-            polishedDraft: resolution.data.polishedDraft,
+            polishedDraft: preparePublicationDraft(resolution.data.polishedDraft),
             readiness,
           },
         } as Prisma.InputJsonValue,

@@ -8,7 +8,6 @@ import {
   applyAllFeedbackOperations,
   applyFeedbackOperation,
   canAutoApplyFeedback,
-  findTargetMatch,
 } from '@eai/shared';
 import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
 import { applyDefaultMetadata } from '@/lib/preferences';
@@ -35,6 +34,8 @@ import {
   extractQualityGate,
   calculateReadiness,
   checkMissingSources,
+  normalizeHttpSourceUrl,
+  addSourceLinkToDraft,
 } from './utils';
 
 import type { PendingRefineAction } from './types';
@@ -216,6 +217,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   };
 
   const handleAnalyze = async (overrideDraft?: string, forceSkipCheck = false) => {
+    setHoveredFeedbackIndex(null);
+    setActiveFeedbackIndex(null);
     const ctx = {
       draft,
       metadata,
@@ -263,6 +266,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   };
 
   const handleRefineAgain = async (instruction: string, overrideText?: string, forceSkipCheck = false) => {
+    setHoveredFeedbackIndex(null);
+    setActiveFeedbackIndex(null);
     const ctx = {
       draft,
       metadata,
@@ -296,7 +301,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     await executeRefine(ctx, instruction, overrideText, forceSkipCheck);
   };
 
-  const handleApplyFix = (
+  const handleApplyFix = async (
     target: string,
     replacement: string,
     operation: 'replace' | 'insert_before' | 'insert_after' | 'manual',
@@ -304,32 +309,45 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   ) => {
     const item = analysis.feedback?.[index];
     // Require a real targetText — suggestion-only items cannot be auto-applied
-    if (!item || operation === 'manual' || !target) {
-      toast.error('Cannot auto-apply', { description: 'No target text found. Please apply this suggestion manually in the editor.' });
+    if (
+      !item ||
+      !canAutoApplyFeedback(item) ||
+      target !== item.targetText ||
+      replacement !== item.replacementText ||
+      operation !== item.operation
+    ) {
+      toast.error('Cannot auto-apply', { description: 'This feedback requires manual editorial review.' });
       return false;
     }
     const finalDraft = analysis.polishedDraft || '';
-    const result = applyFeedbackOperation(finalDraft, {
-      ...item,
-      targetText: target,
-      replacementText: replacement,
-      operation,
-    });
+    const result = applyFeedbackOperation(finalDraft, item);
     if (!result.success) {
       toast.error('Failed to apply fix', { description: 'Target text not found in draft. Please apply manually.' });
       return false;
     }
-    setAnalysis(prev => ({
-      ...prev,
-      polishedDraft: result.nextText,
-      readiness: 'needs_review',
-      verdict: 'needs_review',
-    }));
-    toast.success('Suggestion applied!');
-    return true;
+    const nextFeedback = [...(analysis.feedback || [])];
+    nextFeedback[index] = { ...item, isApplied: true };
+    const nextReadiness = calculateReadiness(nextFeedback, analysis.readiness);
+    const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
+    try {
+      await persistEditorialResolution(nextFeedback, nextReadiness, result.nextText, nextFlags);
+      setAnalysis(prev => ({
+        ...prev,
+        polishedDraft: result.nextText,
+        feedback: nextFeedback,
+        readiness: nextReadiness,
+        verdict: nextReadiness,
+        flags: nextFlags,
+      }));
+      toast.success('Suggestion applied and saved.');
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save the applied suggestion.');
+      return false;
+    }
   };
 
-  const handleApplyAllFixes = () => {
+  const handleApplyAllFixes = async () => {
     const feedback = analysis.feedback || [];
     const autoApplicable = feedback.filter(canAutoApplyFeedback);
     if (autoApplicable.length === 0) {
@@ -341,16 +359,29 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       toast.error('Auto-apply failed', { description: 'No matching target text found.' });
       return;
     }
-    setAnalysis(prev => ({
-      ...prev,
-      polishedDraft: result.nextText,
-      readiness: 'needs_review',
-      verdict: 'needs_review',
-    }));
-    if (result.failedIndexes.length > 0) {
-      toast.warning(`${result.appliedIndexes.length} applied, ${result.failedIndexes.length} need manual review.`);
-    } else {
-      toast.success(`${result.appliedIndexes.length} changes applied.`);
+    const appliedIndexSet = new Set(result.appliedIndexes);
+    const nextFeedback = feedback.map((item, index) =>
+      appliedIndexSet.has(index) ? { ...item, isApplied: true } : item
+    );
+    const nextReadiness = calculateReadiness(nextFeedback, analysis.readiness);
+    const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
+    try {
+      await persistEditorialResolution(nextFeedback, nextReadiness, result.nextText, nextFlags);
+      setAnalysis(prev => ({
+        ...prev,
+        polishedDraft: result.nextText,
+        feedback: nextFeedback,
+        readiness: nextReadiness,
+        verdict: nextReadiness,
+        flags: nextFlags,
+      }));
+      if (result.failedIndexes.length > 0) {
+        toast.warning(`${result.appliedIndexes.length} applied, ${result.failedIndexes.length} need manual review.`);
+      } else {
+        toast.success(`${result.appliedIndexes.length} changes applied and saved.`);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save applied suggestions.');
     }
   };
 
@@ -540,6 +571,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         ...prev,
         feedback: nextFeedback,
         readiness: nextReadiness,
+        verdict: nextReadiness,
         flags: nextFlags,
       }));
       toast.success('Editorial decision saved.');
@@ -548,61 +580,27 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     }
   };
 
-  const handleMarkFeedbackVerified = async (index: number) => {
-    if (!analysis.feedback) return;
-    const nextFeedback = [...analysis.feedback];
-    nextFeedback[index] = {
-      ...nextFeedback[index],
-      isVerified: true,
-    };
-    const nextReadiness = calculateReadiness(nextFeedback, analysis.readiness);
-    const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
-    try {
-      await persistEditorialResolution(
-        nextFeedback,
-        nextReadiness,
-        analysis.polishedDraft || '',
-        nextFlags
-      );
-      setAnalysis(prev => ({
-        ...prev,
-        feedback: nextFeedback,
-        readiness: nextReadiness,
-        flags: nextFlags,
-      }));
-      toast.success('Verification saved.');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save verification.');
-    }
-  };
-
-  const handleAddFeedbackSource = async (index: number, url: string) => {
-    const trimmedUrl = url.trim();
-    if (!trimmedUrl) {
-      toast.error('URL is required.');
-      return;
+  const handleAddFeedbackSource = async (index: number, url: string): Promise<boolean> => {
+    const normalizedUrl = normalizeHttpSourceUrl(url);
+    if (!normalizedUrl) {
+      toast.error('Enter a valid HTTP or HTTPS source URL.');
+      return false;
     }
     const item = analysis.feedback?.[index];
-    if (!item) return;
+    if (!item || !item.verificationStatus) return false;
     const sourceTarget = item.targetText?.trim() || item.message;
     const currentDraft = analysis.polishedDraft || '';
-    const match = findTargetMatch(currentDraft, sourceTarget);
-
-    const verificationNote = [
-      '## Verification Notes',
-      `- ${sourceTarget} — ${trimmedUrl}`,
-    ].join('\n');
-    const nextDraft = match
-      ? `${currentDraft.slice(0, match.start)}[${match.text}](${trimmedUrl})${currentDraft.slice(match.end)}`
-      : currentDraft.includes('## Verification Notes')
-        ? `${currentDraft.trim()}\n- ${sourceTarget} — ${trimmedUrl}`
-        : `${currentDraft.trim()}\n\n${verificationNote}`;
+    const { nextDraft, linked } = addSourceLinkToDraft(
+      currentDraft,
+      sourceTarget,
+      normalizedUrl
+    );
 
     const nextFeedback = [...(analysis.feedback || [])];
     nextFeedback[index] = {
       ...nextFeedback[index],
       isVerified: true,
-      verifiedSource: trimmedUrl,
+      verifiedSource: normalizedUrl,
     };
     const nextReadiness = calculateReadiness(nextFeedback, analysis.readiness);
     const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
@@ -613,11 +611,14 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         polishedDraft: nextDraft,
         feedback: nextFeedback,
         readiness: nextReadiness,
+        verdict: nextReadiness,
         flags: nextFlags,
       }));
-      toast.success(match ? 'Source added and verified.' : 'Source note added and verified.');
+      toast.success(linked ? 'Source added and verified.' : 'Source saved; target text was not changed.');
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save the source.');
+      return false;
     }
   };
 
@@ -749,7 +750,6 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     handleAddNewCategoryOrType,
     loadHistory,
     handleAcceptFeedback,
-    handleMarkFeedbackVerified,
     handleAddFeedbackSource,
     handleTargetedFix,
     handleProceedRefinement,

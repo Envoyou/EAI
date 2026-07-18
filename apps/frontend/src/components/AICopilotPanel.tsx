@@ -17,8 +17,8 @@ interface AICopilotPanelProps {
   onStrategistComplete?: (topic: string, outline: string, draft: string, notes: ResearchNote[], attachments: Attachment[]) => void;
   feedbackResult?: AnalysisResult | null;
   feedbackTitle?: string;
-  onApplyFix?: (targetText: string, replacementText: string, operation: 'replace' | 'insert_before' | 'insert_after' | 'manual', index: number) => boolean;
-  onApplyAll?: () => void;
+  onApplyFix?: (targetText: string, replacementText: string, operation: 'replace' | 'insert_before' | 'insert_after' | 'manual', index: number) => Promise<boolean>;
+  onApplyAll?: () => Promise<void>;
   hoveredFeedbackIndex?: number | null;
   onHoveredFeedbackChange?: (index: number | null) => void;
   activeFeedbackIndex?: number | null;
@@ -27,10 +27,9 @@ interface AICopilotPanelProps {
   processStage?: EditorialProcessStage;
   processStartedAt?: number | null;
   isRefining?: boolean;
-  onAcceptFeedback?: (index: number) => void;
+  onAcceptFeedback?: (index: number) => Promise<void>;
   onRemoveFeedbackAddition?: (index: number) => Promise<void>;
-  onAddFeedbackSource?: (index: number, url: string) => void;
-  onMarkFeedbackVerified?: (index: number) => void;
+  onAddFeedbackSource?: (index: number, url: string) => Promise<boolean>;
   onFixFeedbackWithEAI?: (index: number) => Promise<void>;
   isTargetedFixing?: number | null;
   researchNotes?: ResearchNote[];
@@ -67,7 +66,6 @@ export default function AICopilotPanel({
   onAcceptFeedback,
   onRemoveFeedbackAddition,
   onAddFeedbackSource,
-  onMarkFeedbackVerified,
   onFixFeedbackWithEAI,
   isTargetedFixing,
   researchNotes = [],
@@ -151,7 +149,6 @@ export default function AICopilotPanel({
               onAcceptFeedback={onAcceptFeedback}
               onRemoveFeedbackAddition={onRemoveFeedbackAddition}
               onAddFeedbackSource={onAddFeedbackSource}
-              onMarkFeedbackVerified={onMarkFeedbackVerified}
               onFixFeedbackWithEAI={onFixFeedbackWithEAI}
               isTargetedFixing={isTargetedFixing}
             />

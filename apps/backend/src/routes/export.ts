@@ -9,6 +9,7 @@ import {
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { getAllFeatureFlags } from '@eai/shared/server';
+import { preparePublicationDraft } from '@/routes/analyze/utils/text';
 
 const router = Router();
 
@@ -92,7 +93,7 @@ router.post('/', requireAuth, async (req, res) => {
       title,
       slug,
       excerpt,
-      content,
+      content: preparePublicationDraft(content),
       metaTitle,
       metaDescription,
       focusKeyword,
