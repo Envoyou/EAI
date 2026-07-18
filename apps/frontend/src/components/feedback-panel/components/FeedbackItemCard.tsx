@@ -404,35 +404,22 @@ export function FeedbackItemCard({
               {/* Interactive Actions for Post-Polish Review Loop */}
               {!isAccepted && !isVerified && (
                 <div className="mt-3 pt-3 border-t border-[var(--border)]/50 flex flex-wrap gap-2">
+                  {/* Suggestion-only items (no targetText): offer Copy instead of Apply */}
                   {!showApplyFeature &&
+                    !targetText &&
                     (item.status === 'warning' || item.status === 'fail') &&
                     replacementText && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onApplyClick(
-                            targetText || '',
-                            replacementText,
-                            operation,
-                            index
-                          );
+                          onCopy(replacementText, 'Suggestion');
                         }}
-                        disabled={isApplied}
-                        className={`ui-btn ui-btn-xs ${
-                          isApplied ? 'ui-btn-success' : 'ui-btn-primary'
-                        }`}
+                        className="ui-btn ui-btn-xs ui-btn-muted"
                       >
-                        {isApplied ? (
-                          <>
-                            <Check className="w-3.5 h-3.5" /> Applied
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 className="w-3.5 h-3.5" /> Apply Suggestion
-                          </>
-                        )}
+                        <Copy className="w-3.5 h-3.5" /> Copy Suggestion
                       </button>
                     )}
+
 
                   {item.category === 'Editorial Addition' && (
                     <>

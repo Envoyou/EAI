@@ -303,18 +303,12 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     index: number
   ) => {
     const item = analysis.feedback?.[index];
-    if (!item || operation === 'manual') return false;
-    const finalDraft = analysis.polishedDraft || '';
-    if (!target && replacement) {
-      setAnalysis(prev => ({
-        ...prev,
-        polishedDraft: `${finalDraft}\n\n${replacement}`,
-        readiness: 'needs_review',
-        verdict: 'needs_review',
-      }));
-      toast.success('Suggestion applied!');
-      return true;
+    // Require a real targetText — suggestion-only items cannot be auto-applied
+    if (!item || operation === 'manual' || !target) {
+      toast.error('Cannot auto-apply', { description: 'No target text found. Please apply this suggestion manually in the editor.' });
+      return false;
     }
+    const finalDraft = analysis.polishedDraft || '';
     const result = applyFeedbackOperation(finalDraft, {
       ...item,
       targetText: target,
@@ -322,7 +316,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       operation,
     });
     if (!result.success) {
-      toast.error('Failed to apply fix', { description: 'Target text not found. Please edit manually.' });
+      toast.error('Failed to apply fix', { description: 'Target text not found in draft. Please apply manually.' });
       return false;
     }
     setAnalysis(prev => ({
