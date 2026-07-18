@@ -162,7 +162,7 @@ apps/backend/
 │       ├── onboarding.ts     # GET/POST /api/onboarding — onboarding wizard
 │       ├── scrape.ts         # POST /api/scrape — URL content scraper
 │       ├── support.ts        # POST /api/support — support form
-│       ├── admin.ts          # /api/admin — owner-only admin operations
+│       ├── admin/            # /api/admin — modular owner-only admin operations folder (index, handlers, types, utils)
 │       ├── analytics.ts      # GET /api/analytics — usage analytics
 │       ├── editor.ts         # /api/editor — editor state management
 │       ├── storage.ts        # /api/storage — R2 file storage

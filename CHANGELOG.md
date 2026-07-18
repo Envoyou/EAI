@@ -6,6 +6,24 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.10.0] - 2026-07-18
+
+### Changed
+- **Decomposed Monolithic Admin Route (`apps/backend/src/routes/admin.ts`)**: Refactored the 38KB monolithic admin route file into a modular folder `apps/backend/src/routes/admin/` with strict separation of concerns (Zero Logic Change):
+  - `types.ts`: Isolated Zod validation schemas (`AdjustmentSchema`, `OverridePlanSchema`, `UserCreditAdjustmentSchema`, `AiConfigSchema`, `AuditLogSchema`).
+  - `utils.ts`: Authorization helpers (`getAdminContext`, `getActor`).
+  - `handlers/`: Domain-specific HTTP handlers (`users.ts`, `organizations.ts`, `editorial-profiles.ts`, `audit-logs.ts`).
+  - `index.ts`: Re-exports unified Express router maintaining 100% backward compatibility.
+- **Decomposed Monolithic UserDirectory Component (`apps/frontend/src/components/UserDirectory.tsx`)**: Refactored the 73KB monolithic frontend component into a modular structure under `src/components/user-directory/`:
+  - `types.ts`: Unified TypeScript interfaces (`DirectoryUser`, `PaginationMeta`, `UserDetailsData`).
+  - `hooks/useUserDirectory.ts`: Custom hook facade isolating directory state management, search, filters, pagination, and API actions.
+  - `components/`: Isolated UI sub-components (`UserTable.tsx`, `UserActionMenu.tsx`).
+  - `CreditAdjustmentModal.tsx` & `OrganizationDetailDrawer.tsx`: Lazy-loaded dynamic imports to optimize initial bundle size.
+  - `UserDirectory.tsx`: Lightweight facade wrapper component (< 100 LOC).
+- **Backend Housekeeping & Error Handler Hardening**:
+  - Relocated standalone test scripts (`test_*.js`, `test_*.ts`) into `apps/backend/src/__tests__/scripts/` and fixed relative import paths.
+  - Hardened global error handler in `apps/backend/src/server.ts` to mask raw internal error messages in production mode.
+
 ## [3.9.0] - 2026-07-18
 
 ### Added

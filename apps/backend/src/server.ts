@@ -94,7 +94,13 @@ app.use('/api/prompt-inspector', promptInspectorRouter);
 // Error Handler
 app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[SERVER ERROR]', err);
-  res.status(500).json({ error: err instanceof Error ? err.message : 'Internal Server Error' });
+  const isProd = process.env.NODE_ENV === 'production';
+  const errorMessage = isProd
+    ? 'Internal Server Error'
+    : err instanceof Error
+    ? err.message
+    : 'Internal Server Error';
+  res.status(500).json({ error: errorMessage });
 });
 
 // Start Server

@@ -6,6 +6,24 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.10.0] - 2026-07-18
+
+### Changed
+- **Refaktor Rute Admin Monolitik (`apps/backend/src/routes/admin.ts`)**: Merefaktor berkas 38KB rute admin monolitik ke dalam folder modular `apps/backend/src/routes/admin/` dengan pemisahan tanggung jawab yang jelas (Zero Logic Change):
+  - `types.ts`: Mengisolasi skema validasi Zod (`AdjustmentSchema`, `OverridePlanSchema`, `UserCreditAdjustmentSchema`, `AiConfigSchema`, `AuditLogSchema`).
+  - `utils.ts`: Helper otorisasi admin (`getAdminContext`, `getActor`).
+  - `handlers/`: Handler HTTP spesifik sub-domain (`users.ts`, `organizations.ts`, `editorial-profiles.ts`, `audit-logs.ts`).
+  - `index.ts`: Re-export router Express terpadu untuk kompatibilitas penuh.
+- **Refaktor Komponen UserDirectory Monolitik (`apps/frontend/src/components/UserDirectory.tsx`)**: Merefaktor komponen frontend 73KB ke dalam struktur modular di bawah `src/components/user-directory/`:
+  - `types.ts`: Interface TypeScript terpadu (`DirectoryUser`, `PaginationMeta`, `UserDetailsData`).
+  - `hooks/useUserDirectory.ts`: Custom hook facade mengelola state direktori, pencarian, filter, paginasi, dan aksi API.
+  - `components/`: Sub-komponen UI terisolasi (`UserTable.tsx`, `UserActionMenu.tsx`).
+  - `CreditAdjustmentModal.tsx` & `OrganizationDetailDrawer.tsx`: Pemuatan dinamis (lazy loading) via Next.js `dynamic()` untuk mengoptimalkan ukuran bundle awal.
+  - `UserDirectory.tsx`: Komponen facade ringkas (< 100 LOC).
+- **Pembersihan Backend & Hardening Error Handler**:
+  - Memindahkan skrip tes standalone (`test_*.js`, `test_*.ts`) ke folder `apps/backend/src/__tests__/scripts/` dan memperbarui jalur import terkait.
+  - Memperketat error handler global pada `apps/backend/src/server.ts` untuk menyembunyikan detail pesan error internal saat berjalan pada mode produksi.
+
 ## [3.9.0] - 2026-07-18
 
 ### Added
