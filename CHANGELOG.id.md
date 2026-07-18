@@ -6,6 +6,28 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.12.0] - 2026-07-18
+
+### Changed
+- **Refaktor Komponen Frontend `FeedbackPanel` Monolitik**: Merefaktor `apps/frontend/src/components/FeedbackPanel.tsx` (44KB) menjadi sub-sistem modular di bawah `src/components/feedback-panel/`:
+  - `types.ts`: Antarmuka TypeScript terisolasi (`FeedbackPanelProps`, `VerificationBadgeConfig`).
+  - `hooks/useFeedbackActions.ts`: Custom hook mengelola aksi quick-fix, targeted fix, mark verified, add source, dan status copy toast.
+  - `components/FeedbackItemCard.tsx`: Komponen khusus kartu item feedback, badge verifikasi, dan tombol tindakan.
+  - `components/QualityGateSummary.tsx`: Header ringkasan skor readiness Quality Gate, alert mode, dan aksi kelompok.
+  - `FeedbackPanel.tsx`: Facade shell ramping (< 100 LOC) menjaga kompatibilitas 100%.
+- **Refaktor Komponen Frontend `StrategistTab` Monolitik**: Merefaktor `apps/frontend/src/components/StrategistTab.tsx` (40KB) menjadi sub-sistem modular di bawah `src/components/strategist-tab/`:
+  - `types.ts`: Antarmuka TypeScript terisolasi untuk sesi chat dan props (`StrategistTabProps`).
+  - `hooks/useStrategistChat.ts`: Custom hook mengelola unggah lampiran, state rename sesi, dan kontrol input chat.
+  - `components/SessionSidebar.tsx`: Komponen khusus sidebar riwayat sesi percakapan (pin, rename, delete).
+  - `components/ChatMessageList.tsx`: Komponen renderer list pesan teroptimasi yang mencegah re-render berlebih saat streaming SSE.
+  - `components/ChatInputBar.tsx`: Komponen bar input chat khusus pendukung toggle search, lampiran file, dan mode riset.
+  - `StrategistTab.tsx`: Facade shell ramping (< 100 LOC) menjaga kompatibilitas 100%.
+
+### Added
+- **Perluasan Unit Test Backend**:
+  - `apps/backend/src/lib/__tests__/chat-billing.test.ts`: Cakupan unit test untuk pemeriksaan kredit (`checkCreditsRemaining`) dan pemotongan saldo bucket (`deductCredits`).
+  - `apps/backend/src/lib/__tests__/user-workspace.test.ts`: Cakupan unit test untuk resolusi konteks organisasi (`toClerkOrganizationContext`) dan inisialisasi user record (`ensureCurrentUserRecord`).
+
 ## [3.11.0] - 2026-07-18
 
 ### Changed

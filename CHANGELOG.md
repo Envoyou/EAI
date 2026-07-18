@@ -6,6 +6,28 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.12.0] - 2026-07-18
+
+### Changed
+- **Decomposed Monolithic Frontend `FeedbackPanel` Component**: Refactored `apps/frontend/src/components/FeedbackPanel.tsx` (44KB) into a modular sub-system under `src/components/feedback-panel/`:
+  - `types.ts`: Isolated TypeScript interfaces (`FeedbackPanelProps`, `VerificationBadgeConfig`).
+  - `hooks/useFeedbackActions.ts`: Custom hook managing quick-fix, targeted fix, mark verified, add source, and copy feedback state.
+  - `components/FeedbackItemCard.tsx`: Dedicated card renderer for individual feedback checks, verification status badges, and action buttons.
+  - `components/QualityGateSummary.tsx`: Header component rendering readiness score summary, alerts, and batch actions.
+  - `FeedbackPanel.tsx`: Facade shell (< 100 LOC) preserving 100% backward compatibility.
+- **Decomposed Monolithic Frontend `StrategistTab` Component**: Refactored `apps/frontend/src/components/StrategistTab.tsx` (40KB) into a modular sub-system under `src/components/strategist-tab/`:
+  - `types.ts`: Isolated TypeScript interfaces for chat sessions and props (`StrategistTabProps`).
+  - `hooks/useStrategistChat.ts`: Custom hook managing attachment uploads, session renaming state, and chat input controls.
+  - `components/SessionSidebar.tsx`: Dedicated sidebar component for chat history session management (pin, rename, delete).
+  - `components/ChatMessageList.tsx`: Optimized message list renderer preventing unnecessary re-renders during SSE streaming.
+  - `components/ChatInputBar.tsx`: Dedicated chat input bar component supporting search toggle, file attachment, and mode selection.
+  - `StrategistTab.tsx`: Facade shell (< 100 LOC) preserving 100% backward compatibility.
+
+### Added
+- **Backend Service Unit Tests**:
+  - `apps/backend/src/lib/__tests__/chat-billing.test.ts`: Expanded unit test coverage for credit checking (`checkCreditsRemaining`) and bucket deduction (`deductCredits`).
+  - `apps/backend/src/lib/__tests__/user-workspace.test.ts`: Expanded unit test coverage for organization context resolution (`toClerkOrganizationContext`) and user record initialization (`ensureCurrentUserRecord`).
+
 ## [3.11.0] - 2026-07-18
 
 ### Changed

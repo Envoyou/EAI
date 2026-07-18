@@ -117,7 +117,16 @@ apps/frontend/
 │   │   ├── EditorialWorkspace.tsx  # Pure UI orchestrator / shell (delegates logic to useEditorialWorkspace)
 │   │   ├── Editor.tsx            # Tiptap editor wrapper
 │   │   ├── EditorCanvas.tsx      # Tiptap canvas
-│   │   ├── FeedbackPanel.tsx     # AI feedback panel
+│   │   ├── FeedbackPanel.tsx     # Facade shell (< 100 LOC) for AI feedback panel
+│   │   ├── feedback-panel/       # FeedbackPanel modular sub-system
+│   │   │   ├── types.ts          # Props & verification types
+│   │   │   ├── hooks/            # Custom hooks (useFeedbackActions)
+│   │   │   └── components/       # Sub-components (FeedbackItemCard, QualityGateSummary)
+│   │   ├── StrategistTab.tsx     # Facade shell (< 100 LOC) for AI Strategist chat
+│   │   ├── strategist-tab/       # StrategistTab modular sub-system
+│   │   │   ├── types.ts          # Props & chat session types
+│   │   │   ├── hooks/            # Custom hooks (useStrategistChat)
+│   │   │   └── components/       # Sub-components (SessionSidebar, ChatMessageList, ChatInputBar)
 │   │   ├── FinalDraftPanel.tsx   # Final draft view
 │   │   ├── StrategistTab.tsx     # Content strategy AI tab
 │   │   ├── UserDirectory.tsx     # User management console (66KB)
