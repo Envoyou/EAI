@@ -6,6 +6,19 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.11.0] - 2026-07-18
+
+### Changed
+- **Decomposed Monolithic Strategist Route (`apps/backend/src/routes/strategist/index.ts`)**: Refactored the 61KB / 1.566 LOC monolithic strategist route file into a modular, strictly-typed folder structure `apps/backend/src/routes/strategist/` with **Zero Logic Change**:
+  - `types.ts`: Isolated Zod validation schemas (`ChatInputSchema`, `GeneratePlanSchema`, `GenerateDraftFromNotesSchema`, `QuickDraftSchema`) with derived `z.infer` TypeScript types.
+  - `utils/grounding.ts`: Grounding URL resolution & leak sanitizer (`resolveGroundingUrl`, `sanitizeGroundingLeaks`, `fetchWithTimeout`).
+  - `utils/helpers.ts`: Organization resolution helper (`resolveInternalOrgId`), URL scraper, rate limiter, soft auth, and prompt constants.
+  - `handlers/chat.ts`: HTTP SSE streaming handler for interactive AI Strategist chat, billing deduction, and grounding search.
+  - `handlers/plan.ts`: HTTP handler for AI Blueprint Plan generation (`POST /generate-plan`).
+  - `handlers/draft-from-notes.ts`: NDJSON stream handler for converting research notes to structured drafts (`POST /generate-draft-from-notes`).
+  - `handlers/sessions.ts`: HTTP CRUD handlers for managing chat history sessions (`GET /sessions`, `GET /sessions/:id`, `DELETE /sessions/:id`).
+  - `index.ts`: Unified Express router entrypoint re-exporting all sub-routers with 100% backward compatibility.
+
 ## [3.10.0] - 2026-07-18
 
 ### Changed

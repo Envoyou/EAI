@@ -6,6 +6,19 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.11.0] - 2026-07-18
+
+### Changed
+- **Refaktor Rute Strategist Monolitik (`apps/backend/src/routes/strategist/index.ts`)**: Merefaktor berkas rute strategist monolitik 61KB / 1.566 LOC ke dalam struktur folder modular bertipe ketat `apps/backend/src/routes/strategist/` dengan **Zero Logic Change**:
+  - `types.ts`: Skema validasi Zod terisolasi (`ChatInputSchema`, `GeneratePlanSchema`, `GenerateDraftFromNotesSchema`, `QuickDraftSchema`) dengan tipe TypeScript yang diturunkan via `z.infer`.
+  - `utils/grounding.ts`: Helper resolusi URL Google Grounding & sanitizer kebocoran link (`resolveGroundingUrl`, `sanitizeGroundingLeaks`, `fetchWithTimeout`).
+  - `utils/helpers.ts`: Helper resolusi organisasi (`resolveInternalOrgId`), URL scraper, rate limiter, soft auth, dan konstanta prompt.
+  - `handlers/chat.ts`: Handler HTTP SSE streaming untuk chat AI Strategist interaktif, pemotongan kredit billing, dan pencarian grounding.
+  - `handlers/plan.ts`: Handler HTTP pembuatan AI Blueprint Plan (`POST /generate-plan`).
+  - `handlers/draft-from-notes.ts`: Handler NDJSON stream pembuatan draf dari catatan riset (`POST /generate-draft-from-notes`).
+  - `handlers/sessions.ts`: Handler HTTP CRUD riwayat sesi percakapan (`GET /sessions`, `GET /sessions/:id`, `DELETE /sessions/:id`).
+  - `index.ts`: Entrypoint router Express terpadu dengan kompatibilitas penuh.
+
 ## [3.10.0] - 2026-07-18
 
 ### Changed
