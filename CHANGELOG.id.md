@@ -7,6 +7,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Kontrak Publikasi & Kebijakan Visual**:
+  - Menambahkan kontrak `workingTitle`, `PublicationPackage`, dan `publicationPackageStatus` (`not_generated`, `current`, `stale`) pada tipe shared, persistensi analisis, pemulihan history, dan validasi export.
+  - Menambahkan `VisualFormatSelectionPolicyNode` reusable yang menjadikan prosa sebagai default dan hanya memilih Mermaid, tabel, numbered list, atau bullet jika struktur sumber memang membutuhkannya.
+  - Menambahkan regression test untuk body CMS tanpa H1, semantik title Fast/Publish, ringkasan visual tidak aman, keamanan feedback field publikasi, serta penanganan akronim API/KPI.
 - **Infrastruktur Keamanan & Ledger**:
   - Menambahkan `safe-url-fetch.ts` untuk memvalidasi target HTTP(S), menolak URL berkredensial serta alamat IPv4/IPv6 privat/lokal, mengikat socket ke hasil DNS tervalidasi, menerapkan policy outbound host/port/ukuran/timeout, dan memvalidasi ulang setiap redirect sebelum outbound fetch.
   - Menambahkan HTTP rate limiter atomic berbasis Redis yang digunakan lintas instance aplikasi, dengan namespace terisolasi untuk traffic Strategist dan autosave History.
@@ -14,6 +18,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan regression test SSRF untuk loopback, jaringan privat, cloud metadata, IPv6, URL berkredensial, dan protokol yang tidak didukung.
 
 ### Changed
+- **Pipeline Publish Ready**:
+  - Memindahkan pembuatan Publication Package sebelum Final Quality Gate agar gate mengaudit canonical CMS title dan metadata bersama body artikel tanpa H1.
+  - Menjadikan Fast mode content-only sambil mempertahankan working title hasil ekstraksi untuk preview dan download.
+  - Membuat finding field publikasi menargetkan metadata secara eksplisit, bukan menyisipkan H1 Markdown ke body artikel.
 - **Boundary Request AI & Pemakaian Kredit**:
   - Mengaktifkan validasi Zod runtime untuk Analyze, Strategist Chat, Generate Plan, Quick Draft, Draft From Notes, dan payload lampiran sebelum stream dibuka atau resource AI digunakan.
   - Menghapus pemilihan provider AI oleh client pada Analyze dan Quick Draft; provider kini mengikuti konfigurasi server/workspace.
@@ -21,6 +29,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Membuat pemotongan kredit bersifat serializable dan menolak saldo tidak cukup alih-alih menulis transaksi fallback yang dapat menghasilkan saldo ledger negatif.
 
 ### Fixed
+- **Konsistensi Title, Metadata & Visual**:
+  - Mencegah Final Quality Gate melaporkan H1 hilang ketika field title CMS tersedia atau ketika Fast mode memang tidak membuat metadata publikasi.
+  - Menandai metadata publikasi stale setelah targeted fix, apply suggestion, atau mutasi source link; package stale dan body yang berbeda dari versi tersimpan kini diblokir dari export CMS.
+  - Merekonsiliasi ringkasan perubahan Quality Gate agar diagram atau tabel unsupported tidak sekaligus dipuji sebagai improvement, serta mencegah akronim umum API/KPI salah diklasifikasikan sebagai entitas baru.
 - **Keamanan Tenant & Jaringan**:
   - Mewajibkan ownership user sebelum memperbarui sesi Strategist atau menambahkan pesan chat, termasuk memblokir session ID yang dipasok guest.
   - Membatasi endpoint Prompt Inspector dan prompt diff hanya untuk owner platform yang dikonfigurasi.

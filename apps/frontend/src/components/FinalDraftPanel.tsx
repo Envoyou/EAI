@@ -12,8 +12,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
 import { buildParagraphDiff } from '@eai/shared';
-import { ArticleMetadata, EditorialProcessStage, FeedbackItem } from '@eai/shared';
+import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackageStatus } from '@eai/shared';
 import EditorialProgress from '@/components/EditorialProgress';
+import { useTranslations } from 'next-intl';
 
 interface FinalDraftPanelProps {
   originalDraft: string;
@@ -40,6 +41,8 @@ interface FinalDraftPanelProps {
     coverImageAltText?: string;
     tags?: string[];
   };
+  workingTitle?: string;
+  publicationPackageStatus?: PublicationPackageStatus;
   isFocused?: boolean;
   onFocusToggle?: () => void;
   isStreaming?: boolean;
@@ -168,6 +171,8 @@ export default function FinalDraftPanel({
   articleMetadata,
   exportStatus,
   generatedMetadata,
+  workingTitle,
+  publicationPackageStatus,
   isFocused,
   onFocusToggle,
   isStreaming,
@@ -182,6 +187,7 @@ export default function FinalDraftPanel({
   feedback = [],
   isDemoMode = false,
 }: FinalDraftPanelProps) {
+  const t = useTranslations('FinalDraftPanel');
   const [activeTab, setActiveTab] = useState<TabType>('preview');
   const [isExporting, setIsExporting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -343,7 +349,7 @@ export default function FinalDraftPanel({
   };
 
   const handleDownloadPDF = () => {
-    const title = generatedMetadata?.title || 'Refined Article';
+    const title = generatedMetadata?.title || workingTitle || 'Refined Article';
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       toast.error('Failed to open print window. Please allow popups.');
@@ -431,7 +437,7 @@ export default function FinalDraftPanel({
   };
 
   const handleDownloadWord = () => {
-    const title = generatedMetadata?.title || 'Refined Article';
+    const title = generatedMetadata?.title || workingTitle || 'Refined Article';
     const htmlContent = markdownToHtml(polishedDraft);
     const contentHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -473,7 +479,7 @@ export default function FinalDraftPanel({
   };
 
   const handleDownloadMarkdown = () => {
-    const title = generatedMetadata?.title || 'Refined Article';
+    const title = generatedMetadata?.title || workingTitle || 'Refined Article';
     const filename = `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`;
     const blob = new Blob([polishedDraft], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -507,6 +513,7 @@ export default function FinalDraftPanel({
     !exportBlocked &&
     analysisLogId &&
     sourceRef &&
+    publicationPackageStatus === 'current' &&
     generatedMetadata?.title &&
     generatedMetadata?.excerpt &&
     generatedMetadata?.metaTitle &&
@@ -527,7 +534,9 @@ export default function FinalDraftPanel({
             ? 'Export requires a saved analysis result'
             : !sourceRef
               ? 'Add a source reference before exporting'
-              : !generatedMetadata?.title ||
+            : publicationPackageStatus !== 'current'
+              ? t('refreshPublicationMetadata')
+            : !generatedMetadata?.title ||
                   !generatedMetadata?.excerpt ||
                   !generatedMetadata?.metaTitle ||
                   !generatedMetadata?.metaDescription
@@ -647,7 +656,7 @@ export default function FinalDraftPanel({
               Refined Draft
             </p>
             <h2 className="line-clamp-2 break-normal text-[14px] font-semibold text-[var(--foreground)]">
-              {generatedMetadata?.title || (isGeneratingDraft ? 'Preparing refined draft' : 'Refined Article')}
+              {generatedMetadata?.title || workingTitle || (isGeneratingDraft ? 'Preparing refined draft' : 'Refined Article')}
             </h2>
           </div>
 
@@ -832,6 +841,15 @@ export default function FinalDraftPanel({
         {exportStatus?.blogEditUrl && (
           <div className="ui-alert ui-alert-warning mb-3 px-3 py-2 text-xs">
             <strong>Note:</strong> This draft was already exported. Re-exporting will update the existing blog draft.
+          </div>
+        )}
+        {publicationPackageStatus === 'stale' && (
+          <div className="ui-alert ui-alert-warning mb-3 px-3 py-2 text-xs">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <div>
+              <strong>{t('staleMetadataTitle')}</strong>{' '}
+              {t('staleMetadataDescription')}
+            </div>
           </div>
         )}
 

@@ -45,6 +45,28 @@ export const extractGeneratedMetadata = (metadata: unknown) => {
   return (metadata as Record<string, unknown>).generatedMetadata as Record<string, unknown> | undefined;
 };
 
+export const extractPublicationState = (metadata: unknown): {
+  workingTitle?: string;
+  publicationPackageStatus?: import('@eai/shared').PublicationPackageStatus;
+} => {
+  if (!metadata || typeof metadata !== 'object') return {};
+  const source = metadata as Record<string, unknown>;
+  const system = source._system && typeof source._system === 'object'
+    ? source._system as Record<string, unknown>
+    : {};
+  const rawStatus = source.publicationPackageStatus ?? system.publicationPackageStatus;
+  const publicationPackageStatus = rawStatus === 'current' || rawStatus === 'stale' || rawStatus === 'not_generated'
+    ? rawStatus
+    : source.generatedMetadata
+      ? 'current'
+      : 'not_generated';
+  const rawTitle = source.workingTitle ?? system.workingTitle;
+  return {
+    workingTitle: typeof rawTitle === 'string' ? rawTitle : undefined,
+    publicationPackageStatus,
+  };
+};
+
 export const extractQualityGate = (metadata: unknown): {
   readiness?: EditorialReadiness;
   changes?: string[];

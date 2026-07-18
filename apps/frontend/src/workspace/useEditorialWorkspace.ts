@@ -31,6 +31,7 @@ import {
   extractResponseMode,
   extractPolishedDraft,
   extractGeneratedMetadata,
+  extractPublicationState,
   extractQualityGate,
   calculateReadiness,
   checkMissingSources,
@@ -338,6 +339,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         readiness: nextReadiness,
         verdict: nextReadiness,
         flags: nextFlags,
+        publicationPackageStatus: prev.publicationPackageStatus === 'current' ? 'stale' : prev.publicationPackageStatus,
       }));
       toast.success('Suggestion applied and saved.');
       return true;
@@ -374,6 +376,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         readiness: nextReadiness,
         verdict: nextReadiness,
         flags: nextFlags,
+        publicationPackageStatus: prev.publicationPackageStatus === 'current' ? 'stale' : prev.publicationPackageStatus,
       }));
       if (result.failedIndexes.length > 0) {
         toast.warning(`${result.appliedIndexes.length} applied, ${result.failedIndexes.length} need manual review.`);
@@ -496,6 +499,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         setHoveredFeedbackIndex(null);
         setActiveFeedbackIndex(null);
         const qualityGate = extractQualityGate(log.metadata);
+        const publicationState = extractPublicationState(log.metadata);
         const legacyOrReadiness = log.verdict as AnalysisResult['verdict'];
         setAnalysis({
           status: log.status,
@@ -513,6 +517,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           sourceRef: (log.metadata as Record<string, unknown>)?.sourceRef as string | undefined,
           exportStatus: (log.metadata as Record<string, unknown>)?.exportStatus as ArticleMetadata['exportStatus'],
           generatedMetadata: extractGeneratedMetadata(log.metadata) as Record<string, unknown>,
+          workingTitle: publicationState.workingTitle,
+          publicationPackageStatus: publicationState.publicationPackageStatus,
           editorStatus: log.editorStatus,
         });
         if (log.status === 'success') setActiveTab('refined');
@@ -613,6 +619,9 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         readiness: nextReadiness,
         verdict: nextReadiness,
         flags: nextFlags,
+        publicationPackageStatus: nextDraft !== currentDraft && prev.publicationPackageStatus === 'current'
+          ? 'stale'
+          : prev.publicationPackageStatus,
       }));
       toast.success(linked ? 'Source added and verified.' : 'Source saved; target text was not changed.');
       return true;

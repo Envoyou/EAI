@@ -106,7 +106,16 @@ export async function executeAnalyze(
   }
 
   setSourceDraft(textToAnalyze);
-  setAnalysis(() => ({ status: 'loading', readiness: undefined, changes: [], summary: '', polishedDraft: '', feedback: [], flags: [] }));
+  setAnalysis(() => ({
+    status: 'loading',
+    readiness: undefined,
+    changes: [],
+    summary: '',
+    polishedDraft: '',
+    feedback: [],
+    flags: [],
+    publicationPackageStatus: 'not_generated',
+  }));
   setIsStreaming(true);
   setProcessStage('reviewing');
   setProcessStartedAt(Date.now());
@@ -224,9 +233,14 @@ export async function executeAnalyze(
             setAnalysis(prev => ({ ...prev, status: 'success', polishedDraft: event.data as string }));
             break;
           case 'seo_metadata': setAnalysis(prev => ({ ...prev, status: 'success', generatedMetadata: event.data as Record<string, unknown> })); break;
+          case 'working_title': setAnalysis(prev => ({ ...prev, workingTitle: event.data as string })); break;
+          case 'publication_package_status': setAnalysis(prev => ({
+            ...prev,
+            publicationPackageStatus: event.data as import('@eai/shared').PublicationPackageStatus,
+          })); break;
           case 'reset':
             setProcessStage('reviewing');
-            setAnalysis(() => ({ status: 'loading', readiness: undefined, changes: [], summary: '', polishedDraft: '', feedback: [], flags: [] }));
+            setAnalysis(() => ({ status: 'loading', readiness: undefined, changes: [], summary: '', polishedDraft: '', feedback: [], flags: [], publicationPackageStatus: 'not_generated' }));
             break;
           case 'complete': {
             receivedComplete = true;

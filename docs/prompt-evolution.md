@@ -92,6 +92,9 @@ Dalam masa pengembangan awal, ditemukan beberapa kendala pada respon model AI. B
     *   Pemisahan quality-gate draft dari publication draft agar marker verifikasi tetap diaudit tetapi tidak masuk CMS.
     *   Seleksi internal link berdasarkan overlap substantif dan keluarga topik.
     *   Retry quality gate satu kali sebelum fallback.
+    *   Kontrak mode-aware: Fast mengaudit body saja, sedangkan Publish Ready mengaudit body tanpa H1 bersama Publication Package yang sudah dibuat sebelumnya.
+    *   Status package `not_generated/current/stale` membatalkan export jika body berubah setelah metadata dibuat.
+    *   Rekonsiliasi daftar perubahan mencegah visual unsupported dipuji sekaligus ditandai sebagai risiko.
  
 ### G. Caching & Stabilitas Rekayasa Prompt Riset & Draf (EAI Chat & Draft)
 *   **Kendala**: Struktur instruksi asisten riset dan draft kasar cenderung panjang dan dinamis (misalnya menyertakan target bahasa dinamis, sitasi, dan draft mentah), yang menyebabkan caching model (Gemini Context Caching) tidak optimal karena parameter `system_instruction` berubah per permintaan. Selain itu, instruksi sitasi dan batasan menulis sering tersebar di antara input dan system instruction, membagi perhatian model.
@@ -141,6 +144,7 @@ Dalam masa pengembangan awal, ditemukan beberapa kendala pada respon model AI. B
 ### M. H1 Format Contract & Konsolidasi Konfigurasi Provider (v2.3.0)
 *   **Kendala 1 (H1 Duplikat)**: Rewrite stage menerima draf yang masih mengandung heading H1 di awal konten. Karena frontend sudah merender judul artikel secara terpisah dari body Tiptap, H1 yang tersisa di dalam body menghasilkan judul duplikat di artikel publik.
 *   **Solusi 1**: Membuat fungsi `stripLeadingH1` di `src/lib/text-utils.ts`. Fungsi ini mendeteksi dan menghapus heading Markdown `# ...` pertama dari draf sebelum konten diteruskan ke rewrite stage.
+*   **Evolusi Kontrak**: H1 draft mentah dipertahankan sebagai `workingTitle`; body final selalu tanpa H1. Publish Ready memakai `PublicationPackage.title` sebagai H1 halaman CMS, dan Quality Gate dilarang menyisipkan judul ke body. Kebijakan visual terpusat juga menjadikan prosa sebagai default serta mewajibkan seluruh node diagram, kolom tabel, metrik, dan relasi didukung sumber.
 *   **Kendala 2 (Parameter `temperature` Mati)**: Panggilan native Gemini menggunakan fungsi `getGeminiSamplingConfig` yang mengembalikan objek `{ temperature, topP, topK }`. Namun, parameter `temperature` diabaikan sepenuhnya oleh Gemini ketika `thinkingConfig` aktif.
 *   **Solusi 2**: Memperkenalkan helper eksplisit `getNativeGeminiConfig(thinkingLevel)` (tanpa parameter temperature) dan menandai helper lama sebagai `@deprecated`.
 

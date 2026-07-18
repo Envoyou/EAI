@@ -7,7 +7,7 @@ import {
 import type { EditorialProfileSnapshot } from '@eai/shared/server';
 import { QualityGatePromptComposer } from './prompt-engine/composer/quality-gate-composer';
 import { parseJsonResponse } from '@eai/shared';
-import type { ArticleMetadata, FeedbackItem, ResearchNote } from '@eai/shared';
+import type { ArticleMetadata, FeedbackItem, PublicationPackage, ResearchNote } from '@eai/shared';
 import type { AiProvider, AnalysisSpeed } from './provider-runtime';
 import { getProvider } from './providers/registry';
 import { resolveModel } from './model-router';
@@ -47,6 +47,9 @@ const runFinalQualityGate = async ({
   sanitizeFeedback,
   sanitizeSummary,
   researchNotes = [],
+  publicationMode,
+  workingTitle,
+  publicationPackage,
   attempt = 1,
 }: {
   provider: AiProvider;
@@ -65,6 +68,9 @@ const runFinalQualityGate = async ({
     draftText: string
   ) => string;
   researchNotes?: ResearchNote[];
+  publicationMode: 'fast' | 'publish_ready';
+  workingTitle?: string;
+  publicationPackage?: PublicationPackage | null;
   attempt?: number;
 }): Promise<{ result: FinalQualityGateOutput; modelName: string }> => {
   const timezone = editorialProfile.config.timezone || 'Asia/Jakarta';
@@ -106,6 +112,15 @@ const runFinalQualityGate = async ({
     '<original_draft>',
     originalDraft,
     '</original_draft>',
+    '',
+    '<publishing_contract>',
+    `mode: ${publicationMode}`,
+    `workingTitle: ${workingTitle || ''}`,
+    `publicationPackage: ${publicationPackage ? JSON.stringify(publicationPackage) : 'not_generated'}`,
+    publicationMode === 'publish_ready'
+      ? 'The CMS renders publicationPackage.title as the page H1. The article body must not contain an H1. Audit both the body and publication package.'
+      : 'This is a content-only Fast result. Publication fields are intentionally absent. Do not audit H1, title, slug, excerpt, meta title, meta description, tags, or cover-image alt.',
+    '</publishing_contract>',
     '',
     trustedInternalUrls.length > 0 ? `<trusted_internal_urls>\n${trustedInternalUrls.join('\n')}\n</trusted_internal_urls>\n` : '',
     trustedInternalDomains.length > 0 ? `<trusted_internal_domains>\n${trustedInternalDomains.join('\n')}\n</trusted_internal_domains>\n` : '',
@@ -161,6 +176,8 @@ The previous response failed structural validation. Return one JSON object only.
     trustedEntities: [editorialProfile.config.brandName],
     allowedEditorialTerms: editorialProfile.config.allowedEditorialTerms,
     language,
+    publicationMode,
+    documentTitle: publicationPackage?.title || workingTitle,
   });
 
   return { result, modelName };

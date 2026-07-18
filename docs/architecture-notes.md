@@ -60,12 +60,12 @@ Rute `/api/analyze` di *backend* didekomposisi ke dalam subfolder modular `src/r
     2. OpenRouter (Universal): Untuk integrasi multi-model (Anthropic, OpenAI, Llama) yang dikonfigurasi lewat `OPENROUTER_MODEL`. Konfigurasi sampling menggunakan `getOpenRouterSamplingConfig()`.
 *   **Thinking Configuration**: Review, Final Quality Gate, dan Quick Draft menggunakan thinking level rendah untuk menekan konsumsi token pada output terstruktur. Targeted Fix menggunakan level `MEDIUM` karena harus mempertahankan konteks kalimat sambil menghasilkan replacement yang presisi. Stage rewrite plain-text tidak mengaktifkan thinking config native.
 *   **Orkestrasi Prompt**: Prompt dibangun secara dinamis dengan bantuan *utility* dari `@eai/shared/server`.
-*   **H1 Format Contract**: Rute `routes/analyze/` (pada handler rewrite) menerapkan `stripLeadingH1` (dari `src/lib/text-utils.ts`) pada draft input **sebelum** rewrite stage. Ini menghapus heading H1 tingkat atas yang akan menduplikasi judul artikel yang dirender frontend secara terpisah di luar body Tiptap.
+*   **H1 & Publication Package Contract**: Draft mentah dari Strategist boleh membawa H1 sebagai working title. Rute `routes/analyze/` mengekstraknya melalui `stripLeadingH1`, mempertahankan nilainya sebagai `workingTitle`, dan memastikan publication body selalu tanpa H1. Pada Publish Ready, `PublicationPackage.title` menjadi field title CMS/H1 halaman; `metaTitle` tetap field SERP terpisah.
 *   **Four-Stage Pipeline**:
     1.  **Review Stage**: menghasilkan skor, verdict, ringkasan, flags, dan catatan editorial singkat (`ThinkingLevel.LOW`).
     2.  **Rewrite Stage**: menulis ulang draft final per chunk untuk mengurangi risiko truncation.
-    3.  **Final Quality Gate**: mengevaluasi refined draft dengan status `ready`, `needs_review`, atau `blocked`, lalu menggabungkan evaluasi model dengan pemeriksaan deterministik di `src/lib/final-quality.ts` (`ThinkingLevel.LOW`).
-    4.  **SEO Stage**: membuat title, slug, meta description, dan tags dari hasil polish.
+    3.  **Publication Package Stage (Publish Ready)**: membuat title, slug, excerpt, meta title, meta description, cover alt, dan tags dari hasil polish. Fast melewati stage ini dan mempertahankan working title saja.
+    4.  **Final Quality Gate**: mengevaluasi refined body beserta Publication Package pada Publish Ready, atau body saja pada Fast, lalu menggabungkan evaluasi model dengan pemeriksaan deterministik di `src/lib/final-quality.ts` (`ThinkingLevel.LOW`).
 *   **Fallback Strategy**: Sistem mengenal mode `standard`, `compact`, dan `manual_fallback` agar draft berat tetap bisa selesai meski structured output tidak stabil.
 
 ### Request, Provider, dan Network Boundaries
@@ -96,6 +96,8 @@ Pipeline mempertahankan dua representasi setelah rewrite:
 
 1.  **Quality-Gate Draft** dapat membawa marker verifikasi internal agar quality gate tetap mengetahui klaim mana yang membutuhkan keputusan editor.
 2.  **Publication Draft** telah melalui normalisasi tabel, cleanup artefak rewrite, dan penghapusan marker internal sebelum ditampilkan, disimpan, atau diekspor ke CMS.
+
+Publication Package memiliki status `not_generated`, `current`, atau `stale`. Setiap mutasi body setelah package dibuat—termasuk targeted fix, apply feedback, dan penambahan source link—mengubah status menjadi `stale`. Export CMS hanya menerima package `current` dengan body yang sama dengan publication draft tersimpan.
 
 Pemisahan ini mencegah instruksi seperti `[Source verification recommended]` bocor ke artikel publik tanpa menghilangkan warning pada refinement report.
 

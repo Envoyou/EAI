@@ -9,6 +9,7 @@ import { EditorialMissionNode } from '../core/mission';
 import { LanguagePolicyNode } from '../core/rules';
 import { BrandIdentityNode } from '../tenant/profile';
 import { ToneCalibrationNode } from '../tenant/tone';
+import { VisualFormatSelectionPolicyNode } from '../core/format';
 
 // ─── STRATEGIST ROLE Node ──────────────────────────────────────────────────
 export class StrategistRoleNode implements PromptNode {
@@ -169,6 +170,7 @@ export class StrategistPromptComposer {
     // Inisialisasi Core Nodes (Static)
     const missionNode = new EditorialMissionNode();
     const langPolicyNode = new LanguagePolicyNode();
+    const visualFormatNode = new VisualFormatSelectionPolicyNode();
 
     // Strategist Specific Nodes
     const roleNode = new StrategistRoleNode(this.typeRole, brandName);
@@ -179,6 +181,7 @@ export class StrategistPromptComposer {
     root.addChild(missionNode);
     root.addChild(roleNode);
     root.addChild(langPolicyNode);
+    root.addChild(visualFormatNode);
     root.addChild(configNode);
     root.addChild(instructionNode);
 

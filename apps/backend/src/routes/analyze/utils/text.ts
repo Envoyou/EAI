@@ -4,11 +4,11 @@
  * Extracted from analyze.ts L48–83, L85–147, L457–507, L693–751, L924–932 (zero logic change).
  */
 
-import type { ArticleMetadata, ResponseMode } from '@eai/shared';
+import type { ArticleMetadata, PublicationPackage, PublicationPackageStatus, ResponseMode } from '@eai/shared';
 import type { FinalQualityGateOutput } from '@eai/shared';
 import type { AiTelemetrySnapshot } from '@/lib/ai-telemetry';
 import type { EditorialAuditContext } from '@eai/shared/server';
-import { stripLeadingExcerpt } from '@/lib/text-utils';
+import { stripLeadingExcerpt, stripLeadingH1 } from '@/lib/text-utils';
 import { stripVerificationMarkers } from '@/lib/final-quality';
 import { stripGeneratedVerificationNotes } from './verification';
 import { cleanupRewriteArtifacts, removeEmptyHeadings } from './markdown';
@@ -17,6 +17,24 @@ import { cleanupRewriteArtifacts, removeEmptyHeadings } from './markdown';
 
 export const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+export const resolvePublicationPackageStatus = ({
+  storedStatus,
+  hasPackage,
+  bodyChanged = false,
+}: {
+  storedStatus: unknown;
+  hasPackage: boolean;
+  bodyChanged?: boolean;
+}): PublicationPackageStatus => {
+  const previousStatus: PublicationPackageStatus =
+    storedStatus === 'current' || storedStatus === 'stale' || storedStatus === 'not_generated'
+      ? storedStatus
+      : hasPackage
+        ? 'current'
+        : 'not_generated';
+  return bodyChanged && previousStatus === 'current' ? 'stale' : previousStatus;
+};
+
 // ── Metadata builder ──────────────────────────────────────────────────────────
 
 export const buildStoredMetadata = (
@@ -24,15 +42,21 @@ export const buildStoredMetadata = (
   responseMode: ResponseMode,
   polishedDraft?: string,
   sourceRef?: string,
-  generatedMetadata?: Record<string, unknown>,
+  generatedMetadata?: PublicationPackage,
   analysisSpeed?: 'fast' | 'balanced' | 'deep',
   finalQualityGate?: FinalQualityGateOutput | null,
   telemetry?: AiTelemetrySnapshot,
-  editorialAudit?: EditorialAuditContext
+  editorialAudit?: EditorialAuditContext,
+  workingTitle?: string,
+  publicationPackageStatus?: PublicationPackageStatus
 ) => ({
   ...(metadata ?? {}),
   sourceRef: sourceRef || metadata?.sourceRef,
   generatedMetadata: generatedMetadata || (metadata as Record<string, unknown>)?.generatedMetadata,
+  workingTitle: workingTitle || metadata?.workingTitle,
+  publicationPackageStatus: publicationPackageStatus
+    || metadata?.publicationPackageStatus
+    || (generatedMetadata ? 'current' : 'not_generated'),
   _system: {
     responseMode,
     polishedDraft,
@@ -41,6 +65,10 @@ export const buildStoredMetadata = (
     refinementChanges: finalQualityGate?.changes,
     telemetry,
     editorialProfile: editorialAudit,
+    workingTitle: workingTitle || metadata?.workingTitle,
+    publicationPackageStatus: publicationPackageStatus
+      || metadata?.publicationPackageStatus
+      || (generatedMetadata ? 'current' : 'not_generated'),
   },
 });
 
@@ -115,7 +143,9 @@ export const selectRelevantPublishedPosts = (
 export const preparePublicationDraft = (text: string): string =>
   removeEmptyHeadings(
     cleanupRewriteArtifacts(
-      stripVerificationMarkers(stripLeadingExcerpt(stripGeneratedVerificationNotes(text)))
+      stripVerificationMarkers(
+        stripLeadingExcerpt(stripGeneratedVerificationNotes(stripLeadingH1(text).body))
+      )
     )
   );
 

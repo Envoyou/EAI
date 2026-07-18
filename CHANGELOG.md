@@ -7,6 +7,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Publication Contract & Visual Policy**:
+  - Added `workingTitle`, `PublicationPackage`, and `publicationPackageStatus` (`not_generated`, `current`, `stale`) contracts across shared types, analysis persistence, history restore, and export validation.
+  - Added a reusable `VisualFormatSelectionPolicyNode` that defaults to prose and selects Mermaid, tables, numbered lists, or bullets only when the source structure justifies them.
+  - Added regression coverage for H1-free CMS bodies, Fast/Publish title semantics, unsafe visual summaries, publication-field feedback safety, and API/KPI acronym handling.
 - **Security & Ledger Infrastructure**:
   - Added `safe-url-fetch.ts` to validate HTTP(S) targets, reject credentials and private/local IPv4/IPv6 addresses, pin sockets to the validated DNS result, enforce outbound host/port/size/timeout policy, and revalidate every redirect before outbound fetches.
   - Added an atomic Redis-backed HTTP rate limiter shared across application instances, including isolated namespaces for Strategist and History autosave traffic.
@@ -14,6 +18,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added SSRF regression coverage for loopback, private network, cloud metadata, IPv6, credential-bearing, and unsupported-protocol URLs.
 
 ### Changed
+- **Publish Ready Pipeline**:
+  - Moved Publication Package generation before Final Quality Gate so the gate audits the canonical CMS title and metadata together with the H1-free article body.
+  - Made Fast mode content-only while preserving an extracted working title for previews and downloads.
+  - Made publication-field findings target explicit metadata fields instead of inserting Markdown H1 text into the article body.
 - **AI Request & Usage Boundaries**:
   - Activated runtime Zod validation for Analyze, Strategist Chat, Generate Plan, Quick Draft, Draft From Notes, and attachment payloads before opening streams or consuming AI resources.
   - Removed client-controlled AI provider selection from Analyze and Quick Draft; provider resolution now follows server/workspace configuration.
@@ -21,6 +29,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Made credit deduction serializable and rejected insufficient balances instead of writing fallback transactions that could produce negative ledger balances.
 
 ### Fixed
+- **Title, Metadata & Visual Consistency**:
+  - Prevented Final Quality Gate from reporting a missing H1 when the CMS title field is present or when Fast mode intentionally omits publication metadata.
+  - Marked publication metadata stale after targeted fixes, applied suggestions, or source-link mutations; stale packages and mismatched stored bodies are now blocked from CMS export.
+  - Reconciled Quality Gate change summaries so unsupported diagrams or tables are not simultaneously praised as improvements, and stopped generic API/KPI abbreviations from being misclassified as novel entities.
 - **Tenant & Network Security**:
   - Enforced user ownership before updating Strategist sessions or inserting chat messages, including blocking guest-supplied session IDs.
   - Restricted Prompt Inspector and prompt diff endpoints to configured platform owners.

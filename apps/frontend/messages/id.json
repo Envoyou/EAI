@@ -89,5 +89,10 @@
     "termsText2": "dan",
     "termsLink": "Ketentuan",
     "privacyLink": "Pemberitahuan Privasi"
+  },
+  "FinalDraftPanel": {
+    "refreshPublicationMetadata": "Jalankan Publish Ready lagi untuk memperbarui metadata publikasi",
+    "staleMetadataTitle": "Metadata publikasi sudah tidak mutakhir.",
+    "staleMetadataDescription": "Body artikel berubah setelah metadata dibuat. Jalankan Publish Ready lagi sebelum mengekspor."
   }
 }

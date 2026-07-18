@@ -89,5 +89,10 @@
     "termsText2": "and",
     "termsLink": "Terms",
     "privacyLink": "Privacy Notice"
+  },
+  "FinalDraftPanel": {
+    "refreshPublicationMetadata": "Run Publish Ready again to refresh publication metadata",
+    "staleMetadataTitle": "Publication metadata is outdated.",
+    "staleMetadataDescription": "The article body changed after metadata generation. Run Publish Ready again before exporting."
   }
 }

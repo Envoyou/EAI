@@ -217,6 +217,8 @@ export default function EditorCanvas({
                       articleMetadata={metadata}
                       exportStatus={analysis.exportStatus}
                       generatedMetadata={analysis.generatedMetadata}
+                      workingTitle={analysis.workingTitle}
+                      publicationPackageStatus={analysis.publicationPackageStatus}
                       isStreaming={isStreaming}
                       isRefining={isRefining}
                       processStage={processStage}

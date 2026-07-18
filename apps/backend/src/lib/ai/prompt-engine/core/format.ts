@@ -26,3 +26,31 @@ export class OutputSchemaNode implements PromptNode {
     return `## Output Format Contract\n${contract}`;
   }
 }
+
+/** Chooses structure from the information itself instead of treating visuals as decoration. */
+export class VisualFormatSelectionPolicyNode implements PromptNode {
+  id = 'core:visual_format_selection_policy';
+  type = 'core' as const;
+  isStatic = true;
+
+  render(context: RenderContext): string {
+    const policy = `
+Visual elements are optional, not mandatory. Default to prose unless another format materially improves comprehension.
+
+- Use Mermaid only for genuine workflows, sequences, dependencies, architectures, timelines, or decision trees.
+- Use a table only for comparisons whose items share consistent dimensions.
+- Use a numbered list for sequential steps that do not need branching.
+- Use bullet points for unordered collections of concise items.
+- Use ordinary prose for narrative, explanation, argument, or context.
+- Do not add a visual merely to decorate the article. Prefer no visual over a weak, redundant, or speculative visual.
+- Every node, step, label, metric, entity, and relationship in a visual must be supported by the source material or explicitly supplied context.
+- Do not invent operational stages, KPIs, integrations, APIs, financial processes, or organizational entities to complete a diagram or table.
+- Use no more than one primary visual unless the editorial brief explicitly requires additional visuals.
+`.trim();
+
+    if (context.format === 'xml') {
+      return `<visual_format_policy>\n${policy}\n</visual_format_policy>`;
+    }
+    return `## Visual Format Policy\n${policy}`;
+  }
+}

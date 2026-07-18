@@ -13,6 +13,7 @@ export const FEEDBACK_OUTPUT_PROMPT_SCHEMA = `
     "message": string,
     "suggestion"?: string,
     "operation": "replace" | "insert_before" | "insert_after" | "manual",
+    "targetField"?: "body" | "publication.title" | "publication.slug" | "publication.excerpt" | "publication.metaTitle" | "publication.metaDescription" | "publication.coverImageAlt" | "publication.tags",
     "targetText"?: string,
     "replacementText"?: string,
     "reason"?: string
@@ -51,6 +52,7 @@ export const FINAL_QUALITY_GATE_OUTPUT_PROMPT_SCHEMA = `
     "message": string,
     "suggestion"?: string,
     "operation": "replace" | "insert_before" | "insert_after" | "manual",
+    "targetField"?: "body" | "publication.title" | "publication.slug" | "publication.excerpt" | "publication.metaTitle" | "publication.metaDescription" | "publication.coverImageAlt" | "publication.tags",
     "targetText"?: string,
     "replacementText"?: string,
     "reason"?: string
@@ -85,6 +87,16 @@ export const FeedbackItemSchema = z.object({
   operation: z.enum(['replace', 'insert_before', 'insert_after', 'manual'])
     .describe('How the UI may apply this feedback. Use manual for factual/source risks or broad editorial judgment.')
     .default('manual'),
+  targetField: z.enum([
+    'body',
+    'publication.title',
+    'publication.slug',
+    'publication.excerpt',
+    'publication.metaTitle',
+    'publication.metaDescription',
+    'publication.coverImageAlt',
+    'publication.tags',
+  ]).describe('Field that the finding targets. Body fixes may use text operations; publication-field findings must use manual operations.').optional(),
 });
 
 export const SeoMetadataSchema = z.object({

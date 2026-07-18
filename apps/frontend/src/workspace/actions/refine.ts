@@ -112,6 +112,12 @@ export async function executeRefine(
     flags: [],
     score: undefined,
     verdict: undefined,
+    generatedMetadata: analysisSpeed === 'fast' ? undefined : prev.generatedMetadata,
+    publicationPackageStatus: analysisSpeed === 'fast'
+      ? 'not_generated'
+      : prev.generatedMetadata
+        ? 'stale'
+        : 'not_generated',
   }));
   setRightPanelOpen(true);
   setRightPanelTab('feedback');
@@ -127,6 +133,8 @@ export async function executeRefine(
       ...metadata,
       strictness: editorialOptions.sourcePolicy === 'strict' ? 'strict' : 'balanced',
       outputLanguage: appSettings.outputLanguage,
+      workingTitle: analysis.workingTitle || analysis.generatedMetadata?.title,
+      publicationPackageStatus: analysis.publicationPackageStatus,
     };
     const response = await directFetch('/api/analyze', {
       method: 'POST',
@@ -204,6 +212,12 @@ export async function executeRefine(
             setAnalysis(prev => ({ ...prev, polishedDraft: event.data as string }));
             break;
           case 'seo_metadata': setAnalysis(prev => ({ ...prev, generatedMetadata: event.data as Record<string, unknown> })); break;
+          case 'working_title': setAnalysis(prev => ({ ...prev, workingTitle: event.data as string })); break;
+          case 'publication_package_status': setAnalysis(prev => ({
+            ...prev,
+            generatedMetadata: event.data === 'not_generated' ? undefined : prev.generatedMetadata,
+            publicationPackageStatus: event.data as import('@eai/shared').PublicationPackageStatus,
+          })); break;
           case 'feedback_reset': setAnalysis(prev => ({ ...prev, feedback: [], flags: [] })); break;
           case 'readiness': setAnalysis(prev => ({ ...prev, readiness: event.data as EditorialReadiness, verdict: event.data as EditorialReadiness })); break;
           case 'summary': setAnalysis(prev => ({ ...prev, summary: event.data as string })); break;

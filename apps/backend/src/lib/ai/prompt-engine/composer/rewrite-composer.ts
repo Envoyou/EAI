@@ -9,6 +9,7 @@ import { LanguagePolicyNode, StrictnessConstraintNode, TemporalContextNode, Inpu
 import { FactualGuardrailNode, SourcePolicyNode } from '../core/facts';
 import { BrandIdentityNode } from '../tenant/profile';
 import { ToneCalibrationNode } from '../tenant/tone';
+import { VisualFormatSelectionPolicyNode } from '../core/format';
 
 // ─── REWRITE ROLE Node ────────────────────────────────────────────────────
 export class RewriteRoleNode implements PromptNode {
@@ -238,6 +239,7 @@ export class RewritePromptComposer {
     const temporalContextNode = new TemporalContextNode();
     const factualNode = new FactualGuardrailNode();
     const markdownRulesNode = new MarkdownRulesNode();
+    const visualFormatNode = new VisualFormatSelectionPolicyNode();
     const verifLockNode = new VerificationLockNode();
 
     // Source Policy Node
@@ -276,6 +278,7 @@ export class RewritePromptComposer {
     root.addChild(prioritiesNode);
     root.addChild(fewShotNode);
     root.addChild(markdownRulesNode);
+    root.addChild(visualFormatNode);
     root.addChild(verifLockNode);
     root.addChild(outputFormatNode);
 

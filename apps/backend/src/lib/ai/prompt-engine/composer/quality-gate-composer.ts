@@ -8,7 +8,7 @@ import type { EditorialProfileConfig } from '@eai/shared/server';
 import { EditorialMissionNode } from '../core/mission';
 import { LanguagePolicyNode, StrictnessConstraintNode, TemporalContextNode, InputBoundaryNode, MarkdownRulesNode, VerificationLockNode } from '../core/rules';
 import { FactualGuardrailNode, SourcePolicyNode } from '../core/facts';
-import { OutputSchemaNode, OutputSchemaNodeOptions } from '../core/format';
+import { OutputSchemaNode, OutputSchemaNodeOptions, VisualFormatSelectionPolicyNode } from '../core/format';
 import { BrandIdentityNode } from '../tenant/profile';
 import { ToneCalibrationNode } from '../tenant/tone';
 
@@ -43,6 +43,11 @@ Output rules:
 - Use status "fail" only for issues that block publication.
 - Do not write internal markers such as "[Source verification recommended]" into the final article.
 - Maximum 3 flags.
+- The CMS renders the publication title field as the page H1. The article body must not contain H1.
+- Never report a missing H1 merely because the body starts with a paragraph, and never insert "# Title" into the body.
+- In fast mode, publication fields are intentionally absent and must not be audited.
+- In publish-ready mode, target missing or inaccurate publication fields through targetField, never through a body text insertion.
+- Audit each diagram and table for necessity and source support. Unsupported visual labels or relationships are source-fidelity issues.
 `.trim();
 
     if (context.format === 'xml') {
@@ -104,6 +109,7 @@ export class QualityGatePromptComposer {
     const temporalContextNode = new TemporalContextNode();
     const factualNode = new FactualGuardrailNode();
     const markdownRulesNode = new MarkdownRulesNode();
+    const visualFormatNode = new VisualFormatSelectionPolicyNode();
     const verifLockNode = new VerificationLockNode();
 
     // Source Policy Node
@@ -133,6 +139,7 @@ export class QualityGatePromptComposer {
     root.addChild(factualNode);
     root.addChild(sourcePolicyNode);
     root.addChild(markdownRulesNode);
+    root.addChild(visualFormatNode);
     root.addChild(verifLockNode);
     root.addChild(schemaNode);
     root.addChild(qgExamplesNode);

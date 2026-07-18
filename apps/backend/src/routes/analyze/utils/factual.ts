@@ -146,11 +146,20 @@ export const toStructuredFeedbackItem = (item: FeedbackItem): StructuredFeedback
   replacementText: item.replacementText,
   reason: item.reason,
   operation: item.operation ?? 'manual',
+  targetField: item.targetField,
 });
 
 // ── Feedback sanitization ─────────────────────────────────────────────────────
 
 export const sanitizeFactualFeedbackItem = (item: FeedbackItem, draftText: string): StructuredFeedbackItem => {
+  if (item.targetField && item.targetField !== 'body') {
+    return toStructuredFeedbackItem({
+      ...item,
+      operation: 'manual',
+      targetText: undefined,
+      replacementText: undefined,
+    });
+  }
   let nextItem = item;
   const inferredTargetText = inferTargetTextFromDraft(nextItem, draftText);
   const candidateSensitiveText = inferredTargetText

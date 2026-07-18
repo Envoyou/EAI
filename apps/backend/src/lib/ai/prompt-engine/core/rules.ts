@@ -9,7 +9,7 @@ export class MarkdownRulesNode implements PromptNode {
     const rules = [
       'If using a table, it must be a clean GFM Markdown table.',
       'Strictly forbid ASCII tables using characters like +, -, | or wrapping tables in code blocks.',
-      'Strictly forbid ASCII art flowcharts or text-based diagrams using characters like ──>, ├──, │. If a process flow or structure diagram is helpful, construct it ONLY as a clean Mermaid.js syntax block using Top-Down orientation (graph TD) for optimal mobile responsive rendering. Keep node labels short (max 4 words).',
+      'Strictly forbid ASCII art flowcharts or text-based diagrams using characters like ──>, ├──, │. When the visual-format policy independently justifies a relationship diagram, use a clean Mermaid.js block with Top-Down orientation (graph TD) and short node labels (max 4 words).',
       'Do not insert line breaks, plus/minus lines, or odd spacing that breaks table rendering.',
       'Always output clean Markdown without HTML tags unless explicitly requested.'
     ];
@@ -128,5 +128,4 @@ INPUT BOUNDARY:
     return `## Input Boundary Rules\n${policy}`;
   }
 }
-
 

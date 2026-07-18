@@ -39,6 +39,8 @@ const GENERIC_PROPER_NAMES = new Set([
   'HR',
   'HRD',
   'IT',
+  'API',
+  'KPI',
   'LLM',
   'Markdown GFM',
   'PDB',
@@ -52,6 +54,8 @@ export interface SourceFidelityOptions {
   trustedEntities?: string[];
   allowedEditorialTerms?: AllowedEditorialTerm[];
   language?: 'id' | 'en';
+  publicationMode?: 'fast' | 'publish_ready';
+  documentTitle?: string;
 }
 
 const getCurrentEditorialYear = () => {
@@ -650,6 +654,20 @@ export const applyDeterministicQualityChecks = (
     .map(normalizeFlag)
     .filter((flag) => !BENIGN_FLAG_PATTERN.test(flag));
 
+  const titleIsExternalToBody = options.publicationMode === 'fast'
+    || Boolean(options.documentTitle?.trim());
+  if (titleIsExternalToBody) {
+    const isMissingBodyH1Finding = (value: string) =>
+      /(?:missing|no|lack(?:s|ing)?|tanpa|tidak ada).{0,40}(?:h1|title|judul)|(?:h1|title|judul).{0,40}(?:missing|lack(?:s|ing)?|tanpa|tidak ada)/i.test(value);
+    feedback = feedback.filter((item) => !isMissingBodyH1Finding([
+      item.category,
+      item.message,
+      item.suggestion,
+      item.reason,
+    ].filter(Boolean).join(' ')));
+    flags = flags.filter((flag) => !isMissingBodyH1Finding(flag));
+  }
+
   if (hasAsciiTable(finalDraft)) {
     readiness = readiness === 'ready' ? 'needs_review' : readiness;
     feedback.unshift({
@@ -904,6 +922,17 @@ export const applyDeterministicQualityChecks = (
     readiness = 'ready';
   }
 
+  const hasUnsafeVisualFinding = finalFeedback.some((item) => {
+    const text = [item.category, item.message, item.suggestion, item.targetText]
+      .filter(Boolean)
+      .join(' ');
+    return /source fidelity|unsupported|needs citation|tidak didukung|verifikasi sumber/i.test(text)
+      && /mermaid|diagram|table|tabel|workflow|flowchart|kpi|metric|metrik/i.test(text);
+  });
+  const reconciledChanges = hasUnsafeVisualFinding
+    ? result.changes.filter((change) => !/mermaid|diagram|table|tabel|visual|workflow|flowchart|kpi/i.test(change))
+    : result.changes;
+
   return {
     ...result,
     readiness,
@@ -918,5 +947,10 @@ export const applyDeterministicQualityChecks = (
             : 'Draft final sudah terbentuk, tetapi masih memerlukan review editor pada format atau verifikasi sumber sebelum diekspor.'),
     feedback: finalFeedback,
     flags: finalFlags,
+    changes: reconciledChanges.length > 0
+      ? reconciledChanges
+      : [isEn
+          ? 'Reworked the draft for clearer structure and editorial review.'
+          : 'Mengolah ulang draft agar strukturnya lebih jelas dan siap ditinjau editor.'],
   };
 };

@@ -9,7 +9,7 @@ import {
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { getAllFeatureFlags } from '@eai/shared/server';
-import { preparePublicationDraft } from '@/routes/analyze/utils/text';
+import { preparePublicationDraft, resolvePublicationPackageStatus } from '@/routes/analyze/utils/text';
 
 const router = Router();
 
@@ -80,12 +80,29 @@ router.post('/', requireAuth, async (req, res) => {
       storedMetadata._system && typeof storedMetadata._system === 'object'
         ? (storedMetadata._system as Record<string, unknown>)
         : {};
+    const publicationPackageStatus = resolvePublicationPackageStatus({
+      storedStatus: storedMetadata.publicationPackageStatus,
+      hasPackage: Boolean(storedMetadata.generatedMetadata),
+    });
+    const storedPolishedDraft = typeof systemMetadata.polishedDraft === 'string'
+      ? preparePublicationDraft(systemMetadata.polishedDraft)
+      : '';
     if (
       systemMetadata.analysisSpeed === 'fast' ||
       systemMetadata.readiness !== 'ready' ||
-      logEntry.editorStatus !== 'refined'
+      logEntry.editorStatus !== 'refined' ||
+      publicationPackageStatus !== 'current'
     ) {
-      return res.status(409).json({ error: 'Only a Publish Ready article that passed the quality gate can be exported.' });
+      return res.status(409).json({
+        error: publicationPackageStatus === 'stale'
+          ? 'Publication metadata is stale. Regenerate Publish Ready metadata before export.'
+          : 'Only a Publish Ready article that passed the quality gate can be exported.',
+      });
+    }
+    if (!storedPolishedDraft || storedPolishedDraft !== preparePublicationDraft(content)) {
+      return res.status(409).json({
+        error: 'The article body changed after its publication package was generated. Run Publish Ready again before export.',
+      });
     }
 
     const payload = {

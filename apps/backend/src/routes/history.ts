@@ -4,7 +4,7 @@ import { prisma, Prisma } from '@/lib/db';
 import { requireAuth } from '@/middleware/auth';
 import { ResearchNotesArraySchema } from '@eai/shared';
 import { getWorkspaceState } from '@/lib/user-workspace';
-import { preparePublicationDraft } from '@/routes/analyze/utils/text';
+import { preparePublicationDraft, resolvePublicationPackageStatus } from '@/routes/analyze/utils/text';
 import { redisRateLimiter } from '@/middleware/rate-limit';
 
 const router = Router();
@@ -368,6 +368,16 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       metadata._system && typeof metadata._system === 'object' && !Array.isArray(metadata._system)
         ? (metadata._system as Record<string, unknown>)
         : {};
+    const previousPolishedDraft = typeof systemMetadata.polishedDraft === 'string'
+      ? preparePublicationDraft(systemMetadata.polishedDraft)
+      : '';
+    const nextPolishedDraft = preparePublicationDraft(resolution.data.polishedDraft);
+    const bodyChanged = previousPolishedDraft !== nextPolishedDraft;
+    const publicationPackageStatus = resolvePublicationPackageStatus({
+      storedStatus: metadata.publicationPackageStatus,
+      hasPackage: Boolean(metadata.generatedMetadata),
+      bodyChanged,
+    });
     const readiness = unresolved.length === 0
       ? 'ready'
       : systemMetadata.readiness === 'blocked' && unresolved.some((item) => item.status === 'fail')
@@ -382,16 +392,18 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         verdict: readiness,
         metadata: {
           ...metadata,
+          publicationPackageStatus,
           _system: {
             ...systemMetadata,
-            polishedDraft: preparePublicationDraft(resolution.data.polishedDraft),
+            polishedDraft: nextPolishedDraft,
             readiness,
+            publicationPackageStatus,
           },
         } as Prisma.InputJsonValue,
       },
     });
 
-    return res.json({ success: true, readiness });
+    return res.json({ success: true, readiness, publicationPackageStatus });
   } catch (error) {
     console.error('[HISTORY_ID_RESOLVE_PATCH]', error);
     return res.status(500).json({ error: 'Failed to resolve editorial feedback' });

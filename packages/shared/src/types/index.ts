@@ -3,6 +3,16 @@ export type AnalyzeMode = 'analyze' | 'refine' | 'fix_targeted';
 export type ResponseMode = 'standard' | 'compact' | 'manual_fallback';
 export type VerificationStatus = 'source_backed' | 'needs_citation' | 'high_risk_factual_claim';
 export type EditorialReadiness = 'ready' | 'needs_review' | 'blocked';
+export type PublicationPackageStatus = 'not_generated' | 'current' | 'stale';
+export type FindingTarget =
+  | 'body'
+  | 'publication.title'
+  | 'publication.slug'
+  | 'publication.excerpt'
+  | 'publication.metaTitle'
+  | 'publication.metaDescription'
+  | 'publication.coverImageAlt'
+  | 'publication.tags';
 export type EditorialProcessStage =
   | 'reviewing'
   | 'rewriting'
@@ -19,6 +29,8 @@ export interface ArticleMetadata {
   strictness?: 'balanced' | 'strict';
   outputLanguage?: 'follow_draft' | 'id' | 'en';
   sourceRef?: string;
+  workingTitle?: string;
+  publicationPackageStatus?: PublicationPackageStatus;
   exportStatus?: {
     blogPostId?: string;
     blogEditUrl?: string;
@@ -38,10 +50,22 @@ export interface FeedbackItem {
   replacementText?: string;
   reason?: string;
   operation?: 'replace' | 'insert_before' | 'insert_after' | 'manual';
+  targetField?: FindingTarget;
   isApplied?: boolean;
   isAccepted?: boolean;
   isVerified?: boolean;
   verifiedSource?: string;
+}
+
+/** CMS-ready publication fields. The article body is stored separately and must not contain H1. */
+export interface PublicationPackage {
+  title?: string;
+  slug?: string;
+  excerpt?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  coverImageAltText?: string;
+  tags?: string[];
 }
 
 export type FeedbackOperation = NonNullable<FeedbackItem['operation']>;
@@ -60,15 +84,10 @@ export interface AnalysisResult {
   promptVersion?: string;
   responseMode?: ResponseMode;
   analysisLogId?: string;
-  generatedMetadata?: {
-    title?: string;
-    slug?: string;
-    excerpt?: string;
-    metaTitle?: string;
-    metaDescription?: string;
-    coverImageAltText?: string;
-    tags?: string[];
-  };
+  workingTitle?: string;
+  publicationPackageStatus?: PublicationPackageStatus;
+  /** @deprecated Prefer the PublicationPackage domain name. Kept for stored-data compatibility. */
+  generatedMetadata?: PublicationPackage;
   sourceRef?: string;
   exportStatus?: {
     blogPostId?: string;

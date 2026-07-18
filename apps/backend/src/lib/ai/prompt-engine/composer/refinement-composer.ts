@@ -9,6 +9,7 @@ import { LanguagePolicyNode, StrictnessConstraintNode, TemporalContextNode, Inpu
 import { SourcePolicyNode } from '../core/facts';
 import { BrandIdentityNode } from '../tenant/profile';
 import { ToneCalibrationNode } from '../tenant/tone';
+import { VisualFormatSelectionPolicyNode } from '../core/format';
 
 // ─── FACTUAL REFINEMENT GUARDRAIL Node ────────────────────────────────────
 export class FactualRefinementGuardrailNode implements PromptNode {
@@ -145,6 +146,7 @@ export class RefinementPromptComposer {
     const inputBoundaryNode = new InputBoundaryNode();
     const temporalContextNode = new TemporalContextNode();
     const markdownRulesNode = new MarkdownRulesNode();
+    const visualFormatNode = new VisualFormatSelectionPolicyNode();
     const verifLockNode = new VerificationLockNode();
 
     // Source Policy Node
@@ -174,6 +176,7 @@ export class RefinementPromptComposer {
     root.addChild(sourcePolicyNode);
     root.addChild(refinementGuardrailNode);
     root.addChild(markdownRulesNode);
+    root.addChild(visualFormatNode);
     root.addChild(verifLockNode);
     root.addChild(outputFormatNode);
 

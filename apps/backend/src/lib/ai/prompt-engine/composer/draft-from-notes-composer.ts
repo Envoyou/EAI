@@ -5,6 +5,7 @@ import { LanguagePolicyNode } from '../core/rules';
 import { BrandIdentityNode } from '../tenant/profile';
 import { ToneCalibrationNode } from '../tenant/tone';
 import { DraftFromNotesRoleNode, DraftFromNotesConstraintsNode, DraftFromNotesExampleOutputNode } from '../core/strategist';
+import { VisualFormatSelectionPolicyNode } from '../core/format';
 
 export class DraftFromNotesComposer {
   constructor(private profile?: EditorialProfileConfig | null) {}
@@ -17,12 +18,14 @@ export class DraftFromNotesComposer {
     const langPolicyNode = new LanguagePolicyNode();
     const constraintsNode = new DraftFromNotesConstraintsNode();
     const examplesNode = new DraftFromNotesExampleOutputNode();
+    const visualFormatNode = new VisualFormatSelectionPolicyNode();
 
     const root = new CompositePromptNode('draft_from_notes_composer');
     root.addChild(missionNode);
     root.addChild(roleNode);
     root.addChild(langPolicyNode);
     root.addChild(constraintsNode);
+    root.addChild(visualFormatNode);
     root.addChild(examplesNode);
 
     // Tenant Nodes

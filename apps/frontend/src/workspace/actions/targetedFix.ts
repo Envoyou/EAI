@@ -144,6 +144,7 @@ export async function executeTargetedFix(
       readiness: nextReadiness,
       verdict: nextReadiness,
       flags: nextFlags,
+      publicationPackageStatus: prev.publicationPackageStatus === 'current' ? 'stale' : prev.publicationPackageStatus,
     }));
 
     toast.success(actionType === 'remove' ? 'Addition removed successfully!' : 'Sentence fixed successfully!');

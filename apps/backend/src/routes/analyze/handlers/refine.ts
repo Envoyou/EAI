@@ -5,7 +5,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { ResearchNote } from '@eai/shared';
+import type { PublicationPackage, ResearchNote } from '@eai/shared';
 import type { RefineContext } from '../types';
 import { getProvider } from '@/lib/ai/providers/registry';
 import { resolveModel } from '@/lib/ai/model-router';
@@ -15,6 +15,7 @@ import { runFinalQualityGateSafely } from '@/lib/ai/quality-gate-stage';
 import { runSeoStage } from '@/lib/ai/seo-stage';
 import { SeoPromptComposer } from '@/lib/ai/prompt-engine/composer/seo-composer';
 import { RefinementPromptComposer } from '@/lib/ai/prompt-engine/composer/refinement-composer';
+import { stripLeadingH1 } from '@/lib/text-utils';
 import { createAnalysisLogAndDebitCredit } from '@/lib/services/analysis-log.service';
 import { sanitizeSuppressiveFeedbackItem, sanitizeFactualSummary } from '../utils/factual';
 import { getProtectedVerificationClaims } from '../utils/factual';
@@ -107,9 +108,37 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
 
   refinedText = ensureTitleAndOpening(refinedText, text);
   refinedText = removeDisallowedRefineTargets(refinedText, normalizedPreviousFeedback);
+  const normalizedRefine = stripLeadingH1(refinedText);
+  const workingTitle = normalizedRefine.title || metadata?.workingTitle;
+  refinedText = normalizedRefine.body;
+  if (workingTitle) sendEvent('working_title', workingTitle);
   const refineQualityGateDraft = applyVerificationAnnotations(refinedText, normalizedPreviousFeedback);
   refinedText = preparePublicationDraft(refineQualityGateDraft);
   sendEvent('draft_final', refinedText);
+
+  let refineSeo: PublicationPackage | null = null;
+  if (analysisSpeed !== 'fast') {
+    sendEvent('status', 'generating_seo');
+    const seoModelName = resolveModelName('seo');
+    state.usedModels.push(`${seoModelName}(seo)`);
+    refineSeo = await runSeoStage({
+      provider: effectiveProvider,
+      modelName: seoModelName,
+      article: refinedText,
+      metadata,
+      editorialProfile,
+      systemInstruction: new SeoPromptComposer(
+        editorialProfile.config,
+        { includeTextSchema: effectiveProvider !== 'gemini' }
+      ).compose('xml'),
+      telemetry,
+    });
+    if (state.isDisconnected) return;
+    sendEvent('seo_metadata', refineSeo);
+    sendEvent('publication_package_status', 'current');
+  } else {
+    sendEvent('publication_package_status', 'not_generated');
+  }
 
   sendEvent('status', 'quality_gate');
   const refineQualityGateResponse = await runFinalQualityGateSafely({
@@ -124,6 +153,9 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
     sanitizeFeedback: sanitizeSuppressiveFeedbackItem,
     sanitizeSummary: sanitizeFactualSummary,
     researchNotes: ((metadata as Record<string, unknown>)?.researchNotes as ResearchNote[] | undefined) || [],
+    publicationMode: analysisSpeed === 'fast' ? 'fast' : 'publish_ready',
+    workingTitle: typeof refineSeo?.title === 'string' ? refineSeo.title : workingTitle,
+    publicationPackage: refineSeo,
   });
   if (state.isDisconnected) return;
   const refineQualityGate = refineQualityGateResponse.result;
@@ -136,29 +168,6 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
     sendEvent('feedback_item', { item, index });
   });
   sendEvent('flags', refineQualityGate.flags);
-
-  // Generate SEO metadata
-  sendEvent('status', 'generating_seo');
-  let refineSeo: Record<string, unknown> | null = null;
-
-  if (analysisSpeed !== 'fast') {
-    const seoModelName = resolveModelName('seo');
-    state.usedModels.push(`${seoModelName}(seo)`);
-    refineSeo = (await runSeoStage({
-      provider: effectiveProvider,
-      modelName: seoModelName,
-      article: refinedText,
-      metadata,
-      editorialProfile,
-      systemInstruction: new SeoPromptComposer(
-        editorialProfile.config,
-        { includeTextSchema: effectiveProvider !== 'gemini' }
-      ).compose('xml'),
-      telemetry,
-    })) as Record<string, unknown>;
-    if (state.isDisconnected) return;
-    sendEvent('seo_metadata', refineSeo);
-  }
 
   let sourceRef = state.metadataToLog?.sourceRef;
   if (!sourceRef) {
@@ -184,7 +193,9 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
               analysisSpeed,
               refineQualityGate,
               telemetry.snapshot(),
-              editorialAudit
+              editorialAudit,
+              typeof refineSeo?.title === 'string' ? refineSeo.title : workingTitle,
+              refineSeo ? 'current' : 'not_generated'
             )
           )
         ),

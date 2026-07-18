@@ -63,6 +63,7 @@ Berada di `apps/backend/src/lib/ai/prompt-engine/`. Terdiri dari kelas-kelas nod
     *   `StrictnessConstraintNode`: Batasan toleransi kebebasan AI dalam berkreasi.
     *   `VerificationLockNode`: Penguncian verbatim teks di dalam tanda `[[VERIFICATION_LOCK]]`.
     *   `MarkdownRulesNode`: Larangan format ASCII table dan keharusan menggunakan GFM Markdown table.
+    *   `VisualFormatSelectionPolicyNode`: Menjadikan prosa sebagai default dan memilih Mermaid, tabel, numbered list, atau bullet hanya ketika format tersebut meningkatkan pemahaman serta seluruh detailnya didukung sumber.
     *   `OutputSchemaNode`: Struktur format kontrak JSON yang wajib dipatuhi oleh LLM.
 *   **`Tenant Nodes`** (Dinamis/Tenant-specific):
     *   `BrandIdentityNode`: Profil bisnis, target pembaca, dan kategori tenant.

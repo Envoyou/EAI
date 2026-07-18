@@ -6,7 +6,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { FeedbackItem, ResearchNote } from '@eai/shared';
+import type { FeedbackItem, PublicationPackage, ResearchNote } from '@eai/shared';
 import type { FinalQualityGateOutput } from '@eai/shared';
 import type { AnalyzeContext } from '../types';
 import { getProvider } from '@/lib/ai/providers/registry';
@@ -96,11 +96,16 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
   let publishedPosts: { title: string; slug: string }[] = [];
   let qualityGateDraft = '';
   let polishedText = '';
+  let seo: PublicationPackage | null = null;
+  let workingTitle = metadata?.workingTitle;
 
   if (role === 'polish') {
     sendEvent('status', 'rewriting');
 
-    const { body: sourceTextToPolish } = stripLeadingH1(text);
+    const strippedSource = stripLeadingH1(text);
+    const sourceTextToPolish = strippedSource.body;
+    workingTitle = strippedSource.title || workingTitle;
+    if (workingTitle) sendEvent('working_title', workingTitle);
 
     if (analysisSpeed !== 'fast') {
       try {
@@ -214,14 +219,42 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
     polishedText = ensureTitleAndOpening(polishedText, sourceTextToPolish);
     polishedText = removeDisallowedRefineTargets(polishedText, validatedData.feedback);
     const lockedPolishedText = applyVerificationLocks(polishedText, protectedClaims);
+    const normalizedPolished = stripLeadingH1(lockedPolishedText);
+    workingTitle = normalizedPolished.title || workingTitle;
+    const publicationBaseText = normalizedPolished.body;
 
-    sendEvent('draft_final', preparePublicationDraft(lockedPolishedText));
+    const finalBody = preparePublicationDraft(publicationBaseText);
+    sendEvent('draft_final', finalBody);
+
+    if (analysisSpeed !== 'fast') {
+      sendEvent('status', 'generating_seo');
+      const seoModelName = resolveModelName('seo' as typeof role);
+      state.usedModels.push(`${seoModelName}(seo)`);
+      seo = await runSeoStage({
+        provider: effectiveProvider,
+        modelName: seoModelName,
+        article: finalBody,
+        metadata,
+        editorialProfile,
+        systemInstruction: new SeoPromptComposer(editorialProfile.config, {
+          includeTextSchema: effectiveProvider !== 'gemini',
+        }).compose('xml'),
+        telemetry,
+      });
+      if (state.isDisconnected) return;
+      workingTitle = seo.title;
+      sendEvent('seo_metadata', seo);
+      sendEvent('publication_package_status', 'current');
+    } else {
+      sendEvent('publication_package_status', 'not_generated');
+    }
+
     sendEvent('status', 'quality_gate');
 
     const qualityGateResponse = await runFinalQualityGateSafely({
       provider: effectiveProvider,
       originalDraft: sourceTextToPolish,
-      finalDraft: preparePublicationDraft(lockedPolishedText),
+      finalDraft: finalBody,
       metadata,
       analysisSpeed,
       trustedInternalDomains: editorialProfile.config.internalLinkDomains,
@@ -231,12 +264,15 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
       sanitizeSummary: sanitizeFactualSummary,
       researchNotes:
         ((metadata as Record<string, unknown>)?.researchNotes as ResearchNote[] | undefined) || [],
+      publicationMode: analysisSpeed === 'fast' ? 'fast' : 'publish_ready',
+      workingTitle,
+      publicationPackage: seo,
     });
     if (state.isDisconnected) return;
     finalQualityGate = qualityGateResponse.result;
     state.usedModels.push(`${qualityGateResponse.modelName}(quality-gate)`);
 
-    qualityGateDraft = applyVerificationAnnotations(lockedPolishedText, finalQualityGate.feedback);
+    qualityGateDraft = applyVerificationAnnotations(publicationBaseText, finalQualityGate.feedback);
     const publicationPolishedDraft = preparePublicationDraft(qualityGateDraft);
 
     sendEvent('draft_final', publicationPolishedDraft);
@@ -250,13 +286,12 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
     sendEvent('flags', finalQualityGate.flags);
   }
 
-  // Generate SEO metadata
-  let seo: unknown = null;
-  if (analysisSpeed !== 'fast') {
+  // Non-polish roles still use the standalone metadata stage.
+  if (analysisSpeed !== 'fast' && !seo) {
     sendEvent('status', 'generating_seo');
     const seoModelName = resolveModelName('seo' as typeof role);
     state.usedModels.push(`${seoModelName}(seo)`);
-    seo = (await runSeoStage({
+    seo = await runSeoStage({
       provider: effectiveProvider,
       modelName: seoModelName,
       article: polishedText || text,
@@ -266,9 +301,10 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
         includeTextSchema: effectiveProvider !== 'gemini',
       }).compose('xml'),
       telemetry,
-    })) as Record<string, unknown>;
+    });
     if (state.isDisconnected) return;
     sendEvent('seo_metadata', seo);
+    sendEvent('publication_package_status', 'current');
   }
 
   let sourceRef = state.metadataToLog?.sourceRef;
@@ -294,11 +330,13 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
               state.responseMode,
               finalPolishedDraftLog,
               sourceRef,
-              (seo as Record<string, unknown>) ?? undefined,
+              seo ?? undefined,
               analysisSpeed,
               finalQualityGate,
               telemetry.snapshot(),
-              editorialAudit
+              editorialAudit,
+              workingTitle,
+              seo ? 'current' : 'not_generated'
             )
           )
         ),
