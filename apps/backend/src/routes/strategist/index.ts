@@ -29,6 +29,87 @@ async function fetchWithTimeout(url: string, options: RequestInit & { timeout?: 
 }
 
 /**
+ * Unfurl Google Vertex AI Search grounding redirect URLs to their real destination URL.
+ * Uses fast HTTP 302 manual location check first, falling back to GET with follow.
+ */
+async function resolveGroundingUrl(url: string): Promise<string> {
+  if (!url || typeof url !== 'string') return url;
+  if (!url.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
+    return url;
+  }
+
+  const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+
+  // Strategy 1: Fast manual redirect check (inspect Location header directly from HTTP 302)
+  try {
+    const res = await fetchWithTimeout(url, {
+      method: 'GET',
+      redirect: 'manual',
+      headers: { 'User-Agent': userAgent },
+      timeout: 3000,
+    });
+    const location = res.headers.get('location');
+    if (location && location.startsWith('http')) {
+      return location;
+    }
+  } catch (err) {
+    console.warn('[GROUNDING_UNFURL] Strategy 1 manual redirect failed:', err instanceof Error ? err.message : err);
+  }
+
+  // Strategy 2: GET with follow redirects
+  try {
+    const res = await fetchWithTimeout(url, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: { 'User-Agent': userAgent },
+      timeout: 4000,
+    });
+    if (res.url && !res.url.includes('vertexaisearch.cloud.google.com')) {
+      return res.url;
+    }
+  } catch (err) {
+    console.warn('[GROUNDING_UNFURL] Strategy 2 follow redirect failed:', err instanceof Error ? err.message : err);
+  }
+
+  return url;
+}
+
+/**
+ * Sanitize any raw vertexaisearch.cloud.google.com URLs that leaked into text or JSON structures.
+ */
+function sanitizeGroundingLeaks<T>(obj: T): T {
+  if (!obj) return obj;
+  if (typeof obj === 'string') {
+    let cleaned = obj.replace(
+      /\[([^\]]+)\]\(https:\/\/vertexaisearch\.cloud\.google\.com\/grounding-api-redirect\/[^)]+\)/g,
+      '$1'
+    );
+    cleaned = cleaned.replace(
+      /https:\/\/vertexaisearch\.cloud\.google\.com\/grounding-api-redirect\/[^\s)]+/g,
+      ''
+    );
+    return cleaned as unknown as T;
+  }
+  if (Array.isArray(obj)) {
+    return obj
+      .map(sanitizeGroundingLeaks)
+      .filter(
+        (item) =>
+          typeof item !== 'string' ||
+          (item.trim().length > 0 && !item.includes('vertexaisearch.cloud.google.com'))
+      ) as unknown as T;
+  }
+  if (typeof obj === 'object') {
+    const copy = { ...obj } as Record<string, unknown>;
+    for (const key of Object.keys(copy)) {
+      copy[key] = sanitizeGroundingLeaks(copy[key]);
+    }
+    return copy as T;
+  }
+  return obj;
+}
+
+/**
  * Resolve the internal Prisma Organization UUID for billing purposes.
  *
  * Strategy:
@@ -683,16 +764,8 @@ router.post('/chat', softAuth, rateLimiter({ windowMs: 60000, max: 20, message: 
             const urlsToResolve = [...new Set(globalAnnotations.map(a => a.url).filter(Boolean))] as string[];
             
             await Promise.all(urlsToResolve.map(async (u) => {
-                if (u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
-                    try {
-                        const res = await fetchWithTimeout(u, { method: 'HEAD', redirect: 'follow', timeout: 4000 });
-                        resolvedUrls.set(u, res.url || u);
-                    } catch (_e) {
-                        resolvedUrls.set(u, u);
-                    }
-                } else {
-                    resolvedUrls.set(u, u);
-                }
+                const resolved = await resolveGroundingUrl(u);
+                resolvedUrls.set(u, resolved);
             }));
             
             // Pre-populate unique sources from globalAnnotations directly
@@ -1012,18 +1085,12 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
     const uniqueUrlsToResolve = [...new Set(extractedAnnotations.map(a => a.url).filter(Boolean))] as string[];
     
     // Resolve any Google Vertex AI Search grounding redirect URLs
-    for (const u of uniqueUrlsToResolve) {
-      if (u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
-        try {
-          const res = await fetchWithTimeout(u, { method: 'HEAD', redirect: 'follow', timeout: 4000 });
-          resolvedUrls.set(u, res.url || u);
-        } catch (_e) {
-          resolvedUrls.set(u, u);
-        }
-      } else {
-        resolvedUrls.set(u, u);
-      }
-    }
+    await Promise.all(
+      uniqueUrlsToResolve.map(async (u) => {
+        const resolved = await resolveGroundingUrl(u);
+        resolvedUrls.set(u, resolved);
+      })
+    );
 
     const uniqueSourcesList: string[] = [];
     const urlToIndex = new Map<string, number>();
@@ -1044,16 +1111,8 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
     // Resolve all registry URLs first to ensure we map to real final URLs
     await Promise.all(rawRegistry.map(async (u) => {
       if (typeof u === 'string') {
-        if (u.includes('vertexaisearch.cloud.google.com/grounding-api-redirect')) {
-          try {
-            const res = await fetchWithTimeout(u, { method: 'HEAD', redirect: 'follow', timeout: 4000 });
-            validUrlsRegistry.push(res.url || u);
-          } catch (_e) {
-            validUrlsRegistry.push(u);
-          }
-        } else {
-          validUrlsRegistry.push(u);
-        }
+        const resolved = await resolveGroundingUrl(u);
+        validUrlsRegistry.push(resolved);
       }
     }));
 
@@ -1223,8 +1282,9 @@ router.post('/generate-plan', softAuth, rateLimiter({ windowMs: 60000, max: 10, 
       }
     }
 
+    const sanitizedData = sanitizeGroundingLeaks(data);
     res.json({
-      ...data,
+      ...sanitizedData,
       sessionId: dbSessionId === 'new' ? null : dbSessionId
     });
   } catch (error) {
