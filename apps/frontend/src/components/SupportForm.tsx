@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import { AlertCircle, CheckCircle2, LifeBuoy, Loader2, Mail, Send } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import {
@@ -43,7 +45,7 @@ export function SupportForm() {
     };
 
     try {
-      const response = await fetch('/api/support', {
+      const response = await fetchWithTimeout('/api/support', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

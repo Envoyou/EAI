@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Plus, FileText, Loader2, Search, Trash2, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -105,7 +107,7 @@ export default function DocumentHistoryPanel({
       if (cursor) params.append('cursor', cursor);
       params.append('limit', String(PAGE_SIZE));
 
-      const res = await fetch(`/api/history?${params.toString()}`);
+      const res = await fetchWithTimeout(`/api/history?${params.toString()}`);
       if (res.ok) {
         const result = await res.json();
         const data = Array.isArray(result) ? result : result.data || [];
@@ -139,7 +141,7 @@ export default function DocumentHistoryPanel({
     if (!itemToDelete) return;
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/history/${itemToDelete}`, { method: 'DELETE' });
+      const res = await fetchWithTimeout(`/api/history/${itemToDelete}`, { method: 'DELETE' });
       if (res.ok) {
         setHistory(prev => prev.filter(item => item.id !== itemToDelete));
         toast.success('Draft deleted from history.');
@@ -177,7 +179,7 @@ export default function DocumentHistoryPanel({
     setEditingId(null);
 
     try {
-      const res = await fetch(`/api/history/${id}`, {
+      const res = await fetchWithTimeout(`/api/history/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: editTitleValue.trim() })

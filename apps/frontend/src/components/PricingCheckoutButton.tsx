@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Loader2, ArrowRight, Check, X } from 'lucide-react';
@@ -52,7 +54,7 @@ export default function PricingCheckoutButton({
 
     setPreviewLoading(true);
     try {
-      const response = await fetch(`/api/checkout/preview?plan=${planId}`);
+      const response = await fetchWithTimeout(`/api/checkout/preview?plan=${planId}`);
       if (response.ok) {
         const data = await response.json();
         setPreview(data);
@@ -82,7 +84,7 @@ export default function PricingCheckoutButton({
     if (current) return;
     setLoading(true);
     try {
-      const response = await fetch('/api/checkout', {
+      const response = await fetchWithTimeout('/api/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

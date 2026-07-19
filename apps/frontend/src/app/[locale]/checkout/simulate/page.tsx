@@ -1,6 +1,8 @@
 'use strict';
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import React, { Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Shield, QrCode, Building2, CheckCircle, XCircle, Copy, Loader2 } from 'lucide-react';
@@ -69,7 +71,7 @@ function BillingSimulatorContent() {
       const grossAmount = `${amount}.00`;
 
       // 1. Get mock signature from backend
-      const signResponse = await fetch('/api/checkout/sign-webhook', {
+      const signResponse = await fetchWithTimeout('/api/checkout/sign-webhook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -86,7 +88,7 @@ function BillingSimulatorContent() {
       const { signature } = await signResponse.json();
 
       // 2. Send simulated webhook to backend
-      const webhookResponse = await fetch('/api/webhooks/payment', {
+      const webhookResponse = await fetchWithTimeout('/api/webhooks/payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

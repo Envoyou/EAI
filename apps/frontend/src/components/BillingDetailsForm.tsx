@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import React, { useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { getApiUrl } from '@/lib/api-url';
@@ -32,7 +34,7 @@ export default function BillingDetailsForm({ organization, isAdmin }: BillingDet
     try {
       const token = await getToken();
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/workspace/billing-details`, {
+      const response = await fetchWithTimeout(`${apiUrl}/api/workspace/billing-details`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

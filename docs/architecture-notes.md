@@ -176,6 +176,7 @@ Setiap kali analisis draf dijalankan, sistem akan menyimpan log ke tabel `Analys
 *   **Base UI & Shadcn**: Memberikan aksesibilitas standar industri dan visual premium yang konsisten.
 *   **Activity Bar Settings**: Menu `Setting` ditempatkan di atas toggle dark/light agar kontrol session dan preferensi editor terkumpul di satu area yang mudah diperluas.
 *   **Editorial Progress UI**: Komponen `EditorialProgress` menggunakan status stream backend untuk menampilkan checklist tahap, elapsed time, skeleton dokumen, dan progress rail. Animasi menghormati preferensi `prefers-reduced-motion`.
+*   **Finite Request Lifecycle**: Semua request API frontend melewati `fetchWithTimeout`, yang menggabungkan deadline internal dengan `AbortSignal` pemanggil. Stream AI memakai idle timeout yang sekaligus membatalkan reader, sedangkan polling Deep Research dijalankan secara berurutan agar request tidak overlap. Setiap kegagalan, limit, timeout, atau cancellation harus mengakhiri state loading dan mengubah atau membersihkan placeholder yang masih pending.
 
 ---
 

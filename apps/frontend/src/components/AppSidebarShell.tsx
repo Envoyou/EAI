@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import React from 'react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
@@ -48,7 +50,7 @@ export function AppSidebarShell({
     let active = true;
     const fetchState = async () => {
       try {
-        const res = await fetch('/api/workspace/state');
+        const res = await fetchWithTimeout('/api/workspace/state');
         if (res.ok) {
           const data = await res.json();
           if (active && data?.plan?.activePlan) {

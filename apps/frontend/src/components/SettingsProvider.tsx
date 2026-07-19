@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import React, { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -79,7 +81,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/workspace/config', {
+    fetchWithTimeout('/api/workspace/config', {
       cache: 'no-store',
       signal: controller.signal,
     })

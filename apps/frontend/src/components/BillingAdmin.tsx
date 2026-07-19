@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import {
   Building2,
   CheckCircle2,
@@ -139,7 +141,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
 
     setSearching(true);
     try {
-      const response = await fetch(`/api/admin/billing?q=${encodeURIComponent(cleanQuery)}`, {
+      const response = await fetchWithTimeout(`/api/admin/billing?q=${encodeURIComponent(cleanQuery)}`, {
         cache: 'no-store',
       });
       const data = await response.json();
@@ -158,7 +160,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
   const loadOrganization = async (organizationId: string) => {
     setLoadingDetail(true);
     try {
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `/api/admin/billing?organizationId=${encodeURIComponent(organizationId)}`,
         { cache: 'no-store' }
       );
@@ -213,7 +215,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
     setVerifyingTicket(true);
     setVerifiedTicket(null);
     try {
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `/api/admin/billing/ticket?reference=${encodeURIComponent(reference)}`,
         { cache: 'no-store' }
       );
@@ -234,7 +236,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
     setSubmitting(true);
 
     try {
-      const response = await fetch('/api/admin/billing', {
+      const response = await fetchWithTimeout('/api/admin/billing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -297,7 +299,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
     setSubmitting(true);
 
     try {
-      const response = await fetch('/api/admin/billing/override-plan', {
+      const response = await fetchWithTimeout('/api/admin/billing/override-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

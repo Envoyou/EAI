@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 import { isFeatureFlagKey } from '@eai/shared/server';
 import { getApiUrl } from '@/lib/api-url';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 type ToggleFeatureFlagResult =
   | {
@@ -60,7 +61,7 @@ export async function toggleFeatureFlag(
     try {
       const token = await authContext.getToken();
       const apiUrl = getApiUrl();
-      await fetch(`${apiUrl}/api/admin/audit-logs`, {
+      await fetchWithTimeout(`${apiUrl}/api/admin/audit-logs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +94,7 @@ export async function toggleFeatureFlag(
       endpoint.searchParams.set('teamId', vercelTeamId);
     }
 
-    const response = await fetch(endpoint, {
+    const response = await fetchWithTimeout(endpoint, {
       method: 'PATCH',
       headers: {
         Authorization: `Bearer ${vercelApiToken}`,
@@ -162,7 +163,7 @@ export async function toggleFeatureFlag(
     try {
       const token = await authContext.getToken();
       const apiUrl = getApiUrl();
-      await fetch(`${apiUrl}/api/admin/audit-logs`, {
+      await fetchWithTimeout(`${apiUrl}/api/admin/audit-logs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

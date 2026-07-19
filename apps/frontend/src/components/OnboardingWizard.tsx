@@ -35,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { fetchWithTimeout, REQUEST_TIMEOUT_MS } from '@/lib/fetch-utils';
 
 const STEPS: Array<{
   id: OnboardingStep;
@@ -106,13 +107,16 @@ export function OnboardingWizard() {
   const [loadingPhase, setLoadingPhase] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const discoverCancelledRef = useRef(false);
+  const discoveryAbortControllerRef = useRef<AbortController | null>(null);
+  const discoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const discoveryTransitionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentIndex = STEPS.findIndex((item) => item.id === step);
   const currentStep = STEPS[currentIndex] || STEPS[0];
 
   const loadDraft = useCallback(async () => {
     try {
-      const response = await fetch('/api/onboarding', { cache: 'no-store' });
+      const response = await fetchWithTimeout('/api/onboarding', { cache: 'no-store' });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Failed to load onboarding.');
       if (result.completed) {
@@ -134,6 +138,12 @@ export function OnboardingWizard() {
   useEffect(() => {
     void loadDraft();
   }, [loadDraft]);
+
+  useEffect(() => () => {
+    discoveryAbortControllerRef.current?.abort();
+    if (discoveryIntervalRef.current) clearInterval(discoveryIntervalRef.current);
+    if (discoveryTransitionRef.current) clearTimeout(discoveryTransitionRef.current);
+  }, []);
 
   const updateActivation = (
     key: keyof OnboardingData['activation'],
@@ -159,6 +169,9 @@ export function OnboardingWizard() {
   };
 
   const runDiscovery = async () => {
+    discoveryAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    discoveryAbortControllerRef.current = controller;
     discoverCancelledRef.current = false;
     setDiscovering(true);
     setLoadingPhase(0);
@@ -168,11 +181,14 @@ export function OnboardingWizard() {
     const interval = setInterval(() => {
       setLoadingPhase((p) => Math.min(p + 1, 3));
     }, 2500);
+    discoveryIntervalRef.current = interval;
 
     try {
-      const response = await fetch('/api/onboarding/discover', {
+      const response = await fetchWithTimeout('/api/onboarding/discover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        timeoutMs: REQUEST_TIMEOUT_MS.aiFlex,
         body: JSON.stringify(data.activation),
       });
       const result = await response.json();
@@ -194,14 +210,14 @@ export function OnboardingWizard() {
       }));
 
       // Wait a bit for the animation to look complete before moving to review
-      setTimeout(() => {
+      discoveryTransitionRef.current = setTimeout(() => {
         if (discoverCancelledRef.current) return;
         setStep('review');
         setDiscovering(false);
       }, 800);
 
     } catch (error) {
-      if (discoverCancelledRef.current) return;
+      if (discoverCancelledRef.current || controller.signal.aborted) return;
       clearInterval(interval);
       toast.error(error instanceof Error ? error.message : 'Discovery failed. Loading defaults.');
       
@@ -237,11 +253,19 @@ export function OnboardingWizard() {
         editorialProfile: fallbackProfile,
       }));
 
-      setTimeout(() => {
+      discoveryTransitionRef.current = setTimeout(() => {
         if (discoverCancelledRef.current) return;
         setStep('review');
         setDiscovering(false);
       }, 1000);
+    } finally {
+      clearInterval(interval);
+      if (discoveryIntervalRef.current === interval) {
+        discoveryIntervalRef.current = null;
+      }
+      if (discoveryAbortControllerRef.current === controller) {
+        discoveryAbortControllerRef.current = null;
+      }
     }
   };
 
@@ -249,7 +273,7 @@ export function OnboardingWizard() {
     setSaving(true);
     try {
       const dataToSave = updatedData || data;
-      const response = await fetch('/api/onboarding', {
+      const response = await fetchWithTimeout('/api/onboarding', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -295,7 +319,7 @@ export function OnboardingWizard() {
     try {
       // First save the current data as review draft
       await saveDraft('review');
-      const response = await fetch('/api/onboarding', { method: 'POST' });
+      const response = await fetchWithTimeout('/api/onboarding', { method: 'POST' });
       const result = await response.json();
       if (!response.ok) {
         throw new Error(result.error || 'Workspace activation failed.');
@@ -313,7 +337,7 @@ export function OnboardingWizard() {
   const skipOnboarding = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/onboarding', {
+      const response = await fetchWithTimeout('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ skip: true }),
@@ -602,6 +626,16 @@ export function OnboardingWizard() {
                       type="button"
                       onClick={async () => {
                         discoverCancelledRef.current = true;
+                        discoveryAbortControllerRef.current?.abort();
+                        discoveryAbortControllerRef.current = null;
+                        if (discoveryIntervalRef.current) {
+                          clearInterval(discoveryIntervalRef.current);
+                          discoveryIntervalRef.current = null;
+                        }
+                        if (discoveryTransitionRef.current) {
+                          clearTimeout(discoveryTransitionRef.current);
+                          discoveryTransitionRef.current = null;
+                        }
                         setStep('activation');
                         setDiscovering(false);
                         try {

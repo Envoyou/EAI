@@ -1,5 +1,10 @@
 import { Extension } from '@tiptap/core';
 import { toast } from 'sonner';
+import {
+  fetchWithTimeout,
+  getResponseErrorMessage,
+  REQUEST_TIMEOUT_MS,
+} from '@/lib/fetch-utils';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -42,16 +47,22 @@ export const AiActionExtension = Extension.create({
           toast.loading(`Running AI ${action}...`, { id: 'ai-action' });
 
           // Call API
-          fetch('/api/editor/ai-action', {
+          fetchWithTimeout('/api/editor/ai-action', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            timeoutMs: REQUEST_TIMEOUT_MS.aiFlex,
             body: JSON.stringify({
               action,
               selectionMarkdown,
               contextMarkdown,
             }),
           })
-            .then((res) => res.json())
+            .then(async (res) => {
+              if (!res.ok) {
+                throw new Error(await getResponseErrorMessage(res, `AI action failed (${res.status})`));
+              }
+              return res.json();
+            })
             .then((data) => {
               if (data.error) throw new Error(data.error);
               toast.success(`AI ${action} complete.`, { id: 'ai-action' });

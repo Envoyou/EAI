@@ -5,6 +5,7 @@ import { PLANS, type CheckoutDisclosure, type PlanDetails } from '@eai/shared';
 import PricingGrid from '@/components/PricingGrid';
 import { getAllFeatureFlags } from '@eai/shared/server';
 import { getApiUrl } from '@/lib/api-url';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export default async function PricingPage() {
   let activeRate = 18000;
   try {
     const apiUrl = getApiUrl();
-    const res = await fetch(`${apiUrl}/api/payments/rate`, { cache: 'no-store' });
+    const res = await fetchWithTimeout(`${apiUrl}/api/payments/rate`, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
       if (typeof data.rate === 'number' && data.rate > 0) {

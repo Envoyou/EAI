@@ -2,6 +2,7 @@
 
 import { useEffect, Dispatch, SetStateAction } from 'react';
 import type { ArticleMetadata, ResearchNote } from '@eai/shared';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 interface UseWorkspaceAutosaveProps {
   draft: string;
@@ -33,7 +34,7 @@ export function useWorkspaceAutosave({
 
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/history/${activeHistoryId}/autosave`, {
+        const response = await fetchWithTimeout(`/api/history/${activeHistoryId}/autosave`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,

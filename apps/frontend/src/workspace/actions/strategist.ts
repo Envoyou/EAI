@@ -74,7 +74,7 @@ export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
           } else if (data.type === 'blueprint_detected') {
             toast.info(data.message || 'Multiple topics detected — generating draft from the first topic.');
           } else if (data.type === 'error') {
-            toast.error(data.message);
+            throw new Error(data.message || data.error || 'Draft generation failed.');
           } else if (data.type === 'done') {
             receivedDone = true;
           }

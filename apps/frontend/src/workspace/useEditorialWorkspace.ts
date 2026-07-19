@@ -10,6 +10,7 @@ import {
   canAutoApplyFeedback,
 } from '@eai/shared';
 import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { applyDefaultMetadata } from '@/lib/preferences';
 
 // Hooks
@@ -177,7 +178,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     if (isDemoMode) return;
     setIsSavingToCloud(true);
     try {
-      const response = await fetch('/api/history', {
+      const response = await fetchWithTimeout('/api/history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -458,7 +459,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     }
 
     try {
-      const response = await fetch('/api/workspace/config', {
+      const response = await fetchWithTimeout('/api/workspace/config', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [type]: trimmed }),
@@ -477,7 +478,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
 
   const loadHistory = async (id: string) => {
     try {
-      const res = await fetch(`/api/history/${id}`);
+      const res = await fetchWithTimeout(`/api/history/${id}`);
       if (res.ok) {
         const log = await res.json();
         setActiveHistoryId(log.id);
@@ -541,7 +542,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       throw new Error('The refinement history is not ready yet. Please try again.');
     }
 
-    const response = await fetch(`/api/history/${logId}/resolve`, {
+    const response = await fetchWithTimeout(`/api/history/${logId}/resolve`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { toast } from 'sonner';
@@ -68,7 +70,7 @@ export function PublicationProvider({ children }: { children: React.ReactNode })
 
     const fetchProfile = async () => {
       try {
-        const res = await fetch('/api/admin/editorial-profile', { cache: 'no-store' });
+        const res = await fetchWithTimeout('/api/admin/editorial-profile', { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed to fetch profile');
         const json = await res.json();
         setData(json);
@@ -97,7 +99,7 @@ export function PublicationProvider({ children }: { children: React.ReactNode })
     if (!data) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/editorial-profile', {
+      const res = await fetchWithTimeout('/api/admin/editorial-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { getApiUrl } from '@/lib/api-url';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 export type ClerkOrganizationContext = {
   clerkOrganizationId?: string | null;
@@ -38,7 +39,7 @@ export const getWorkspaceState = async (
     const token = await authObj.getToken();
 
     const apiUrl = getApiUrl();
-    const res = await fetch(`${apiUrl}/api/workspace/state`, {
+    const res = await fetchWithTimeout(`${apiUrl}/api/workspace/state`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },

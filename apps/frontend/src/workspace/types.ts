@@ -7,6 +7,7 @@ import type {
 } from '@eai/shared';
 import type { AppSettings } from '@/lib/preferences';
 import type { PanelTab } from '@/components/PanelTabBar';
+import type { TimeoutRequestInit } from '@/lib/fetch-utils';
 
 export interface EditorialOptions {
   brandName: string;
@@ -28,7 +29,7 @@ export interface PendingRefineAction {
   instruction?: string;
 }
 
-export type DirectFetchType = (path: string, options?: RequestInit) => Promise<Response>;
+export type DirectFetchType = (path: string, options?: TimeoutRequestInit) => Promise<Response>;
 
 export interface WorkspaceState {
   workspaceChecking: boolean;

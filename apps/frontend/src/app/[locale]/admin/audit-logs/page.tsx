@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import React, { useEffect, useState } from 'react';
 import { Loader2, Search, Eye, Filter, ArrowLeft, ArrowRight, X } from 'lucide-react';
 
@@ -55,7 +57,7 @@ export default function AuditLogsAdminPage() {
   const fetchLogs = async (currentPage = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `/api/admin/audit-logs?page=${currentPage}&limit=10&search=${encodeURIComponent(
           search.trim()
         )}&action=${encodeURIComponent(actionFilter)}`

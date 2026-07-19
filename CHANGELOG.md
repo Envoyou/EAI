@@ -57,6 +57,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Stopped Analyze, Refine, Quick Draft, and Draft From Notes pipelines from continuing into Quality Gate, SEO, logging, or billing after client disconnects.
   - Prevented Targeted Fix from resolving feedback when its target text was not found, restored the complete analysis snapshot after cancelled/failed refinements, and removed stale chat placeholders on cancellation.
   - Reset User Directory pagination when filters change, cleared recoverable errors on retry, and ignored stale out-of-order fetch responses.
+  - Added a shared frontend request timeout contract across API calls, cancellation-aware onboarding and AI actions, stream-reader cancellation on idle timeout, non-overlapping Deep Research polling, and terminal Strategist error messages so network/provider failures cannot leave indefinite loading states.
 - **AI Telemetry & Provider Types**:
   - Corrected Gemini reasoning-token accounting to avoid double-counting and added pricing for the default `openai/gpt-4o-mini` OpenRouter model.
   - Restored Groq-compatible mapper type exports and replaced the unsafe targeted-fix telemetry cast with a real collector.

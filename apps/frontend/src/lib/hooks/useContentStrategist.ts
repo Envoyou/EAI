@@ -7,6 +7,15 @@ import { generateId, extractDynamicSuggestions } from '@/lib/strategist-utils';
 import { useUser } from '@clerk/nextjs';
 import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
 import { readWithTimeout } from '@/lib/stream-utils';
+import {
+  fetchWithTimeout,
+  getResponseErrorMessage,
+  REQUEST_TIMEOUT_MS,
+} from '@/lib/fetch-utils';
+import {
+  getStrategistStreamError,
+  parseStrategistSseLine,
+} from '@/lib/strategist-stream';
 
 export type SignalData = {
   topic: string;
@@ -87,6 +96,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
   const chatAbortControllerRef = useRef<AbortController | null>(null);
   const quickDraftAbortControllerRef = useRef<AbortController | null>(null);
+  const deepResearchMessageIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -149,7 +159,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     if (!user) return;
     setIsSessionsLoading(true);
     try {
-      const res = await fetch('/api/strategist/sessions?limit=50');
+      const res = await fetchWithTimeout('/api/strategist/sessions?limit=50');
       if (res.ok) {
         const data = await res.json();
         setSessions(data.sessions || []);
@@ -171,7 +181,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     if (!user) return;
     setIsTyping(true);
     try {
-      const res = await fetch(`/api/strategist/sessions/${sessionId}`);
+      const res = await fetchWithTimeout(`/api/strategist/sessions/${sessionId}`);
       if (res.ok) {
         const data = await res.json();
         if (data.session) {
@@ -200,7 +210,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
     if (!user) return;
     try {
-      const res = await fetch(`/api/strategist/sessions/${sessionId}`, {
+      const res = await fetchWithTimeout(`/api/strategist/sessions/${sessionId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: trimmed })
@@ -237,7 +247,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
     if (!user) return;
     try {
-      const res = await fetch(`/api/strategist/sessions/${sessionId}`, {
+      const res = await fetchWithTimeout(`/api/strategist/sessions/${sessionId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isPinned: targetPinned })
@@ -262,7 +272,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
     if (!user) return;
     try {
-      const res = await fetch(`/api/strategist/sessions/${sessionId}`, {
+      const res = await fetchWithTimeout(`/api/strategist/sessions/${sessionId}`, {
         method: 'DELETE'
       });
       if (!res.ok) {
@@ -327,7 +337,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   const fetchCredits = useCallback(() => {
-    fetch('/api/workspace/config')
+    fetchWithTimeout('/api/workspace/config')
       .then(res => res.json())
       .then(data => {
         if (data && data.plan) setCredits(data.plan.creditsRemaining);
@@ -381,54 +391,74 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
   useEffect(() => {
     if (!activeDeepResearchId) return;
 
-    let pollCount = 0;
-    const MAX_POLLS = 180;
+    let cancelled = false;
+    const pollController = new AbortController();
+    const deadlineAt = Date.now() + (30 * 60_000);
+    let nextPollTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const interval = setInterval(async () => {
-      if (pollCount >= MAX_POLLS) {
-        clearInterval(interval);
-        setActiveDeepResearchId(null);
+    const finishDeepResearchMessage = (content: string) => {
+      const messageId = deepResearchMessageIdRef.current;
+      if (messageId) {
+        setMessages(prev => prev.map(message => message.id === messageId
+          ? { ...message, content, payload: { ...message.payload, status: undefined } }
+          : message));
+      } else {
         setMessages(prev => [...prev, {
           id: generateId(),
           role: 'assistant',
           type: 'text',
-          content: "Deep Research timed out. Please try again."
+          content,
         }]);
-        setIsTyping(false);
+      }
+      deepResearchMessageIdRef.current = null;
+      setIsTyping(false);
+    };
+
+    const poll = async () => {
+      if (cancelled) return;
+      if (Date.now() >= deadlineAt) {
+        setActiveDeepResearchId(null);
+        finishDeepResearchMessage('Deep Research timed out. Please try again.');
         return;
       }
-      pollCount++;
       try {
-        const res = await fetch(`/api/strategist/chat/status/${activeDeepResearchId}`);
+        const res = await fetchWithTimeout(
+          `/api/strategist/chat/status/${activeDeepResearchId}`,
+          {
+            signal: pollController.signal,
+            timeoutMs: REQUEST_TIMEOUT_MS.polling,
+          }
+        );
         if (res.ok) {
           const data = await res.json();
           if (data.state === 'COMPLETED' && data.output) {
             setDeepResearchReport(data.output);
             sessionStorage.setItem(`eai_strategist_deep_research_${documentId}`, data.output);
             setActiveDeepResearchId(null);
-
-            setMessages(prev => [...prev, {
-              id: generateId(),
-              role: 'assistant',
-              type: 'text',
-              content: "Deep Research complete. Open the report from the right panel."
-            }]);
-            setIsTyping(false);
+            finishDeepResearchMessage('Deep Research complete. Open the report from the right panel.');
+            return;
           } else if (data.state === 'FAILED') {
             setActiveDeepResearchId(null);
-            setMessages(prev => [...prev, {
-              id: generateId(),
-              role: 'assistant',
-              type: 'text',
-              content: "Deep Research encountered an error and failed to complete."
-            }]);
-            setIsTyping(false);
+            finishDeepResearchMessage('Deep Research encountered an error and failed to complete.');
+            return;
           }
         }
-      } catch { /* silent */ }
-    }, 10000);
+      } catch (error) {
+        if (!cancelled && !pollController.signal.aborted) {
+          console.warn('Deep Research status poll failed:', error);
+        }
+      }
 
-    return () => clearInterval(interval);
+      if (!cancelled) nextPollTimer = setTimeout(poll, 10_000);
+    };
+
+    nextPollTimer = setTimeout(poll, 10_000);
+
+    return () => {
+      cancelled = true;
+      pollController.abort();
+      if (nextPollTimer) clearTimeout(nextPollTimer);
+    };
   }, [activeDeepResearchId, documentId]);
 
   const appendMessage = useCallback((msg: Omit<ChatMessage, 'id'>) => {
@@ -550,14 +580,22 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     const assistantMsgId = generateId();
     setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', type: 'text', content: '', payload: { status: 'Generating Editorial Blueprint...' } }]);
 
+    chatAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    chatAbortControllerRef.current = controller;
+
     try {
       const res = await directFetch('/api/strategist/generate-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        timeoutMs: REQUEST_TIMEOUT_MS.aiFlex,
         body: JSON.stringify({ recommendation: recommendationText, history, sessionId: currentSessionId }),
       });
 
-      if (!res.ok) throw new Error('Plan generation failed');
+      if (!res.ok) {
+        throw new Error(await getResponseErrorMessage(res, `Plan generation failed (${res.status})`));
+      }
       const data = await res.json();
       
       // If a new session was created in the backend for this plan, update local state
@@ -617,16 +655,24 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         content: displayContent,
         payload: { suggestions: data.suggestions }
       } : m));
-    } catch {
-      toast.error('Failed to generate draft plan');
+    } catch (error) {
+      if (controller.signal.aborted) {
+        setMessages(prev => prev.filter(message => message.id !== assistantMsgId));
+        return;
+      }
+      const message = error instanceof Error ? error.message : 'Failed to generate draft plan';
+      toast.error(message);
       setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
         id: assistantMsgId,
         role: 'assistant',
         type: 'text',
-        content: 'I failed to generate the plan. Please try again.'
+        content: `I failed to generate the plan. ${message}`
       } : m));
     } finally {
       setIsTyping(false);
+      if (chatAbortControllerRef.current === controller) {
+        chatAbortControllerRef.current = null;
+      }
     }
   }, [currentSessionId, directFetch, loadSessions]);
 
@@ -694,7 +740,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
             return;
           }
         }
-        throw new Error('API Error');
+        throw new Error(await getResponseErrorMessage(res, `Strategist request failed (${res.status})`));
       }
 
       if (!res.body) throw new Error('No body');
@@ -719,9 +765,19 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           for (const line of lines) {
             if (line.trim().startsWith('data: ')) {
               const dataStr = line.trim().slice(6);
+              const parsedEvent = parseStrategistSseLine(line);
+              if (parsedEvent?.type === 'error') {
+                throw new Error(getStrategistStreamError(parsedEvent));
+              }
               try {
                 const data = JSON.parse(dataStr);
-                if (data.type === 'thinking' && data.chunk) {
+                if (data.type === 'deep_research_started') {
+                  deepResearchMessageIdRef.current = assistantMsgId;
+                  setActiveDeepResearchId(data.interaction_id);
+                  setMessages(prev => prev.map(m => m.id === assistantMsgId
+                    ? { ...m, payload: { ...m.payload, status: 'Deep Research in progress...' } }
+                    : m));
+                } else if (data.type === 'thinking' && data.chunk) {
                   currentThinkingContent += data.chunk;
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
                     ...m, payload: { ...m.payload, status: `Thinking: ${currentThinkingContent}` }
@@ -917,7 +973,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     const loadingToast = toast.loading('Uploading and extracting file content...');
     setShowAttachMenu(false);
     try {
-      const presignedRes = await fetch('/api/storage/presigned-url', {
+      const presignedRes = await fetchWithTimeout('/api/storage/presigned-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: file.name, contentType: file.type || 'text/plain' }),
@@ -930,7 +986,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
       const { uploadUrl, fileKey, publicUrl } = await presignedRes.json();
 
-      const uploadRes = await fetch(uploadUrl, {
+      const uploadRes = await fetchWithTimeout(uploadUrl, {
         method: 'PUT',
         headers: { 'Content-Type': file.type || 'text/plain' },
         body: file,
@@ -938,7 +994,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
       if (!uploadRes.ok) throw new Error('Failed to upload file to storage');
 
-      const extractRes = await fetch('/api/storage/extract', {
+      const extractRes = await fetchWithTimeout('/api/storage/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileKey, contentType: file.type || 'text/plain', filename: file.name, publicUrl }),
@@ -1051,7 +1107,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
             return;
           }
         }
-        throw new Error('API Error');
+        throw new Error(await getResponseErrorMessage(res, `Strategist request failed (${res.status})`));
       }
       if (!res.body) throw new Error('No body');
 
@@ -1075,12 +1131,17 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           for (const line of lines) {
             if (line.trim().startsWith('data: ')) {
               const dataStr = line.trim().slice(6);
+              const parsedEvent = parseStrategistSseLine(line);
+              if (parsedEvent?.type === 'error') {
+                throw new Error(getStrategistStreamError(parsedEvent));
+              }
               try {
                 const data = JSON.parse(dataStr);
                 if (data.type === 'session_init') {
                   setCurrentSessionId(data.sessionId);
                   loadSessions();
                 } else if (data.type === 'deep_research_started') {
+                  deepResearchMessageIdRef.current = assistantMsgId;
                   setActiveDeepResearchId(data.interaction_id);
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, status: "Deep Research in progress..." } } : m));
                 } else if (data.type === 'status') {
@@ -1154,7 +1215,15 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         }));
         return;
       }
-      toast.error(error instanceof Error ? error.message : 'Failed to send message');
+      const message = error instanceof Error ? error.message : 'Failed to send message';
+      toast.error(message);
+      setMessages(prev => prev.map(item => item.id === assistantMsgId
+        ? {
+            ...item,
+            content: item.content.trim() || message,
+            payload: { ...item.payload, status: undefined },
+          }
+        : item));
     } finally {
       setIsTyping(false);
       chatAbortControllerRef.current = null;

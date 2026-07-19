@@ -13,6 +13,7 @@ import BillingDetailsForm from '@/components/BillingDetailsForm';
 import CancelSubscriptionButton from '@/components/CancelSubscriptionButton';
 import ReactivateSubscriptionButton from '@/components/ReactivateSubscriptionButton';
 import CancelQueuedDowngradeButton from '@/components/CancelQueuedDowngradeButton';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,7 +90,7 @@ export default async function BillingSettingsPage() {
     try {
       const token = await authContext.getToken();
       const apiUrl = getApiUrl();
-      const paymentsRes = await fetch(`${apiUrl}/api/payments/recent`, {
+      const paymentsRes = await fetchWithTimeout(`${apiUrl}/api/payments/recent`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

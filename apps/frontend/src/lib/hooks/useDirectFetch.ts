@@ -2,11 +2,12 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { getApiUrl } from '../api-url';
+import { fetchWithTimeout, type TimeoutRequestInit } from '../fetch-utils';
 
 export function useDirectFetch() {
   const auth = useAuth();
 
-  const directFetch = async (path: string, options: RequestInit = {}) => {
+  const directFetch = async (path: string, options: TimeoutRequestInit = {}) => {
     const apiBase = getApiUrl();
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
     const url = `${apiBase}${cleanPath}`;
@@ -28,7 +29,7 @@ export function useDirectFetch() {
       if (orgRole) headers.set('x-clerk-org-role', orgRole);
     }
 
-    return fetch(url, {
+    return fetchWithTimeout(url, {
       ...options,
       headers,
     });

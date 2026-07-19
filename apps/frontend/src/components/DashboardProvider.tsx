@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -79,7 +81,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       if (customEndDate) url += `&endDate=${customEndDate}`;
     }
 
-    fetch(url)
+    fetchWithTimeout(url)
       .then(res => {
         if (res.status === 401) {
           router.replace('/login');

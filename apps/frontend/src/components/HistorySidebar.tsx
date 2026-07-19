@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { Plus, FileText, Loader2, Search, Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
@@ -88,7 +89,7 @@ export default function HistorySidebar({
       if (cursor) params.append('cursor', cursor);
       params.append('limit', '20');
 
-      const res = await fetch(`/api/history?${params.toString()}`);
+      const res = await fetchWithTimeout(`/api/history?${params.toString()}`);
       if (res.ok) {
         const result = await res.json();
         const data = Array.isArray(result) ? result : result.data || [];
@@ -117,7 +118,7 @@ export default function HistorySidebar({
   const handleDelete = async (id: string) => {
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/history/${id}`, { method: 'DELETE' });
+      const res = await fetchWithTimeout(`/api/history/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setHistory(prev => prev.filter(item => item.id !== id));
         toast.success('Draft deleted from history.');
@@ -155,7 +156,7 @@ export default function HistorySidebar({
     setEditingId(null);
 
     try {
-      const res = await fetch(`/api/history/${id}`, {
+      const res = await fetchWithTimeout(`/api/history/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: editTitleValue.trim() })

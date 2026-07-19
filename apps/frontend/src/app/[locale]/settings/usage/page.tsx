@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import React, { useEffect, useState } from 'react';
 import {
   Coins,
@@ -63,7 +65,7 @@ export default function CreditUsageSettingsPage() {
     if (!isSilent) setLoading(true);
     else setRefreshing(true);
     try {
-      const res = await fetch('/api/workspace/usage');
+      const res = await fetchWithTimeout('/api/workspace/usage');
       if (res.ok) {
         const json = await res.json();
         setData(json);

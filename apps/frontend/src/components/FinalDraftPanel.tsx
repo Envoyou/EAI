@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Popover } from '@base-ui/react/popover';
 import {
@@ -549,7 +551,7 @@ export default function FinalDraftPanel({
     if (!canExport) return;
     setIsExporting(true);
     try {
-      const response = await fetch('/api/export', {
+      const response = await fetchWithTimeout('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

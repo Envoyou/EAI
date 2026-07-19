@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import { useEffect, useState } from 'react';
 import { FileText, CheckCircle, Activity, AlertTriangle, Loader2, ArrowLeft, Download, WalletCards } from 'lucide-react';
 import Link from 'next/link';
@@ -76,7 +78,7 @@ export default function ValidationDashboardPage() {
   }, [loading, data]);
 
   useEffect(() => {
-    fetch(`/api/analytics/validation?demo=${demoMode}`)
+    fetchWithTimeout(`/api/analytics/validation?demo=${demoMode}`)
       .then(res => {
         if (res.status === 401) {
           router.replace('/login');

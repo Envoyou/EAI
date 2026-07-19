@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
 import type {
   DirectoryUser,
   PaginationMeta,
@@ -88,7 +89,7 @@ export function useUserDirectory() {
       sortOrder: sortOrder,
     });
 
-    fetch(`/api/admin/users?${query.toString()}`, { cache: 'no-store' })
+    fetchWithTimeout(`/api/admin/users?${query.toString()}`, { cache: 'no-store' })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load users');
         return res.json();
@@ -152,7 +153,7 @@ export function useUserDirectory() {
     setLoadingDetails(true);
     setDetailsData(null);
     try {
-      const res = await fetch(`/api/admin/users/${user.id}/details`);
+      const res = await fetchWithTimeout(`/api/admin/users/${user.id}/details`);
       if (!res.ok) throw new Error('Failed to load user details');
       const data = await res.json();
       setDetailsData(data);
@@ -192,7 +193,7 @@ export function useUserDirectory() {
 
     setSubmittingAdjustment(true);
     try {
-      const res = await fetch(`/api/admin/users/${selectedUser.id}/adjust-credits`, {
+      const res = await fetchWithTimeout(`/api/admin/users/${selectedUser.id}/adjust-credits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -228,7 +229,7 @@ export function useUserDirectory() {
     if (!selectedUser) return;
     const action = selectedUser.isBanned ? 'unban' : 'ban';
     try {
-      const res = await fetch(`/api/admin/users/${selectedUser.id}/${action}`, {
+      const res = await fetchWithTimeout(`/api/admin/users/${selectedUser.id}/${action}`, {
         method: 'POST',
       });
       if (!res.ok) {
@@ -257,7 +258,7 @@ export function useUserDirectory() {
     if (!selectedUser) return;
     setSendingInvite(true);
     try {
-      const res = await fetch(`/api/admin/users/${selectedUser.id}/resend-invite`, {
+      const res = await fetchWithTimeout(`/api/admin/users/${selectedUser.id}/resend-invite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

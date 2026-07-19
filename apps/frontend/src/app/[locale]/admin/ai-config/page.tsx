@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import React, { useState } from 'react';
 import { Search, Loader2, Cpu, Save, AlertTriangle } from 'lucide-react';
 
@@ -38,7 +40,7 @@ export default function AiConfigAdminPage() {
     setSearching(true);
     setErrorMsg('');
     try {
-      const response = await fetch(`/api/admin/billing?q=${encodeURIComponent(cleanQuery)}`);
+      const response = await fetchWithTimeout(`/api/admin/billing?q=${encodeURIComponent(cleanQuery)}`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
       setResults(data.organizations || []);
@@ -56,7 +58,7 @@ export default function AiConfigAdminPage() {
     setErrorMsg('');
     setSaveSuccess(false);
     try {
-      const response = await fetch(`/api/admin/organizations/${orgId}/ai-config`);
+      const response = await fetchWithTimeout(`/api/admin/organizations/${orgId}/ai-config`);
       if (!response.ok) throw new Error('Failed to load configuration');
       const data = await response.json();
       setConfig(data);
@@ -77,7 +79,7 @@ export default function AiConfigAdminPage() {
     setErrorMsg('');
     setSaveSuccess(false);
     try {
-      const response = await fetch(`/api/admin/organizations/${selectedOrgId}/ai-config`, {
+      const response = await fetchWithTimeout(`/api/admin/organizations/${selectedOrgId}/ai-config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

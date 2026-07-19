@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { ArticleMetadata } from '@eai/shared';
 import type { EditorialOptions, AnalysisSpeed } from '../types';
 import type { AppSettings } from '@/lib/preferences';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 interface UseWorkspaceConfigProps {
   mode: 'demo' | 'workspace';
@@ -61,7 +62,7 @@ export function useWorkspaceConfig({
   useEffect(() => {
     if (mode === 'demo') return;
 
-    fetch('/api/workspace/config', { cache: 'no-store' })
+    fetchWithTimeout('/api/workspace/config', { cache: 'no-store' })
       .then(async (response) => {
         if (response.status === 401) {
           router.replace('/login');

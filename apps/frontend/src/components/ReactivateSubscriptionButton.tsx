@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import React, { useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
@@ -16,7 +18,7 @@ export default function ReactivateSubscriptionButton() {
     try {
       const token = await getToken();
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/payments/reactivate-subscription`, {
+      const response = await fetchWithTimeout(`${apiUrl}/api/payments/reactivate-subscription`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

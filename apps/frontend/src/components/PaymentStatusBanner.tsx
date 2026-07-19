@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle2, Clock3, Loader2, TriangleAlert, X } from 'lucide-react';
@@ -38,7 +40,7 @@ export default function PaymentStatusBanner() {
     const checkStatus = async () => {
       attempts += 1;
       try {
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `/api/payments/status?orderId=${encodeURIComponent(orderId)}`,
           { cache: 'no-store' }
         );

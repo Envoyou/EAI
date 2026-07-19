@@ -146,6 +146,9 @@ apps/frontend/
 │   │   └── __tests__/            # Unit test suites (vitest)
 │   ├── i18n/                     # next-intl routing + locale config
 │   ├── lib/                      # Frontend utilities, hooks, API client
+│   │   ├── fetch-utils.ts       # Shared request deadlines, abort propagation, and API error parsing
+│   │   ├── stream-utils.ts      # Idle-timeout reader with underlying stream cancellation
+│   │   └── strategist-stream.ts # Strategist SSE event/error normalization
 │   └── messages/                 # i18n translation files (en / id)
 ```
 
@@ -220,6 +223,7 @@ Any high-privilege administrative operation that performs database modifications
 
 * **Feature Flags**: Managed dynamically via Vercel Edge Config. Import `getMiddlewareFeatureFlags` from `@eai/shared/server` **only** in server-side code (`proxy.ts`, Server Components, Route Handlers). Never import `@eai/shared/server` in Client Components.
 * **Loading State**: Always use the `<Skeleton className="..." />` component from `@/components/ui/skeleton` to visualize loading placeholders instead of leaving the screen blank or styling manual pulse divs.
+* **Request Lifecycle**: Frontend and server-side API calls must use `fetchWithTimeout` from `@/lib/fetch-utils`; AI streams must additionally use `readWithTimeout`. Preserve caller abort signals, clear loading state in `finally`, and render a terminal error or remove the pending placeholder when a request fails or is cancelled.
 
 ## Checklist
 
@@ -231,6 +235,7 @@ Before submitting a PR for frontend changes:
 - [ ] No `asChild` prop on `<TooltipTrigger>` — use `render` prop
 - [ ] External avatar images use `<Image />` from `next/image`
 - [ ] All user-facing strings routed through `next-intl`
+- [ ] API requests have a finite deadline and every loading/streaming placeholder has success, failure, and cancellation exits
 
 ## Examples
 
