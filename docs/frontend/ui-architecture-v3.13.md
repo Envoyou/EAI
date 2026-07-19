@@ -152,9 +152,10 @@ Components should depend on semantic intent, not copy palette hex values.
 
 Two mechanisms currently coexist during migration:
 
-1. canonical `Button`, `Input`, and `Textarea` wrappers under `src/components/ui`;
-   Button owns the `ui-btn` visual contract, while form controls expose a
-   migration-safe `surface` variant backed by `ui-control` classes;
+1. canonical `Button`, `Input`, `Textarea`, and `SelectTrigger` wrappers under
+   `src/components/ui`; Button owns the `ui-btn` visual contract, while form
+   controls expose a migration-safe `surface` variant backed by `ui-control`
+   classes;
 2. direct global classes such as `ui-btn`, `ui-badge`, `ui-alert`, `ui-control`,
    and `ui-card` in legacy feature code, plus other Base UI/shadcn wrappers that
    have not yet completed the same consolidation.
@@ -177,9 +178,10 @@ Feature component
 ```
 
 Global `ui-*` classes may remain internal compatibility building blocks during
-migration. The Button milestone is complete, while Input/Textarea consolidation
-has started with explicit `default` and `surface` contracts. Badge, Alert, and
-remaining legacy raw controls still need equivalent ownership and validation.
+migration. The Button milestone is complete, while Input, Textarea, and
+SelectTrigger consolidation has started with explicit `default` and `surface`
+contracts. Badge, Alert, and remaining legacy raw controls still need equivalent
+ownership and validation.
 
 ## 6. Editor content and embedded UI boundary
 
@@ -288,11 +290,11 @@ responsible for:
 - Completed on 2026-07-19: added an AI Preview regression contract covering
   content/control separation, semantic buttons, theme-aware article links,
   headings, tables, and inline code.
-- Completed on 2026-07-19 for text fields: after migrating Support Form and
-  Billing Details Form, 21 feature files still contain raw `<input>`, 7 contain
-  raw `<textarea>`, and 11 directly compose `ui-control` / `ui-input` /
-  `ui-textarea`. Tests and primitive implementations are excluded from these
-  counts.
+- Completed on 2026-07-19 for form controls: after migrating Support Form,
+  Billing Details Form, General Settings, and Defaults Settings, 19 feature files
+  still contain raw `<input>`, 7 contain raw `<textarea>`, and 9 directly compose
+  `ui-control` / `ui-input` / `ui-textarea` / `ui-select`. Tests and primitive
+  implementations are excluded from these counts.
 - Define the public variants and accessibility behavior required from each
   primitive.
 - Audit hard-coded user-facing strings by feature namespace.
@@ -314,9 +316,10 @@ responsible for:
   AI Preview, Publication UI, and the Tiptap Bubble Menu, then added variant and
   editor-toolbar regression coverage. The `accent` variant owns low-emphasis AI
   actions, while `muted[aria-pressed="true"]` owns formatting-toggle state.
-- Started for Input/Textarea on 2026-07-19: introduced regression-tested
-  `default` and `surface` variants, then migrated Support Form and Billing
-  Details Form without changing their filled-control visual contract.
+- Started for form controls on 2026-07-19: introduced regression-tested `default`
+  and `surface` variants for Input, Textarea, and SelectTrigger, then migrated
+  Support Form, Billing Details Form, General Settings, and Defaults Settings
+  without changing their filled-control visual contract.
 - Move feature controls behind `components/ui` primitives incrementally.
 - Preserve current visuals and mobile behavior during migration.
 - Retire redundant global classes only when no consumers remain.

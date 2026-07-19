@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { inputVariants } from '../input';
+import { selectTriggerVariants } from '../select';
 import { textareaVariants } from '../textarea';
 
 function classTokens(value: string) {
@@ -22,8 +23,16 @@ describe('canonical form-control style contract', () => {
     expect(classes).toContain('ui-textarea');
   });
 
+  it('maps surface select triggers to the existing semantic control classes', () => {
+    const classes = classTokens(selectTriggerVariants({ variant: 'surface' }));
+
+    expect(classes).toContain('ui-control');
+    expect(classes).toContain('ui-select');
+  });
+
   it('keeps the default form controls separate during incremental migration', () => {
     expect(classTokens(inputVariants({ variant: 'default' }))).not.toContain('ui-control');
     expect(classTokens(textareaVariants({ variant: 'default' }))).not.toContain('ui-control');
+    expect(classTokens(selectTriggerVariants({ variant: 'default' }))).not.toContain('ui-control');
   });
 });

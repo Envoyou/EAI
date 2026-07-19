@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Sun, Moon, Settings2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSettings } from '@/components/SettingsProvider';
 import { SettingSection, SettingRow } from '@/components/SettingsUI';
@@ -30,7 +31,8 @@ export default function GeneralSettingsPage() {
           title="Display name"
           description="Used for local workspace labels when account details are unavailable."
         >
-          <input
+          <Input
+            variant="surface"
             type="text"
             name="display-name"
             autoComplete="name"
@@ -39,7 +41,6 @@ export default function GeneralSettingsPage() {
             onChange={(event) => updateSettings({
               profile: { ...settings.profile, displayName: event.target.value },
             })}
-            className="ui-control ui-input"
           />
         </SettingRow>
 
@@ -53,7 +54,7 @@ export default function GeneralSettingsPage() {
               if (val) updateTheme(val as ThemeMode);
             }}
           >
-            <SelectTrigger className="ui-control ui-select">
+            <SelectTrigger variant="surface">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -84,7 +85,7 @@ export default function GeneralSettingsPage() {
           description="Additional interface languages can be enabled here later."
         >
           <Select value={settings.profile.language} disabled>
-            <SelectTrigger className="ui-control ui-select">
+            <SelectTrigger variant="surface">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
