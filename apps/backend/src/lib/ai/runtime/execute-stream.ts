@@ -15,6 +15,7 @@
 import type { AIProvider, StreamRequest } from '../providers/interface';
 import type { AiTelemetryCollector } from '@/lib/ai-telemetry';
 import type { RegisteredProvider } from '../providers/registry';
+import { resolveGeminiServiceTier } from '@/lib/ai/gemini-request-policy';
 
 export interface ExecuteStreamOptions {
   /** The resolved AIProvider instance (from getProvider()). */
@@ -72,6 +73,7 @@ export async function* executeStream(opts: ExecuteStreamOptions): AsyncGenerator
       durationMs: Date.now() - startedAt,
       attempt,
       status,
+      serviceTier: request.serviceTier,
     });
   }
 }
@@ -87,6 +89,7 @@ type TelemetryInput = {
   durationMs: number;
   attempt: number;
   status: 'success' | 'error';
+  serviceTier?: import('../providers/interface').StreamRequest['serviceTier'];
 };
 
 /**
@@ -110,6 +113,7 @@ function recordTelemetry(input: TelemetryInput): void {
       case 'gemini':
         input.telemetry.recordGemini({
           ...base,
+          serviceTier: resolveGeminiServiceTier(input.serviceTier),
           usage: usage
             ? {
                 promptTokenCount: usage.promptTokens,

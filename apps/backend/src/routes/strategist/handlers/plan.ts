@@ -13,6 +13,13 @@ import { redisRateLimiter } from '@/middleware/rate-limit';
 import { resolveGroundingUrl, sanitizeGroundingLeaks } from '../utils/grounding';
 import { normalizeStrategistPlanResponse } from '../utils/plan';
 import { GeneratePlanSchema, type GroundingAnnotation } from '../types';
+import {
+  getGeminiInteractionConfig,
+  getGeminiInteractionRequestOptions,
+  isGeminiGroundingDisabledForTests,
+  isRetryableGeminiFlexError,
+  withGeminiFlexRetry,
+} from '@/lib/ai/gemini-request-policy';
 
 const router = Router();
 
@@ -183,32 +190,44 @@ router.post(
 
       let interaction;
       try {
-        interaction = await gemini.interactions.create({
-          model: MODEL,
-          input: prompt,
-          system_instruction: new StrategistBlueprintComposer(
-            profile?.config
-          ).compose('xml'),
-          tools: [{ type: 'google_search' }],
-          response_format: {
-            type: 'text',
-            mime_type: 'application/json',
-            schema: strategistPlanSchema,
-          },
-        });
+        interaction = await withGeminiFlexRetry(() =>
+          gemini.interactions.create({
+            model: MODEL,
+            input: prompt,
+            system_instruction: new StrategistBlueprintComposer(
+              profile?.config
+            ).compose('xml'),
+            tools: isGeminiGroundingDisabledForTests()
+              ? undefined
+              : [{ type: 'google_search' }],
+            response_format: {
+              type: 'text',
+              mime_type: 'application/json',
+              schema: strategistPlanSchema,
+            },
+            ...getGeminiInteractionConfig(),
+          }, getGeminiInteractionRequestOptions())
+        );
       } catch (apiError) {
+        // Removing the schema cannot repair exhausted Flex capacity.
+        if (isRetryableGeminiFlexError(apiError)) throw apiError;
         console.warn(
           '[STRATEGIST] Structured Output API call failed. Retrying without schema constraint:',
           apiError
         );
-        interaction = await gemini.interactions.create({
-          model: MODEL,
-          input: prompt,
-          system_instruction: new StrategistBlueprintComposer(
-            profile?.config
-          ).compose('xml'),
-          tools: [{ type: 'google_search' }],
-        });
+        interaction = await withGeminiFlexRetry(() =>
+          gemini.interactions.create({
+            model: MODEL,
+            input: prompt,
+            system_instruction: new StrategistBlueprintComposer(
+              profile?.config
+            ).compose('xml'),
+            tools: isGeminiGroundingDisabledForTests()
+              ? undefined
+              : [{ type: 'google_search' }],
+            ...getGeminiInteractionConfig(),
+          }, getGeminiInteractionRequestOptions())
+        );
       }
 
       if (!interaction.output_text) {

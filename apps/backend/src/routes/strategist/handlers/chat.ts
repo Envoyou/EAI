@@ -21,6 +21,12 @@ import {
 import { redisRateLimiter } from '@/middleware/rate-limit';
 import { resolveGroundingUrl } from '../utils/grounding';
 import { ChatInputSchema, type GroundingAnnotation, type UniqueSource } from '../types';
+import {
+  getGeminiInteractionConfig,
+  getGeminiInteractionRequestOptions,
+  isGeminiGroundingDisabledForTests,
+  withGeminiFlexRetry,
+} from '@/lib/ai/gemini-request-policy';
 
 const router = Router();
 
@@ -36,13 +42,16 @@ router.post('/analyze-data', async (req: Request, res: Response) => {
       inputPrompt = `<context>\nThe user provided the following manual performance metrics: "${data}"\n</context>\n\n<task>\nPlease analyze this and propose a friendly opening message to start a discussion on their next content strategy.\n</task>`;
     }
 
-    const interaction = await gemini.interactions.create({
-      model: MODEL,
-      input:
-        inputPrompt +
-        '\n\n<instructions>\nKeep your responses concise, insightful, and engaging.\n</instructions>',
-      system_instruction: new StrategistChatComposer().compose('xml'),
-    });
+    const interaction = await withGeminiFlexRetry(() =>
+      gemini.interactions.create({
+        model: MODEL,
+        input:
+          inputPrompt +
+          '\n\n<instructions>\nKeep your responses concise, insightful, and engaging.\n</instructions>',
+        system_instruction: new StrategistChatComposer().compose('xml'),
+        ...getGeminiInteractionConfig(),
+      }, getGeminiInteractionRequestOptions())
+    );
 
     res.json({ reply: interaction.output_text });
   } catch (error) {
@@ -63,17 +72,20 @@ router.post('/greet', async (req: Request, res: Response) => {
       required: ['reply', 'suggestions'],
     };
 
-    const interaction = await gemini.interactions.create({
-      model: MODEL,
-      input:
-        '<task>\nGreet the user to EAI Research Strategist. Introduce yourself as a Thinking Partner. Be concise, friendly, and offer to analyze their blog data, research trends, or brainstorm content.\n</task>\n\n<instructions>\nAlways provide 3-4 dynamic, clickable suggestion options.\n</instructions>',
-      system_instruction: new StrategistChatComposer().compose('xml'),
-      response_format: {
-        type: 'text',
-        mime_type: 'application/json',
-        schema: chatSchema,
-      },
-    });
+    const interaction = await withGeminiFlexRetry(() =>
+      gemini.interactions.create({
+        model: MODEL,
+        input:
+          '<task>\nGreet the user to EAI Research Strategist. Introduce yourself as a Thinking Partner. Be concise, friendly, and offer to analyze their blog data, research trends, or brainstorm content.\n</task>\n\n<instructions>\nAlways provide 3-4 dynamic, clickable suggestion options.\n</instructions>',
+        system_instruction: new StrategistChatComposer().compose('xml'),
+        response_format: {
+          type: 'text',
+          mime_type: 'application/json',
+          schema: chatSchema,
+        },
+        ...getGeminiInteractionConfig(),
+      }, getGeminiInteractionRequestOptions())
+    );
 
     let output;
     try {
@@ -374,6 +386,14 @@ router.post(
       const contextPrompt = `${workspaceXml}\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
 
       if (mode === 'deep') {
+        if (isGeminiGroundingDisabledForTests()) {
+          res.write(`data: ${JSON.stringify({
+            type: 'error',
+            error: 'Deep Research is disabled by the staging cost guard.',
+          })}\n\n`);
+          res.end();
+          return;
+        }
         const resolvedOrgId =
           (req as Request & { resolvedOrgId?: string | null }).resolvedOrgId ?? null;
         await deductCredits(
@@ -387,15 +407,18 @@ router.post(
 
         const deepModeInput = `<instructions>\nCRITICAL INSTRUCTION: YOU ARE IN DEEP RESEARCH MODE. Use Google Search thoroughly to gather facts, synthesize a comprehensive report, and ensure all claims are backed by credible sources.\n</instructions>\n\n${agentInstruction}\n\n=== DYNAMIC CONTEXT & HISTORY ===\n${contextPrompt}`;
 
-        const interaction = await gemini.interactions.create({
-          model: RESEARCH_MODEL,
-          input: deepModeInput,
-          system_instruction: new StrategistChatComposer(profile?.config).compose(
-            'xml'
-          ),
-          tools: [{ type: 'google_search' }],
-          background: true,
-        });
+        const interaction = await withGeminiFlexRetry(() =>
+          gemini.interactions.create({
+            model: RESEARCH_MODEL,
+            input: deepModeInput,
+            system_instruction: new StrategistChatComposer(profile?.config).compose(
+              'xml'
+            ),
+            tools: [{ type: 'google_search' }],
+            background: true,
+            ...getGeminiInteractionConfig(),
+          }, getGeminiInteractionRequestOptions())
+        );
 
         console.log(
           `[BILLING] Deep Research started. Interaction ID: ${interaction.id}. Token usage will be billed upon completion.`
@@ -429,16 +452,21 @@ router.post(
         finalFastModeInstruction += `\n\n${DOCUMENT_MODE_OVERRIDE}`;
       }
 
-      const stream = await gemini.interactions.create({
-        model: MODEL,
-        input: contextPrompt,
-        system_instruction: finalFastModeInstruction,
-        tools: isSearchEnabled ? [{ type: 'google_search' }] : undefined,
-        generation_config: {
-          max_output_tokens: FAST_MODE_MAX_OUTPUT_TOKENS,
-        },
-        stream: true,
-      });
+      const stream = await withGeminiFlexRetry(() =>
+        gemini.interactions.create({
+          model: MODEL,
+          input: contextPrompt,
+          system_instruction: finalFastModeInstruction,
+          tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()
+            ? [{ type: 'google_search' }]
+            : undefined,
+          generation_config: {
+            max_output_tokens: FAST_MODE_MAX_OUTPUT_TOKENS,
+          },
+          stream: true,
+          ...getGeminiInteractionConfig(),
+        }, getGeminiInteractionRequestOptions())
+      );
 
       let finalOutputText = '';
       const globalAnnotations: GroundingAnnotation[] = [];

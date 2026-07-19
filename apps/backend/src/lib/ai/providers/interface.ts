@@ -6,6 +6,7 @@
 
 import type { Role, ResponseMode } from '@eai/shared';
 import type { AnalysisSpeed } from '@/lib/ai/provider-runtime';
+import type { GeminiServiceTier } from '@/lib/ai/gemini-request-policy';
 
 // ── Usage Metadata ────────────────────────────────────────────────────────────
 
@@ -60,6 +61,8 @@ export interface StreamRequest {
    * json_object constraint and may ignore this schema.
    */
   responseJsonSchema?: unknown;
+  /** Gemini inference tier. Defaults to GEMINI_SERVICE_TIER, then Standard. */
+  serviceTier?: GeminiServiceTier;
 }
 
 export interface GenerateResult {

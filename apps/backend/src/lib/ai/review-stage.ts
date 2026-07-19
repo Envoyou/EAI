@@ -10,6 +10,7 @@ import {
   buildEditorialUserContent,
   buildManualReviewInstruction,
 } from './prompt-context';
+import { resolveGeminiServiceTier } from './gemini-request-policy';
 
 export type ReviewOutput = FeedbackOutput | PolishDiagnosisOutput;
 type SendEvent = (type: string, data: unknown) => void;
@@ -308,7 +309,11 @@ function recordReviewTelemetry(input: {
   try {
     switch (provider) {
       case 'gemini':
-        telemetry.recordGemini({ ...base, usage: normalizedUsage });
+        telemetry.recordGemini({
+          ...base,
+          usage: normalizedUsage,
+          serviceTier: resolveGeminiServiceTier(),
+        });
         break;
       case 'groq':
         telemetry.recordGroq({

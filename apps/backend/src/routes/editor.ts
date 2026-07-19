@@ -6,6 +6,7 @@ import {
   getNativeGeminiConfig,
   extractGeminiText,
 } from '@/lib/ai/provider-runtime';
+import { withGeminiFlexRetry } from '@/lib/ai/gemini-request-policy';
 
 const router = Router();
 
@@ -43,11 +44,13 @@ router.post('/ai-action', requireAuth, async (req, res) => {
     const model = getGeminiModelForRole('polish', 'fast');
     const samplingConfig = getNativeGeminiConfig();
     
-    const response = await gemini.models.generateContent({
-      model,
-      contents: prompt,
-      config: samplingConfig,
-    });
+    const response = await withGeminiFlexRetry(() =>
+      gemini.models.generateContent({
+        model,
+        contents: prompt,
+        config: samplingConfig,
+      })
+    );
     
     const content = extractGeminiText(response);
     const tokens = response.usageMetadata?.totalTokenCount || 0;

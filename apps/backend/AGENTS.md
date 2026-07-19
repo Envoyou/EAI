@@ -87,6 +87,7 @@ apps/backend/
 │   │   ├── admin-billing-core.ts  # Core billing primitives
 │   │   ├── ai-provider-resolver.ts  # AI provider selection logic (resolveModel, provider overrides)
 │   │   ├── ai-telemetry.ts   # AI usage telemetry (token, cost, stage duration)
+│   │   ├── ai/gemini-request-policy.ts # Standard/Flex tier, timeout, and bounded capacity retry policy
 │   │   ├── chat-billing.ts   # Credit accounting with insufficient-balance guards
 │   │   ├── cms-adapter.ts    # CMS adapter abstraction
 │   │   ├── credential-vault.ts  # Encrypted credential read/write
@@ -212,6 +213,7 @@ The AI analysis pipeline is composed of stages in `src/lib/ai/` and managed dyna
 | `workspace-context.ts` | Builds `<workspace_context>` XML + `<agent_instruction>` block via `composeWorkspaceContext` and `getWorkspaceAgentInstruction` |
 | `prompt-context.ts` | Assembles the full prompt context (profile + content + notes + attachments) |
 | `provider-runtime.ts` | Provider config helpers: `getNativeGeminiConfig` (native SDK calls) and `getOpenRouterSamplingConfig` (OpenRouter). `getGeminiSamplingConfig` is **deprecated** — do not use. |
+| `gemini-request-policy.ts` | Resolves Standard/Flex inference, applies the long Flex timeout, and retries only 429/503 capacity errors without automatic Standard fallback. |
 | `review-stage.ts` | Editorial review — utilizes `ReviewPromptComposer` and returns schema-constrained structured feedback; provider-native thinking is not copied into the JSON response |
 | `quality-gate-stage.ts` | Final quality gate — utilizes `QualityGatePromptComposer` (`ThinkingLevel.LOW`), deterministic source-fidelity checks via `final-quality.ts` |
 | `seo-stage.ts` | SEO metadata analysis and optimization recommendations — utilizes `SeoPromptComposer` |

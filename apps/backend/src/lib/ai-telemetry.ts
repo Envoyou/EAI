@@ -1,4 +1,5 @@
 type AiProvider = 'gemini' | 'groq' | 'openrouter';
+type AiServiceTier = 'standard' | 'flex';
 
 type TokenUsage = {
   inputTokens: number;
@@ -17,6 +18,7 @@ export type AiStageTelemetry = TokenUsage & {
   status: 'success' | 'error';
   estimatedCostUsd: number;
   estimatedCostIdr: number;
+  serviceTier?: AiServiceTier;
 };
 
 export type AiTelemetrySnapshot = TokenUsage & {
@@ -60,7 +62,7 @@ type ModelPrice = {
 };
 
 const DEFAULT_USD_TO_IDR_RATE = 17912.30;
-const PRICING_VERSION = '2026-06-12';
+const PRICING_VERSION = '2026-07-19';
 
 // Token prices are estimates based on published provider list prices. They can
 // be overridden without a deploy through AI_MODEL_PRICING_JSON.
@@ -154,7 +156,11 @@ const getModelPrices = () => {
   }
 };
 
-const calculateCost = (model: string, usage: TokenUsage) => {
+const calculateCost = (
+  model: string,
+  usage: TokenUsage,
+  serviceTier: AiServiceTier = 'standard'
+) => {
   const price = getModelPrices()[model];
   const usdToIdrRate = getUsdToIdrRate();
   if (!price) {
@@ -167,7 +173,8 @@ const calculateCost = (model: string, usage: TokenUsage) => {
     (usage.cachedTokens / 1_000_000) *
       (price.cachedInputUsdPerMillion ?? price.inputUsdPerMillion);
   const outputCost = (usage.outputTokens / 1_000_000) * price.outputUsdPerMillion;
-  const estimatedCostUsd = roundMoney(inputCost + outputCost, 8);
+  const tierMultiplier = serviceTier === 'flex' ? 0.5 : 1;
+  const estimatedCostUsd = roundMoney((inputCost + outputCost) * tierMultiplier, 8);
 
   return {
     estimatedCostUsd,
@@ -220,6 +227,7 @@ export class AiTelemetryCollector {
     durationMs: number;
     attempt?: number;
     status?: 'success' | 'error';
+    serviceTier?: AiServiceTier;
   }) {
     this.record({
       ...input,
@@ -308,8 +316,9 @@ export class AiTelemetryCollector {
     durationMs: number;
     attempt?: number;
     status?: 'success' | 'error';
+    serviceTier?: AiServiceTier;
   }) {
-    const cost = calculateCost(input.model, input.usage);
+    const cost = calculateCost(input.model, input.usage, input.serviceTier);
     this.stages.push({
       stage: input.stage,
       provider: input.provider,
@@ -317,6 +326,7 @@ export class AiTelemetryCollector {
       attempt: input.attempt ?? 1,
       durationMs: Math.max(Math.round(input.durationMs), 0),
       status: input.status ?? 'success',
+      ...(input.serviceTier ? { serviceTier: input.serviceTier } : {}),
       ...input.usage,
       ...cost,
     });

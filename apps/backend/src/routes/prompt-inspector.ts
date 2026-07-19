@@ -19,6 +19,7 @@ import { estimateCost } from '@/lib/ai/prompt-engine/pricing';
 import { getProvider } from '@/lib/ai/providers/registry';
 import { resolveModel, resolveOutputLimit } from '@/lib/ai/model-router';
 import type { Role } from '@eai/shared';
+import { resolveGeminiServiceTier } from '@/lib/ai/gemini-request-policy';
 
 const router = Router();
 
@@ -172,7 +173,16 @@ export async function handleInspect(req: Request, res: Response): Promise<Respon
       : cacheReport.cacheableTokens;
 
     // Cost estimation
-    const cost = estimateCost(model, finalTotalTokens, outputLimit, finalCachedTokens);
+    const serviceTier = provider === 'gemini'
+      ? resolveGeminiServiceTier()
+      : 'standard';
+    const cost = estimateCost(
+      model,
+      finalTotalTokens,
+      outputLimit,
+      finalCachedTokens,
+      serviceTier
+    );
 
     return res.json({
       renderedPrompt,
@@ -191,6 +201,7 @@ export async function handleInspect(req: Request, res: Response): Promise<Respon
         recommendations: optimizeReport.recommendations,
       },
       provider,
+      serviceTier,
       estimatedCost: cost,
     });
   } catch (error) {

@@ -7,6 +7,11 @@ import { ThinkingLevel } from '@google/genai';
 import type { AIProvider, ProviderCapabilities, StreamChunk, StreamRequest, GenerateResult } from '../interface';
 import { getGeminiClient } from './client';
 import { normalizeGeminiChunk, extractGeminiText, normalizeGeminiUsage } from './mapper';
+import {
+  getGeminiGenerateConfig,
+  resolveGeminiServiceTier,
+  withGeminiFlexRetry,
+} from '@/lib/ai/gemini-request-policy';
 
 const THINKING_LEVEL_MAP: Record<NonNullable<StreamRequest['thinkingLevel']>, ThinkingLevel> = {
   none: ThinkingLevel.THINKING_LEVEL_UNSPECIFIED,
@@ -30,23 +35,35 @@ export class GeminiProvider implements AIProvider {
 
   async stream(request: StreamRequest): Promise<AsyncIterable<StreamChunk>> {
     const client = getGeminiClient();
+    const serviceTier = resolveGeminiServiceTier(request.serviceTier);
 
     const thinkingLevel = request.thinkingLevel
       ? THINKING_LEVEL_MAP[request.thinkingLevel]
       : undefined;
 
-    const sdkStream = await client.models.generateContentStream({
-      model: request.model,
-      contents: request.userContent as string | object,
-      config: {
-        systemInstruction: request.systemInstruction,
-        candidateCount: 1,
-        ...(request.maxOutputTokens ? { maxOutputTokens: request.maxOutputTokens } : {}),
-        ...(thinkingLevel !== undefined ? { thinkingConfig: { thinkingLevel } } : {}),
-        ...getStructuredOutputConfig(request),
-        // temperature is intentionally excluded — Gemini 3.x ignores it when thinkingConfig is set
-      },
-    });
+    // Retry only the stream-opening request. Once chunks are emitted, replaying
+    // the request could duplicate partial output in the consumer.
+    const sdkStream = await withGeminiFlexRetry(
+      () => client.models.generateContentStream({
+        model: request.model,
+        contents: request.userContent as string | object,
+        config: {
+          systemInstruction: request.systemInstruction,
+          candidateCount: 1,
+          ...(request.maxOutputTokens ? { maxOutputTokens: request.maxOutputTokens } : {}),
+          ...(thinkingLevel !== undefined ? { thinkingConfig: { thinkingLevel } } : {}),
+          ...getStructuredOutputConfig(request),
+          ...getGeminiGenerateConfig(serviceTier),
+          // temperature is intentionally excluded — Gemini 3.x ignores it when thinkingConfig is set
+        },
+      }),
+      {
+        serviceTier,
+        onRetry: ({ attempt, delayMs }) => console.warn(
+          `[Gemini Flex] Stream open failed with capacity pressure; retry ${attempt} in ${delayMs}ms.`
+        ),
+      }
+    );
 
     // Wrap SDK iterator in a generator that yields normalized StreamChunk
     async function* normalize(): AsyncIterable<StreamChunk> {
@@ -60,22 +77,32 @@ export class GeminiProvider implements AIProvider {
 
   async generate(request: StreamRequest): Promise<GenerateResult> {
     const client = getGeminiClient();
+    const serviceTier = resolveGeminiServiceTier(request.serviceTier);
 
     const thinkingLevel = request.thinkingLevel
       ? THINKING_LEVEL_MAP[request.thinkingLevel]
       : undefined;
 
-    const response = await client.models.generateContent({
-      model: request.model,
-      contents: request.userContent as string | object,
-      config: {
-        systemInstruction: request.systemInstruction,
-        candidateCount: 1,
-        ...(request.maxOutputTokens ? { maxOutputTokens: request.maxOutputTokens } : {}),
-        ...(thinkingLevel !== undefined ? { thinkingConfig: { thinkingLevel } } : {}),
-        ...getStructuredOutputConfig(request),
-      },
-    });
+    const response = await withGeminiFlexRetry(
+      () => client.models.generateContent({
+        model: request.model,
+        contents: request.userContent as string | object,
+        config: {
+          systemInstruction: request.systemInstruction,
+          candidateCount: 1,
+          ...(request.maxOutputTokens ? { maxOutputTokens: request.maxOutputTokens } : {}),
+          ...(thinkingLevel !== undefined ? { thinkingConfig: { thinkingLevel } } : {}),
+          ...getStructuredOutputConfig(request),
+          ...getGeminiGenerateConfig(serviceTier),
+        },
+      }),
+      {
+        serviceTier,
+        onRetry: ({ attempt, delayMs }) => console.warn(
+          `[Gemini Flex] Generate request failed with capacity pressure; retry ${attempt} in ${delayMs}ms.`
+        ),
+      }
+    );
 
     return {
       text: extractGeminiText(response),

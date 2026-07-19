@@ -7,6 +7,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Pengujian Gemini dengan Kontrol Biaya**:
+  - Menambahkan kebijakan request Gemini bersama untuk inference Standard/Flex yang bersifat opt-in pada bentuk panggilan GenerateContent dan Interactions API.
+  - Menambahkan timeout Flex 15 menit yang dapat dikonfigurasi serta bounded exponential backoff khusus kegagalan kapasitas `429`/`503`, tanpa fallback otomatis ke traffic Standard berbiaya penuh.
+  - Menambahkan guard staging eksplisit yang menghapus Google Search grounding dengan tagihan terpisah dan memblokir Deep Research sebelum kredit dipotong.
+  - Menambahkan regression test untuk forwarding service tier, batas retry, konfigurasi timeout, dan telemetry harga yang memahami Flex.
 - **Kontrak Publikasi & Kebijakan Visual**:
   - Menambahkan kontrak `workingTitle`, `PublicationPackage`, dan `publicationPackageStatus` (`not_generated`, `current`, `stale`) pada tipe shared, persistensi analisis, pemulihan history, dan validasi export.
   - Menambahkan `VisualFormatSelectionPolicyNode` reusable yang menjadikan prosa sebagai default dan hanya memilih Mermaid, tabel, numbered list, atau bullet jika struktur sumber memang membutuhkannya.
@@ -31,6 +36,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Membuat pemotongan kredit bersifat serializable dan menolak saldo tidak cukup alih-alih menulis transaksi fallback yang dapat menghasilkan saldo ledger negatif.
 
 ### Fixed
+- **Akurasi Harga & Telemetry Gemini**:
+  - Mengganti harga Gemini lama pada Prompt Inspector dengan tarif terbaru Gemini 3.5 Flash dan Gemini 3.1 Flash-Lite.
+  - Menambahkan service tier Gemini aktif ke telemetry tiap tahap dan menerapkan diskon Flex 50% pada estimasi Prompt Inspector serta telemetry tersimpan.
+  - Memperpanjang timeout onboarding saat memakai Flex agar race lokal 10 detik tidak lagi membatalkan request yang sah ketika menunggu antrean Flex.
 - **Konsistensi Title, Metadata & Visual**:
   - Mencegah Final Quality Gate melaporkan H1 hilang ketika field title CMS tersedia atau ketika Fast mode memang tidak membuat metadata publikasi.
   - Menandai metadata publikasi stale setelah targeted fix, apply suggestion, atau mutasi source link; package stale dan body yang berbeda dari versi tersimpan kini diblokir dari export CMS.

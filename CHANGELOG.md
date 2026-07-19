@@ -7,6 +7,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Cost-Controlled Gemini Testing**:
+  - Added a shared Gemini request policy for opt-in Standard/Flex inference across both GenerateContent and Interactions API call shapes.
+  - Added configurable 15-minute Flex timeouts and bounded exponential backoff for capacity-only `429`/`503` failures, without automatic fallback to full-price Standard traffic.
+  - Added an explicit staging guard that removes separately billed Google Search grounding and blocks Deep Research before credits are deducted.
+  - Added regression coverage for service-tier forwarding, retry boundaries, timeout configuration, and Flex-aware pricing telemetry.
 - **Publication Contract & Visual Policy**:
   - Added `workingTitle`, `PublicationPackage`, and `publicationPackageStatus` (`not_generated`, `current`, `stale`) contracts across shared types, analysis persistence, history restore, and export validation.
   - Added a reusable `VisualFormatSelectionPolicyNode` that defaults to prose and selects Mermaid, tables, numbered lists, or bullets only when the source structure justifies them.
@@ -31,6 +36,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Made credit deduction serializable and rejected insufficient balances instead of writing fallback transactions that could produce negative ledger balances.
 
 ### Fixed
+- **Gemini Pricing & Telemetry Accuracy**:
+  - Replaced stale Prompt Inspector Gemini prices with the current Gemini 3.5 Flash and Gemini 3.1 Flash-Lite list rates.
+  - Added the active Gemini service tier to stage telemetry and applied the documented 50% Flex discount to Prompt Inspector and persisted cost estimates.
+  - Extended the onboarding timeout under Flex so the local 10-second race no longer cancels requests that legitimately wait in the Flex queue.
 - **Title, Metadata & Visual Consistency**:
   - Prevented Final Quality Gate from reporting a missing H1 when the CMS title field is present or when Fast mode intentionally omits publication metadata.
   - Marked publication metadata stale after targeted fixes, applied suggestions, or source-link mutations; stale packages and mismatched stored bodies are now blocked from CMS export.

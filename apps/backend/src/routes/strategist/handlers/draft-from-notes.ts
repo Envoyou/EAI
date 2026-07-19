@@ -3,7 +3,7 @@ import { getWorkspaceState } from '@/lib/user-workspace';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { DraftFromNotesComposer } from '@/lib/ai/prompt-engine/composer/draft-from-notes-composer';
-import { gemini, getNativeGeminiConfig } from '@/lib/ai/provider-runtime';
+import { gemini } from '@/lib/ai/provider-runtime';
 import { MODEL } from '../utils/helpers';
 import { resolveInternalOrgId, softAuth } from '../utils/helpers';
 import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
@@ -11,6 +11,11 @@ import { prisma } from '@/lib/db';
 import { PROMPT_VERSION } from '@/lib/prompts';
 import { GenerateDraftFromNotesSchema } from '../types';
 import { redisRateLimiter } from '@/middleware/rate-limit';
+import {
+  getGeminiInteractionConfig,
+  getGeminiInteractionRequestOptions,
+  withGeminiFlexRetry,
+} from '@/lib/ai/gemini-request-policy';
 
 const router = Router();
 
@@ -186,16 +191,18 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
 </metadata>
 `.trim();
 
-    const stream = await gemini.interactions.create({
-      model: MODEL,
-      input: prompt,
-      system_instruction: systemInstruction,
-      stream: true,
-      generation_config: {
-        max_output_tokens: 6000,
-        ...getNativeGeminiConfig(),
-      },
-    });
+    const stream = await withGeminiFlexRetry(() =>
+      gemini.interactions.create({
+        model: MODEL,
+        input: prompt,
+        system_instruction: systemInstruction,
+        stream: true,
+        generation_config: {
+          max_output_tokens: 6000,
+        },
+        ...getGeminiInteractionConfig(),
+      }, getGeminiInteractionRequestOptions())
+    );
 
     let generatedText = '';
     for await (const event of stream) {

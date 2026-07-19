@@ -5,6 +5,10 @@ import { hashEditorialConfiguration, PREDEFINED_CATEGORIES, PREDEFINED_ARTICLE_T
 import { buildSandboxEditorialProfile, OnboardingDataSchema, OnboardingSaveSchema } from '@eai/shared';
 import { ensureCurrentUserRecord, getWorkspaceState } from '@/lib/user-workspace';
 import { gemini, getNativeGeminiConfig } from '@/lib/ai/provider-runtime';
+import {
+  getGeminiRequestTimeoutMs,
+  withGeminiFlexRetry,
+} from '@/lib/ai/gemini-request-policy';
 
 const router = Router();
 
@@ -360,22 +364,32 @@ Default Language: ${defaultLanguage}
 ${scrapedText ? `Scraped Website Content:\n${scrapedText}` : 'No website provided or scraping failed.'}
 `;
 
-      const llmPromise = gemini.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: promptContent,
-        config: {
-          systemInstruction,
-          ...getNativeGeminiConfig(),
-          candidateCount: 1,
-          responseMimeType: 'application/json',
-        },
-      });
-
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Gemini API call timed out after 10000ms')), 10000)
+      const llmPromise = withGeminiFlexRetry(() =>
+        gemini.models.generateContent({
+          model: 'gemini-3.5-flash',
+          contents: promptContent,
+          config: {
+            systemInstruction,
+            ...getNativeGeminiConfig(),
+            candidateCount: 1,
+            responseMimeType: 'application/json',
+          },
+        })
       );
 
-      const response = await Promise.race([llmPromise, timeoutPromise]);
+      const requestTimeoutMs = getGeminiRequestTimeoutMs() ?? 10_000;
+
+      let timeoutHandle: NodeJS.Timeout | undefined;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(
+          () => reject(new Error(`Gemini API call timed out after ${requestTimeoutMs}ms`)),
+          requestTimeoutMs
+        );
+      });
+
+      const response = await Promise.race([llmPromise, timeoutPromise]).finally(() => {
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+      });
 
       const rawText = response.text ? response.text.trim() : '';
       if (!rawText) throw new Error('Empty response from LLM');

@@ -21,6 +21,7 @@ import { getAllFeatureFlags } from '@eai/shared/server';
 import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
 import { redisRateLimiter } from '@/middleware/rate-limit';
 import { QuickDraftSchema } from './types';
+import { withGeminiFlexRetry } from '@/lib/ai/gemini-request-policy';
 
 const router = Router();
 
@@ -317,16 +318,18 @@ router.post(
 
     if (provider === 'gemini') {
       modelName = 'gemini-3.5-flash';
-      const draftStream = await gemini.models.generateContentStream({
-        model: modelName,
-        contents: userPrompt,
-        config: {
-          systemInstruction: systemPrompt,
-          ...getNativeGeminiConfig(),
-          candidateCount: 1,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-        }
-      });
+      const draftStream = await withGeminiFlexRetry(() =>
+        gemini.models.generateContentStream({
+          model: modelName,
+          contents: userPrompt,
+          config: {
+            systemInstruction: systemPrompt,
+            ...getNativeGeminiConfig(),
+            candidateCount: 1,
+            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+          }
+        })
+      );
 
       for await (const chunk of draftStream) {
         if (isDisconnected) break;

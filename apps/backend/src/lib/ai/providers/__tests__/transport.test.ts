@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 const sdkMocks = vi.hoisted(() => ({
   geminiGenerateContent: vi.fn(),
@@ -54,6 +54,8 @@ const emptyStream = () => ({
   },
 });
 
+const originalServiceTier = process.env.GEMINI_SERVICE_TIER;
+
 describe('provider structured-output transport contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -65,6 +67,14 @@ describe('provider structured-output transport contract', () => {
     sdkMocks.groqCreate.mockResolvedValue({
       choices: [{ message: { content: '{}' } }],
     });
+  });
+
+  afterEach(() => {
+    if (originalServiceTier === undefined) {
+      delete process.env.GEMINI_SERVICE_TIER;
+    } else {
+      process.env.GEMINI_SERVICE_TIER = originalServiceTier;
+    }
   });
 
   test('Gemini generate forwards MIME type and JSON schema', async () => {
@@ -91,6 +101,28 @@ describe('provider structured-output transport contract', () => {
         }),
       })
     );
+  });
+
+  test('Gemini forwards Flex tier and timeout to generate and stream transports', async () => {
+    process.env.GEMINI_SERVICE_TIER = 'flex';
+    process.env.GEMINI_FLEX_TIMEOUT_MS = '900000';
+
+    await new GeminiProvider().generate(request);
+    await new GeminiProvider().stream(request);
+
+    for (const sdkCall of [
+      sdkMocks.geminiGenerateContent,
+      sdkMocks.geminiGenerateContentStream,
+    ]) {
+      expect(sdkCall).toHaveBeenCalledWith(
+        expect.objectContaining({
+          config: expect.objectContaining({
+            serviceTier: 'flex',
+            httpOptions: { timeout: 900_000 },
+          }),
+        })
+      );
+    }
   });
 
   test('OpenRouter generate forwards json_object response format', async () => {

@@ -90,6 +90,15 @@ Setiap panggilan model dicatat oleh `src/lib/ai-telemetry.ts` sebagai satu stage
 
 Snapshot telemetry disimpan di `metadata._system.telemetry` pada `AnalysisLog`. Pendekatan JSON metadata dipilih agar deployment tidak memerlukan migrasi schema dan log lama tetap kompatibel. Token merupakan data aktual dari provider, sedangkan biaya diberi label estimasi karena harga serta kurs dapat berubah. Override harga dapat diberikan melalui `AI_MODEL_PRICING_JSON`.
 
+Gemini mendukung dua tier runtime melalui `GEMINI_SERVICE_TIER`:
+
+*   `standard` adalah default untuk traffic produksi yang sensitif terhadap latency.
+*   `flex` ditujukan untuk smoke test staging, evaluasi, dan pekerjaan lain yang toleran terhadap latency. Tier ini diberi diskon token 50%, tetapi bersifat best-effort dan target latency dapat mencapai beberapa menit.
+
+`src/lib/ai/gemini-request-policy.ts` menerapkan kontrak yang sama pada GenerateContent (`serviceTier`) dan Interactions (`service_tier`), menaikkan timeout Flex melalui `GEMINI_FLEX_TIMEOUT_MS`, serta melakukan bounded exponential backoff hanya untuk `429`/`503`. Runtime tidak pernah otomatis mengulang ke Standard setelah Flex gagal agar pengujian tidak menimbulkan biaya penuh secara tidak sengaja. Stream hanya boleh di-retry saat pembukaan koneksi; stream yang sudah menghasilkan chunk tidak boleh diputar ulang karena dapat menggandakan output parsial.
+
+Untuk pengujian berbiaya rendah, gunakan model Flash-Lite dan Flex pada smoke test dengan fixture terbatas. Unit test tetap memakai mock tanpa panggilan berbayar. Biaya Google Search terpisah dari diskon token Flex; `GEMINI_DISABLE_GROUNDING_FOR_TESTS=true` menghapus tool Search pada chat/plan dan menonaktifkan Deep Research sebelum kredit dipotong. Batch API lebih tepat untuk regression corpus independen yang dapat menunggu hingga 24 jam; pipeline editorial utama tetap memakai Flex karena tahap Review → Rewrite → SEO → Quality Gate saling bergantung secara berurutan, sedangkan Batch hanya tersedia pada GenerateContent dan tidak menggantikan Interactions.
+
 ### Publication Draft vs. Quality-Gate Draft
 
 Pipeline mempertahankan dua representasi setelah rewrite:

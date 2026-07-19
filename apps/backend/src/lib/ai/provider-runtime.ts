@@ -2,6 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import Groq from 'groq-sdk';
 import OpenAI from 'openai';
 import type { ResponseMode, Role } from '@eai/shared';
+import { getGeminiGenerateConfig } from '@/lib/ai/gemini-request-policy';
 
 export type AiProvider = 'gemini' | 'groq' | 'openrouter';
 export type AnalysisSpeed = 'fast' | 'balanced' | 'deep';
@@ -47,7 +48,7 @@ export const openrouter = new OpenAI({
   },
 });
 
-export const getNativeGeminiConfig = (): Record<string, never> => ({});
+export const getNativeGeminiConfig = () => getGeminiGenerateConfig();
 
 export const getOpenRouterSamplingConfig = (temperature: number): { temperature: number } =>
   ({ temperature });
