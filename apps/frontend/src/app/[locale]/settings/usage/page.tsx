@@ -16,6 +16,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { SettingSection } from '@/components/SettingsUI';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -306,12 +307,13 @@ export default function CreditUsageSettingsPage() {
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <input
+                <Input
+                  variant="surface"
                   type="text"
                   placeholder="Search activity or logs..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="ui-control ui-input !pl-9 w-full h-9 text-xs"
+                  className="!pl-9 h-9 text-xs"
                 />
               </div>
 

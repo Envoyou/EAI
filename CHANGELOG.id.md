@@ -12,6 +12,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Memigrasikan seluruh text field Support Form, field honeypot, dan kedua aksinya dari elemen mentah/class visual langsung ke API komponen kanonis.
   - Memigrasikan kontrol nama legal, NPWP, alamat, dan simpan pada Billing Details Form; sekaligus mengoreksi textarea alamat yang sebelumnya memakai styling legacy khusus input.
   - Memigrasikan General dan Defaults Settings ke input serta select trigger surface kanonis, sehingga kedua halaman tidak lagi menyusun class legacy control secara langsung.
+  - Memigrasikan pencarian ledger Usage dan trigger bahasa Workflow, sambil sengaja mempertahankan checkbox auto-save native sebagai kontrol khusus.
   - Mencatat inventaris raw field dan legacy control yang tersisa pada rencana arsitektur UI untuk memandu migrasi per fitur yang terukur.
 - **API Button Kanonis**:
   - Mengonsolidasikan wrapper Base UI `Button` dan kontrak visual global `ui-btn` menjadi satu API komponen semantik dengan variant `primary`, `outline`, `surface`, `muted`, `accent`, `danger`, dan `link`.

@@ -291,10 +291,11 @@ responsible for:
   content/control separation, semantic buttons, theme-aware article links,
   headings, tables, and inline code.
 - Completed on 2026-07-19 for form controls: after migrating Support Form,
-  Billing Details Form, General Settings, and Defaults Settings, 19 feature files
-  still contain raw `<input>`, 7 contain raw `<textarea>`, and 9 directly compose
-  `ui-control` / `ui-input` / `ui-textarea` / `ui-select`. Tests and primitive
-  implementations are excluded from these counts.
+  Billing Details Form, General Settings, Defaults Settings, Usage Settings, and
+  Workflow Settings, 18 feature files still contain raw `<input>`, 7 contain raw
+  `<textarea>`, and 7 directly compose `ui-control` / `ui-input` /
+  `ui-textarea` / `ui-select`. Tests and primitive implementations are excluded
+  from these counts.
 - Define the public variants and accessibility behavior required from each
   primitive.
 - Audit hard-coded user-facing strings by feature namespace.
@@ -318,8 +319,10 @@ responsible for:
   actions, while `muted[aria-pressed="true"]` owns formatting-toggle state.
 - Started for form controls on 2026-07-19: introduced regression-tested `default`
   and `surface` variants for Input, Textarea, and SelectTrigger, then migrated
-  Support Form, Billing Details Form, General Settings, and Defaults Settings
-  without changing their filled-control visual contract.
+  Support Form, Billing Details Form, General Settings, Defaults Settings, Usage
+  Settings, and Workflow Settings without changing their filled-control visual
+  contract. Specialized checkboxes remain native until a dedicated switch or
+  checkbox ownership decision is made.
 - Move feature controls behind `components/ui` primitives incrementally.
 - Preserve current visuals and mobile behavior during migration.
 - Retire redundant global classes only when no consumers remain.

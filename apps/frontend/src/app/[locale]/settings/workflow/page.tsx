@@ -50,7 +50,7 @@ export default function WorkflowSettingsPage() {
               outputLanguage: (value ?? 'follow_draft') as AppSettings['outputLanguage'],
             })}
           >
-            <SelectTrigger className="ui-control ui-select">
+            <SelectTrigger variant="surface">
               <Languages className="h-3.5 w-3.5" />
               <SelectValue />
             </SelectTrigger>
