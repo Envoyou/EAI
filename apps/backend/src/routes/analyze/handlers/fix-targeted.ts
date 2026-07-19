@@ -58,6 +58,7 @@ export async function handleFixTargeted(ctx: FixTargetedContext): Promise<void> 
     replacementText = targetText.trim();
   } else {
     const targetedResult = await runTargetedFixStage({
+      signal: state.signal,
       provider: effectiveProvider,
       analysisSpeed,
       article: text ?? '',

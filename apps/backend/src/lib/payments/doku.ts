@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { fetchWithTimeout } from '../fetch-with-timeout';
 
 import type {
   CheckoutInput,
@@ -171,7 +172,7 @@ export class DokuPaymentGateway implements PaymentGateway {
         email: input.customerEmail,
       },
     });
-    const response = await fetch(`${getDokuBaseUrl()}${CHECKOUT_TARGET}`, {
+    const response = await fetchWithTimeout(`${getDokuBaseUrl()}${CHECKOUT_TARGET}`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -233,7 +234,7 @@ export class DokuPaymentGateway implements PaymentGateway {
 
   async getPaymentStatus(orderId: string): Promise<PaymentEvent | null> {
     const requestTarget = `${STATUS_TARGET}/${encodeURIComponent(orderId)}`;
-    const response = await fetch(`${getDokuBaseUrl()}${requestTarget}`, {
+    const response = await fetchWithTimeout(`${getDokuBaseUrl()}${requestTarget}`, {
       headers: {
         Accept: 'application/json',
         ...createSignedHeaders(requestTarget),

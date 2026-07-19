@@ -52,7 +52,7 @@ export class OpenRouterProvider implements AIProvider {
       ...(request.responseFormat === 'json'
         ? { response_format: { type: 'json_object' as const } }
         : {}),
-    });
+    }, { signal: request.signal });
 
     async function* normalize(): AsyncIterable<StreamChunk> {
       for await (const raw of sdkStream) {
@@ -83,7 +83,7 @@ export class OpenRouterProvider implements AIProvider {
       ...(request.responseFormat === 'json'
         ? { response_format: { type: 'json_object' as const } }
         : {}),
-    });
+    }, { signal: request.signal });
 
     return {
       text: extractOpenAiResponseText(response as OpenAiCompatibleResponse),

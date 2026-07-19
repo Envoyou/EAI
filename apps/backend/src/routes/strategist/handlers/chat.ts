@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'node:crypto';
 import { prisma } from '@/lib/db';
 import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
 import { gemini } from '@/lib/ai/provider-runtime';
@@ -27,11 +28,35 @@ import {
   isGeminiGroundingDisabledForTests,
   withGeminiFlexRetry,
 } from '@/lib/ai/gemini-request-policy';
+import { bindResponseAbort } from '@/lib/request-abort';
 
 const router = Router();
 
+const getDeepResearchCancelToken = (userId: string, interactionId: string) => {
+  const secret = process.env.CLERK_SECRET_KEY;
+  if (!secret) throw new Error('CLERK_SECRET_KEY is required for Deep Research cancellation');
+  return crypto
+    .createHmac('sha256', secret)
+    .update(`${userId}:${interactionId}`)
+    .digest('hex');
+};
+
+const isValidDeepResearchCancelToken = (
+  userId: string,
+  interactionId: string,
+  token: unknown
+) => {
+  if (typeof token !== 'string') return false;
+  const expected = getDeepResearchCancelToken(userId, interactionId);
+  const actualBuffer = Buffer.from(token);
+  const expectedBuffer = Buffer.from(expected);
+  return actualBuffer.length === expectedBuffer.length &&
+    crypto.timingSafeEqual(actualBuffer, expectedBuffer);
+};
+
 // POST /api/strategist/analyze-data
 router.post('/analyze-data', async (req: Request, res: Response) => {
+  const requestAbort = bindResponseAbort(res, 'Strategist data analysis');
   try {
     const { type, data } = req.body;
     let inputPrompt = '';
@@ -50,18 +75,23 @@ router.post('/analyze-data', async (req: Request, res: Response) => {
           '\n\n<instructions>\nKeep your responses concise, insightful, and engaging.\n</instructions>',
         system_instruction: new StrategistChatComposer().compose('xml'),
         ...getGeminiInteractionConfig(),
-      }, getGeminiInteractionRequestOptions())
+      }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
+      { signal: requestAbort.signal }
     );
 
     res.json({ reply: interaction.output_text });
   } catch (error) {
+    if (requestAbort.signal.aborted) return;
     console.error('Error analyzing data:', error);
     res.status(500).json({ error: 'Failed to analyze data' });
+  } finally {
+    requestAbort.dispose();
   }
 });
 
 // POST /api/strategist/greet
 router.post('/greet', async (req: Request, res: Response) => {
+  const requestAbort = bindResponseAbort(res, 'Strategist greeting');
   try {
     const chatSchema = {
       type: 'object',
@@ -84,7 +114,8 @@ router.post('/greet', async (req: Request, res: Response) => {
           schema: chatSchema,
         },
         ...getGeminiInteractionConfig(),
-      }, getGeminiInteractionRequestOptions())
+      }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
+      { signal: requestAbort.signal }
     );
 
     let output;
@@ -95,24 +126,61 @@ router.post('/greet', async (req: Request, res: Response) => {
     }
     res.json({ reply: output.reply, suggestions: output.suggestions });
   } catch (error) {
+    if (requestAbort.signal.aborted) return;
     console.error('Error in greet:', error);
     res.status(500).json({ error: 'Failed to greet' });
+  } finally {
+    requestAbort.dispose();
   }
 });
 
 // GET /api/strategist/chat/status/:id
 router.get('/chat/status/:id', async (req: Request, res: Response) => {
+  const requestAbort = bindResponseAbort(res, 'Strategist status');
   try {
     const interactionId = req.params.id;
-    const interaction = await gemini.interactions.get(interactionId);
+    const interaction = await gemini.interactions.get(
+      interactionId,
+      undefined,
+      getGeminiInteractionRequestOptions(undefined, requestAbort.signal)
+    );
 
     res.json({
       state: interaction.status ? interaction.status.toUpperCase() : 'UNKNOWN',
       output: (interaction as { output_text?: string }).output_text || '',
     });
   } catch (error) {
+    if (requestAbort.signal.aborted) return;
     console.error('Error getting interaction status:', error);
     res.status(500).json({ error: 'Failed to get status' });
+  } finally {
+    requestAbort.dispose();
+  }
+});
+
+router.post('/chat/status/:id/cancel', softAuth, async (req: Request, res: Response) => {
+  if (!req.auth?.userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  const interactionId = req.params.id;
+  if (!isValidDeepResearchCancelToken(req.auth.userId, interactionId, req.body?.cancelToken)) {
+    return res.status(403).json({ error: 'Invalid cancellation token' });
+  }
+
+  const requestAbort = bindResponseAbort(res, 'Deep Research cancellation');
+  try {
+    await gemini.interactions.cancel(
+      interactionId,
+      undefined,
+      getGeminiInteractionRequestOptions(undefined, requestAbort.signal)
+    );
+    return res.json({ success: true });
+  } catch (error) {
+    if (requestAbort.signal.aborted) return;
+    console.error('Error cancelling Deep Research:', error);
+    return res.status(502).json({ error: 'Failed to cancel Deep Research' });
+  } finally {
+    requestAbort.dispose();
   }
 });
 
@@ -127,6 +195,7 @@ router.post(
     message: 'Too many requests. Please try again later.',
   }),
   async (req: Request, res: Response) => {
+    const requestAbort = bindResponseAbort(res, 'Strategist chat');
     let heartbeatInterval: NodeJS.Timeout | undefined;
     try {
       const parsedInput = ChatInputSchema.safeParse(req.body);
@@ -288,15 +357,6 @@ router.post(
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('X-Accel-Buffering', 'no');
 
-      let isDisconnected = false;
-      req.on('close', () => {
-        isDisconnected = true;
-        if (heartbeatInterval) {
-          clearInterval(heartbeatInterval);
-        }
-        console.log('[chat] Client closed connection.');
-      });
-
       heartbeatInterval = setInterval(() => {
         if (!res.writableEnded) {
           res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
@@ -417,7 +477,8 @@ router.post(
             tools: [{ type: 'google_search' }],
             background: true,
             ...getGeminiInteractionConfig(),
-          }, getGeminiInteractionRequestOptions())
+          }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
+          { signal: requestAbort.signal }
         );
 
         console.log(
@@ -428,6 +489,7 @@ router.post(
           `data: ${JSON.stringify({
             type: 'deep_research_started',
             interaction_id: interaction.id,
+            cancel_token: getDeepResearchCancelToken(req.auth!.userId, interaction.id),
           })}\n\n`
         );
         res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
@@ -465,14 +527,15 @@ router.post(
           },
           stream: true,
           ...getGeminiInteractionConfig(),
-        }, getGeminiInteractionRequestOptions())
+        }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
+        { signal: requestAbort.signal }
       );
 
       let finalOutputText = '';
       const globalAnnotations: GroundingAnnotation[] = [];
 
       for await (const rawEvent of stream) {
-        if (isDisconnected) break;
+        if (requestAbort.isDisconnected()) break;
         const event = rawEvent as unknown as {
           event_type?: string;
           delta?: {
@@ -507,7 +570,7 @@ router.post(
         }
       }
 
-      if (!isDisconnected) {
+      if (!requestAbort.isDisconnected()) {
         if (requiredCredits > 0 && req.auth && req.auth.userId) {
           try {
             const resolvedOrgId =
@@ -631,6 +694,7 @@ router.post(
 
       res.end();
     } catch (error) {
+      if (requestAbort.signal.aborted) return;
       console.error('Error in chat stream:', error);
       if (!res.headersSent) {
         res.status(500).json({ error: 'Failed to chat' });
@@ -644,6 +708,7 @@ router.post(
         res.end();
       }
     } finally {
+      requestAbort.dispose();
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
       }

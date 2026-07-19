@@ -132,7 +132,8 @@ describe('provider structured-output transport contract', () => {
       expect.objectContaining({
         stream: false,
         response_format: { type: 'json_object' },
-      })
+      }),
+      { signal: undefined }
     );
   });
 
@@ -145,7 +146,8 @@ describe('provider structured-output transport contract', () => {
       expect.objectContaining({
         stream: true,
         response_format: { type: 'json_object' },
-      })
+      }),
+      { signal: undefined }
     );
   });
 
@@ -156,7 +158,8 @@ describe('provider structured-output transport contract', () => {
       expect.objectContaining({
         stream: false,
         response_format: { type: 'json_object' },
-      })
+      }),
+      { signal: undefined }
     );
   });
 
@@ -169,7 +172,37 @@ describe('provider structured-output transport contract', () => {
       expect.objectContaining({
         stream: true,
         response_format: { type: 'json_object' },
+      }),
+      { signal: undefined }
+    );
+  });
+
+  test('forwards caller AbortSignal through every provider transport', async () => {
+    const controller = new AbortController();
+    const requestWithSignal = { ...request, signal: controller.signal };
+    sdkMocks.openRouterCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: '{}' } }],
+    });
+    sdkMocks.groqCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: '{}' } }],
+    });
+
+    await new GeminiProvider().generate(requestWithSignal);
+    await new OpenRouterProvider().generate(requestWithSignal);
+    await new GroqProvider().generate(requestWithSignal);
+
+    expect(sdkMocks.geminiGenerateContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({ abortSignal: controller.signal }),
       })
+    );
+    expect(sdkMocks.openRouterCreate).toHaveBeenCalledWith(
+      expect.any(Object),
+      { signal: controller.signal }
+    );
+    expect(sdkMocks.groqCreate).toHaveBeenCalledWith(
+      expect.any(Object),
+      { signal: controller.signal }
     );
   });
 });

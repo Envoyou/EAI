@@ -12,6 +12,7 @@ import {
   Download,
   RotateCcw,
 } from 'lucide-react';
+import { shouldShowAssistantSpinner } from '@/lib/strategist-stream';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { extractDynamicSuggestions } from '@/lib/strategist-utils';
 import type { ChatMessage } from '@/lib/hooks/useContentStrategist';
@@ -79,9 +80,9 @@ export function ChatMessageList({
               return (
                 <div className="flex justify-start w-full">
                   <div className="max-w-[95%] min-w-0 overflow-hidden bg-[var(--background)] border border-[var(--border)] rounded-xl rounded-bl-sm p-2.5 shadow-sm">
-                    {msg.payload?.status ? (
+                    {shouldShowAssistantSpinner(msg.payload?.lifecycle, msg.payload?.status) ? (
                       (() => {
-                        const statusText = msg.payload.status;
+                        const statusText = msg.payload?.status ?? '';
                         const isThinkingStatus =
                           statusText.startsWith('Thinking:');
                         const thinkingText = isThinkingStatus

@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 import type { ArticleMetadata, ResearchNote, EditorialProcessStage, AnalysisResult, EditorialReadiness } from '@eai/shared';
 import type { EditorialOptions, AnalysisSpeed, PendingRefineAction, DirectFetchType } from '../types';
 import type { AppSettings } from '@/lib/preferences';
-import { readWithTimeout } from '@/lib/stream-utils';
+import { readWithTimeout, StreamIdleTimeoutError } from '@/lib/stream-utils';
+import { getResponseErrorMessage } from '@/lib/fetch-utils';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 interface RefineContext {
@@ -150,11 +151,6 @@ export async function executeRefine(
       }),
     });
 
-    const getApiErrorMessage = async (res: Response, fallback: string) => {
-      const result = await res.json().catch(() => null);
-      return typeof result?.error === 'string' ? result.error : fallback;
-    };
-
     const normalizeProcessStage = (status: unknown): EditorialProcessStage | null => {
       if (status === 'evaluating') return 'reviewing';
       if (status === 'rewriting') return 'rewriting';
@@ -165,7 +161,7 @@ export async function executeRefine(
 
     if (!response.ok) {
       throw new Error(
-        await getApiErrorMessage(response, 'Failed to start refine stream.')
+        await getResponseErrorMessage(response, 'Failed to start refine stream.')
       );
     }
     const reader = response.body?.getReader();
@@ -176,7 +172,11 @@ export async function executeRefine(
     let receivedComplete = false;
 
     while (true) {
-      const { done, value } = await readWithTimeout(reader);
+      const { done, value } = await readWithTimeout(
+        reader,
+        45_000,
+        (reason) => controller.abort(reason)
+      );
       if (done) break;
       buffer += decoder.decode(value as Uint8Array, { stream: true });
       const lines = buffer.split('\n');
@@ -257,7 +257,7 @@ export async function executeRefine(
     }
   } catch (error) {
     draftChunkBufferRef.current = '';
-    if (controller.signal.aborted) {
+    if (controller.signal.aborted && !(error instanceof StreamIdleTimeoutError)) {
       console.log('Refinement aborted.');
       setAnalysis(() => analysis);
       return;

@@ -22,6 +22,7 @@ import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
 import { redisRateLimiter } from '@/middleware/rate-limit';
 import { QuickDraftSchema } from './types';
 import { withGeminiFlexRetry } from '@/lib/ai/gemini-request-policy';
+import { bindResponseAbort } from '@/lib/request-abort';
 
 const router = Router();
 
@@ -168,18 +169,11 @@ router.post(
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
+  const requestAbort = bindResponseAbort(res, 'Quick draft');
 
   const sendEvent = (type: string, data: unknown) => {
     res.write(JSON.stringify({ type, data }) + '\n');
   };
-
-  let isDisconnected = false;
-  res.on('close', () => {
-    if (!res.writableEnded) {
-      isDisconnected = true;
-      console.log('[quick-draft] Client closed connection.');
-    }
-  });
 
   const heartbeatInterval = setInterval(() => {
     if (!res.writableEnded) {
@@ -260,7 +254,7 @@ router.post(
 
       const chunks = mockContent.split(' ');
       for (const chunk of chunks) {
-        if (isDisconnected) return;
+        if (requestAbort.isDisconnected()) return;
         sendEvent('draft_chunk', chunk + ' ');
         await new Promise((resolve) => setTimeout(resolve, 30));
       }
@@ -323,16 +317,18 @@ router.post(
           model: modelName,
           contents: userPrompt,
           config: {
+            abortSignal: requestAbort.signal,
             systemInstruction: systemPrompt,
             ...getNativeGeminiConfig(),
             candidateCount: 1,
             thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
           }
-        })
+        }),
+        { signal: requestAbort.signal }
       );
 
       for await (const chunk of draftStream) {
-        if (isDisconnected) break;
+        if (requestAbort.isDisconnected()) break;
         const partText = extractGeminiText(chunk);
         draftText += partText;
         sendEvent('draft_chunk', partText);
@@ -347,10 +343,10 @@ router.post(
         ],
         stream: true,
         temperature: 0.45,
-      });
+      }, { signal: requestAbort.signal });
 
       for await (const chunk of openRouterStream) {
-        if (isDisconnected) break;
+        if (requestAbort.isDisconnected()) break;
         const partText = extractOpenRouterText(chunk);
         draftText += partText;
         sendEvent('draft_chunk', partText);
@@ -365,17 +361,17 @@ router.post(
         ],
         stream: true,
         temperature: 0.45,
-      });
+      }, { signal: requestAbort.signal });
 
       for await (const chunk of groqStream) {
-        if (isDisconnected) break;
+        if (requestAbort.isDisconnected()) break;
         const partText = chunk.choices[0]?.delta?.content || '';
         draftText += partText;
         sendEvent('draft_chunk', partText);
       }
     }
 
-    if (isDisconnected) return;
+    if (requestAbort.isDisconnected()) return;
 
     let savedLogId: string | undefined;
     if (userId) {
@@ -418,10 +414,12 @@ router.post(
     sendEvent('complete', { analysisLogId: savedLogId });
     res.end();
   } catch (error) {
+    if (requestAbort.signal.aborted) return;
     console.error('Quick draft generation error:', error);
     sendEvent('error', error instanceof Error ? error.message : String(error));
     res.end();
   } finally {
+    requestAbort.dispose();
     clearInterval(heartbeatInterval);
   }
   }

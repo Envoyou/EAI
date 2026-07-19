@@ -77,6 +77,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
     : systemPrompt;
 
   const reviewResult = await runEditorialReviewStage({
+    signal: state.signal,
     provider: effectiveProvider,
     modelName: reviewModelName,
     role: role!,
@@ -188,6 +189,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
       for await (const chunkText2 of executeStream({
         provider,
         request: {
+          signal: state.signal,
           systemInstruction: rewriteSystemInstruction,
           userContent: buildEditorialUserContent({
             metadata,
@@ -232,6 +234,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
       const seoModelName = resolveModelName('seo' as typeof role);
       state.usedModels.push(`${seoModelName}(seo)`);
       seo = await runSeoStage({
+        signal: state.signal,
         provider: effectiveProvider,
         modelName: seoModelName,
         article: finalBody,
@@ -253,6 +256,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
     sendEvent('status', 'quality_gate');
 
     const qualityGateResponse = await runFinalQualityGateSafely({
+      signal: state.signal,
       provider: effectiveProvider,
       originalDraft: sourceTextToPolish,
       finalDraft: finalBody,
@@ -293,6 +297,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
     const seoModelName = resolveModelName('seo' as typeof role);
     state.usedModels.push(`${seoModelName}(seo)`);
     seo = await runSeoStage({
+      signal: state.signal,
       provider: effectiveProvider,
       modelName: seoModelName,
       article: polishedText || text,

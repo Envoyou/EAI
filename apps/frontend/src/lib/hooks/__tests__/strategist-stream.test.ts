@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import {
   getStrategistStreamError,
   parseStrategistSseLine,
+  shouldShowAssistantSpinner,
 } from '../../strategist-stream';
 
 describe('Strategist SSE error contract', () => {
@@ -18,5 +19,13 @@ describe('Strategist SSE error contract', () => {
   test('ignores malformed and non-SSE lines', () => {
     expect(parseStrategistSseLine('not data')).toBeNull();
     expect(parseStrategistSseLine('data: {bad json')).toBeNull();
+  });
+
+  test('shows assistant spinner only for a pending lifecycle with status text', () => {
+    expect(shouldShowAssistantSpinner('pending', 'Thinking...')).toBe(true);
+    expect(shouldShowAssistantSpinner('success', 'Thinking...')).toBe(false);
+    expect(shouldShowAssistantSpinner('error', 'Thinking...')).toBe(false);
+    expect(shouldShowAssistantSpinner('cancelled', 'Thinking...')).toBe(false);
+    expect(shouldShowAssistantSpinner('pending', undefined)).toBe(false);
   });
 });

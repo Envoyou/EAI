@@ -150,6 +150,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     analyzeAbortControllerRef,
     draftChunkBufferRef,
     rafIdRef,
+    cancelPendingStreams,
   } = streaming;
 
   // 6. Autosave Hook
@@ -441,6 +442,25 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       setIsGeneratingDraftFromNotes(false);
       toast.info('Draft generation cancelled');
     }
+  };
+
+  const handleCancelAnalysis = () => {
+    cancelPendingStreams();
+    draftChunkBufferRef.current = '';
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    setIsStreaming(false);
+    setIsRefining(false);
+    setProcessStartedAt(null);
+    setIsTargetedFixing(null);
+    setAnalysis((current) => ({
+      ...current,
+      status: current.feedback?.length || current.polishedDraft ? 'success' : 'idle',
+      errorMessage: undefined,
+    }));
+    toast.info('AI request cancelled');
   };
 
   const handleAddNewCategoryOrType = async (type: 'category' | 'articleType', value: string) => {
@@ -757,6 +777,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     handleNewDraft,
     handleGenerateDraftFromNotes,
     handleCancelGenerateDraft,
+    handleCancelAnalysis,
     handleAddNewCategoryOrType,
     loadHistory,
     handleAcceptFeedback,

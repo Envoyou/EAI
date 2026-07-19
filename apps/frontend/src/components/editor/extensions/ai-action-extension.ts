@@ -14,6 +14,8 @@ declare module '@tiptap/core' {
   }
 }
 
+let activeAiActionController: AbortController | null = null;
+
 export const AiActionExtension = Extension.create({
   name: 'aiAction',
 
@@ -44,12 +46,23 @@ export const AiActionExtension = Extension.create({
           
           const contextMarkdown = (editor.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown().substring(0, 3000); // 3k char context
 
-          toast.loading(`Running AI ${action}...`, { id: 'ai-action' });
+          activeAiActionController?.abort();
+          const controller = new AbortController();
+          activeAiActionController = controller;
+
+          toast.loading(`Running AI ${action}...`, {
+            id: 'ai-action',
+            action: {
+              label: 'Cancel',
+              onClick: () => controller.abort(),
+            },
+          });
 
           // Call API
           fetchWithTimeout('/api/editor/ai-action', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
             timeoutMs: REQUEST_TIMEOUT_MS.aiFlex,
             body: JSON.stringify({
               action,
@@ -78,7 +91,16 @@ export const AiActionExtension = Extension.create({
               }).run();
             })
             .catch((err) => {
+              if (controller.signal.aborted) {
+                toast.info(`AI ${action} cancelled.`, { id: 'ai-action' });
+                return;
+              }
               toast.error(err.message || 'AI action failed', { id: 'ai-action' });
+            })
+            .finally(() => {
+              if (activeAiActionController === controller) {
+                activeAiActionController = null;
+              }
             });
 
           return true;

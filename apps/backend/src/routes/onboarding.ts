@@ -9,6 +9,7 @@ import {
   getGeminiRequestTimeoutMs,
   withGeminiFlexRetry,
 } from '@/lib/ai/gemini-request-policy';
+import { bindResponseAbort } from '@/lib/request-abort';
 
 const router = Router();
 
@@ -301,6 +302,7 @@ router.put('/', requireAuth, async (req, res) => {
 
 // POST /api/onboarding/discover
 router.post('/discover', requireAuth, async (req, res) => {
+  const requestAbort = bindResponseAbort(res, 'Onboarding discovery');
   try {
     const { userId, orgId, orgSlug, orgRole } = req.auth!;
     const workspace = await getWorkspaceState(userId, {
@@ -364,32 +366,25 @@ Default Language: ${defaultLanguage}
 ${scrapedText ? `Scraped Website Content:\n${scrapedText}` : 'No website provided or scraping failed.'}
 `;
 
-      const llmPromise = withGeminiFlexRetry(() =>
-        gemini.models.generateContent({
-          model: 'gemini-3.5-flash',
-          contents: promptContent,
-          config: {
-            systemInstruction,
-            ...getNativeGeminiConfig(),
-            candidateCount: 1,
-            responseMimeType: 'application/json',
-          },
-        })
-      );
-
       const requestTimeoutMs = getGeminiRequestTimeoutMs() ?? 10_000;
-
-      let timeoutHandle: NodeJS.Timeout | undefined;
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutHandle = setTimeout(
-          () => reject(new Error(`Gemini API call timed out after ${requestTimeoutMs}ms`)),
-          requestTimeoutMs
-        );
-      });
-
-      const response = await Promise.race([llmPromise, timeoutPromise]).finally(() => {
-        if (timeoutHandle) clearTimeout(timeoutHandle);
-      });
+      const aiSignal = AbortSignal.any([
+        requestAbort.signal,
+        AbortSignal.timeout(requestTimeoutMs),
+      ]);
+      const response = await withGeminiFlexRetry(
+        () => gemini.models.generateContent({
+            model: 'gemini-3.5-flash',
+            contents: promptContent,
+            config: {
+              abortSignal: aiSignal,
+              systemInstruction,
+              ...getNativeGeminiConfig(),
+              candidateCount: 1,
+              responseMimeType: 'application/json',
+            },
+          }),
+        { signal: aiSignal }
+      );
 
       const rawText = response.text ? response.text.trim() : '';
       if (!rawText) throw new Error('Empty response from LLM');
@@ -428,14 +423,18 @@ ${scrapedText ? `Scraped Website Content:\n${scrapedText}` : 'No website provide
         defaultLanguage,
       };
     } catch (err) {
+      requestAbort.signal.throwIfAborted();
       console.error('Failed to generate editorial DNA with Gemini, falling back to defaults:', err);
       generatedProfile = getFallbackProfile(workspaceName, primaryGoal, defaultLanguage);
     }
 
     return res.json({ success: true, profile: generatedProfile });
   } catch (error) {
+    if (requestAbort.signal.aborted) return;
     console.error('[ONBOARDING_DISCOVER_ERROR]', error);
     return res.status(500).json({ error: 'Failed to generate editorial DNA profile' });
+  } finally {
+    requestAbort.dispose();
   }
 });
 

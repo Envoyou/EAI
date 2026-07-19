@@ -223,7 +223,7 @@ Any high-privilege administrative operation that performs database modifications
 
 * **Feature Flags**: Managed dynamically via Vercel Edge Config. Import `getMiddlewareFeatureFlags` from `@eai/shared/server` **only** in server-side code (`proxy.ts`, Server Components, Route Handlers). Never import `@eai/shared/server` in Client Components.
 * **Loading State**: Always use the `<Skeleton className="..." />` component from `@/components/ui/skeleton` to visualize loading placeholders instead of leaving the screen blank or styling manual pulse divs.
-* **Request Lifecycle**: Frontend and server-side API calls must use `fetchWithTimeout` from `@/lib/fetch-utils`; AI streams must additionally use `readWithTimeout`. Preserve caller abort signals, clear loading state in `finally`, and render a terminal error or remove the pending placeholder when a request fails or is cancelled.
+* **Request Lifecycle**: Frontend and server-side API calls must use `fetchWithTimeout` from `@/lib/fetch-utils`; AI streams must additionally use `readWithTimeout` and pass the originating controller abort callback. Preserve caller abort signals, provide a visible Cancel action for long requests, clear loading state in `finally`, and assign assistant placeholders an explicit `pending`, `success`, `error`, or `cancelled` lifecycle.
 
 ## Checklist
 

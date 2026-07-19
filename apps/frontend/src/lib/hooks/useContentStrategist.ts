@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { generateId, extractDynamicSuggestions } from '@/lib/strategist-utils';
 import { useUser } from '@clerk/nextjs';
 import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
-import { readWithTimeout } from '@/lib/stream-utils';
+import { readWithTimeout, StreamIdleTimeoutError } from '@/lib/stream-utils';
 import {
   fetchWithTimeout,
   getResponseErrorMessage,
@@ -57,6 +57,7 @@ export type Attachment = {
 };
 
 export type ChatMessageType = 'text' | 'welcome' | 'recommendations' | 'plan';
+export type AssistantLifecycle = 'pending' | 'success' | 'error' | 'cancelled';
 
 export type ChatMessage = {
   id: string;
@@ -65,6 +66,7 @@ export type ChatMessage = {
   content: string;
   payload?: {
     status?: string;
+    lifecycle?: AssistantLifecycle;
     suggestions?: string[];
     sources?: { url: string; domain: string; title?: string; description?: string }[];
   };
@@ -97,6 +99,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
   const chatAbortControllerRef = useRef<AbortController | null>(null);
   const quickDraftAbortControllerRef = useRef<AbortController | null>(null);
   const deepResearchMessageIdRef = useRef<string | null>(null);
+  const deepResearchCancelTokenRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -396,11 +399,14 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     const deadlineAt = Date.now() + (30 * 60_000);
     let nextPollTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const finishDeepResearchMessage = (content: string) => {
+    const finishDeepResearchMessage = (
+      content: string,
+      lifecycle: Exclude<AssistantLifecycle, 'pending'>
+    ) => {
       const messageId = deepResearchMessageIdRef.current;
       if (messageId) {
         setMessages(prev => prev.map(message => message.id === messageId
-          ? { ...message, content, payload: { ...message.payload, status: undefined } }
+          ? { ...message, content, payload: { ...message.payload, status: undefined, lifecycle } }
           : message));
       } else {
         setMessages(prev => [...prev, {
@@ -408,9 +414,11 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           role: 'assistant',
           type: 'text',
           content,
+          payload: { lifecycle },
         }]);
       }
       deepResearchMessageIdRef.current = null;
+      deepResearchCancelTokenRef.current = null;
       setIsTyping(false);
     };
 
@@ -418,7 +426,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       if (cancelled) return;
       if (Date.now() >= deadlineAt) {
         setActiveDeepResearchId(null);
-        finishDeepResearchMessage('Deep Research timed out. Please try again.');
+        finishDeepResearchMessage('Deep Research timed out. Please try again.', 'error');
         return;
       }
       try {
@@ -435,11 +443,11 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
             setDeepResearchReport(data.output);
             sessionStorage.setItem(`eai_strategist_deep_research_${documentId}`, data.output);
             setActiveDeepResearchId(null);
-            finishDeepResearchMessage('Deep Research complete. Open the report from the right panel.');
+            finishDeepResearchMessage('Deep Research complete. Open the report from the right panel.', 'success');
             return;
           } else if (data.state === 'FAILED') {
             setActiveDeepResearchId(null);
-            finishDeepResearchMessage('Deep Research encountered an error and failed to complete.');
+            finishDeepResearchMessage('Deep Research encountered an error and failed to complete.', 'error');
             return;
           }
         }
@@ -477,6 +485,8 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
   }, []);
 
   const closeQuickDraft = useCallback(() => {
+    quickDraftAbortControllerRef.current?.abort();
+    quickDraftAbortControllerRef.current = null;
     setQuickDraftMode(null);
     setQuickDraftTopic('');
     setQuickDraftOutline('');
@@ -578,7 +588,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
   const generatePlan = useCallback(async (recommendationText: string, history: ChatMessage[]) => {
     setIsTyping(true);
     const assistantMsgId = generateId();
-    setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', type: 'text', content: '', payload: { status: 'Generating Editorial Blueprint...' } }]);
+    setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', type: 'text', content: '', payload: { status: 'Generating Editorial Blueprint...', lifecycle: 'pending' } }]);
 
     chatAbortControllerRef.current?.abort();
     const controller = new AbortController();
@@ -653,7 +663,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         role: 'assistant',
         type: 'text',
         content: displayContent,
-        payload: { suggestions: data.suggestions }
+        payload: { suggestions: data.suggestions, lifecycle: 'success' }
       } : m));
     } catch (error) {
       if (controller.signal.aborted) {
@@ -666,7 +676,8 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         id: assistantMsgId,
         role: 'assistant',
         type: 'text',
-        content: `I failed to generate the plan. ${message}`
+        content: `I failed to generate the plan. ${message}`,
+        payload: { lifecycle: 'error' },
       } : m));
     } finally {
       setIsTyping(false);
@@ -705,7 +716,8 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       type: 'text',
       content: '',
       payload: {
-        status: researchMode === 'deep' ? 'Initiating Deep Research...' : 'Thinking...'
+        status: researchMode === 'deep' ? 'Initiating Deep Research...' : 'Thinking...',
+        lifecycle: 'pending',
       }
     }]);
 
@@ -751,11 +763,16 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       let currentContent = '';
       let buffer = '';
       let receivedDone = false;
+      let deepResearchStarted = false;
 
       let currentThinkingContent = '';
 
       while (!done) {
-        const { value, done: readerDone } = await readWithTimeout(reader);
+        const { value, done: readerDone } = await readWithTimeout(
+          reader,
+          45_000,
+          (reason) => controller.abort(reason)
+        );
         done = readerDone;
         if (value) {
           buffer += decoder.decode(value, { stream: true });
@@ -772,7 +789,11 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
               try {
                 const data = JSON.parse(dataStr);
                 if (data.type === 'deep_research_started') {
+                  deepResearchStarted = true;
                   deepResearchMessageIdRef.current = assistantMsgId;
+                  deepResearchCancelTokenRef.current = typeof data.cancel_token === 'string'
+                    ? data.cancel_token
+                    : null;
                   setActiveDeepResearchId(data.interaction_id);
                   setMessages(prev => prev.map(m => m.id === assistantMsgId
                     ? { ...m, payload: { ...m.payload, status: 'Deep Research in progress...' } }
@@ -800,6 +821,11 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                   }
                 } else if (data.type === 'done') {
                   receivedDone = true;
+                  if (!deepResearchStarted) {
+                    setMessages(prev => prev.map(m => m.id === assistantMsgId
+                      ? { ...m, payload: { ...m.payload, status: undefined, lifecycle: 'success' } }
+                      : m));
+                  }
                 }
               } catch { /* skip */ }
             }
@@ -811,7 +837,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         setMessages(prev => prev.flatMap(m => {
           if (m.id !== assistantMsgId) return [m];
           return m.content.trim()
-            ? [{ ...m, payload: { ...m.payload, status: undefined } }]
+            ? [{ ...m, payload: { ...m.payload, status: undefined, lifecycle: 'cancelled' } }]
             : [];
         }));
         return;
@@ -836,18 +862,25 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
       fetchCredits();
     } catch (error) {
-      if (controller.signal.aborted) {
+      if (controller.signal.aborted && !(error instanceof StreamIdleTimeoutError)) {
         console.log('Chat stream aborted.');
         setMessages(prev => prev.flatMap(m => {
           if (m.id !== assistantMsgId) return [m];
           return m.content.trim()
-            ? [{ ...m, payload: { ...m.payload, status: undefined } }]
+            ? [{ ...m, payload: { ...m.payload, status: undefined, lifecycle: 'cancelled' } }]
             : [];
         }));
         return;
       }
-      toast.error(error instanceof Error ? error.message : 'Failed to rewrite message');
-      setMessages(prev => prev.filter(m => m.id !== assistantMsgId));
+      const message = error instanceof Error ? error.message : 'Failed to rewrite message';
+      toast.error(message);
+      setMessages(prev => prev.map(m => m.id === assistantMsgId
+        ? {
+            ...m,
+            content: m.content.trim() || message,
+            payload: { ...m.payload, status: undefined, lifecycle: 'error' },
+          }
+        : m));
     } finally {
       setIsTyping(false);
       chatAbortControllerRef.current = null;
@@ -899,7 +932,11 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       let receivedComplete = false;
 
       while (true) {
-        const { done: rd, value } = await readWithTimeout(reader);
+        const { done: rd, value } = await readWithTimeout(
+          reader,
+          45_000,
+          (reason) => controller.abort(reason)
+        );
         if (rd) break;
         buf += decoder.decode(value, { stream: true });
         const lines = buf.split('\n');
@@ -950,7 +987,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
       closeQuickDraft();
     } catch (err: unknown) {
-      if (controller.signal.aborted) {
+      if (controller.signal.aborted && !(err instanceof StreamIdleTimeoutError)) {
         console.log('Quick draft aborted.');
         return;
       }
@@ -1014,13 +1051,52 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     }
   }, [setUploadedAttachment]);
 
+  const cancelDeepResearch = useCallback(async () => {
+    const interactionId = activeDeepResearchId;
+    const cancelToken = deepResearchCancelTokenRef.current;
+    if (!interactionId || !cancelToken) return;
+
+    try {
+      const response = await fetchWithTimeout(
+        `/api/strategist/chat/status/${interactionId}/cancel`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cancelToken }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error(await getResponseErrorMessage(response, 'Failed to cancel Deep Research.'));
+      }
+
+      const messageId = deepResearchMessageIdRef.current;
+      setMessages(prev => prev.map(message => message.id === messageId
+        ? {
+            ...message,
+            content: 'Deep Research cancelled.',
+            payload: { ...message.payload, status: undefined, lifecycle: 'cancelled' },
+          }
+        : message));
+      setActiveDeepResearchId(null);
+      deepResearchMessageIdRef.current = null;
+      deepResearchCancelTokenRef.current = null;
+      toast.info('Deep Research cancelled');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to cancel Deep Research.');
+    }
+  }, [activeDeepResearchId, setActiveDeepResearchId, setMessages]);
+
   const cancelChat = useCallback(() => {
+    if (activeDeepResearchId) {
+      void cancelDeepResearch();
+      return;
+    }
     if (chatAbortControllerRef.current) {
       chatAbortControllerRef.current.abort();
       chatAbortControllerRef.current = null;
     }
     setIsTyping(false);
-  }, []);
+  }, [activeDeepResearchId, cancelDeepResearch]);
 
   const handleSend = useCallback(async (forcedText?: string) => {
     const textToSend = forcedText ?? chatInput;
@@ -1070,7 +1146,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       role: 'assistant',
       type: 'text',
       content: '',
-      payload: { status: researchMode === 'deep' ? 'Initiating Deep Research...' : 'Thinking...' }
+      payload: {
+        status: researchMode === 'deep' ? 'Initiating Deep Research...' : 'Thinking...',
+        lifecycle: 'pending',
+      }
     }]);
 
     if (chatAbortControllerRef.current) {
@@ -1117,11 +1196,16 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       let currentContent = '';
       let buf = '';
       let receivedDone = false;
+      let deepResearchStarted = false;
 
       let currentThinkingContent = '';
 
       while (!done) {
-        const { value, done: readerDone } = await readWithTimeout(reader);
+        const { value, done: readerDone } = await readWithTimeout(
+          reader,
+          45_000,
+          (reason) => controller.abort(reason)
+        );
         done = readerDone;
         if (value) {
           buf += decoder.decode(value, { stream: true });
@@ -1141,7 +1225,11 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                   setCurrentSessionId(data.sessionId);
                   loadSessions();
                 } else if (data.type === 'deep_research_started') {
+                  deepResearchStarted = true;
                   deepResearchMessageIdRef.current = assistantMsgId;
+                  deepResearchCancelTokenRef.current = typeof data.cancel_token === 'string'
+                    ? data.cancel_token
+                    : null;
                   setActiveDeepResearchId(data.interaction_id);
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, status: "Deep Research in progress..." } } : m));
                 } else if (data.type === 'status') {
@@ -1169,6 +1257,11 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                   }
                 } else if (data.type === 'done') {
                   receivedDone = true;
+                  if (!deepResearchStarted) {
+                    setMessages(prev => prev.map(m => m.id === assistantMsgId
+                      ? { ...m, payload: { ...m.payload, status: undefined, lifecycle: 'success' } }
+                      : m));
+                  }
                 }
               } catch { /* skip */ }
             }
@@ -1180,7 +1273,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         setMessages(prev => prev.flatMap(m => {
           if (m.id !== assistantMsgId) return [m];
           return m.content.trim()
-            ? [{ ...m, payload: { ...m.payload, status: undefined } }]
+            ? [{ ...m, payload: { ...m.payload, status: undefined, lifecycle: 'cancelled' } }]
             : [];
         }));
         return;
@@ -1205,12 +1298,12 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
       fetchCredits();
     } catch (error) {
-      if (controller.signal.aborted) {
+      if (controller.signal.aborted && !(error instanceof StreamIdleTimeoutError)) {
         console.log('Chat stream aborted.');
         setMessages(prev => prev.flatMap(m => {
           if (m.id !== assistantMsgId) return [m];
           return m.content.trim()
-            ? [{ ...m, payload: { ...m.payload, status: undefined } }]
+            ? [{ ...m, payload: { ...m.payload, status: undefined, lifecycle: 'cancelled' } }]
             : [];
         }));
         return;
@@ -1221,7 +1314,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         ? {
             ...item,
             content: item.content.trim() || message,
-            payload: { ...item.payload, status: undefined },
+            payload: { ...item.payload, status: undefined, lifecycle: 'error' },
           }
         : item));
     } finally {
@@ -1234,7 +1327,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     messages,
     chatInput,
     setChatInput,
-    isTyping,
+    isTyping: isTyping || Boolean(activeDeepResearchId),
     handleSend,
     handleRewrite,
     savedNotes,

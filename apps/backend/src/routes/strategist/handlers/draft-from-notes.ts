@@ -16,6 +16,7 @@ import {
   getGeminiInteractionRequestOptions,
   withGeminiFlexRetry,
 } from '@/lib/ai/gemini-request-policy';
+import { bindResponseAbort } from '@/lib/request-abort';
 
 const router = Router();
 
@@ -30,6 +31,7 @@ router.post(
     message: 'Too many draft requests. Please try again later.',
   }),
   async (req: Request, res: Response) => {
+  const requestAbort = bindResponseAbort(res, 'Draft from notes');
   let heartbeatInterval: NodeJS.Timeout | undefined;
   try {
     let userId: string | null = null;
@@ -87,17 +89,6 @@ router.post(
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
-
-    let isDisconnected = false;
-    res.on('close', () => {
-      if (!res.writableEnded) {
-        isDisconnected = true;
-        if (heartbeatInterval) {
-          clearInterval(heartbeatInterval);
-        }
-        console.log('[generate-draft-from-notes] Client closed connection.');
-      }
-    });
 
     heartbeatInterval = setInterval(() => {
       if (!res.writableEnded) {
@@ -201,12 +192,13 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
           max_output_tokens: 6000,
         },
         ...getGeminiInteractionConfig(),
-      }, getGeminiInteractionRequestOptions())
+      }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
+      { signal: requestAbort.signal }
     );
 
     let generatedText = '';
     for await (const event of stream) {
-      if (isDisconnected) {
+      if (requestAbort.isDisconnected()) {
         console.log(
           '[generate-draft-from-notes] Aborting stream loop due to client disconnect.'
         );
@@ -237,7 +229,7 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
       }
     }
 
-    if (isDisconnected) return;
+    if (requestAbort.isDisconnected()) return;
 
     if (userId && generatedText.trim()) {
       const savedLog = await prisma.analysisLog.create({
@@ -264,6 +256,7 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
 
     res.end();
   } catch (error) {
+    if (requestAbort.signal.aborted) return;
     console.error('Error generating draft from notes:', error);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Failed to generate draft' });
@@ -274,6 +267,7 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
       res.end();
     }
   } finally {
+    requestAbort.dispose();
     if (heartbeatInterval) {
       clearInterval(heartbeatInterval);
     }

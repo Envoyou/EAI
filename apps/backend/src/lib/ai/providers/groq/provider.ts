@@ -31,7 +31,10 @@ export class GroqProvider implements AIProvider {
     const client = getClient();
 
     const sdkStream = await (client.chat.completions as unknown as {
-      create(params: Record<string, unknown>): Promise<AsyncIterable<OpenAiCompatibleStreamChunk>>;
+      create(
+        params: Record<string, unknown>,
+        options?: { signal?: AbortSignal }
+      ): Promise<AsyncIterable<OpenAiCompatibleStreamChunk>>;
     }).create({
       model: request.model,
       messages: [
@@ -49,7 +52,7 @@ export class GroqProvider implements AIProvider {
       ...(request.responseFormat === 'json'
         ? { response_format: { type: 'json_object' } }
         : {}),
-    });
+    }, { signal: request.signal });
 
     async function* normalize(): AsyncIterable<StreamChunk> {
       for await (const raw of sdkStream) {
@@ -64,7 +67,10 @@ export class GroqProvider implements AIProvider {
     const client = getClient();
 
     const response = await (client.chat.completions as unknown as {
-      create(params: Record<string, unknown>): Promise<OpenAiCompatibleResponse>;
+      create(
+        params: Record<string, unknown>,
+        options?: { signal?: AbortSignal }
+      ): Promise<OpenAiCompatibleResponse>;
     }).create({
       model: request.model,
       messages: [
@@ -82,7 +88,7 @@ export class GroqProvider implements AIProvider {
       ...(request.responseFormat === 'json'
         ? { response_format: { type: 'json_object' } }
         : {}),
-    });
+    }, { signal: request.signal });
 
     return {
       text: extractGroqResponseText(response),

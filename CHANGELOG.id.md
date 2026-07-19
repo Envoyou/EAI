@@ -57,7 +57,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menghentikan pipeline Analyze, Refine, Quick Draft, dan Draft From Notes agar tidak melanjutkan Quality Gate, SEO, logging, atau billing setelah client disconnect.
   - Mencegah Targeted Fix menyelesaikan feedback ketika target text tidak ditemukan, memulihkan seluruh snapshot analisis setelah refine dibatalkan/gagal, dan menghapus placeholder chat usang saat cancellation.
   - Mereset pagination User Directory ketika filter berubah, membersihkan error yang dapat dipulihkan saat retry, dan mengabaikan respons fetch lama yang datang tidak berurutan.
-  - Menambahkan kontrak timeout request frontend bersama untuk seluruh panggilan API, cancellation-aware onboarding dan aksi AI, pembatalan stream reader saat idle timeout, polling Deep Research tanpa overlap, serta pesan error terminal Strategist agar kegagalan jaringan/provider tidak meninggalkan loading tanpa batas.
+  - Menambahkan kontrak deadline request frontend dan backend bersama, cancellation yang terlihat user untuk seluruh aksi AI panjang, pembatalan stream reader sekaligus fetch saat idle timeout, polling Deep Research tanpa overlap, serta lifecycle assistant eksplisit agar kegagalan jaringan/provider tidak meninggalkan loading tanpa batas.
+  - Meneruskan disconnect client melalui lifecycle request Express, request runtime AI, waktu tunggu retry Gemini Flex, dan transport SDK Gemini/Groq/OpenRouter sehingga request yang ditinggalkan menghentikan pekerjaan provider aktif, bukan hanya melewati tahap pipeline berikutnya.
 - **Telemetri AI & Tipe Provider**:
   - Memperbaiki perhitungan reasoning token Gemini agar tidak terhitung ganda dan menambahkan harga model default OpenRouter `openai/gpt-4o-mini`.
   - Memulihkan export tipe mapper kompatibel-Groq dan mengganti cast telemetry targeted-fix yang tidak aman dengan collector sebenarnya.

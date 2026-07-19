@@ -48,6 +48,7 @@ export class GeminiProvider implements AIProvider {
         model: request.model,
         contents: request.userContent as string | object,
         config: {
+          abortSignal: request.signal,
           systemInstruction: request.systemInstruction,
           candidateCount: 1,
           ...(request.maxOutputTokens ? { maxOutputTokens: request.maxOutputTokens } : {}),
@@ -88,6 +89,7 @@ export class GeminiProvider implements AIProvider {
         model: request.model,
         contents: request.userContent as string | object,
         config: {
+          abortSignal: request.signal,
           systemInstruction: request.systemInstruction,
           candidateCount: 1,
           ...(request.maxOutputTokens ? { maxOutputTokens: request.maxOutputTokens } : {}),

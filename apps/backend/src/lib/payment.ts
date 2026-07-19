@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { fetchWithTimeout } from './fetch-with-timeout';
 
 import { prisma } from './db';
 import { DokuPaymentGateway } from './payments/doku';
@@ -109,7 +110,7 @@ const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
 async function revalidateRate() {
   try {
-    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    const res = await fetchWithTimeout('https://open.er-api.com/v6/latest/USD');
     if (!res.ok) throw new Error('API response not OK');
     const data = (await res.json()) as { rates?: { IDR?: number } };
     const idrRate = data?.rates?.IDR;

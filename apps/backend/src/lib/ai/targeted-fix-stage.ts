@@ -17,6 +17,7 @@ export const runTargetedFixStage = async ({
   editorInstruction,
   metadata: _metadata,
   editorialProfile,
+  signal,
 }: {
   provider: AiProvider;
   analysisSpeed?: AnalysisSpeed;
@@ -26,6 +27,7 @@ export const runTargetedFixStage = async ({
   editorInstruction: string;
   metadata?: ArticleMetadata;
   editorialProfile: EditorialProfileSnapshot;
+  signal?: AbortSignal;
 }): Promise<{ replacementText: string; modelName: string }> => {
   const timezone = editorialProfile.config.timezone || 'Asia/Jakarta';
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -80,6 +82,7 @@ export const runTargetedFixStage = async ({
   const result = await executeGenerate({
     provider: aiProvider,
     request: {
+      signal,
       systemInstruction,
       userContent: contents,
       model: modelName,

@@ -17,6 +17,7 @@ export const runSeoStage = async ({
   editorialProfile,
   systemInstruction: baseSystemInstruction,
   telemetry,
+  signal,
 }: {
   provider: AiProvider;
   modelName: string;
@@ -25,6 +26,7 @@ export const runSeoStage = async ({
   editorialProfile: EditorialProfileSnapshot;
   systemInstruction: string;
   telemetry: AiTelemetryCollector;
+  signal?: AbortSignal;
 }): Promise<SeoMetadataOutput> => {
   const timezone = editorialProfile.config.timezone || 'Asia/Jakarta';
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -63,6 +65,7 @@ export const runSeoStage = async ({
   const result = await executeGenerate({
     provider: aiProvider,
     request: {
+      signal,
       systemInstruction,
       userContent: contents,
       model: modelName,

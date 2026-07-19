@@ -6,6 +6,7 @@ import { HeadBucketCommand } from '@aws-sdk/client-s3';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import { fetchWithTimeout } from '../lib/fetch-with-timeout';
 
 const router = Router();
 const startedAt = new Date().toISOString();
@@ -149,7 +150,8 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
     if (!process.env.CLERK_SECRET_KEY) return { status: 'not_configured', critical: true, latencyMs: 0 };
     try {
       const r = await withTimeout(
-        fetch('https://api.clerk.com/v1/instance', {
+        fetchWithTimeout('https://api.clerk.com/v1/instance', {
+          timeoutMs: TIMEOUT_MS,
           headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`, Accept: 'application/json' },
         }),
         TIMEOUT_MS, 'Clerk'
@@ -183,7 +185,7 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
     if (!apiKey || apiKey === 'empty') return { status: 'not_configured', critical: isCritical, latencyMs: 0 };
     try {
       const r = await withTimeout(
-        fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite?key=${apiKey}`),
+        fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite?key=${apiKey}`, { timeoutMs: TIMEOUT_MS }),
         TIMEOUT_MS, 'Gemini'
       );
       if (!r.ok) throw new Error(`Gemini API responded with HTTP ${r.status}`);
@@ -200,7 +202,7 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
     if (!apiKey || apiKey === 'empty') return { status: 'not_configured', critical: isCritical, latencyMs: 0 };
     try {
       const r = await withTimeout(
-        fetch('https://openrouter.ai/api/v1/auth/key', { headers: { Authorization: `Bearer ${apiKey}` } }),
+        fetchWithTimeout('https://openrouter.ai/api/v1/auth/key', { headers: { Authorization: `Bearer ${apiKey}` }, timeoutMs: TIMEOUT_MS }),
         TIMEOUT_MS, 'OpenRouter'
       );
       if (!r.ok) throw new Error(`OpenRouter API responded with HTTP ${r.status}`);
@@ -217,7 +219,7 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
     if (!apiKey || apiKey === 'empty') return { status: 'not_configured', critical: isCritical, latencyMs: 0 };
     try {
       const r = await withTimeout(
-        fetch('https://api.groq.com/openai/v1/models', { headers: { Authorization: `Bearer ${apiKey}` } }),
+        fetchWithTimeout('https://api.groq.com/openai/v1/models', { headers: { Authorization: `Bearer ${apiKey}` }, timeoutMs: TIMEOUT_MS }),
         TIMEOUT_MS, 'Groq'
       );
       if (!r.ok) throw new Error(`Groq API responded with HTTP ${r.status}`);
@@ -239,7 +241,8 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
       const base = isSandbox ? 'https://api.sandbox.midtrans.com' : 'https://api.midtrans.com';
       const auth = Buffer.from(`${serverKey}:`).toString('base64');
       const r = await withTimeout(
-        fetch(`${base}/v2/healthcheck-ping-dummy/status`, {
+        fetchWithTimeout(`${base}/v2/healthcheck-ping-dummy/status`, {
+          timeoutMs: TIMEOUT_MS,
           headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
         }),
         TIMEOUT_MS, 'Midtrans'
@@ -250,7 +253,8 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
         try {
           const fallbackBase = 'https://api.sandbox.midtrans.com';
           const fallbackR = await withTimeout(
-            fetch(`${fallbackBase}/v2/healthcheck-ping-dummy/status`, {
+            fetchWithTimeout(`${fallbackBase}/v2/healthcheck-ping-dummy/status`, {
+              timeoutMs: TIMEOUT_MS,
               headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
             }),
             TIMEOUT_MS, 'Midtrans Sandbox Fallback'
@@ -290,7 +294,7 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
       try {
         const auth = Buffer.from(`api:${process.env.MAILGUN_API_KEY}`).toString('base64');
         const r = await withTimeout(
-          fetch('https://api.mailgun.net/v3/domains', { headers: { Authorization: `Basic ${auth}` } }),
+          fetchWithTimeout('https://api.mailgun.net/v3/domains', { headers: { Authorization: `Basic ${auth}` }, timeoutMs: TIMEOUT_MS }),
           TIMEOUT_MS, 'Mailgun'
         );
         if (r.ok) return { provider: 'mailgun', status: 'healthy', critical: false, latencyMs: Date.now() - t };
@@ -302,7 +306,7 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
     if (process.env.RESEND_API_KEY) {
       try {
         const r = await withTimeout(
-          fetch('https://api.resend.com/domains', { headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` } }),
+          fetchWithTimeout('https://api.resend.com/domains', { headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` }, timeoutMs: TIMEOUT_MS }),
           TIMEOUT_MS, 'Resend'
         );
         if (r.ok) return { provider: 'resend', status: 'healthy', critical: false, latencyMs: Date.now() - t };
@@ -322,7 +326,7 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
       try {
         // Query the connection string directly since it contains the read-only token
         const r = await withTimeout(
-          fetch(edgeConfigConnection),
+          fetchWithTimeout(edgeConfigConnection, { timeoutMs: TIMEOUT_MS }),
           TIMEOUT_MS,
           'Edge Config'
         );
@@ -338,7 +342,8 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
     if (!edgeConfigId || !vercelToken) return { status: 'not_configured', critical: false, latencyMs: 0 };
     try {
       const r = await withTimeout(
-        fetch(`https://edge-config.vercel.com/${edgeConfigId}/items?limit=1`, {
+        fetchWithTimeout(`https://edge-config.vercel.com/${edgeConfigId}/items?limit=1`, {
+          timeoutMs: TIMEOUT_MS,
           headers: { Authorization: `Bearer ${vercelToken}` },
         }),
         TIMEOUT_MS, 'Edge Config'
@@ -354,7 +359,7 @@ const deepHealthHandler = async (_req: Request, res: Response) => {
   const checkExchangeRate = async (): Promise<ServiceHealth> => {
     const t = Date.now();
     try {
-      const r = await withTimeout(fetch('https://open.er-api.com/v6/latest/USD'), TIMEOUT_MS, 'Exchange Rate');
+      const r = await withTimeout(fetchWithTimeout('https://open.er-api.com/v6/latest/USD', { timeoutMs: TIMEOUT_MS }), TIMEOUT_MS, 'Exchange Rate');
       if (!r.ok) throw new Error(`Exchange rate API responded with HTTP ${r.status}`);
       return { status: 'healthy', critical: false, latencyMs: Date.now() - t };
     } catch (err) {
@@ -468,7 +473,7 @@ const journeyHealthHandler = async (_req: Request, res: Response) => {
   ): Promise<JourneyCheck> => {
     const t = Date.now();
     try {
-      const r = await withTimeout(fetch(`${apiBase}${urlPath}`, { method }), TIMEOUT_MS, label);
+      const r = await withTimeout(fetchWithTimeout(`${apiBase}${urlPath}`, { method, timeoutMs: TIMEOUT_MS }), TIMEOUT_MS, label);
       const ok = acceptedStatuses.includes(r.status);
       return {
         status: ok ? 'reachable' : 'unreachable',
@@ -488,7 +493,7 @@ const journeyHealthHandler = async (_req: Request, res: Response) => {
   const checkFrontend = async (label: string, urlPath: string): Promise<JourneyCheck> => {
     const t = Date.now();
     try {
-      const r = await withTimeout(fetch(`${frontendBase}${urlPath}`), TIMEOUT_MS, label);
+      const r = await withTimeout(fetchWithTimeout(`${frontendBase}${urlPath}`, { timeoutMs: TIMEOUT_MS }), TIMEOUT_MS, label);
       return {
         status: r.ok ? 'reachable' : 'unreachable',
         httpStatus: r.status,

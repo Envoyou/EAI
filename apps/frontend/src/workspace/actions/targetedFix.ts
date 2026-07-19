@@ -5,6 +5,7 @@ import type { AnalysisResult, FeedbackItem, EditorialReadiness } from '@eai/shar
 import type { AnalysisSpeed, DirectFetchType } from '../types';
 import { replaceFirstTargetMatch } from '@eai/shared';
 import { readWithTimeout } from '@/lib/stream-utils';
+import { getResponseErrorMessage } from '@/lib/fetch-utils';
 
 interface TargetedFixContext {
   analysis: AnalysisResult;
@@ -66,14 +67,9 @@ export async function executeTargetedFix(
       }),
     });
 
-    const getApiErrorMessage = async (res: Response, fallback: string) => {
-      const result = await res.json().catch(() => null);
-      return typeof result?.error === 'string' ? result.error : fallback;
-    };
-
     if (!response.ok) {
       throw new Error(
-        await getApiErrorMessage(response, 'Failed to start targeted fix stream.')
+        await getResponseErrorMessage(response, 'Failed to start targeted fix stream.')
       );
     }
 
@@ -85,7 +81,11 @@ export async function executeTargetedFix(
     let replacementText = '';
 
     while (true) {
-      const { done, value } = await readWithTimeout(reader);
+      const { done, value } = await readWithTimeout(
+        reader,
+        45_000,
+        (reason) => controller.abort(reason)
+      );
       if (done) break;
       buffer += decoder.decode(value as Uint8Array, { stream: true });
       const lines = buffer.split('\n');

@@ -1,3 +1,5 @@
+import { ServiceTier } from '@google/genai';
+
 export type GeminiServiceTier = 'standard' | 'flex';
 
 const DEFAULT_FLEX_TIMEOUT_MS = 900_000;
@@ -44,7 +46,7 @@ export function getGeminiGenerateConfig(
   if (serviceTier !== 'flex') return {};
 
   return {
-    serviceTier: 'flex' as const,
+    serviceTier: ServiceTier.FLEX,
     httpOptions: {
       timeout: getGeminiRequestTimeoutMs(serviceTier),
     },
@@ -60,10 +62,15 @@ export function getGeminiInteractionConfig(
 }
 
 export function getGeminiInteractionRequestOptions(
-  serviceTier = resolveGeminiServiceTier()
+  serviceTier = resolveGeminiServiceTier(),
+  signal?: AbortSignal
 ) {
   const timeout = getGeminiRequestTimeoutMs(serviceTier);
-  return timeout ? { timeout } : undefined;
+  if (!timeout && !signal) return undefined;
+  return {
+    ...(timeout ? { timeout } : {}),
+    ...(signal ? { abortSignal: signal } : {}),
+  };
 }
 
 function getErrorStatus(error: unknown): number | undefined {
@@ -105,8 +112,33 @@ interface GeminiFlexRetryOptions {
   maxRetries?: number;
   baseDelayMs?: number;
   sleep?: (delayMs: number) => Promise<void>;
+  signal?: AbortSignal;
   onRetry?: (input: { attempt: number; delayMs: number; error: unknown }) => void;
 }
+
+const sleepWithSignal = (
+  sleep: (delayMs: number) => Promise<void>,
+  delayMs: number,
+  signal?: AbortSignal
+) => {
+  if (!signal) return sleep(delayMs);
+  signal.throwIfAborted();
+
+  return new Promise<void>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason ?? new Error('Request aborted'));
+    signal.addEventListener('abort', onAbort, { once: true });
+    sleep(delayMs).then(
+      () => {
+        signal.removeEventListener('abort', onAbort);
+        resolve();
+      },
+      (error) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      }
+    );
+  });
+};
 
 export async function withGeminiFlexRetry<T>(
   operation: () => Promise<T>,
@@ -128,6 +160,7 @@ export async function withGeminiFlexRetry<T>(
     new Promise<void>((resolve) => setTimeout(resolve, delayMs)));
 
   for (let attempt = 0; ; attempt += 1) {
+    options.signal?.throwIfAborted();
     try {
       return await operation();
     } catch (error) {
@@ -137,7 +170,7 @@ export async function withGeminiFlexRetry<T>(
 
       const delayMs = baseDelayMs * (2 ** attempt);
       options.onRetry?.({ attempt: attempt + 1, delayMs, error });
-      await sleep(delayMs);
+      await sleepWithSignal(sleep, delayMs, options.signal);
     }
   }
 }

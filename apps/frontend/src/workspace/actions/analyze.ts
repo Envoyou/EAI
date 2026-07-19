@@ -5,7 +5,8 @@ import type { ArticleMetadata, ResearchNote, Attachment, EditorialProcessStage, 
 import type { EditorialOptions, AnalysisSpeed, PendingRefineAction, DirectFetchType } from '../types';
 import type { AppSettings } from '@/lib/preferences';
 import type { PanelTab } from '@/components/PanelTabBar';
-import { readWithTimeout } from '@/lib/stream-utils';
+import { readWithTimeout, StreamIdleTimeoutError } from '@/lib/stream-utils';
+import { getResponseErrorMessage } from '@/lib/fetch-utils';
 
 interface AnalyzeContext {
   draft: string;
@@ -151,11 +152,6 @@ export async function executeAnalyze(
       }),
     });
 
-    const getApiErrorMessage = async (res: Response, fallback: string) => {
-      const result = await res.json().catch(() => null);
-      return typeof result?.error === 'string' ? result.error : fallback;
-    };
-
     const normalizeProcessStage = (status: unknown): EditorialProcessStage | null => {
       if (status === 'evaluating') return 'reviewing';
       if (status === 'rewriting') return 'rewriting';
@@ -166,7 +162,7 @@ export async function executeAnalyze(
 
     if (!response.ok) {
       throw new Error(
-        await getApiErrorMessage(response, 'Failed to start analysis stream.')
+        await getResponseErrorMessage(response, 'Failed to start analysis stream.')
       );
     }
 
@@ -178,7 +174,11 @@ export async function executeAnalyze(
     let receivedComplete = false;
 
     while (true) {
-      const { done, value } = await readWithTimeout(reader);
+      const { done, value } = await readWithTimeout(
+        reader,
+        45_000,
+        (reason) => controller.abort(reason)
+      );
       if (done) break;
       buffer += decoder.decode(value as Uint8Array, { stream: true });
       const lines = buffer.split('\n');
@@ -271,7 +271,7 @@ export async function executeAnalyze(
       localStorage.setItem('eai-demo-refine-count', nextCount.toString());
     }
   } catch (error) {
-    if (controller.signal.aborted) {
+    if (controller.signal.aborted && !(error instanceof StreamIdleTimeoutError)) {
       console.log('Analysis aborted.');
       return;
     }

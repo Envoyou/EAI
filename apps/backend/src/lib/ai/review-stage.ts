@@ -142,6 +142,7 @@ export const runEditorialReviewStage = async ({
   sendEvent,
   sanitizeFeedback,
   sanitizeSummary,
+  signal,
 }: {
   provider: AiProvider;
   modelName: string;
@@ -151,6 +152,7 @@ export const runEditorialReviewStage = async ({
   reviewPrompt: string;
   telemetry: AiTelemetryCollector;
   sendEvent: SendEvent;
+  signal?: AbortSignal;
   sanitizeFeedback: FeedbackSanitizer;
   sanitizeSummary: (
     summary: string,
@@ -168,6 +170,7 @@ export const runEditorialReviewStage = async ({
   });
 
   for (let attempt = 0; attempt < 3; attempt++) {
+    signal?.throwIfAborted();
     const { prompt, mode } = getAttemptConfig(reviewPrompt, attempt);
     sendEvent('status', 'evaluating');
 
@@ -189,6 +192,7 @@ export const runEditorialReviewStage = async ({
     const aiProvider = getProvider(provider);
     const outputLimit = resolveOutputLimit(provider, role, mode);
     const streamRequest = {
+      signal,
       systemInstruction: prompt,
       userContent: contents,
       model: modelName,

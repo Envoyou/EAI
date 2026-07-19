@@ -3,7 +3,7 @@
 import { toast } from 'sonner';
 import type { ArticleMetadata, ResearchNote } from '@eai/shared';
 import type { DirectFetchType } from '../types';
-import { readWithTimeout } from '@/lib/stream-utils';
+import { readWithTimeout, StreamIdleTimeoutError } from '@/lib/stream-utils';
 
 interface StrategistContext {
   researchNotes: ResearchNote[];
@@ -58,7 +58,11 @@ export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
     let buffer = '';
 
     while (true) {
-      const { done, value: chunk } = await readWithTimeout(reader);
+      const { done, value: chunk } = await readWithTimeout(
+        reader,
+        45_000,
+        (reason) => controller.abort(reason)
+      );
       if (done) break;
 
       buffer += decoder.decode(chunk as Uint8Array, { stream: true });
@@ -92,7 +96,7 @@ export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
 
     toast.success('Draft generated successfully!');
   } catch (error) {
-    if (controller.signal.aborted) {
+    if (controller.signal.aborted && !(error instanceof StreamIdleTimeoutError)) {
       console.log('Draft generation aborted by user.');
       return;
     }

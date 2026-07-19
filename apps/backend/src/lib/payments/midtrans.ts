@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { fetchWithTimeout } from '../fetch-with-timeout';
 
 import type {
   CheckoutInput,
@@ -128,7 +129,7 @@ export class MidtransPaymentGateway implements PaymentGateway {
       };
     }
     const authHeader = Buffer.from(`${getServerKey()}:`).toString('base64');
-    const response = await fetch(snapUrl(), {
+    const response = await fetchWithTimeout(snapUrl(), {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -183,7 +184,7 @@ export class MidtransPaymentGateway implements PaymentGateway {
   async getPaymentStatus(orderId: string): Promise<PaymentEvent | null> {
     if (isMidtransSimulatorEnabled()) return null;
     const authHeader = Buffer.from(`${getServerKey()}:`).toString('base64');
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${apiBaseUrl()}/v2/${encodeURIComponent(orderId)}/status`,
       {
         headers: {

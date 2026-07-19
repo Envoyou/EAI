@@ -15,6 +15,7 @@ import {
   CloudUpload,
   History,
   FileEdit,
+  X,
 } from 'lucide-react';
 
 import DocumentHistoryPanel from '@/components/DocumentHistoryPanel';
@@ -95,6 +96,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
     handleNewDraft,
     handleGenerateDraftFromNotes,
     handleCancelGenerateDraft,
+    handleCancelAnalysis,
     handleAddNewCategoryOrType,
     loadHistory,
     handleAcceptFeedback,
@@ -315,23 +317,29 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                 render={
                   <button
                     id="titlebar-refine"
-                    onClick={() => handleAnalyze()}
-                    disabled={!draft.trim() || analysis.status === 'loading'}
-                    className={`ui-btn ui-btn-primary ui-btn-sm ${activeTab !== 'draft' ? 'max-sm:hidden' : ''}`}
+                    onClick={() => {
+                      if (analysis.status === 'loading' || isTargetedFixing !== null) {
+                        handleCancelAnalysis();
+                      } else {
+                        handleAnalyze();
+                      }
+                    }}
+                    disabled={!draft.trim() && analysis.status !== 'loading' && isTargetedFixing === null}
+                    className={`ui-btn ui-btn-primary ui-btn-sm ${activeTab !== 'draft' && analysis.status !== 'loading' && isTargetedFixing === null ? 'max-sm:hidden' : ''}`}
                   >
-                    {analysis.status === 'loading' ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                    {analysis.status === 'loading' || isTargetedFixing !== null ? (
+                      <X className="w-4 h-4" />
                     ) : (
                       <Sparkles className="w-4 h-4" />
                     )}
                     <span className="hidden sm:inline">
-                      {analysis.status === 'loading' ? 'Refining…' : 'Refine Draft'}
+                      {analysis.status === 'loading' || isTargetedFixing !== null ? 'Cancel' : 'Refine Draft'}
                     </span>
                   </button>
                 }
               />
               <TooltipContent side="bottom" className="text-xs">
-                {analysis.status === 'loading' ? 'Refining draft…' : 'Refine Draft (Ctrl+Enter)'}
+                {analysis.status === 'loading' || isTargetedFixing !== null ? 'Cancel current AI request' : 'Refine Draft (Ctrl+Enter)'}
               </TooltipContent>
             </Tooltip>
           </div>

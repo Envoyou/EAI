@@ -20,6 +20,7 @@ import {
   isRetryableGeminiFlexError,
   withGeminiFlexRetry,
 } from '@/lib/ai/gemini-request-policy';
+import { bindResponseAbort } from '@/lib/request-abort';
 
 const router = Router();
 
@@ -34,6 +35,7 @@ router.post(
     message: 'Too many requests. Please try again later.',
   }),
   async (req: Request, res: Response) => {
+    const requestAbort = bindResponseAbort(res, 'Strategist plan');
     try {
       const parsedInput = GeneratePlanSchema.safeParse(req.body);
       if (!parsedInput.success) {
@@ -206,9 +208,11 @@ router.post(
               schema: strategistPlanSchema,
             },
             ...getGeminiInteractionConfig(),
-          }, getGeminiInteractionRequestOptions())
+          }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
+          { signal: requestAbort.signal }
         );
       } catch (apiError) {
+        requestAbort.signal.throwIfAborted();
         // Removing the schema cannot repair exhausted Flex capacity.
         if (isRetryableGeminiFlexError(apiError)) throw apiError;
         console.warn(
@@ -226,7 +230,8 @@ router.post(
               ? undefined
               : [{ type: 'google_search' }],
             ...getGeminiInteractionConfig(),
-          }, getGeminiInteractionRequestOptions())
+          }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
+          { signal: requestAbort.signal }
         );
       }
 
@@ -577,8 +582,11 @@ router.post(
         sessionId: dbSessionId === 'new' ? null : dbSessionId,
       });
     } catch (error) {
+      if (requestAbort.signal.aborted) return;
       console.error('Error in generate-plan:', error);
       res.status(500).json({ error: 'Failed to generate plan' });
+    } finally {
+      requestAbort.dispose();
     }
   }
 );

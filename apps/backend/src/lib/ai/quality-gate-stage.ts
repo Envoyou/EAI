@@ -50,6 +50,7 @@ const runFinalQualityGate = async ({
   publicationMode,
   workingTitle,
   publicationPackage,
+  signal,
   attempt = 1,
 }: {
   provider: AiProvider;
@@ -71,6 +72,7 @@ const runFinalQualityGate = async ({
   publicationMode: 'fast' | 'publish_ready';
   workingTitle?: string;
   publicationPackage?: PublicationPackage | null;
+  signal?: AbortSignal;
   attempt?: number;
 }): Promise<{ result: FinalQualityGateOutput; modelName: string }> => {
   const timezone = editorialProfile.config.timezone || 'Asia/Jakarta';
@@ -144,6 +146,7 @@ The previous response failed structural validation. Return one JSON object only.
   const text = await executeGenerate({
     provider: aiProvider,
     request: {
+      signal,
       systemInstruction,
       userContent: contents,
       model: modelName,
@@ -188,9 +191,11 @@ export const runFinalQualityGateSafely = async (
   input: Omit<Parameters<typeof runFinalQualityGate>[0], 'attempt'>
 ): ReturnType<typeof runFinalQualityGate> => {
   for (let attempt = 1; attempt <= 2; attempt++) {
+    input.signal?.throwIfAborted();
     try {
       return await runFinalQualityGate({ ...input, attempt });
     } catch (error) {
+      if (input.signal?.aborted) throw error;
       if (attempt === 1) {
         input.telemetry.markFallback();
         console.warn('[Quality Gate] First attempt failed, retrying once:', error);

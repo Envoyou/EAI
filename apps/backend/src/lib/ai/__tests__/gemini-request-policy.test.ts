@@ -85,4 +85,20 @@ describe('Gemini request policy', () => {
     expect(isRetryableGeminiFlexError(new Error('Request failed with 503'))).toBe(true);
     expect(isRetryableGeminiFlexError({ status: 500 })).toBe(false);
   });
+
+  test('stops Flex backoff immediately when the request is aborted', async () => {
+    const controller = new AbortController();
+    const operation = vi.fn().mockRejectedValue({ status: 503 });
+    const sleep = vi.fn(() => new Promise<void>(() => undefined));
+
+    const retry = withGeminiFlexRetry(operation, {
+      serviceTier: 'flex',
+      signal: controller.signal,
+      sleep,
+    });
+    controller.abort(new Error('Client disconnected'));
+
+    await expect(retry).rejects.toThrow('Client disconnected');
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
 });

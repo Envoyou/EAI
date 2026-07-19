@@ -32,6 +32,8 @@ export interface StreamChunk {
 }
 
 export interface StreamRequest {
+  /** Cancels the active provider request when the originating HTTP client disconnects. */
+  signal?: AbortSignal;
   /** System instruction / system prompt to send to the model. */
   systemInstruction: string;
   /** User content — plain string or multi-part object depending on provider. */

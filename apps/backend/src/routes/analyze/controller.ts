@@ -213,8 +213,10 @@ router.post('/', async (req: Request, res) => {
 
   // Shared mutable state — passed to handlers by reference so they can update
   // usedModels, executedModelName, etc. for logging and error recovery.
+  const requestController = new AbortController();
   const state: AnalyzeState = {
     isDisconnected: false,
+    signal: requestController.signal,
     usedModels: [],
     executedModelName: 'unknown-model',
     textToLog: '',
@@ -226,6 +228,7 @@ router.post('/', async (req: Request, res) => {
   res.on('close', () => {
     if (!res.writableEnded) {
       state.isDisconnected = true;
+      requestController.abort(new Error('Analyze client disconnected'));
       console.log('[analyze] Client closed connection.');
     }
   });
@@ -410,6 +413,7 @@ router.post('/', async (req: Request, res) => {
       modelOverride,
     });
   } catch (error: unknown) {
+    if (state.isDisconnected || state.signal.aborted) return;
     console.error('[ANALYZE_POST_ERROR]', error);
     sendEvent(
       'error',

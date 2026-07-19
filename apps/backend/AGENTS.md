@@ -93,6 +93,8 @@ apps/backend/
 │   │   ├── credential-vault.ts  # Encrypted credential read/write
 │   │   ├── editorial-profile-server.ts  # Editorial profile server helpers
 │   │   ├── safe-url-fetch.ts # DNS-pinned HTTP(S) egress policy and SSRF protection
+│   │   ├── fetch-with-timeout.ts # Shared aborting deadline for trusted outbound service calls
+│   │   ├── request-abort.ts # Binds early HTTP response close to provider AbortSignal
 │   │   ├── serializable-transaction.ts # Serializable Prisma transaction retry helper
 │   │   ├── __tests__/        # Backend service and security regression tests
 │   │   ├── services/         # Domain services
@@ -231,6 +233,7 @@ Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes l
 > **H1 Contract**: `routes/analyze/` (specifically the rewrite stage handler) applies `stripLeadingH1` (from `src/lib/text-utils.ts`) to the input draft **before** the rewrite stage. This removes any top-level heading that would duplicate the article title rendered by the frontend.
 
 * **Provider-Native Thinking**: Reviewer and Quality Gate stages may enable provider-native thinking for model quality, but JSON response schemas must contain only the final editorial result. Do not request or persist manual chain-of-thought fields such as `"thinking"`.
+* **Provider Cancellation**: Every AI request must pass the originating response-close `AbortSignal` through `StreamRequest` or the provider-native request options. Gemini Flex retry delays must receive the same signal. An `isDisconnected` flag may prevent later writes, but it is not a substitute for aborting active provider work.
 * **Workspace Context & Compliance Helpers**:
   * All AI pipeline stages (SEO Optimizer, Fact-Checker, Targeted Fixes, Chat, Strategist) must utilize the shared prompt helper functions from `src/lib/ai/workspace-context.ts`:
     * `composeWorkspaceContext`: Builds a structured workspace context object and renders it as XML (`<workspace_context>`).

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { fetchWithTimeout } from './fetch-with-timeout';
 
 const ZohoTokenResponseSchema = z.object({
   access_token: z.string().min(1),
@@ -114,7 +115,7 @@ const getAccessToken = async () => {
     refresh_token: config.refreshToken,
     grant_type: 'refresh_token',
   });
-  const response = await fetch(tokenUrl, {
+  const response = await fetchWithTimeout(tokenUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -148,7 +149,7 @@ const fetchZoho = async (
 ) => {
   const { accessToken, config } = await getAccessToken();
   const apiBase = config.apiUrl.replace(/\/$/, '');
-  const response = await fetch(new URL(path.replace(/^\//, ''), `${apiBase}/`), {
+  const response = await fetchWithTimeout(new URL(path.replace(/^\//, ''), `${apiBase}/`), {
     method: init.method || 'GET',
     headers: {
       Authorization: `Zoho-oauthtoken ${accessToken}`,

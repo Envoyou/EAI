@@ -67,6 +67,7 @@ export type OpenAiCompatibleClient = {
  */
 export type AnalyzeState = {
   isDisconnected: boolean;
+  signal: AbortSignal;
   usedModels: string[];
   executedModelName: string;
   textToLog: string;

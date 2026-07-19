@@ -1,4 +1,5 @@
 import { Buffer } from 'buffer';
+import { fetchWithTimeout } from './fetch-with-timeout';
 
 interface SendEmailParams {
   to: string;
@@ -50,7 +51,7 @@ export async function sendEmail({ to, subject, text, html, from }: SendEmailPara
       formData.append('html', html);
     }
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,

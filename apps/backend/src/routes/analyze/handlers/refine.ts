@@ -79,6 +79,7 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
   for await (const chunk of executeStream({
     provider,
     request: {
+      signal: state.signal,
       systemInstruction: refinePrompt,
       userContent: buildEditorialUserContent({
         metadata,
@@ -123,6 +124,7 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
     const seoModelName = resolveModelName('seo');
     state.usedModels.push(`${seoModelName}(seo)`);
     refineSeo = await runSeoStage({
+      signal: state.signal,
       provider: effectiveProvider,
       modelName: seoModelName,
       article: refinedText,
@@ -143,6 +145,7 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
 
   sendEvent('status', 'quality_gate');
   const refineQualityGateResponse = await runFinalQualityGateSafely({
+    signal: state.signal,
     provider: effectiveProvider,
     originalDraft: text,
     finalDraft: refinedText,

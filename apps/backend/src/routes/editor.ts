@@ -7,10 +7,12 @@ import {
   extractGeminiText,
 } from '@/lib/ai/provider-runtime';
 import { withGeminiFlexRetry } from '@/lib/ai/gemini-request-policy';
+import { bindResponseAbort } from '@/lib/request-abort';
 
 const router = Router();
 
 router.post('/ai-action', requireAuth, async (req, res) => {
+  const requestAbort = bindResponseAbort(res, 'Editor AI action');
   try {
     const { action, selectionMarkdown, contextMarkdown } = req.body;
     
@@ -44,12 +46,16 @@ router.post('/ai-action', requireAuth, async (req, res) => {
     const model = getGeminiModelForRole('polish', 'fast');
     const samplingConfig = getNativeGeminiConfig();
     
-    const response = await withGeminiFlexRetry(() =>
-      gemini.models.generateContent({
-        model,
-        contents: prompt,
-        config: samplingConfig,
-      })
+    const response = await withGeminiFlexRetry(
+      () => gemini.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            ...samplingConfig,
+            abortSignal: requestAbort.signal,
+          },
+        }),
+      { signal: requestAbort.signal }
     );
     
     const content = extractGeminiText(response);
@@ -64,9 +70,12 @@ router.post('/ai-action', requireAuth, async (req, res) => {
     });
 
   } catch (error) {
+    if (requestAbort.signal.aborted) return;
     console.error('[Editor AI Action Error]', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     return res.status(500).json({ error: 'Internal Server Error', details: errorMessage });
+  } finally {
+    requestAbort.dispose();
   }
 });
 

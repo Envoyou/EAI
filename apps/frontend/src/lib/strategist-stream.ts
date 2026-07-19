@@ -23,3 +23,10 @@ export function getStrategistStreamError(event: StrategistStreamEvent): string {
   if (typeof event.data === 'string' && event.data.trim()) return event.data;
   return 'Strategist stream failed.';
 }
+
+export function shouldShowAssistantSpinner(
+  lifecycle: string | undefined,
+  status: string | undefined
+): boolean {
+  return lifecycle === 'pending' && Boolean(status);
+}
