@@ -12,6 +12,7 @@ import { Markdown } from 'tiptap-markdown';
 
 import { SlashCommand, renderItems, getSuggestionItems } from './editor/extensions/slash-command';
 import { BubbleMenuAI } from './editor/BubbleMenuAI';
+import { LinkHoverPopover, type HoveredLinkTarget } from './editor/LinkHoverPopover';
 import { AIPreviewExtension } from './editor/extensions/ai-preview-extension';
 import { AiActionExtension } from './editor/extensions/ai-action-extension';
 import { Table } from '@tiptap/extension-table';
@@ -72,18 +73,9 @@ export default function Editor({
   const prevValueRef = useRef(value);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Link hover popup states
-  interface HoveredLink {
-    href: string;
-    text: string;
-    node: HTMLAnchorElement;
-    top: number;
-    left: number;
-    pos: number;
-  }
-  const [hoveredLink, setHoveredLink] = useState<HoveredLink | null>(null);
+  const [hoveredLink, setHoveredLink] = useState<HoveredLinkTarget | null>(null);
   const [isEditingLink, setIsEditingLink] = useState(false);
   const [tempHref, setTempHref] = useState('');
   const [tempText, setTempText] = useState('');
@@ -170,24 +162,16 @@ export default function Editor({
         mouseover: (view, event) => {
           const target = event.target as HTMLElement;
           const anchor = target.closest('a');
-          if (anchor && scrollContainerRef.current) {
+          if (anchor) {
             cancelCloseTimeout();
             const href = anchor.getAttribute('href') || '';
             const text = anchor.textContent || '';
             const pos = view.posAtDOM(anchor, 0);
 
-            const rect = anchor.getBoundingClientRect();
-            const containerRect = scrollContainerRef.current.getBoundingClientRect();
-
-            const top = rect.bottom - containerRect.top + scrollContainerRef.current.scrollTop;
-            const left = rect.left - containerRect.left + scrollContainerRef.current.scrollLeft + (rect.width / 2);
-
             setHoveredLink({
               href,
               text,
               node: anchor,
-              top,
-              left,
               pos,
             });
           }
@@ -608,7 +592,7 @@ export default function Editor({
             </div>
           </div>
         ) : (
-          <div ref={scrollContainerRef} className="relative flex-1 w-full overflow-y-auto">
+          <div className="relative flex-1 w-full overflow-y-auto">
             {isLoading && !value && (
               <div className="absolute inset-0 z-50 bg-[var(--surface-1)]/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 select-none">
                 <Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" />
@@ -647,90 +631,22 @@ export default function Editor({
               />
             </div>
 
-            {/* Link Edit Hover Popup */}
             {hoveredLink && (
-              <div
+              <LinkHoverPopover
+                target={hoveredLink}
+                isEditing={isEditingLink}
+                href={tempHref}
+                text={tempText}
+                onHrefChange={setTempHref}
+                onTextChange={setTempText}
+                onEdit={() => setIsEditingLink(true)}
+                onCancelEdit={() => setIsEditingLink(false)}
+                onSave={handleSaveLink}
+                onRemove={handleRemoveLink}
+                onClose={() => setHoveredLink(null)}
                 onMouseEnter={cancelCloseTimeout}
                 onMouseLeave={startCloseTimeout}
-                style={{
-                  position: 'absolute',
-                  top: `${hoveredLink.top + 8}px`,
-                  left: `${hoveredLink.left}px`,
-                  transform: 'translateX(-50%)',
-                  resize: 'both',
-                  overflow: 'auto',
-                  width: '280px',
-                  minHeight: isEditingLink ? '200px' : '56px',
-                  maxHeight: '400px',
-                }}
-                className="z-50 min-w-[240px] max-w-[480px] rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3 shadow-xl backdrop-blur-md animate-fade-in flex flex-col justify-center gap-2 text-xs"
-              >
-                {!isEditingLink ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <a
-                      href={hoveredLink.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="truncate font-medium text-[var(--primary)] hover:underline flex-1 max-w-[180px] text-left"
-                    >
-                      {hoveredLink.href}
-                    </a>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => setIsEditingLink(true)}
-                        className="p-1.5 hover:bg-[var(--surface-2)] text-[var(--foreground)] rounded-lg transition duration-150"
-                        title="Edit link"
-                      >
-                        <FileEdit className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={handleRemoveLink}
-                        className="p-1.5 hover:bg-red-500/10 text-red-500 rounded-lg transition duration-150"
-                        title="Remove link"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2.5">
-                    <div className="flex flex-col gap-1 text-left">
-                      <label className="text-[9px] text-[var(--muted-foreground)] font-bold uppercase tracking-wider">Text</label>
-                      <input
-                        type="text"
-                        value={tempText}
-                        onChange={(e) => setTempText(e.target.value)}
-                        className="ui-control ui-input py-1 px-2 text-xs"
-                        placeholder="Link text..."
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1 text-left">
-                      <label className="text-[9px] text-[var(--muted-foreground)] font-bold uppercase tracking-wider">URL</label>
-                      <input
-                        type="text"
-                        value={tempHref}
-                        onChange={(e) => setTempHref(e.target.value)}
-                        className="ui-control ui-input py-1 px-2 text-xs"
-                        placeholder="https://..."
-                      />
-                    </div>
-                    <div className="flex items-center justify-end gap-1.5 mt-1">
-                      <button
-                        onClick={() => setIsEditingLink(false)}
-                        className="ui-btn ui-btn-muted ui-btn-xs"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleSaveLink}
-                        className="ui-btn ui-btn-primary ui-btn-xs"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              />
             )}
           </div>
         )}

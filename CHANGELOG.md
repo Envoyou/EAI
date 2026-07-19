@@ -13,6 +13,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Migrated all eight Tiptap Bubble Menu actions to the canonical API, isolated the toolbar with `not-prose`, and exposed formatting toggle state through `aria-pressed` with focused regression coverage.
 
 ### Fixed
+- **Editor Link Overlay Architecture**:
+  - Replaced manual bounding-rectangle and scroll-offset positioning with a controlled Base UI popover anchored directly to the hovered link.
+  - Portaled the overlay with fixed, collision-aware positioning; isolated it from article typography; and migrated edit, remove, cancel, save, and input controls to canonical component APIs.
+  - Added regression coverage preventing a return to absolute coordinate arithmetic or raw overlay controls.
 - **Editor UI Style Boundary**:
   - Isolated AI Preview controls from Tiptap article typography with a `not-prose` control boundary while preserving Markdown heading, link, table, and code rendering in the sibling content region.
   - Removed inline Accept/Reject color workarounds and the broad dark `.prose a` `!important` override.

@@ -192,6 +192,9 @@ controls can share the ProseMirror DOM.
 - AI Preview buttons use semantic `ui-btn` variants without inline colors.
 - The Tiptap Bubble Menu is a `not-prose` control surface; all eight actions use
   the canonical `Button` API, and formatting toggles expose `aria-pressed`.
+- Hovered-link actions render through a controlled `LinkHoverPopover` using a
+  Base UI portal, an element anchor, fixed positioning, and collision handling;
+  `Editor` retains only Tiptap selection and mutation ownership.
 - Light and dark article links use the semantic `--editor-link` token through
   Tailwind Typography's normal and inverted link variables.
 - A regression contract protects headings, links, tables, inline code, the
@@ -270,7 +273,6 @@ responsible for:
 | --- | --- | --- | --- |
 | P1 | Primitive consolidation is incomplete beyond Button | Inconsistent visuals, accessibility, and maintenance ownership | Inventory Badge, Alert, Input, Textarea, and legacy button consumers, then migrate feature-by-feature |
 | P2 | Large feature components remain | High review cost and hidden state coupling | Continue facade/subsystem extraction around coherent behavior, not arbitrary file-size targets |
-| P2 | Custom link overlay owns manual positioning | Scroll, resize, focus, and mobile edge cases | Capture behavior with tests, then migrate to a maintained floating positioner |
 | P2 | Hard-coded user-facing strings remain in feature components | Incomplete localization and duplicated copy | Add an i18n audit and migrate by feature namespace |
 | P3 | Future NodeViews could bypass the editor boundary contract | Reintroduction of typography leakage and color workarounds | Keep the AI Preview regression contract and enforce the scoped frontend guide |
 | P3 | Large client workspace boundary has not been profiled | Possible bundle size and broad re-render surface | Measure before splitting stable shells from interactive islands |
@@ -294,8 +296,10 @@ responsible for:
 - Completed on 2026-07-19: isolated AI Preview controls, removed inline button
   colors, removed the redundant nested `prose` instance, and replaced the broad
   dark-link selector with the semantic `--editor-link` token.
-- Replace the custom link overlay positioning after behavior is protected by
-  tests.
+- Completed on 2026-07-19: extracted the hovered-link surface into a controlled
+  `LinkHoverPopover`, replaced manual bounding-rectangle and scroll arithmetic
+  with a Base UI portal/positioner anchored to the actual link, enabled collision
+  handling, and migrated its controls to canonical `Button` and `Input` APIs.
 
 ### Phase 3: consolidate the design system
 

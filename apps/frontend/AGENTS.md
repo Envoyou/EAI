@@ -214,6 +214,10 @@ Tiptap NodeViews render inside the ProseMirror `.prose` tree, so embedded button
 * **Solution**: Mark the control-only wrapper with `not-prose` and keep article content in a sibling content region. Do not wrap the entire NodeView in `not-prose` and then create a nested `prose` instance; Tailwind Typography does not support re-enabling `prose` inside `not-prose`.
 * **Link colors**: Configure editor links through the semantic `--editor-link` token and the `--tw-prose-links` / `--tw-prose-invert-links` variables in `globals.css`. Do not add broad `.dark .prose a` selectors or inline color workarounds.
 
+### 🚫 RULE 11: Do Not Position Editor Overlays with Manual Viewport Arithmetic
+Anchored editor overlays must not calculate popup `top`/`left` values from `getBoundingClientRect`, container scroll offsets, or inline absolute positioning.
+* **Solution**: Use a maintained Base UI overlay primitive with `<Portal>`, `<Positioner anchor={element}>`, fixed positioning, and collision avoidance. Keep Tiptap mutation logic in the editor orchestrator and visual/focus behavior in a bounded overlay component.
+
 ---
 
 ## Security
@@ -238,6 +242,7 @@ Before submitting a PR for frontend changes:
 - [ ] No `asChild` prop on `<TooltipTrigger>` — use `render` prop
 - [ ] External avatar images use `<Image />` from `next/image`
 - [ ] Tiptap NodeView controls use a `not-prose` control boundary and no inline color workaround
+- [ ] Anchored editor overlays use a portal and maintained positioner, not manual viewport arithmetic
 - [ ] All user-facing strings routed through `next-intl`
 - [ ] API requests have a finite deadline and every loading/streaming placeholder has success, failure, and cancellation exits
 

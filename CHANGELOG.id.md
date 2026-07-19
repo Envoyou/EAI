@@ -13,6 +13,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Memigrasikan seluruh delapan aksi Tiptap Bubble Menu ke API kanonis, mengisolasi toolbar dengan `not-prose`, serta mengekspos state aktif toggle format melalui `aria-pressed` beserta regression test terfokus.
 
 ### Fixed
+- **Arsitektur Overlay Link Editor**:
+  - Mengganti positioning manual berbasis bounding rectangle dan scroll offset dengan Base UI popover terkontrol yang langsung ditambatkan ke link yang sedang di-hover.
+  - Merender overlay melalui portal dengan positioning fixed dan collision-aware, mengisolasinya dari typography artikel, serta memigrasikan kontrol edit, hapus, batal, simpan, dan input ke API komponen kanonis.
+  - Menambahkan regression test yang mencegah kembalinya kalkulasi koordinat absolut atau kontrol overlay mentah.
 - **Boundary Style UI Editor**:
   - Mengisolasi kontrol AI Preview dari typography artikel Tiptap menggunakan boundary `not-prose`, sambil mempertahankan rendering heading, link, tabel, dan kode Markdown pada area konten sibling.
   - Menghapus workaround warna inline tombol Accept/Reject dan override global dark `.prose a` yang memakai `!important`.
