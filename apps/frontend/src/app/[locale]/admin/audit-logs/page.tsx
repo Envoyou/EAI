@@ -4,6 +4,8 @@ import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import React, { useEffect, useState } from 'react';
 import { Loader2, Search, Eye, Filter, ArrowLeft, ArrowRight, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type AuditLog = {
   id: string;
@@ -110,10 +112,11 @@ export default function AuditLogsAdminPage() {
               Search Description / Actor
             </label>
             <div className="flex gap-2">
-              <input
+              <Input
+                variant="surface"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="ui-control ui-input text-xs"
+                className="text-xs"
                 placeholder="Search actor email, target ID, details..."
                 aria-label="Search logs"
               />
@@ -133,20 +136,29 @@ export default function AuditLogsAdminPage() {
               <Filter className="h-3 w-3" />
               Filter by Action
             </label>
-            <select
-              value={actionFilter}
-              onChange={(e) => setActionFilter(e.target.value)}
-              className="ui-control ui-select text-xs h-[34px] w-full"
-              aria-label="Filter by action"
+            <Select
+              value={actionFilter || 'all'}
+              onValueChange={(value) => {
+                if (value !== null) setActionFilter(value === 'all' ? '' : value);
+              }}
             >
-              <option value="">All Action Types</option>
-              <option value="credit.adjust">Credit Adjustments</option>
-              <option value="tenant.ai_config.update">AI Engine Overrides</option>
-              <option value="tenant.subscription.override">Plan Overrides</option>
-              <option value="feature_flag.update">Feature Flag Toggles</option>
-              <option value="user.ban">User Bans</option>
-              <option value="user.unban">User Unbans</option>
-            </select>
+              <SelectTrigger
+                variant="surface"
+                className="h-[34px] w-full text-xs"
+                aria-label="Filter by action"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Action Types</SelectItem>
+                <SelectItem value="credit.adjust">Credit Adjustments</SelectItem>
+                <SelectItem value="tenant.ai_config.update">AI Engine Overrides</SelectItem>
+                <SelectItem value="tenant.subscription.override">Plan Overrides</SelectItem>
+                <SelectItem value="feature_flag.update">Feature Flag Toggles</SelectItem>
+                <SelectItem value="user.ban">User Bans</SelectItem>
+                <SelectItem value="user.unban">User Unbans</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </form>
 

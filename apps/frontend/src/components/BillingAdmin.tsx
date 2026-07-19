@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { FormEvent, type ReactNode, useState } from 'react';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 type Balance = {
@@ -338,10 +340,10 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
               Find workspace
             </label>
             <div className="mt-3 flex gap-2">
-              <input
+              <Input
+                variant="surface"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="ui-control ui-input"
                 placeholder="Email, organization, slug..."
                 aria-label="Search email or organization"
               />
@@ -559,14 +561,15 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
 
                           <label className="mt-3 block text-xs font-semibold">
                             Amount
-                            <input
+                            <Input
+                              variant="surface"
                               type="number"
                               min="1"
                               max="1000000"
                               step="1"
                               value={amount}
                               onChange={(event) => setAmount(event.target.value)}
-                              className="ui-control ui-input mt-1.5"
+                              className="mt-1.5"
                               placeholder="100"
                               required
                             />
@@ -574,10 +577,11 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
 
                           <label className="mt-3 block text-xs font-semibold">
                             Reason
-                            <textarea
+                            <Textarea
+                              variant="surface"
                               value={reason}
                               onChange={(event) => setReason(event.target.value)}
-                              className="ui-control ui-textarea mt-1.5 h-16 resize-none"
+                              className="mt-1.5 h-16 resize-none"
                               placeholder="Customer support correction..."
                               required
                             />
@@ -588,13 +592,14 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                             <div className="mt-1.5 flex gap-2">
                               <div className="relative min-w-0 flex-1">
                                 <Ticket className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
-                                <input
+                                <Input
+                                  variant="surface"
                                   value={ticketReference}
                                   onChange={(event) => {
                                     setTicketReference(event.target.value);
                                     setVerifiedTicket(null);
                                   }}
-                                  className="ui-control ui-input !pl-10 font-mono"
+                                  className="!pl-10 font-mono"
                                   placeholder={zohoDeskEnabled ? '1024 or ticket ID' : 'SUP-1024'}
                                   required
                                 />
@@ -687,14 +692,15 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
 
                           <label className="mt-3 block text-xs font-semibold">
                             Duration (Days)
-                            <input
+                            <Input
+                              variant="surface"
                               type="number"
                               min="1"
                               max="3650"
                               step="1"
                               value={overrideDurationDays}
                               onChange={(event) => setOverrideDurationDays(event.target.value)}
-                              className="ui-control ui-input mt-1.5"
+                              className="mt-1.5"
                               placeholder="30"
                               required
                             />
@@ -702,10 +708,11 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
 
                           <label className="mt-3 block text-xs font-semibold">
                             Reason
-                            <textarea
+                            <Textarea
+                              variant="surface"
                               value={reason}
                               onChange={(event) => setReason(event.target.value)}
-                              className="ui-control ui-textarea mt-1.5 h-16 resize-none"
+                              className="mt-1.5 h-16 resize-none"
                               placeholder="Enterprise manual contract..."
                               required
                             />
@@ -716,13 +723,14 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                             <div className="mt-1.5 flex gap-2">
                               <div className="relative min-w-0 flex-1">
                                 <Ticket className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
-                                <input
+                                <Input
+                                  variant="surface"
                                   value={ticketReference}
                                   onChange={(event) => {
                                     setTicketReference(event.target.value);
                                     setVerifiedTicket(null);
                                   }}
-                                  className="ui-control ui-input !pl-10 font-mono"
+                                  className="!pl-10 font-mono"
                                   placeholder={zohoDeskEnabled ? '1024 or ticket ID' : 'SUP-1024'}
                                   required
                                 />

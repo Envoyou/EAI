@@ -4,6 +4,7 @@ import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import React, { useState } from 'react';
 import { Search, Loader2, Cpu, Save, AlertTriangle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 type OrgSearchResult = {
   id: string;
@@ -135,10 +136,11 @@ export default function AiConfigAdminPage() {
               Find workspace
             </label>
             <div className="mt-2.5 flex gap-2">
-              <input
+              <Input
+                variant="surface"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="ui-control ui-input text-xs"
+                className="text-xs"
                 placeholder="Organization, slug..."
                 aria-label="Search organization"
               />
@@ -259,10 +261,11 @@ export default function AiConfigAdminPage() {
                     Leave blank to use provider default models
                   </span>
                 </div>
-                <input
+                <Input
+                  variant="surface"
                   value={config.model}
                   onChange={(event) => setConfig({ ...config, model: event.target.value })}
-                  className="ui-control ui-input text-xs"
+                  className="text-xs"
                   placeholder={
                     config.provider === 'gemini'
                       ? 'e.g. gemini-2.5-pro'
