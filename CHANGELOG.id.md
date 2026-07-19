@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.13.0] - 2026-07-19
+
 ### Added
 - **Pengujian Gemini dengan Kontrol Biaya**:
   - Menambahkan kebijakan request Gemini bersama untuk inference Standard/Flex yang bersifat opt-in pada bentuk panggilan GenerateContent dan Interactions API.

@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.13.0] - 2026-07-19
+
 ### Added
 - **Cost-Controlled Gemini Testing**:
   - Added a shared Gemini request policy for opt-in Standard/Flex inference across both GenerateContent and Interactions API call shapes.
