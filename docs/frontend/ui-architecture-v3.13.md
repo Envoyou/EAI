@@ -288,10 +288,11 @@ responsible for:
 - Completed on 2026-07-19: added an AI Preview regression contract covering
   content/control separation, semantic buttons, theme-aware article links,
   headings, tables, and inline code.
-- Completed on 2026-07-19 for text fields: after migrating Support Form, 22
-  feature files still contain raw `<input>`, 8 contain raw `<textarea>`, and 12
-  directly compose `ui-control` / `ui-input` / `ui-textarea`. Tests and primitive
-  implementations are excluded from these counts.
+- Completed on 2026-07-19 for text fields: after migrating Support Form and
+  Billing Details Form, 21 feature files still contain raw `<input>`, 7 contain
+  raw `<textarea>`, and 11 directly compose `ui-control` / `ui-input` /
+  `ui-textarea`. Tests and primitive implementations are excluded from these
+  counts.
 - Define the public variants and accessibility behavior required from each
   primitive.
 - Audit hard-coded user-facing strings by feature namespace.
@@ -314,8 +315,8 @@ responsible for:
   editor-toolbar regression coverage. The `accent` variant owns low-emphasis AI
   actions, while `muted[aria-pressed="true"]` owns formatting-toggle state.
 - Started for Input/Textarea on 2026-07-19: introduced regression-tested
-  `default` and `surface` variants, then migrated Support Form's five inputs and
-  one textarea without changing the filled-control visual contract.
+  `default` and `surface` variants, then migrated Support Form and Billing
+  Details Form without changing their filled-control visual contract.
 - Move feature controls behind `components/ui` primitives incrementally.
 - Preserve current visuals and mobile behavior during migration.
 - Retire redundant global classes only when no consumers remain.

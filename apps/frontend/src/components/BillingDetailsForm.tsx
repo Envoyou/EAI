@@ -4,6 +4,9 @@ import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import React, { useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { getApiUrl } from '@/lib/api-url';
 import { toast } from 'sonner';
 
@@ -63,14 +66,14 @@ export default function BillingDetailsForm({ organization, isAdmin }: BillingDet
         <label htmlFor="company-name" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Company Legal Name
         </label>
-        <input
+        <Input
+          variant="surface"
           id="company-name"
           type="text"
           value={name}
           disabled={!isAdmin}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Acme Corporation"
-          className="ui-control ui-input w-full"
           required
         />
       </div>
@@ -79,14 +82,14 @@ export default function BillingDetailsForm({ organization, isAdmin }: BillingDet
         <label htmlFor="company-npwp" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Tax ID / NPWP (Optional)
         </label>
-        <input
+        <Input
+          variant="surface"
           id="company-npwp"
           type="text"
           value={npwp}
           disabled={!isAdmin}
           onChange={(e) => setNpwp(e.target.value)}
           placeholder="e.g. 93.115.884.4-627.000"
-          className="ui-control ui-input w-full"
         />
         <p className="text-[10px] text-muted-foreground">
           Required for B2B tax invoice validation. Leave empty if not applicable.
@@ -97,13 +100,14 @@ export default function BillingDetailsForm({ organization, isAdmin }: BillingDet
         <label htmlFor="billing-address" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Billing Address (Optional)
         </label>
-        <textarea
+        <Textarea
+          variant="surface"
           id="billing-address"
           value={billingAddress}
           disabled={!isAdmin}
           onChange={(e) => setBillingAddress(e.target.value)}
           placeholder="e.g. Jl. Sudirman No. 12, Jakarta, 12190"
-          className="ui-control ui-input w-full min-h-20 py-2 resize-none"
+          className="min-h-20 resize-none"
         />
         <p className="text-[10px] text-muted-foreground">
           Will be printed on tax receipts and invoices instead of default location.
@@ -111,13 +115,14 @@ export default function BillingDetailsForm({ organization, isAdmin }: BillingDet
       </div>
 
       {isAdmin && (
-        <button
+        <Button
           type="submit"
           disabled={saving}
-          className="ui-btn ui-btn-primary ui-btn-sm"
+          variant="primary"
+          size="sm"
         >
           {saving ? 'Saving...' : 'Save Billing Info'}
-        </button>
+        </Button>
       )}
     </form>
   );
