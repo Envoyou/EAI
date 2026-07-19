@@ -6,6 +6,12 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Fixed
+- **Boundary Style UI Editor**:
+  - Mengisolasi kontrol AI Preview dari typography artikel Tiptap menggunakan boundary `not-prose`, sambil mempertahankan rendering heading, link, tabel, dan kode Markdown pada area konten sibling.
+  - Menghapus workaround warna inline tombol Accept/Reject dan override global dark `.prose a` yang memakai `!important`.
+  - Menambahkan token semantik light/dark `--editor-link` yang terhubung ke variabel link normal dan inverted Tailwind Typography, beserta regression contract terfokus.
+
 ## [3.13.0] - 2026-07-19
 
 ### Added

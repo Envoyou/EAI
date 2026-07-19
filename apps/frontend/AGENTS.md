@@ -211,6 +211,11 @@ When building administrative views that allow multiple distinct operations (such
 Any high-privilege administrative operation that performs database modifications (ledger writes, subscription updates, overrides) must require a confirmation step.
 * **Solution**: Render a modal overlay using the absolute container `fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm`. Inside, provide a detailed table-like breakdown of the action using description list tags (`<dl className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-3 rounded-2xl bg-[var(--surface-2)] p-4 text-sm">`), and ensure the confirmation button shows a loading spinner (`<Loader2 className="animate-spin" />`) while `submitting` is active.
 
+### 🚫 RULE 10: Do Not Let Editor Typography Style NodeView Controls
+Tiptap NodeViews render inside the ProseMirror `.prose` tree, so embedded buttons, inputs, menus, badges, and status UI must have an explicit control boundary.
+* **Solution**: Mark the control-only wrapper with `not-prose` and keep article content in a sibling content region. Do not wrap the entire NodeView in `not-prose` and then create a nested `prose` instance; Tailwind Typography does not support re-enabling `prose` inside `not-prose`.
+* **Link colors**: Configure editor links through the semantic `--editor-link` token and the `--tw-prose-links` / `--tw-prose-invert-links` variables in `globals.css`. Do not add broad `.dark .prose a` selectors or inline color workarounds.
+
 ---
 
 ## Security
@@ -234,6 +239,7 @@ Before submitting a PR for frontend changes:
 - [ ] No manual button Tailwind classes — use `ui-btn ui-btn-*`
 - [ ] No `asChild` prop on `<TooltipTrigger>` — use `render` prop
 - [ ] External avatar images use `<Image />` from `next/image`
+- [ ] Tiptap NodeView controls use a `not-prose` control boundary and no inline color workaround
 - [ ] All user-facing strings routed through `next-intl`
 - [ ] API requests have a finite deadline and every loading/streaming placeholder has success, failure, and cancellation exits
 
@@ -266,4 +272,4 @@ Before submitting a PR for frontend changes:
 - **Styling issues**: Check `globals.css` for the full list of `ui-btn`, `ui-badge`, and `ui-alert` classes.
 - **Clerk auth issues**: Verify `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` are set in `.env.local`.
 - **i18n missing key**: Add the key to the relevant locale JSON file under `messages/`.
-- **Architecture questions**: See [docs/architecture-notes.md](../../docs/architecture-notes.md).
+- **Architecture questions**: See [UI Architecture v3.13.0](../../docs/frontend/ui-architecture-v3.13.md) for frontend boundaries and [docs/architecture-notes.md](../../docs/architecture-notes.md) for the wider system.

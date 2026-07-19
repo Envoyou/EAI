@@ -123,6 +123,7 @@
 
   --primary:            #0b79c2; /* Envoyou blue */
   --primary-foreground: #ffffff;
+  --editor-link:        #0b79c2;
 
   --secondary:            #f1f5f9;
   --secondary-foreground: #0f172a;
@@ -181,6 +182,7 @@
   /* Primary as high-contrast monochrome */
   --primary:            #EDEDED; 
   --primary-foreground: #121211;
+  --editor-link:        #3b95d9;
 
   --secondary:            #1a1a18;
   --secondary-foreground: #EDEDED;
@@ -344,7 +346,8 @@
   --tw-prose-body:        var(--foreground);
   --tw-prose-headings:    var(--foreground);
   --tw-prose-lead:        var(--muted-foreground);
-  --tw-prose-links:       var(--primary);
+  --tw-prose-links:       var(--editor-link);
+  --tw-prose-invert-links: var(--editor-link);
   --tw-prose-bold:        var(--foreground);
   --tw-prose-counters:    var(--muted-foreground);
   --tw-prose-bullets:     var(--muted-foreground);
@@ -357,11 +360,6 @@
   --tw-prose-pre-bg:      var(--surface-2);
   --tw-prose-th-borders:  var(--border);
   --tw-prose-td-borders:  var(--border);
-}
-
-.dark .prose a,
-.dark [class*="prose-"] a {
-  color: #3b95d9 !important;
 }
 
 .prose h1, .prose h2, .prose h3 {
@@ -2285,4 +2283,3 @@
     padding-bottom: 16px !important;
   }
 }
-

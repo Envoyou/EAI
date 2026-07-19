@@ -6,6 +6,12 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Fixed
+- **Editor UI Style Boundary**:
+  - Isolated AI Preview controls from Tiptap article typography with a `not-prose` control boundary while preserving Markdown heading, link, table, and code rendering in the sibling content region.
+  - Removed inline Accept/Reject color workarounds and the broad dark `.prose a` `!important` override.
+  - Added a semantic light/dark `--editor-link` token wired through Tailwind Typography's normal and inverted link variables, plus a focused regression contract.
+
 ## [3.13.0] - 2026-07-19
 
 ### Added
