@@ -7,6 +7,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Changed
+- **API Form Control Kanonis**:
+  - Menambahkan variant `default` dan `surface` yang dilindungi regression test pada primitive `Input` dan `Textarea`; `surface` mempertahankan kontrak visual filled `ui-control` selama migrasi inkremental.
+  - Memigrasikan seluruh text field Support Form, field honeypot, dan kedua aksinya dari elemen mentah/class visual langsung ke API komponen kanonis.
+  - Mencatat inventaris raw field dan legacy control yang tersisa pada rencana arsitektur UI untuk memandu migrasi per fitur yang terukur.
 - **API Button Kanonis**:
   - Mengonsolidasikan wrapper Base UI `Button` dan kontrak visual global `ui-btn` menjadi satu API komponen semantik dengan variant `primary`, `outline`, `surface`, `muted`, `accent`, `danger`, dan `link`.
   - Mempertahankan nama variant bergaya shadcn sebelumnya sebagai alias kompatibilitas, memigrasikan AI Preview serta consumer primitive yang sudah ada ke variant semantik, dan menambahkan regression test variant/size terfokus.

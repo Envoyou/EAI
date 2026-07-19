@@ -7,6 +7,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Changed
+- **Canonical Form-Control API**:
+  - Added regression-tested `default` and `surface` variants to the shared `Input` and `Textarea` primitives; `surface` preserves the existing filled `ui-control` visual contract during incremental migration.
+  - Migrated all Support Form text fields, its honeypot field, and both actions from raw elements/direct visual classes to canonical component APIs.
+  - Recorded the remaining raw-field and legacy-control inventory in the UI architecture plan to guide bounded feature-by-feature migration.
 - **Canonical Button API**:
   - Consolidated the Base UI `Button` wrapper and global `ui-btn` visual contract into one semantic component API with `primary`, `outline`, `surface`, `muted`, `accent`, `danger`, and `link` variants.
   - Preserved the previous shadcn-style variant names as compatibility aliases, migrated AI Preview and existing primitive consumers to semantic variants, and added focused variant/size regression coverage.

@@ -152,15 +152,17 @@ Components should depend on semantic intent, not copy palette hex values.
 
 Two mechanisms currently coexist during migration:
 
-1. the canonical Base UI `Button` wrapper under `src/components/ui`, whose
-   semantic variants are backed by the global `ui-btn` implementation classes;
+1. canonical `Button`, `Input`, and `Textarea` wrappers under `src/components/ui`;
+   Button owns the `ui-btn` visual contract, while form controls expose a
+   migration-safe `surface` variant backed by `ui-control` classes;
 2. direct global classes such as `ui-btn`, `ui-badge`, `ui-alert`, `ui-control`,
    and `ui-card` in legacy feature code, plus other Base UI/shadcn wrappers that
    have not yet completed the same consolidation.
 
-New and migrated buttons must use `components/ui/Button`. Direct `ui-btn`
-composition remains compatibility code and should be migrated feature-by-feature
-without broad visual rewrites.
+New and migrated buttons and text fields must use the corresponding
+`components/ui` primitive. Direct `ui-btn` and `ui-control` composition remains
+compatibility code and should be migrated feature-by-feature without broad
+visual rewrites.
 
 ### Target direction
 
@@ -175,8 +177,9 @@ Feature component
 ```
 
 Global `ui-*` classes may remain internal compatibility building blocks during
-migration. The Button milestone is complete; Badge, Alert, Input, Textarea, and
-legacy raw controls still need equivalent ownership decisions and validation.
+migration. The Button milestone is complete, while Input/Textarea consolidation
+has started with explicit `default` and `surface` contracts. Badge, Alert, and
+remaining legacy raw controls still need equivalent ownership and validation.
 
 ## 6. Editor content and embedded UI boundary
 
@@ -271,7 +274,7 @@ responsible for:
 
 | Priority | Risk | Impact | Recommended next step |
 | --- | --- | --- | --- |
-| P1 | Primitive consolidation is incomplete beyond Button | Inconsistent visuals, accessibility, and maintenance ownership | Inventory Badge, Alert, Input, Textarea, and legacy button consumers, then migrate feature-by-feature |
+| P1 | Primitive consolidation remains incomplete | Inconsistent visuals, accessibility, and maintenance ownership | Continue Input/Textarea migrations from the recorded inventory, then define equivalent Badge and Alert ownership |
 | P2 | Large feature components remain | High review cost and hidden state coupling | Continue facade/subsystem extraction around coherent behavior, not arbitrary file-size targets |
 | P2 | Hard-coded user-facing strings remain in feature components | Incomplete localization and duplicated copy | Add an i18n audit and migrate by feature namespace |
 | P3 | Future NodeViews could bypass the editor boundary contract | Reintroduction of typography leakage and color workarounds | Keep the AI Preview regression contract and enforce the scoped frontend guide |
@@ -285,8 +288,10 @@ responsible for:
 - Completed on 2026-07-19: added an AI Preview regression contract covering
   content/control separation, semantic buttons, theme-aware article links,
   headings, tables, and inline code.
-- Inventory raw interactive elements, `ui-*` consumers, and `components/ui`
-  consumers.
+- Completed on 2026-07-19 for text fields: after migrating Support Form, 22
+  feature files still contain raw `<input>`, 8 contain raw `<textarea>`, and 12
+  directly compose `ui-control` / `ui-input` / `ui-textarea`. Tests and primitive
+  implementations are excluded from these counts.
 - Define the public variants and accessibility behavior required from each
   primitive.
 - Audit hard-coded user-facing strings by feature namespace.
@@ -308,6 +313,9 @@ responsible for:
   AI Preview, Publication UI, and the Tiptap Bubble Menu, then added variant and
   editor-toolbar regression coverage. The `accent` variant owns low-emphasis AI
   actions, while `muted[aria-pressed="true"]` owns formatting-toggle state.
+- Started for Input/Textarea on 2026-07-19: introduced regression-tested
+  `default` and `surface` variants, then migrated Support Form's five inputs and
+  one textarea without changing the filled-control visual contract.
 - Move feature controls behind `components/ui` primitives incrementally.
 - Preserve current visuals and mobile behavior during migration.
 - Retire redundant global classes only when no consumers remain.

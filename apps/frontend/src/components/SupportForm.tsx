@@ -11,6 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 const categories = [
   'Billing and credits',
@@ -79,13 +82,14 @@ export function SupportForm() {
         <p className="mt-3 font-mono text-2xl font-black text-emerald-600 dark:text-emerald-300">
           #{ticketNumber}
         </p>
-        <button
+        <Button
           type="button"
+          variant="surface"
           onClick={() => setTicketNumber(null)}
-          className="ui-btn ui-btn-surface mt-6"
+          className="mt-6"
         >
           Create another request
-        </button>
+        </Button>
       </div>
     );
   }
@@ -95,10 +99,11 @@ export function SupportForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <label className="text-sm font-semibold">
           Name
-          <input
+          <Input
+            variant="surface"
             name="name"
             autoComplete="name"
-            className="ui-control ui-input mt-2 h-11"
+            className="mt-2 h-11"
             placeholder="Your name"
             required
             minLength={2}
@@ -107,11 +112,12 @@ export function SupportForm() {
         </label>
         <label className="text-sm font-semibold">
           Account email
-          <input
+          <Input
+            variant="surface"
             name="email"
             type="email"
             autoComplete="email"
-            className="ui-control ui-input mt-2 h-11"
+            className="mt-2 h-11"
             placeholder="you@company.com"
             required
             maxLength={254}
@@ -135,9 +141,10 @@ export function SupportForm() {
         </label>
         <label className="text-sm font-semibold">
           Order or invoice reference
-          <input
+          <Input
+            variant="surface"
             name="orderReference"
-            className="ui-control ui-input mt-2 h-11 font-mono"
+            className="mt-2 h-11 font-mono"
             placeholder="Optional"
             maxLength={120}
           />
@@ -146,9 +153,10 @@ export function SupportForm() {
 
       <label className="block text-sm font-semibold">
         Subject
-        <input
+        <Input
+          variant="surface"
           name="subject"
-          className="ui-control ui-input mt-2 h-11"
+          className="mt-2 h-11"
           placeholder="Briefly describe the issue"
           required
           minLength={5}
@@ -158,9 +166,10 @@ export function SupportForm() {
 
       <label className="block text-sm font-semibold">
         Details
-        <textarea
+        <Textarea
+          variant="surface"
           name="message"
-          className="ui-control ui-textarea mt-2 min-h-40 resize-y"
+          className="mt-2 min-h-40 resize-y"
           placeholder="Tell us what happened, what you expected, and any relevant steps or error messages."
           required
           minLength={20}
@@ -170,7 +179,7 @@ export function SupportForm() {
 
       <label className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
         Website
-        <input name="website" tabIndex={-1} autoComplete="off" />
+        <Input variant="surface" name="website" tabIndex={-1} autoComplete="off" />
       </label>
 
       <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
@@ -189,16 +198,17 @@ export function SupportForm() {
         </div>
       )}
 
-      <button
+      <Button
         type="submit"
         disabled={submitting}
-        className="ui-btn ui-btn-primary h-11 w-full"
+        variant="primary"
+        className="h-11 w-full"
       >
         {submitting
           ? <Loader2 className="h-4 w-4 animate-spin" />
           : <Send className="h-4 w-4" />}
         Submit support request
-      </button>
+      </Button>
 
       <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-slate-500">
         <span className="inline-flex items-center gap-1.5">

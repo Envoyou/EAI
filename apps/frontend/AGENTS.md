@@ -218,6 +218,11 @@ Tiptap NodeViews render inside the ProseMirror `.prose` tree, so embedded button
 Anchored editor overlays must not calculate popup `top`/`left` values from `getBoundingClientRect`, container scroll offsets, or inline absolute positioning.
 * **Solution**: Use a maintained Base UI overlay primitive with `<Portal>`, `<Positioner anchor={element}>`, fixed positioning, and collision avoidance. Keep Tiptap mutation logic in the editor orchestrator and visual/focus behavior in a bounded overlay component.
 
+### 🚫 RULE 12: Do Not Assemble Text Fields with Raw Visual Classes
+New or migrated text-like fields must not combine raw `<input>`/`<textarea>` elements with direct `ui-control`, `ui-input`, or `ui-textarea` classes.
+* **Solution**: Use `<Input>` and `<Textarea>` from `@/components/ui`. Use `variant="surface"` when preserving the filled `ui-control` visual contract during incremental migration; `variant="default"` remains available for existing primitive consumers.
+* **Scope**: Native checkbox, radio, file, and other controls with specialized interaction semantics require their appropriate primitive and are not automatically replaced with text-field styling.
+
 ---
 
 ## Security
@@ -243,6 +248,7 @@ Before submitting a PR for frontend changes:
 - [ ] External avatar images use `<Image />` from `next/image`
 - [ ] Tiptap NodeView controls use a `not-prose` control boundary and no inline color workaround
 - [ ] Anchored editor overlays use a portal and maintained positioner, not manual viewport arithmetic
+- [ ] New or migrated text fields use `<Input>` / `<Textarea>`; no new direct `ui-control` composition
 - [ ] All user-facing strings routed through `next-intl`
 - [ ] API requests have a finite deadline and every loading/streaming placeholder has success, failure, and cancellation exits
 
