@@ -2,6 +2,7 @@ import { ArticleMetadata } from '@eai/shared';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Sparkles, Loader2, Type, Code } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -382,22 +383,26 @@ export default function Editor({
             </div>
 
              <div className="flex shrink-0 items-center gap-1">
-              <button
+              <Button
+                type="button"
                 onClick={handleCopy}
                 disabled={!value.trim()}
-                className="ui-btn ui-btn-muted ui-btn-xs"
+                variant="muted"
+                size="xs"
               >
                 <Copy className="w-3.5 h-3.5" />
                 <span className="max-sm:hidden">Copy</span>
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
                 onClick={handleClear}
                 disabled={!value.trim()}
-                className="ui-btn ui-btn-danger ui-btn-xs"
+                variant="danger"
+                size="xs"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span className="max-sm:hidden">Clear</span>
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -522,9 +527,13 @@ export default function Editor({
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <button
+                  <Button
+                    type="button"
                     onClick={() => setShowBrief(p => !p)}
-                    className="ui-btn ui-btn-muted ui-btn-xs -ml-2 w-max"
+                    variant="muted"
+                    size="xs"
+                    aria-expanded={showBrief}
+                    className="-ml-2 w-max"
                     style={{ color: showBrief || metadata.brief ? 'var(--primary)' : 'var(--muted-foreground)' }}
                   >
                     <BookOpen className="h-3.5 w-3.5" />
@@ -538,7 +547,7 @@ export default function Editor({
                     {showBrief
                       ? <ChevronUp className="h-3.5 w-3.5 ml-auto" />
                       : <ChevronDown className="h-3.5 w-3.5 ml-auto" />}
-                  </button>
+                  </Button>
                 }
               />
               <TooltipContent side="bottom" className="text-xs">
@@ -580,7 +589,8 @@ export default function Editor({
               Write or paste an existing draft to get started. You can also chat with EAI to brainstorm ideas, refine your draft, and get editorial feedback.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
-              <button
+              <Button
+                type="button"
                 onClick={() => {
                   setIsWritingManually(true);
                   onChange("");
@@ -588,10 +598,11 @@ export default function Editor({
                     if (textareaRef.current) textareaRef.current.focus();
                   }, 50);
                 }}
-                className="ui-btn ui-btn-primary ui-btn-sm"
+                variant="primary"
+                size="sm"
               >
                 Write or Paste
-              </button>
+              </Button>
             </div>
           </div>
         ) : (

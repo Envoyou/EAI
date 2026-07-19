@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import type { DirectoryUser, UserDetailsData } from '../types';
 import { formatDate } from '../hooks/useUserDirectory';
+import { Badge } from '@/components/ui/badge';
 
 interface OrganizationDetailDrawerProps {
   selectedUser: DirectoryUser;
@@ -148,9 +149,9 @@ export function OrganizationDetailDrawer({
                       <h4 className="font-bold text-emerald-600 dark:text-emerald-400 uppercase text-[10px]">
                         Active Subscription
                       </h4>
-                      <span className="ui-badge ui-badge-success text-[10px] font-bold uppercase">
+                      <Badge variant="success" className="text-[10px] font-bold uppercase">
                         {detailsData.activeSubscription.status}
-                      </span>
+                      </Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-[11px]">
                       <div>

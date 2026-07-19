@@ -27,7 +27,7 @@ describe('Settings form-control contract', () => {
     expect(usageSource).not.toMatch(/<input\b/);
     expect(usageSource).not.toMatch(/ui-control|ui-input/);
     expect(usageSource.match(/<Input\b/g)).toHaveLength(1);
-    expect(usageSource.match(/variant="surface"/g)).toHaveLength(1);
+    expect(usageSource.match(/<Input\b[^>]*\bvariant="surface"/g)).toHaveLength(1);
   });
 
   it('uses canonical Switch and Select controls in Workflow Settings', () => {

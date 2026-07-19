@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { AppSidebarShell } from '@/components/AppSidebarShell';
 import { SidebarItem } from '@/components/ui/sidebar-item';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export interface HistoryItem {
   id: string;
@@ -213,20 +214,24 @@ export default function HistorySidebar({
                 </p>
               </div>
               <div className="flex gap-2">
-                <button
+                <Button
                   onClick={() => setItemToDelete(null)}
                   disabled={isDeleting}
-                  className="ui-btn ui-btn-surface ui-btn-sm flex-1"
+                  variant="surface"
+                  size="sm"
+                  className="flex-1"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => handleDelete(itemToDelete)}
                   disabled={isDeleting}
-                  className="ui-btn ui-btn-sm flex-1 bg-[var(--error)] text-white hover:brightness-95"
+                  variant="danger"
+                  size="sm"
+                  className="flex-1"
                 >
                   {isDeleting ? 'Deleting…' : 'Delete'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -401,14 +406,16 @@ export default function HistorySidebar({
 
               {nextCursor && (
                 <div className="pb-4 px-1 mt-2">
-                  <button
+                  <Button
                     onClick={() => fetchHistory(nextCursor, true)}
                     disabled={loadingMore}
-                    className="ui-btn ui-btn-surface ui-btn-sm w-full rounded-full"
+                    variant="surface"
+                    size="sm"
+                    className="w-full rounded-full"
                   >
                     {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
                     {loadingMore ? 'Loading…' : 'Load More'}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

@@ -152,18 +152,17 @@ Components should depend on semantic intent, not copy palette hex values.
 
 Two mechanisms currently coexist during migration:
 
-1. canonical `Button`, `Input`, `Textarea`, and `SelectTrigger` wrappers under
-   `src/components/ui`; Button owns the `ui-btn` visual contract, while form
-   controls expose a migration-safe `surface` variant backed by `ui-control`
-   classes;
-2. direct global classes such as `ui-btn`, `ui-badge`, `ui-alert`, `ui-control`,
-   and `ui-card` in legacy feature code, plus other Base UI/shadcn wrappers that
-   have not yet completed the same consolidation.
+1. canonical `Button`, `Input`, `Textarea`, `SelectTrigger`, `Badge`, and `Alert`
+   wrappers under `src/components/ui`; each primitive owns its corresponding
+   global visual classes and exposes semantic variants to feature code;
+2. direct global classes such as `ui-btn` and `ui-card` in legacy feature code,
+   plus other Base UI/shadcn wrappers that have not yet completed the same
+   consolidation.
 
-New and migrated buttons and text fields must use the corresponding
-`components/ui` primitive. Direct `ui-btn` and `ui-control` composition remains
-compatibility code and should be migrated feature-by-feature without broad
-visual rewrites.
+New and migrated controls must use the corresponding `components/ui` primitive.
+Direct `ui-btn` composition remains compatibility code and should be migrated
+feature-by-feature without broad visual rewrites. Direct `ui-control`,
+`ui-badge`, and `ui-alert` composition has been removed from feature code.
 
 ### Target direction
 
@@ -177,11 +176,11 @@ Feature component
                  -> light/dark themes
 ```
 
-Global `ui-*` classes may remain internal compatibility building blocks during
-migration. The Button milestone is complete, while Input, Textarea, and
-SelectTrigger consolidation has started with explicit `default` and `surface`
-contracts. Badge, Alert, and remaining legacy raw controls still need equivalent
-ownership and validation.
+Global `ui-*` classes may remain internal implementation building blocks during
+migration. Button, Input, Textarea, SelectTrigger, Badge, and Alert now have
+explicit semantic contracts and regression coverage. The remaining primitive
+debt is concentrated in legacy raw/direct Button consumers and larger component
+boundaries.
 
 ## 6. Editor content and embedded UI boundary
 
@@ -276,7 +275,7 @@ responsible for:
 
 | Priority | Risk | Impact | Recommended next step |
 | --- | --- | --- | --- |
-| P1 | Primitive consolidation remains incomplete | Inconsistent visuals, accessibility, and maintenance ownership | Continue Input/Textarea migrations from the recorded inventory, then define equivalent Badge and Alert ownership |
+| P1 | Legacy Button adoption remains incomplete | Inconsistent interaction semantics and maintenance ownership | Migrate remaining raw buttons and direct `ui-btn` consumers in bounded feature batches |
 | P2 | Large feature components remain | High review cost and hidden state coupling | Continue facade/subsystem extraction around coherent behavior, not arbitrary file-size targets |
 | P2 | Hard-coded user-facing strings remain in feature components | Incomplete localization and duplicated copy | Add an i18n audit and migrate by feature namespace |
 | P3 | Future NodeViews could bypass the editor boundary contract | Reintroduction of typography leakage and color workarounds | Keep the AI Preview regression contract and enforce the scoped frontend guide |
@@ -323,6 +322,14 @@ responsible for:
   AI Preview, Publication UI, and the Tiptap Bubble Menu, then added variant and
   editor-toolbar regression coverage. The `accent` variant owns low-emphasis AI
   actions, while `muted[aria-pressed="true"]` owns formatting-toggle state.
+- Completed for direct Button styling on 2026-07-19: migrated all remaining
+  feature-level `ui-btn` composition across admin, settings, billing,
+  subscription, workspace/editor, onboarding, strategist, history, and feedback
+  surfaces. A source-level regression contract now keeps `ui-btn`, `ui-badge`,
+  and `ui-alert` visual classes inside their primitives. The remaining Button
+  inventory is 102 raw controls across 41 feature files; these are mostly
+  bespoke cards, tabs, menus, and compact toggles and must be migrated in bounded
+  behavior-preserving batches.
 - Completed for feature form controls on 2026-07-19: introduced regression-tested `default`
   and `surface` variants for Input, Textarea, and SelectTrigger, then migrated
   Support Form, Billing Details Form, General Settings, Defaults Settings, Usage
@@ -336,6 +343,12 @@ responsible for:
   primitives, file upload has a native-semantics boundary, Dashboard dates use
   canonical Input, and the auto-resizing Chat composer uses canonical Textarea.
   The raw Markdown canvas is the sole documented feature-level exemption.
+- Completed for Badge and Alert on 2026-07-19: added semantic visual variants,
+  compact Badge sizing, compatibility aliases, and polymorphic render support;
+  migrated every feature-level direct `ui-badge` and `ui-alert` consumer,
+  including readiness/status indicators, source links, animated review flags,
+  admin callouts, and billing states. Interactive model presets and source
+  expansion controls were corrected to canonical Button semantics.
 - Move feature controls behind `components/ui` primitives incrementally.
 - Preserve current visuals and mobile behavior during migration.
 - Retire redundant global classes only when no consumers remain.

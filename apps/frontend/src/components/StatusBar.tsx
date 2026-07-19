@@ -4,6 +4,7 @@ import { CheckCircle2, AlertTriangle, ShieldAlert, Loader2, Keyboard, ArrowLeftR
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditorialReadiness } from '@eai/shared';
 import packageJson from '../../package.json';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
 
 interface StatusBarProps {
   wordCount: number;
@@ -27,11 +28,11 @@ function ReadinessIcon({ readiness }: { readiness?: EditorialReadiness }) {
   return null;
 }
 
-function readinessBadgeClass(readiness?: EditorialReadiness) {
-  if (readiness === 'ready') return 'ui-badge-success';
-  if (readiness === 'needs_review') return 'ui-badge-warning';
-  if (readiness === 'blocked') return 'ui-badge-danger';
-  return 'ui-badge-muted';
+function readinessBadgeVariant(readiness?: EditorialReadiness): BadgeVariant {
+  if (readiness === 'ready') return 'success';
+  if (readiness === 'needs_review') return 'warning';
+  if (readiness === 'blocked') return 'danger';
+  return 'muted';
 }
 
 export default function StatusBar({
@@ -73,25 +74,27 @@ export default function StatusBar({
 
       {/* Loading indicator */}
       {(isLoading || isStreaming || isRefining) && (
-        <span
-          className="status-loading ui-badge ui-badge-primary hidden sm:inline-flex"
+        <Badge
+          variant="primary"
+          className="status-loading hidden sm:inline-flex"
           aria-live="polite"
           aria-label={isRefining ? "Refining draft" : "Analyzing draft"}
         >
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
           {isRefining ? 'Refining…' : (isStreaming ? 'Streaming…' : 'Analyzing…')}
-        </span>
+        </Badge>
       )}
 
       {/* Final-draft readiness */}
       {readiness && !isLoading && (
-        <span
-          className={`status-verdict ui-badge hidden sm:inline-flex ${readinessBadgeClass(readiness)}`}
+        <Badge
+          variant={readinessBadgeVariant(readiness)}
+          className="status-verdict hidden sm:inline-flex"
           aria-label={`Editorial readiness: ${readiness.replace('_', ' ')}`}
         >
           <ReadinessIcon readiness={readiness} />
           {readiness === 'ready' ? 'Ready for review' : readiness === 'needs_review' ? 'Needs review' : 'Blocked'}
-        </span>
+        </Badge>
       )}
 
       {/* Word count */}
@@ -115,7 +118,7 @@ export default function StatusBar({
 
       {/* Shortcut hint */}
       {!isLoading && !isStreaming && !isRefining && activeTab === 'draft' && (
-        <span className="status-shortcut ui-badge ui-badge-muted hidden sm:inline-flex" aria-label="Press Ctrl+Enter to refine">
+        <Badge variant="muted" className="status-shortcut hidden sm:inline-flex" aria-label="Press Ctrl+Enter to refine">
           <kbd
             className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[12px] font-mono border-none"
             style={{
@@ -127,7 +130,7 @@ export default function StatusBar({
             Ctrl+↵
           </kbd>
           <span className="ml-1">to Refine</span>
-        </span>
+        </Badge>
       )}
 
       {/* Layout Swap Trigger */}

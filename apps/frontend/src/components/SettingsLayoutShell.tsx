@@ -19,6 +19,7 @@ import { useUser } from '@clerk/nextjs';
 import { WorkspacePageShell } from '@/components/WorkspacePageShell';
 import { useSettings } from '@/components/SettingsProvider';
 import { useSettingsAction } from '@/components/SettingsActionProvider';
+import { Button } from '@/components/ui/button';
 
 type SettingsLayoutShellProps = {
   children: React.ReactNode;
@@ -72,15 +73,16 @@ export function SettingsLayoutShell({ children, isAdmin, isSuperAdmin }: Setting
       description="Personal preferences and workspace controls"
       currentPage="settings"
       actions={
-        <button
+        <Button
           type="button"
           onClick={triggerSave}
           disabled={!isDirty || isSaving}
-          className="ui-btn ui-btn-primary ui-btn-sm"
+          variant="primary"
+          size="sm"
         >
           {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
           <span>Save Changes</span>
-        </button>
+        </Button>
       }
       sidebar={
         <>

@@ -185,23 +185,16 @@ Using `<img>` for Clerk/OAuth profile pictures will trigger LCP warnings from th
 
 ### 🚫 RULE 5: Do Not Style Badges or Pills Manually
 Do not style badge Tailwind classes ad-hoc (e.g., `bg-amber-500/10 text-amber-500 rounded-full`).
-* **Solution**: Use global badge CSS classes:
-  * Default/Muted Badge: `ui-badge ui-badge-surface` or `ui-badge-muted`
-  * Warning/Gold Badge: `ui-badge ui-badge-warning`
-  * Danger/Red Badge: `ui-badge ui-badge-danger`
-  * Success/Green Badge: `ui-badge ui-badge-success`
-  * Primary/Blue Badge: `ui-badge ui-badge-primary`
-  * Small sizing: Add `ui-badge-xs`.
+* **Solution**: Use `<Badge>` from `@/components/ui/badge`. Canonical variants are `muted`, `surface`, `primary`, `success`, `warning`, and `danger`; use `size="xs"` for compact badges. Links that visually behave as badges should use Badge's `render` prop.
+* **Compatibility**: Global `ui-badge*` classes are implementation details owned by the primitive. Do not compose them directly in feature code.
 
 ### 🚫 RULE 6: Do Not Use Absolute Positioning for Dropdown Menus in Tables
 Dropdown menus inside scrollable containers or `overflow-hidden` tables will get cut off (clipped) if you use standard absolute positioning.
 * **Solution**: Always use portal-rendered dropdowns powered by `@base-ui/react/menu` (utilizing `<Menu.Root>`, `<Menu.Portal>`, `<Menu.Positioner>`, and `<Menu.Popup>`). This renders the popup at the `body` level, preventing it from being clipped by table boundaries.
 
 ### 🚫 RULE 7: Do Not Design Inline Custom Callout or Warning Boxes
-* **Solution**: Use global `ui-alert` CSS classes:
-  * Danger Warning: `ui-alert ui-alert-danger`
-  * Success Warning: `ui-alert ui-alert-success`
-  * Warning Amber: `ui-alert ui-alert-warning`
+* **Solution**: Use `<Alert>` from `@/components/ui/alert` with the canonical `primary`, `success`, `warning`, `danger`, or `muted` variant. Use its `render` prop when the alert surface must also be a motion component.
+* **Compatibility**: Global `ui-alert*` classes are implementation details owned by the primitive. Do not compose them directly in feature code.
   * Include Lucide icons (such as `AlertCircle`, `CheckCircle2`) inside the box to clarify visual context.
 
 ### 🚫 RULE 8: Do Not Render Multiple Overlapping Forms on Admin Panes

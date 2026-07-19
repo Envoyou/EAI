@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { motion, Variants, AnimatePresence } from 'framer-motion';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import EditorialProgress from '@/components/EditorialProgress';
 import { FeedbackPanelProps } from './feedback-panel/types';
 import { useFeedbackActions } from './feedback-panel/hooks/useFeedbackActions';
@@ -52,13 +54,16 @@ const CopyButton = ({
   <Tooltip>
     <TooltipTrigger
       render={
-        <button
+        <Button
+          type="button"
           onClick={() => onCopy(text, label)}
-          className="ml-2 ui-btn ui-btn-muted ui-btn-icon !h-7 !w-7 rounded-md"
+          variant="muted"
+          size="icon-xs"
+          className="ml-2 rounded-md"
           aria-label={`Copy ${label}`}
         >
           <Copy className="w-3.5 h-3.5" />
-        </button>
+        </Button>
       }
     />
     <TooltipContent side="top" className="text-xs">
@@ -138,7 +143,7 @@ export default function FeedbackPanel({
   if (result.status === 'error') {
     return (
       <div className="ui-state-card flex h-full min-h-0 flex-col justify-center p-6">
-        <div className="ui-alert ui-alert-danger flex-col p-5">
+        <Alert variant="danger" className="flex-col p-5">
           <div className="flex items-center gap-2 text-[var(--error)]">
             <AlertCircle className="h-5 w-5 shrink-0" />
             <span className="font-semibold text-sm">Analysis Failed</span>
@@ -147,7 +152,7 @@ export default function FeedbackPanel({
             {result.errorMessage ||
               'Unable to connect to the AI server. Please check your connection and try again.'}
           </p>
-        </div>
+        </Alert>
       </div>
     );
   }
@@ -232,13 +237,15 @@ export default function FeedbackPanel({
                   )}
                 </button>
                 <div className="ml-2 flex items-center gap-1">
-                  <button
+                  <Button
+                    type="button"
                     onClick={handleCopySEOPack}
-                    className="ui-btn ui-btn-muted ui-btn-xs"
+                    variant="muted"
+                    size="xs"
                     aria-label="Copy SEO metadata"
                   >
                     <Copy className="w-3.5 h-3.5" /> Copy
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -335,11 +342,10 @@ export default function FeedbackPanel({
           )}
 
           {visibleFlags.length > 0 && (
-            <motion.div
-              variants={itemVariants}
-              className={`ui-alert flex-col p-3 relative overflow-hidden ${
-                hasCriticalFlags ? 'ui-alert-danger' : 'ui-alert-warning'
-              }`}
+            <Alert
+              variant={hasCriticalFlags ? 'danger' : 'warning'}
+              render={<motion.div variants={itemVariants} />}
+              className="flex-col p-3 relative overflow-hidden"
               style={{
                 borderLeft: `3.5px solid ${
                   hasCriticalFlags ? 'var(--error)' : 'var(--warning)'
@@ -365,7 +371,7 @@ export default function FeedbackPanel({
                   </li>
                 ))}
               </ul>
-            </motion.div>
+            </Alert>
           )}
 
           {result.feedback && result.feedback.length > 0 && (

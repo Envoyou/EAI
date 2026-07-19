@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface ShortcutsModalProps {
   isOpen: boolean;
@@ -57,15 +58,17 @@ const shortcuts = [
           border: '1px solid var(--border)',
         }}
       >
-        <button
+        <Button
           ref={closeButtonRef}
           type="button"
           onClick={onClose}
-          className="ui-btn ui-btn-muted ui-btn-icon absolute top-3 right-3"
+          variant="muted"
+          size="icon"
+          className="absolute top-3 right-3"
           aria-label="Close keyboard shortcuts"
         >
           <X className="w-4 h-4" />
-        </button>
+        </Button>
         
         <h2 id="shortcuts-title" className="text-base font-semibold mb-4">
           Keyboard Shortcuts

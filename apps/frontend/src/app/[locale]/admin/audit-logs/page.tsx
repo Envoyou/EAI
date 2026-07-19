@@ -6,6 +6,8 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Search, Eye, Filter, ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 type AuditLog = {
   id: string;
@@ -99,7 +101,7 @@ export default function AuditLogsAdminPage() {
   return (
     <>
       <div className="settings-page-intro">
-        <span className="ui-badge ui-badge-warning uppercase tracking-wider !text-[9px] mb-2 inline-flex">Internal Use Only</span>
+        <Badge variant="warning" size="xs" className="mb-2 uppercase tracking-wider">Internal Use Only</Badge>
         <h2 className="text-balance">System Audit Logs</h2>
         <p className="text-pretty">Operational log history of administrative events for system auditing and compliance.</p>
       </div>
@@ -120,14 +122,16 @@ export default function AuditLogsAdminPage() {
                 placeholder="Search actor email, target ID, details..."
                 aria-label="Search logs"
               />
-              <button
+              <Button
                 type="submit"
                 disabled={loading}
-                className="ui-btn ui-btn-primary ui-btn-sm shrink-0"
+                variant="primary"
+                size="sm"
+                className="shrink-0"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 Search
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -211,14 +215,15 @@ export default function AuditLogsAdminPage() {
                         {log.description}
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
-                        <button
+                        <Button
                           type="button"
                           onClick={() => setSelectedLog(log)}
-                          className="ui-btn ui-btn-muted ui-btn-xs"
+                          variant="muted"
+                          size="xs"
                           aria-label="View log details"
                         >
                           <Eye className="h-3.5 w-3.5" />
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -234,26 +239,28 @@ export default function AuditLogsAdminPage() {
                 Showing page <strong>{page}</strong> of <strong>{pagination.totalPages}</strong> ({pagination.totalCount} entries)
               </span>
               <div className="flex gap-1.5">
-                <button
+                <Button
                   type="button"
                   disabled={page <= 1 || loading}
                   onClick={() => fetchLogs(page - 1)}
-                  className="ui-btn ui-btn-muted ui-btn-xs"
+                  variant="muted"
+                  size="xs"
                   aria-label="Previous page"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
                   Prev
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   disabled={page >= pagination.totalPages || loading}
                   onClick={() => fetchLogs(page + 1)}
-                  className="ui-btn ui-btn-muted ui-btn-xs"
+                  variant="muted"
+                  size="xs"
                   aria-label="Next page"
                 >
                   Next
                   <ArrowRight className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -279,14 +286,15 @@ export default function AuditLogsAdminPage() {
                 {getActionBadge(selectedLog.action)}
                 <span className="text-xs font-bold text-[var(--foreground)]">Audit Detail</span>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={() => setSelectedLog(null)}
-                className="ui-btn ui-btn-muted ui-btn-icon h-7 w-7"
+                variant="muted"
+                size="icon-xs"
                 aria-label="Close panel"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
 
             {/* Content */}

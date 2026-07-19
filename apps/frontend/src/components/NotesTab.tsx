@@ -9,6 +9,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ResearchNote, Attachment } from '@/lib/hooks/useContentStrategist';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface NotesTabProps {
   researchNotes: ResearchNote[];
@@ -58,9 +60,9 @@ export default function NotesTab({
       <div className="px-3 py-2.5 flex items-center justify-between border-b border-[var(--border)] shrink-0 bg-[var(--surface-2)]">
         <span className="text-xs font-semibold text-[var(--foreground)] flex items-center gap-2">
           Research Notes
-          <span className="ui-badge ui-badge-primary ui-badge-xs font-bold">
+          <Badge variant="primary" size="xs" className="font-bold">
             {researchNotes.length}
-          </span>
+          </Badge>
         </span>
         <button
           onClick={() => {
@@ -76,13 +78,12 @@ export default function NotesTab({
       {/* Generate Draft Button */}
       {onGenerateDraft && (
         <div className="px-3 py-2 border-b border-[var(--border)] bg-[var(--surface-2)] shrink-0">
-          <button
+          <Button
+            type="button"
             onClick={isGeneratingDraft ? onCancelGenerateDraft : handleGenerateDraftFromNotes}
-            className={`w-full ui-btn ui-btn-sm flex justify-center gap-1.5 text-xs ${
-              isGeneratingDraft
-                ? 'ui-btn-danger'
-                : 'ui-btn-primary'
-            }`}
+            variant={isGeneratingDraft ? 'danger' : 'primary'}
+            size="sm"
+            className="w-full justify-center gap-1.5 text-xs"
           >
             {isGeneratingDraft ? (
               <Square className="w-3 h-3 fill-current shrink-0" />
@@ -90,7 +91,7 @@ export default function NotesTab({
               <Wand2 className="w-3 h-3" />
             )}
             {isGeneratingDraft ? 'Cancel Generation' : 'Generate Draft from Notes'}
-          </button>
+          </Button>
           {isGeneratingDraft && (
             <div className="mt-2 p-2.5 bg-[var(--primary)]/5 border border-[var(--primary)]/10 rounded-lg flex items-center gap-2.5">
               <div className="w-3.5 h-3.5 border-2 border-[var(--primary)] border-r-transparent rounded-full animate-spin shrink-0" />
@@ -185,17 +186,17 @@ export default function NotesTab({
                       {note.sources.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-1.5">
                           {note.sources.slice(0, 3).map((src, si) => (
-                            <a
+                            <Badge
                               key={si}
-                              href={src.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="ui-badge ui-badge-surface ui-badge-xs flex items-center gap-1 hover:text-[var(--foreground)] transition-colors"
+                              variant="surface"
+                              size="xs"
+                              render={<a href={src.url} target="_blank" rel="noreferrer" />}
+                              className="flex items-center gap-1 hover:text-[var(--foreground)]"
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={`https://www.google.com/s2/favicons?domain=${src.domain}&sz=16`} className="w-2.5 h-2.5 rounded-full" alt="" />
                               {src.domain}
-                            </a>
+                            </Badge>
                           ))}
                           {note.sources.length > 3 && (
                             <span className="text-[9px] text-[var(--muted-foreground)] px-1 py-0.5">+{note.sources.length - 3} more</span>
@@ -205,7 +206,8 @@ export default function NotesTab({
 
                       {onInsertToDraft && (
                         <div className="flex justify-end">
-                          <button
+                          <Button
+                            type="button"
                             onClick={() => {
                               const citationMd = note.sources.length > 0
                                 ? '\n\n**Referensi:**\n' + note.sources.map(s => `- [${s.domain}](${s.url})`).join('\n')
@@ -214,11 +216,13 @@ export default function NotesTab({
                               onInsertToDraft(insertText);
                               toast.success('Note inserted to draft');
                             }}
-                            className="text-[10px] font-medium ui-btn ui-btn-outline ui-btn-xs"
+                            variant="outline"
+                            size="xs"
+                            className="text-[10px] font-medium"
                           >
                             <Notebook className="w-3 h-3 mr-1" />
                             Insert to Draft
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>

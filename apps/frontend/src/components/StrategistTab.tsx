@@ -19,6 +19,7 @@ import { SessionSidebar } from './strategist-tab/components/SessionSidebar';
 import { ChatMessageList } from './strategist-tab/components/ChatMessageList';
 import { ChatInputBar } from './strategist-tab/components/ChatInputBar';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export default function StrategistTab({
   messages,
@@ -157,28 +158,32 @@ export default function StrategistTab({
 
             <div className="flex items-center gap-1.5">
               {deepResearchReport && (
-                <button
+                <Button
                   type="button"
                   onClick={() => setShowReportModal(true)}
-                  className="ui-btn ui-btn-outline ui-btn-xs text-[var(--primary)] border-[var(--primary)]/30 text-[10px]"
+                  variant="outline"
+                  size="xs"
+                  className="text-[var(--primary)] border-[var(--primary)]/30 text-[10px]"
                 >
                   <FileText className="w-3 h-3 shrink-0" />
                   <span>View Report</span>
-                </button>
+                </Button>
               )}
 
               {messages.length > 0 && (
                 <Tooltip>
                   <TooltipTrigger
                     render={
-                      <button
+                      <Button
                         type="button"
                         onClick={downloadConversation}
-                        className="ui-btn ui-btn-outline ui-btn-xs text-[10px]"
+                        variant="outline"
+                        size="xs"
+                        className="text-[10px]"
                       >
                         <Download className="w-3 h-3 text-[var(--primary)] shrink-0" />
                         <span>Download</span>
-                      </button>
+                      </Button>
                     }
                   />
                   <TooltipContent side="bottom" className="text-xs">
@@ -190,14 +195,16 @@ export default function StrategistTab({
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <button
+                    <Button
                       type="button"
                       onClick={startNewChat}
-                      className="ui-btn ui-btn-outline ui-btn-xs text-[10px]"
+                      variant="outline"
+                      size="xs"
+                      className="text-[10px]"
                     >
                       <Plus className="w-3 h-3 text-[var(--primary)] shrink-0" />
                       <span>New Chat</span>
-                    </button>
+                    </Button>
                   }
                 />
                 <TooltipContent side="bottom" className="text-xs">
@@ -313,13 +320,15 @@ export default function StrategistTab({
               <span className="font-semibold text-sm text-[var(--foreground)]">
                 Rename Chat Session
               </span>
-              <button
+              <Button
                 type="button"
                 onClick={() => setEditingSessionId(null)}
-                className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none bg-transparent cursor-pointer"
+                variant="muted"
+                size="icon-xs"
+                className="rounded text-[var(--muted-foreground)] border-none bg-transparent"
               >
                 <X className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
 
             <div className="p-4 space-y-3">
@@ -344,20 +353,22 @@ export default function StrategistTab({
             </div>
 
             <div className="flex items-center justify-end gap-2 px-4 py-3 bg-[var(--surface-2)] border-t border-[var(--border)]">
-              <button
+              <Button
                 type="button"
                 onClick={() => setEditingSessionId(null)}
-                className="ui-btn ui-btn-outline ui-btn-sm"
+                variant="outline"
+                size="sm"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => handleSaveRename(editingSessionId)}
-                className="ui-btn ui-btn-primary ui-btn-sm"
+                variant="primary"
+                size="sm"
               >
                 Save
-              </button>
+              </Button>
             </div>
           </div>
         </div>

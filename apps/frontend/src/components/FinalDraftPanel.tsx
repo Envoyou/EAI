@@ -17,6 +17,8 @@ import { toast } from 'sonner';
 import { buildParagraphDiff } from '@eai/shared';
 import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackageStatus } from '@eai/shared';
 import EditorialProgress from '@/components/EditorialProgress';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { useTranslations } from 'next-intl';
 
 interface FinalDraftPanelProps {
@@ -670,15 +672,17 @@ export default function FinalDraftPanel({
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <button
+                  <Button
+                    type="button"
                     onClick={handleCopy}
                     disabled={!polishedDraft.trim() || isDemoMode}
-                    className="ui-btn ui-btn-muted ui-btn-sm"
+                    variant="muted"
+                    size="sm"
                     aria-label="Copy refined draft"
                   >
                     <Copy className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Copy</span>
-                  </button>
+                  </Button>
                 }
               />
               <TooltipContent side="bottom" className="text-xs">
@@ -690,10 +694,12 @@ export default function FinalDraftPanel({
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <button
+                  <Button
+                    type="button"
                     onClick={handleExport}
                     disabled={!canExport || isExporting}
-                    className={`ui-btn ui-btn-sm ${canExport && !isExporting ? 'ui-btn-primary' : 'ui-btn-surface'}`}
+                    variant={canExport && !isExporting ? 'primary' : 'surface'}
+                    size="sm"
                     aria-label={exportStatus?.blogEditUrl ? 'Update CMS Draft' : 'Export to CMS'}
                   >
                     {isExporting ? (
@@ -704,7 +710,7 @@ export default function FinalDraftPanel({
                     <span className="hidden sm:inline">
                       {exportStatus?.blogEditUrl ? 'Update' : 'Export to CMS'}
                     </span>
-                  </button>
+                  </Button>
                 }
               />
               <TooltipContent side="bottom" className="text-xs">
@@ -717,9 +723,9 @@ export default function FinalDraftPanel({
             {onReanalyze && (
               <Tooltip>
                 <TooltipTrigger
+                  render={<Button type="button" variant="muted" size="sm" />}
                   onClick={onReanalyze}
                   disabled={!ready || isStreaming || isRefining}
-                  className="ui-btn ui-btn-muted ui-btn-sm"
                   aria-label="Re-analyze Draft"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
@@ -735,8 +741,10 @@ export default function FinalDraftPanel({
             {ready && (
               <Tooltip>
                 <TooltipTrigger
+                  render={<Button type="button" variant={showStats ? 'surface' : 'muted'} size="icon" />}
                   onClick={() => setShowStats(p => !p)}
-                  className={`ui-btn ui-btn-icon relative z-10 ${showStats ? 'ui-btn-surface text-[var(--primary)]' : 'ui-btn-muted'}`}
+                  className="relative z-10"
+                  aria-pressed={showStats}
                   aria-label={showStats ? 'Hide change summary' : 'Show change summary'}
                 >
                   <FileDiff className="h-4 w-4" />
@@ -759,12 +767,14 @@ export default function FinalDraftPanel({
                       : 'A refined draft is required before downloading'
                 }
                 render={
-                  <button
-                    className="ui-btn ui-btn-muted ui-btn-icon"
+                  <Button
+                    type="button"
+                    variant="muted"
+                    size="icon"
                     aria-label="More Options"
                   >
                     <MoreVertical className="h-4 w-4" />
-                  </button>
+                  </Button>
                 }
               />
 
@@ -822,13 +832,15 @@ export default function FinalDraftPanel({
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <button
+                    <Button
+                      type="button"
                       onClick={onFocusToggle}
-                      className="ui-btn ui-btn-muted ui-btn-icon"
+                      variant="muted"
+                      size="icon"
                       aria-label={isFocused ? 'Restore split view' : 'Focus refined draft'}
                     >
                       {isFocused ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-                    </button>
+                    </Button>
                   }
                 />
                 <TooltipContent side="bottom" className="text-xs">
@@ -842,18 +854,18 @@ export default function FinalDraftPanel({
 
         {/* Export Warning */}
         {exportStatus?.blogEditUrl && (
-          <div className="ui-alert ui-alert-warning mb-3 px-3 py-2 text-xs">
+          <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
             <strong>Note:</strong> This draft was already exported. Re-exporting will update the existing blog draft.
-          </div>
+          </Alert>
         )}
         {publicationPackageStatus === 'stale' && (
-          <div className="ui-alert ui-alert-warning mb-3 px-3 py-2 text-xs">
+          <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <div>
               <strong>{t('staleMetadataTitle')}</strong>{' '}
               {t('staleMetadataDescription')}
             </div>
-          </div>
+          </Alert>
         )}
 
         {/* Diff Stats (Compact inline row to save vertical space) */}
@@ -884,8 +896,10 @@ export default function FinalDraftPanel({
           <div className="mt-2 pt-2">
             <Tooltip>
               <TooltipTrigger
+                render={<Button type="button" variant="muted" size="xs" />}
                 onClick={() => setShowRefineBox(p => !p)}
-                className="ui-btn ui-btn-muted ui-btn-xs -ml-2 w-max"
+                className="-ml-2 w-max"
+                aria-expanded={showRefineBox}
                 style={{ color: showRefineBox ? 'var(--primary)' : 'var(--muted-foreground)' }}
               >
                 <Sparkles className="h-3.5 w-3.5" />
@@ -912,7 +926,8 @@ export default function FinalDraftPanel({
                   disabled={isRefining}
                   rows={3}
                 />
-                <button
+                <Button
+                  type="button"
                   onClick={() => {
                     if (!refineInstruction.trim() || isRefining) return;
                     onRefineAgain(refineInstruction.trim());
@@ -920,12 +935,14 @@ export default function FinalDraftPanel({
                     setShowRefineBox(false);
                   }}
                   disabled={!refineInstruction.trim() || isRefining}
-                  className={`ui-btn ui-btn-sm w-full ${refineInstruction.trim() && !isRefining ? 'ui-btn-primary' : 'ui-btn-surface'}`}
+                  variant={refineInstruction.trim() && !isRefining ? 'primary' : 'surface'}
+                  size="sm"
+                  className="w-full"
                 >
                   {isRefining
                     ? <><Loader2 className="h-3 w-3 animate-spin" /> Refining…</>
                     : <><Sparkles className="h-3 w-3" /> Apply Instruction</>}
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -933,7 +950,7 @@ export default function FinalDraftPanel({
 
         {/* Stale Warning Banner */}
         {isStale && ready && (
-          <div className="ui-alert ui-alert-warning mt-3 text-[11.5px] leading-relaxed">
+          <Alert variant="warning" className="mt-3 text-[11.5px] leading-relaxed">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold mb-0.5">Draft has been refined</p>
@@ -941,7 +958,7 @@ export default function FinalDraftPanel({
                 The previous editorial feedback has been cleared. Click &quot;Re-analyze&quot; to evaluate this new version.
               </p>
             </div>
-          </div>
+          </Alert>
         )}
       </div>
 

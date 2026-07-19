@@ -7,6 +7,7 @@ import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { X, AlertTriangle } from 'lucide-react';
 import { getApiUrl } from '@/lib/api-url';
+import { Button } from '@/components/ui/button';
 
 export default function CancelQueuedDowngradeButton() {
   const { getToken } = useAuth();
@@ -47,13 +48,15 @@ export default function CancelQueuedDowngradeButton() {
 
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={() => setConfirming(true)}
-        className="ui-btn ui-btn-outline ui-btn-sm text-foreground hover:bg-[var(--surface-3)]"
+        variant="outline"
+        size="sm"
+        className="text-foreground"
       >
         Keep My Current Plan
-      </button>
+      </Button>
 
       {confirming && (
         <div 
@@ -68,15 +71,16 @@ export default function CancelQueuedDowngradeButton() {
                 <AlertTriangle className="h-5 w-5 text-amber-500" />
                 <h2 className="text-lg font-bold text-foreground">Cancel Downgrade</h2>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={() => setConfirming(false)}
                 disabled={loading}
                 aria-label="Close cancel confirmation"
-                className="rounded-full p-1.5 text-muted-foreground transition hover:bg-[var(--surface-2)] hover:text-foreground disabled:opacity-50"
+                variant="muted"
+                size="icon-xs"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
 
             <p className="mt-4 text-sm leading-6 text-muted-foreground">
@@ -84,22 +88,24 @@ export default function CancelQueuedDowngradeButton() {
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
-              <button
+              <Button
                 type="button"
                 onClick={() => setConfirming(false)}
                 disabled={loading}
-                className="ui-btn ui-btn-surface ui-btn-sm"
+                variant="surface"
+                size="sm"
               >
                 Go Back
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={handleCancelDowngrade}
                 disabled={loading}
-                className="ui-btn ui-btn-primary ui-btn-sm"
+                variant="primary"
+                size="sm"
               >
                 {loading ? 'Cancelling...' : 'Confirm Keep Current Plan'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

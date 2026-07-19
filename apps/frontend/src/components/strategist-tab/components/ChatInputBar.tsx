@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/select';
 import { FileInput } from '@/components/ui/file-input';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface ChatInputBarProps {
   chatInput: string;
@@ -73,7 +75,7 @@ export function ChatInputBar({
   return (
     <div className="px-3 py-2 border-t border-[var(--border)] shrink-0">
       {uploadedAttachment && (
-        <div className="ui-badge ui-badge-surface flex items-center gap-1.5 text-[10px] text-[var(--foreground)] w-fit mb-2 animate-fade-in py-1">
+        <Badge variant="surface" className="flex items-center gap-1.5 text-[10px] text-[var(--foreground)] mb-2 animate-fade-in py-1">
           <FileText className="w-3 h-3 text-[var(--primary)] shrink-0" />
           <span className="truncate max-w-[150px] font-medium">
             {uploadedAttachment.filename}
@@ -94,7 +96,7 @@ export function ChatInputBar({
               Remove attachment
             </TooltipContent>
           </Tooltip>
-        </div>
+        </Badge>
       )}
       <div className="flex flex-col bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-1.5 focus-within:ring-1 focus-within:ring-[var(--primary)]/30 focus-within:border-[var(--primary)]/30 transition-all">
         <FileInput
@@ -120,13 +122,15 @@ export function ChatInputBar({
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <button
+                  <Button
                     type="button"
                     onClick={triggerFileSelect}
-                    className="ui-btn ui-btn-surface ui-btn-icon rounded-full text-[var(--muted-foreground)] hover:text-[var(--foreground)] bg-transparent shrink-0"
+                    variant="surface"
+                    size="icon"
+                    className="rounded-full text-[var(--muted-foreground)] bg-transparent shrink-0"
                   >
                     <Paperclip className="w-3.5 h-3.5" />
-                  </button>
+                  </Button>
                 }
               />
               <TooltipContent side="top" className="text-xs">
@@ -137,17 +141,16 @@ export function ChatInputBar({
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setEnableSearch(!enableSearch)}
-                    className={`ui-btn ui-btn-icon rounded-full transition-colors cursor-pointer shrink-0 ${
-                      enableSearch
-                        ? 'ui-btn-primary'
-                        : 'ui-btn-outline text-[var(--muted-foreground)] hover:text-[var(--foreground)] bg-transparent'
-                    }`}
+                    variant={enableSearch ? 'primary' : 'outline'}
+                    size="icon"
+                    aria-pressed={enableSearch}
+                    className="rounded-full shrink-0"
                   >
                     <Globe className="w-3.5 h-3.5" />
-                  </button>
+                  </Button>
                 }
               />
               <TooltipContent side="top" className="text-xs">
@@ -191,16 +194,15 @@ export function ChatInputBar({
               </SelectContent>
             </Select>
 
-            <button
+            <Button
+              type="button"
               onClick={isTyping ? onCancelChat : () => handleSend()}
               disabled={
                 !isTyping && !chatInput.trim() && !uploadedAttachment
               }
-              className={`ui-btn ui-btn-icon rounded-full cursor-pointer shrink-0 ${
-                isTyping
-                  ? 'ui-btn-danger'
-                  : 'ui-btn-primary disabled:opacity-30'
-              }`}
+              variant={isTyping ? 'danger' : 'primary'}
+              size="icon"
+              className="rounded-full shrink-0 disabled:opacity-30"
               title={isTyping ? 'Cancel generation' : 'Send message'}
             >
               {isTyping ? (
@@ -208,7 +210,7 @@ export function ChatInputBar({
               ) : (
                 <ArrowUp className="w-3.5 h-3.5" />
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/select';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { UserActionMenu } from './UserActionMenu';
 import type { DirectoryUser, PaginationMeta } from '../types';
 import { formatDate, getInitials } from '../hooks/useUserDirectory';
@@ -139,18 +141,19 @@ export function UserTable({
               </SelectContent>
             </Select>
 
-            <button type="submit" className="ui-btn ui-btn-primary ui-btn-sm">
+            <Button type="submit" variant="primary" size="sm">
               Search
-            </button>
+            </Button>
 
             {(search || planFilter || statusFilter) && (
-              <button
+              <Button
                 type="button"
                 onClick={onClearFilters}
-                className="ui-btn ui-btn-outline ui-btn-sm"
+                variant="outline"
+                size="sm"
               >
                 Clear
-              </button>
+              </Button>
             )}
           </div>
         </form>
@@ -169,11 +172,11 @@ export function UserTable({
             <Users className="h-5 w-5 text-[var(--muted-foreground)]" />
             <h3 className="font-bold">User Administration Directory</h3>
           </div>
-          <div className="ui-badge ui-badge-surface text-xs font-mono">
+          <Badge variant="surface" className="text-xs font-mono">
             {pagination.totalCount > 0
               ? `Showing ${startNum}-${endNum} of ${pagination.totalCount} users`
               : '0 users found'}
-          </div>
+          </Badge>
         </div>
 
         <div className="overflow-x-auto">
@@ -301,17 +304,18 @@ export function UserTable({
                     <td className="py-3 px-4">
                       <div className="flex flex-col gap-1">
                         <div>
-                          <span
-                            className={`ui-badge text-[10px] uppercase font-bold py-0.5 px-2 ${
+                          <Badge
+                            variant={
                               user.plan === 'Pro' || user.plan === 'Team'
-                                ? 'ui-badge-primary'
+                                ? 'primary'
                                 : user.plan === 'Starter'
-                                ? 'ui-badge-surface'
-                                : 'bg-[var(--surface-3)] text-[var(--muted-foreground)] border-[var(--border)]'
-                            }`}
+                                  ? 'surface'
+                                  : 'muted'
+                            }
+                            className="px-2 py-0.5 text-[10px] font-bold uppercase"
                           >
                             {user.plan}
-                          </span>
+                          </Badge>
                         </div>
                         <div className="text-xs font-semibold text-[var(--foreground)] font-mono">
                           {user.credits} credits
@@ -333,13 +337,13 @@ export function UserTable({
                     </td>
                     <td className="py-3 px-4 text-xs">
                       {user.organization ? (
-                        <span className="ui-badge ui-badge-success text-[10px] font-bold uppercase">Active</span>
+                        <Badge variant="success" className="text-[10px] font-bold uppercase">Active</Badge>
                       ) : user.onboardingDraft ? (
-                        <span className="ui-badge ui-badge-warning text-[10px] font-bold uppercase">Onboarding</span>
+                        <Badge variant="warning" className="text-[10px] font-bold uppercase">Onboarding</Badge>
                       ) : (
-                        <span className="ui-badge text-[10px] font-bold uppercase bg-[var(--surface-3)] text-[var(--muted-foreground)]">
+                        <Badge variant="muted" className="text-[10px] font-bold uppercase">
                           Pending
-                        </span>
+                        </Badge>
                       )}
                     </td>
                     <td className="py-3 px-4 text-right">

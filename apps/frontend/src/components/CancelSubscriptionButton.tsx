@@ -9,6 +9,7 @@ import { X, AlertTriangle, ChevronRight, ArrowLeft } from 'lucide-react';
 import { getApiUrl } from '@/lib/api-url';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 
 interface CancelSubscriptionButtonProps {
   planName: string;
@@ -108,13 +109,14 @@ export default function CancelSubscriptionButton({ planName }: CancelSubscriptio
 
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={() => setConfirming(true)}
-        className="ui-btn ui-btn-danger ui-btn-sm"
+        variant="danger"
+        size="sm"
       >
         Cancel Subscription
-      </button>
+      </Button>
 
       {confirming && (
         <div 
@@ -132,14 +134,15 @@ export default function CancelSubscriptionButton({ planName }: CancelSubscriptio
                     <h2 className="text-lg font-bold text-foreground">Cancel Subscription</h2>
                     <p className="text-xs text-muted-foreground mt-1">We’re sorry to see you go. What could we have done better?</p>
                   </div>
-                  <button
+                  <Button
                     type="button"
                     onClick={resetState}
                     aria-label="Close cancel confirmation"
-                    className="rounded-full p-1.5 text-muted-foreground transition hover:bg-[var(--surface-2)] hover:text-foreground"
+                    variant="muted"
+                    size="icon-xs"
                   >
                     <X className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="mt-4 space-y-4 max-h-[380px] overflow-y-auto pr-1">
@@ -189,21 +192,23 @@ export default function CancelSubscriptionButton({ planName }: CancelSubscriptio
                 </div>
 
                 <div className="mt-6 flex justify-end gap-3 border-t border-[var(--border)] pt-4">
-                  <button
+                  <Button
                     type="button"
                     onClick={resetState}
-                    className="ui-btn ui-btn-surface ui-btn-sm"
+                    variant="surface"
+                    size="sm"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={() => setStep('confirm')}
-                    className="ui-btn ui-btn-primary ui-btn-sm"
+                    variant="primary"
+                    size="sm"
                   >
                     Continue
                     <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                  </button>
+                  </Button>
                 </div>
               </>
             )}
@@ -216,15 +221,16 @@ export default function CancelSubscriptionButton({ planName }: CancelSubscriptio
                     <AlertTriangle className="h-5 w-5" />
                     <h2 className="text-lg font-bold text-foreground">Confirm Cancellation</h2>
                   </div>
-                  <button
+                  <Button
                     type="button"
                     onClick={resetState}
                     disabled={loading}
                     aria-label="Close cancel confirmation"
-                    className="rounded-full p-1.5 text-muted-foreground transition hover:bg-[var(--surface-2)] hover:text-foreground disabled:opacity-50"
+                    variant="muted"
+                    size="icon-xs"
                   >
                     <X className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="mt-4 py-4 space-y-4">
@@ -237,32 +243,35 @@ export default function CancelSubscriptionButton({ planName }: CancelSubscriptio
                 </div>
 
                 <div className="mt-6 flex justify-between gap-3 border-t border-[var(--border)] pt-4">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setStep('survey')}
                     disabled={loading}
-                    className="ui-btn ui-btn-surface ui-btn-sm"
+                    variant="surface"
+                    size="sm"
                   >
                     <ArrowLeft className="h-3.5 w-3.5 mr-1" />
                     Back to Survey
-                  </button>
+                  </Button>
                   <div className="flex gap-3">
-                    <button
+                    <Button
                       type="button"
                       onClick={resetState}
                       disabled={loading}
-                      className="ui-btn ui-btn-surface ui-btn-sm"
+                      variant="surface"
+                      size="sm"
                     >
                       Keep Subscription
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       onClick={handleCancelSubscription}
                       disabled={loading}
-                      className="ui-btn ui-btn-danger ui-btn-sm"
+                      variant="danger"
+                      size="sm"
                     >
                       {loading ? 'Cancelling...' : 'Confirm Cancellation'}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </>

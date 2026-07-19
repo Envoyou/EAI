@@ -7,6 +7,7 @@ import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { X, CheckCircle } from 'lucide-react';
 import { getApiUrl } from '@/lib/api-url';
+import { Button } from '@/components/ui/button';
 
 export default function ReactivateSubscriptionButton() {
   const { getToken } = useAuth();
@@ -47,13 +48,14 @@ export default function ReactivateSubscriptionButton() {
 
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={() => setConfirming(true)}
-        className="ui-btn ui-btn-primary ui-btn-sm"
+        variant="primary"
+        size="sm"
       >
         Reactivate Subscription
-      </button>
+      </Button>
 
       {confirming && (
         <div 
@@ -68,15 +70,16 @@ export default function ReactivateSubscriptionButton() {
                 <CheckCircle className="h-5 w-5" />
                 <h2 className="text-lg font-bold text-foreground">Resume Plan</h2>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={() => setConfirming(false)}
                 disabled={loading}
                 aria-label="Close reactivation confirmation"
-                className="rounded-full p-1.5 text-muted-foreground transition hover:bg-[var(--surface-2)] hover:text-foreground disabled:opacity-50"
+                variant="muted"
+                size="icon-xs"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
 
             <p className="mt-4 text-sm leading-6 text-muted-foreground">
@@ -84,22 +87,24 @@ export default function ReactivateSubscriptionButton() {
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
-              <button
+              <Button
                 type="button"
                 onClick={() => setConfirming(false)}
                 disabled={loading}
-                className="ui-btn ui-btn-surface ui-btn-sm"
+                variant="surface"
+                size="sm"
               >
                 Keep Canceled
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={handleReactivateSubscription}
                 disabled={loading}
-                className="ui-btn ui-btn-primary ui-btn-sm"
+                variant="primary"
+                size="sm"
               >
                 {loading ? 'Reactivating...' : 'Confirm Reactivate'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

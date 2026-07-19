@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 export function cleanUniqueList(values: string[] = []) {
   return Array.from(new Set(values.map((item) => item.trim()).filter(Boolean)));
@@ -112,9 +113,9 @@ export function SelectedValuesPanel({
           </span>
         </div>
         {customCount > 0 && (
-          <span className="ui-badge ui-badge-warning font-mono text-[8px] uppercase tracking-wider shrink-0">
+          <Badge variant="warning" size="xs" className="font-mono uppercase tracking-wider shrink-0">
             {customCount} custom
-          </span>
+          </Badge>
         )}
       </div>
       {cleanedValues.length > 0 ? (

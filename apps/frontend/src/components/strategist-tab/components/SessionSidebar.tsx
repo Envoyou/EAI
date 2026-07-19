@@ -11,6 +11,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Menu } from '@base-ui/react/menu';
+import { Button } from '@/components/ui/button';
 
 interface SessionSidebarProps {
   sessions: ChatSession[];
@@ -37,14 +38,15 @@ export function SessionSidebar({
         <div className="font-bold text-xs text-[var(--foreground)]">
           EAI Research History
         </div>
-        <button
+        <Button
           type="button"
           onClick={startNewChat}
-          className="ui-btn ui-btn-primary ui-btn-xs"
+          variant="primary"
+          size="xs"
         >
           <Plus className="w-3 h-3 mr-1" />
           <span>New Chat</span>
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -63,13 +65,14 @@ export function SessionSidebar({
               Ask the AI Strategist for content ideas, SEO outlines, or draft
               previews.
             </p>
-            <button
+            <Button
               type="button"
               onClick={startNewChat}
-              className="ui-btn ui-btn-primary ui-btn-xs"
+              variant="primary"
+              size="xs"
             >
               <span>Start Chat</span>
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="space-y-2">

@@ -7,6 +7,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Changed
+- **API Status & Callout Kanonis**:
+  - Menambahkan variant semantik `muted`, `surface`, `primary`, `success`, `warning`, dan `danger` yang dilindungi regression test pada Badge, beserta ukuran `xs` dan polymorphic rendering untuk link.
+  - Menambahkan variant Alert semantik `primary`, `success`, `warning`, `danger`, dan `muted` dengan polymorphic rendering untuk surface beranimasi.
+  - Memigrasikan seluruh komposisi langsung `ui-badge` dan `ui-alert` pada feature code ke primitive kanonis di readiness workspace, dashboard, billing/admin, sumber Strategist, serta state feedback/error.
+  - Mengoreksi preset model dan kontrol ekspansi sumber yang interaktif dari tampilan badge menjadi semantik Button kanonis.
 - **API Form Control Kanonis**:
   - Menambahkan variant `default` dan `surface` yang dilindungi regression test pada primitive `Input`, `Textarea`, dan `SelectTrigger`; `surface` mempertahankan kontrak visual filled `ui-control` selama migrasi inkremental.
   - Memigrasikan seluruh text field Support Form, field honeypot, dan kedua aksinya dari elemen mentah/class visual langsung ke API komponen kanonis.
@@ -23,6 +28,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Mengonsolidasikan wrapper Base UI `Button` dan kontrak visual global `ui-btn` menjadi satu API komponen semantik dengan variant `primary`, `outline`, `surface`, `muted`, `accent`, `danger`, dan `link`.
   - Mempertahankan nama variant bergaya shadcn sebelumnya sebagai alias kompatibilitas, memigrasikan AI Preview serta consumer primitive yang sudah ada ke variant semantik, dan menambahkan regression test variant/size terfokus.
   - Memigrasikan seluruh delapan aksi Tiptap Bubble Menu ke API kanonis, mengisolasi toolbar dengan `not-prose`, serta mengekspos state aktif toggle format melalui `aria-pressed` beserta regression test terfokus.
+  - Menghapus seluruh komposisi langsung `ui-btn` yang tersisa dari feature code pada area admin, settings, billing, workspace/editor, onboarding, strategist, history, dan feedback; menambahkan regression contract ownership berbasis source sambil mencatat inventaris raw button tersisa untuk tindak lanjut terukur.
 
 ### Fixed
 - **Arsitektur Overlay Link Editor**:

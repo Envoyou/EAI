@@ -16,6 +16,8 @@ import { shouldShowAssistantSpinner } from '@/lib/strategist-stream';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { extractDynamicSuggestions } from '@/lib/strategist-utils';
 import type { ChatMessage } from '@/lib/hooks/useContentStrategist';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface ChatMessageListProps {
   messages: ChatMessage[];
@@ -120,10 +122,13 @@ export function ChatMessageList({
                         {msg.payload?.sources &&
                           msg.payload.sources.length > 0 && (
                             <div className="mt-2 p-1.5 bg-[var(--surface-2)] rounded-lg border border-[var(--border)] text-[10px] animate-fade-in">
-                              <button
+                              <Button
                                 type="button"
                                 onClick={() => toggleSources(msg.id)}
-                                className="w-full flex items-center justify-between font-semibold text-[var(--muted-foreground)] mb-1 hover:text-[var(--foreground)] transition-colors cursor-pointer border-none bg-transparent p-0 text-[10px]"
+                                variant="muted"
+                                size="xs"
+                                aria-expanded={expandedSources[msg.id]}
+                                className="w-full justify-between text-[var(--muted-foreground)] mb-1 border-none bg-transparent p-0 text-[10px]"
                               >
                                 <div className="flex items-center gap-1 select-none">
                                   <Globe className="w-3 h-3 text-[var(--primary)] shrink-0" />
@@ -136,7 +141,7 @@ export function ChatMessageList({
                                     ? 'Hide'
                                     : 'Show All'}
                                 </span>
-                              </button>
+                              </Button>
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {msg.payload.sources
                                   .slice(
@@ -144,29 +149,31 @@ export function ChatMessageList({
                                     expandedSources[msg.id] ? undefined : 3
                                   )
                                   .map((src, i) => (
-                                    <a
+                                    <Badge
                                       key={i}
-                                      href={src.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="ui-badge ui-badge-surface ui-badge-xs hover:bg-[var(--surface-4)] hover:text-[var(--primary)] transition-colors no-underline text-[10px]"
+                                      variant="surface"
+                                      size="xs"
+                                      render={<a href={src.url} target="_blank" rel="noopener noreferrer" />}
+                                      className="hover:bg-[var(--surface-4)] hover:text-[var(--primary)] no-underline text-[10px]"
                                       title={src.title || src.url}
                                     >
                                       <span className="font-semibold max-w-[120px] truncate">
                                         {src.title || src.domain || 'Link'}
                                       </span>
-                                    </a>
+                                    </Badge>
                                   ))}
 
                                 {!expandedSources[msg.id] &&
                                   msg.payload.sources.length > 3 && (
-                                    <button
+                                    <Button
                                       type="button"
                                       onClick={() => toggleSources(msg.id)}
-                                      className="ui-badge ui-badge-primary ui-badge-xs hover:filter hover:brightness-95 transition-all cursor-pointer font-bold text-[10px]"
+                                      variant="primary"
+                                      size="xs"
+                                      className="rounded-full font-bold text-[10px]"
                                     >
                                       +{msg.payload.sources.length - 3} more
-                                    </button>
+                                    </Button>
                                   )}
                               </div>
                             </div>
@@ -263,14 +270,17 @@ export function ChatMessageList({
                         {finalSuggestions.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {finalSuggestions.map((sug, i) => (
-                              <button
+                              <Button
                                 key={i}
+                                type="button"
                                 onClick={() => handleSend(sug)}
                                 disabled={isTyping}
-                                className="ui-btn ui-btn-surface ui-btn-xs !rounded-full text-[10px]"
+                                variant="surface"
+                                size="xs"
+                                className="!rounded-full text-[10px]"
                               >
                                 {sug}
-                              </button>
+                              </Button>
                             ))}
                           </div>
                         )}

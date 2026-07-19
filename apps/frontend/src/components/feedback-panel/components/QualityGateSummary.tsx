@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { AnalysisResult } from '@eai/shared';
 import { ShieldAlert, Wand2, Maximize2, Minimize2, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 interface QualityGateSummaryProps {
   result: AnalysisResult;
@@ -28,14 +31,14 @@ export function QualityGateSummary({
 }: QualityGateSummaryProps) {
   const [isApplyingAll, setIsApplyingAll] = useState(false);
   const readiness = result.readiness;
-  const readinessClass =
+  const readinessVariant: BadgeVariant =
     readiness === 'ready'
-      ? 'ui-badge-success'
+      ? 'success'
       : readiness === 'needs_review'
-        ? 'ui-badge-warning'
+        ? 'warning'
         : readiness === 'blocked'
-          ? 'ui-badge-danger'
-          : 'ui-badge-muted';
+          ? 'danger'
+          : 'muted';
 
   const readinessLabel =
     readiness === 'ready'
@@ -64,22 +67,24 @@ export function QualityGateSummary({
 
         <div className="flex flex-wrap items-center gap-1.5 shrink-0">
           {(readiness || result.verdict) && (
-            <span className={`ui-badge ui-badge-xs tracking-wide ${readinessClass}`}>
+            <Badge variant={readinessVariant} size="xs" className="tracking-wide">
               {readinessLabel}
-            </span>
+            </Badge>
           )}
           {result.responseMode && (
-            <span className="ui-badge ui-badge-xs ui-badge-muted uppercase tracking-wide">
+            <Badge variant="muted" size="xs" className="uppercase tracking-wide">
               {result.responseMode.replace('_', ' ')}
-            </span>
+            </Badge>
           )}
           {onFocusToggle && (
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <button
+                  <Button
+                    type="button"
                     onClick={onFocusToggle}
-                    className="ui-btn ui-btn-muted ui-btn-icon !h-[30px] !w-[30px]"
+                    variant="muted"
+                    size="icon-sm"
                     aria-label={isFocused ? 'Restore split view' : 'Focus editorial review'}
                   >
                     {isFocused ? (
@@ -87,7 +92,7 @@ export function QualityGateSummary({
                     ) : (
                       <Maximize2 className="h-3.5 w-3.5" />
                     )}
-                  </button>
+                  </Button>
                 }
               />
               <TooltipContent side="bottom" className="text-xs">
@@ -109,7 +114,7 @@ export function QualityGateSummary({
 
       {/* Alerts (Borderless) */}
       {isManualFallback && (
-        <div className="ui-alert ui-alert-warning mt-3">
+        <Alert variant="warning" className="mt-3">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p className="text-xs font-semibold ui-text">Manual Fallback Mode</p>
@@ -117,14 +122,14 @@ export function QualityGateSummary({
               AI review completed, auto-apply disabled to prevent truncation issues.
             </p>
           </div>
-        </div>
+        </Alert>
       )}
       {isCompactFallback && (
-        <div className="ui-alert ui-alert-muted mt-3 !p-2.5">
+        <Alert variant="muted" className="mt-3 !p-2.5">
           <p className="text-[11px] ui-muted">
             Compact mode active — optimized for heavier drafts.
           </p>
-        </div>
+        </Alert>
       )}
 
       {onApplyAll && autoApplicableCount > 0 && !isManualFallback && (
@@ -133,7 +138,8 @@ export function QualityGateSummary({
             <span className="font-semibold">{autoApplicableCount}</span> suggested
             edits can be applied.
           </p>
-          <button
+          <Button
+            type="button"
             onClick={async () => {
               if (isApplyingAll) return;
               setIsApplyingAll(true);
@@ -144,7 +150,8 @@ export function QualityGateSummary({
               }
             }}
             disabled={isApplyingAll}
-            className="ui-btn ui-btn-primary ui-btn-xs"
+            variant="primary"
+            size="xs"
           >
             {isApplyingAll ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -152,7 +159,7 @@ export function QualityGateSummary({
               <Wand2 className="w-3.5 h-3.5" />
             )}
             Apply All
-          </button>
+          </Button>
         </div>
       )}
     </div>

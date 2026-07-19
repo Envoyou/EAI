@@ -6,6 +6,7 @@ import Editor from '@/components/Editor';
 import FinalDraftPanel from '@/components/FinalDraftPanel';
 import PanelTabBar from '@/components/PanelTabBar';
 import StatusBar from '@/components/StatusBar';
+import { Button } from '@/components/ui/button';
 import type { PanelTab } from '@/components/PanelTabBar';
 import type { AnalysisResult, ArticleMetadata, EditorialProcessStage } from '@eai/shared';
 
@@ -272,12 +273,15 @@ export default function EditorCanvas({
           <p className="text-xs text-[var(--muted-foreground)] leading-tight">
             Your demo won&apos;t be saved. Create an account to keep your work.
           </p>
-          <button
+          <Button
+            type="button"
             onClick={() => router.push('/signup')}
-            className="ui-btn ui-btn-primary ui-btn-xs whitespace-nowrap shrink-0"
+            variant="primary"
+            size="xs"
+            className="whitespace-nowrap shrink-0"
           >
             Continue Editing &rarr;
-          </button>
+          </Button>
         </div>
       )}
     </div>

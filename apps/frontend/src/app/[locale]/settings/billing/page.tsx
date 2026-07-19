@@ -14,6 +14,8 @@ import CancelSubscriptionButton from '@/components/CancelSubscriptionButton';
 import ReactivateSubscriptionButton from '@/components/ReactivateSubscriptionButton';
 import CancelQueuedDowngradeButton from '@/components/CancelQueuedDowngradeButton';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,41 +27,41 @@ function getStatusBadge(status: string) {
     case 'capture':
       return {
         label: 'Paid',
-        className: 'ui-badge-success',
+        variant: 'success' as BadgeVariant,
       };
     case 'pending':
     case 'challenge':
       return {
         label: 'Pending Payment',
-        className: 'ui-badge-warning',
+        variant: 'warning' as BadgeVariant,
       };
     case 'deny':
     case 'denied':
       return {
         label: 'Denied',
-        className: 'ui-badge-danger',
+        variant: 'danger' as BadgeVariant,
       };
     case 'cancel':
     case 'cancelled':
       return {
         label: 'Cancelled',
-        className: 'ui-badge-muted',
+        variant: 'muted' as BadgeVariant,
       };
     case 'expire':
     case 'expired':
       return {
         label: 'Expired',
-        className: 'ui-badge-muted',
+        variant: 'muted' as BadgeVariant,
       };
     case 'creation_failed':
       return {
         label: 'Setup Failed',
-        className: 'ui-badge-danger',
+        variant: 'danger' as BadgeVariant,
       };
     default:
       return {
         label: status.toUpperCase(),
-        className: 'ui-badge-muted',
+        variant: 'muted' as BadgeVariant,
       };
   }
 }
@@ -167,19 +169,19 @@ export default async function BillingSettingsPage() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-base font-bold text-foreground">{activePlanName}</h3>
-                <span className={`ui-badge ui-badge-xs ${
+                <Badge size="xs" variant={
                   workspace?.plan.subscriptionStatus === 'active'
-                    ? 'ui-badge-success'
+                    ? 'success'
                     : workspace?.plan.subscriptionStatus === 'cancels_at_period_end'
-                      ? 'ui-badge-warning bg-amber-500/10 text-amber-500 border-amber-500/20'
-                      : 'ui-badge-muted'
-                }`}>
+                      ? 'warning'
+                      : 'muted'
+                }>
                   {workspace?.plan.subscriptionStatus === 'active'
                     ? 'Active'
                     : workspace?.plan.subscriptionStatus === 'cancels_at_period_end'
                       ? 'Cancellation Pending'
                       : 'No active subscription'}
-                </span>
+                </Badge>
               </div>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
                 {activePlan
@@ -208,10 +210,10 @@ export default async function BillingSettingsPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Link href="/pricing" className="ui-btn ui-btn-surface ui-btn-sm no-underline">
+            <Button render={<Link href="/pricing" />} variant="surface" size="sm" className="no-underline">
               Compare or Change Plan
               <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            </Button>
             {workspace?.plan.subscriptionStatus === 'active' && activePlanId !== 'free' && (
               <CancelSubscriptionButton planName={activePlanName} />
             )}
@@ -310,24 +312,24 @@ export default async function BillingSettingsPage() {
                       {(() => {
                         const badge = getStatusBadge(payment.status);
                         return (
-                          <span className={`ui-badge ui-badge-xs ${badge.className}`}>
+                          <Badge variant={badge.variant} size="xs">
                             {badge.label}
-                          </span>
+                          </Badge>
                         );
                       })()}
                     </div>
                     <div className="flex items-center justify-end">
                       {paid ? (
-                        <a
-                          href={`/api/payments/${payment.id}/invoice`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ui-btn ui-btn-outline ui-btn-xs flex items-center gap-1 no-underline text-xs"
+                        <Button
+                          render={<a href={`/api/payments/${payment.id}/invoice`} target="_blank" rel="noopener noreferrer" />}
+                          variant="outline"
+                          size="xs"
+                          className="flex items-center gap-1 no-underline text-xs"
                           title="Download Invoice/Receipt"
                         >
                           <Receipt className="h-3.5 w-3.5" />
                           <span>Receipt</span>
-                        </a>
+                        </Button>
                       ) : (
                         <span className="text-[11px] text-muted-foreground pr-2">—</span>
                       )}

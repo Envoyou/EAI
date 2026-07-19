@@ -6,6 +6,7 @@ import { SlidersHorizontal, Loader2, CreditCard } from 'lucide-react';
 import { useSettings } from '@/components/SettingsProvider';
 import { SettingSection, SettingRow } from '@/components/SettingsUI';
 import { PRICING_ENABLED } from '@eai/shared';
+import { Button } from '@/components/ui/button';
 
 export default function WorkspaceSettingsPage() {
   const { workspace, loadingWorkspace } = useSettings();
@@ -46,10 +47,10 @@ export default function WorkspaceSettingsPage() {
           title="Publication settings"
           description="Brand identity, writing standards, categories, SEO rules, and CMS configuration."
         >
-          <Link href="/settings/publication/identity" className="ui-btn ui-btn-surface ui-btn-sm no-underline">
+          <Button render={<Link href="/settings/publication/identity" />} variant="surface" size="sm" className="no-underline">
             <SlidersHorizontal className="h-3.5 w-3.5" />
             Open Publication Settings
-          </Link>
+          </Button>
         </SettingRow>
 
         <SettingRow
@@ -69,10 +70,10 @@ export default function WorkspaceSettingsPage() {
             </div>
           )}
           {PRICING_ENABLED && (
-            <Link href="/settings/billing" className="ui-btn ui-btn-muted ui-btn-sm no-underline">
+            <Button render={<Link href="/settings/billing" />} variant="muted" size="sm" className="no-underline">
               <CreditCard className="h-3.5 w-3.5" />
               Manage Plan
-            </Link>
+            </Button>
           )}
         </SettingRow>
       </SettingSection>

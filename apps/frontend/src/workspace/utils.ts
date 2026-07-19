@@ -87,10 +87,10 @@ export const extractQualityGate = (metadata: unknown): {
   };
 };
 
-export const editorStatusBadgeClass = (status?: string) => {
-  if (status === 'exported') return 'ui-badge-success';
-  if (status === 'refined') return 'ui-badge-primary';
-  return 'ui-badge-muted';
+export const editorStatusBadgeVariant = (status?: string) => {
+  if (status === 'exported') return 'success' as const;
+  if (status === 'refined') return 'primary' as const;
+  return 'muted' as const;
 };
 
 export const normalizeProcessStage = (status: unknown): EditorialProcessStage | null => {

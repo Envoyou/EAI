@@ -3,6 +3,7 @@
 import React from 'react';
 import { Users, Layers } from 'lucide-react';
 import { useDashboard } from '@/components/DashboardProvider';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
 
 export default function ProductivityPage() {
   const { data } = useDashboard();
@@ -36,15 +37,15 @@ export default function ProductivityPage() {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                   {data.userBreakdown.map((user) => {
                     let statusLabel = 'Active';
-                    let badgeClass = 'text-slate-500 bg-slate-500/10 border-slate-200 dark:border-slate-800';
+                    let badgeVariant: BadgeVariant = 'muted';
                     
                     if (user.logsCount >= 2) {
                       if (user.readyRate >= 85) {
                         statusLabel = 'Top Performer';
-                        badgeClass = 'ui-badge-success';
+                        badgeVariant = 'success';
                       } else if (user.readyRate < 60 || user.avgRevisions >= 3) {
                         statusLabel = 'Coaching Suggested';
-                        badgeClass = 'ui-badge-warning';
+                        badgeVariant = 'warning';
                       }
                     }
 
@@ -73,9 +74,9 @@ export default function ProductivityPage() {
                         </td>
                         <td className="py-4 text-center text-foreground font-medium">{user.avgRevisions}x</td>
                         <td className="py-4 text-right pr-2">
-                          <span className={`ui-badge ui-badge-xs ${badgeClass}`}>
+                          <Badge variant={badgeVariant} size="xs">
                             {statusLabel}
-                          </span>
+                          </Badge>
                         </td>
                       </tr>
                     );

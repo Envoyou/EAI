@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert } from '@/components/ui/alert';
 
 const categories = [
   'Billing and credits',
@@ -187,7 +188,7 @@ export function SupportForm() {
       </p>
 
       {error && (
-        <div className="ui-alert ui-alert-danger text-sm">
+        <Alert variant="danger" className="text-sm">
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
           <div>
             {error}{' '}
@@ -195,7 +196,7 @@ export function SupportForm() {
               Email support@envoyou.com
             </a>
           </div>
-        </div>
+        </Alert>
       )}
 
       <Button

@@ -6,6 +6,8 @@ import { useUserDirectory } from './user-directory/hooks/useUserDirectory';
 import { UserTable } from './user-directory/components/UserTable';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 const CreditAdjustmentModal = dynamic(
   () =>
@@ -28,18 +30,20 @@ export function UserDirectory() {
 
   if (dir.error) {
     return (
-      <div className="ui-alert ui-alert-danger flex flex-col items-center justify-center min-h-[300px] text-center p-6">
+      <Alert variant="danger" className="flex flex-col items-center justify-center min-h-[300px] text-center p-6">
         <AlertCircle className="h-8 w-8 mb-3 opacity-90" />
         <p className="font-semibold">Failed to load directory</p>
         <p className="text-sm opacity-90 mt-1">{dir.error}</p>
-        <button
+        <Button
           type="button"
           onClick={dir.fetchUsers}
-          className="ui-btn ui-btn-danger mt-4 text-xs font-semibold"
+          variant="danger"
+          size="sm"
+          className="mt-4 text-xs font-semibold"
         >
           Retry Loading
-        </button>
-      </div>
+        </Button>
+      </Alert>
     );
   }
 
@@ -138,22 +142,22 @@ export function UserDirectory() {
                 : 'Are you sure you want to ban this user? They will be immediately blocked from signing in and using any Envoyou AI services.'}
             </p>
             <div className="flex items-center justify-end gap-2">
-              <button
+              <Button
                 type="button"
                 onClick={() => dir.setActiveModal(null)}
-                className="ui-btn ui-btn-outline text-xs"
+                variant="outline"
+                size="sm"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={dir.handleToggleBan}
-                className={`ui-btn text-xs ${
-                  dir.selectedUser.isBanned ? 'ui-btn-primary' : 'ui-btn-danger'
-                }`}
+                variant={dir.selectedUser.isBanned ? 'primary' : 'danger'}
+                size="sm"
               >
                 Confirm {dir.selectedUser.isBanned ? 'Unban' : 'Ban'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -209,21 +213,24 @@ export function UserDirectory() {
               </div>
 
               <div className="flex items-center justify-end gap-2 mt-2">
-                <button
+                <Button
                   type="button"
                   onClick={() => dir.setActiveModal(null)}
-                  className="ui-btn ui-btn-outline text-xs"
+                  variant="outline"
+                  size="sm"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={dir.sendingInvite}
-                  className="ui-btn ui-btn-primary text-xs flex items-center gap-1.5"
+                  variant="primary"
+                  size="sm"
+                  className="flex items-center gap-1.5"
                 >
                   {dir.sendingInvite && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   <span>Send Email</span>
-                </button>
+                </Button>
               </div>
             </form>
           </div>

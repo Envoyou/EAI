@@ -11,7 +11,7 @@ describe('BillingAdmin form-control contract', () => {
   });
 
   it('preserves the filled admin-field appearance through surface variants', () => {
-    expect(source.match(/variant="surface"/g)).toHaveLength(7);
+    expect(source.match(/<(?:Input|Textarea|SelectTrigger)\b[^>]*\bvariant="surface"/g)).toHaveLength(7);
     expect(source).not.toMatch(/ui-control|ui-input|ui-textarea|ui-select/);
   });
 

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useDashboard } from '@/components/DashboardProvider';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
 
 export default function PerformancePage() {
   const { data } = useDashboard();
@@ -16,25 +17,25 @@ export default function PerformancePage() {
   };
 
   const renderProgressCard = (label: string, value: number) => {
-    const badgeClass = value >= 80 
-      ? 'ui-badge-success' 
-      : value >= 60 
-        ? 'ui-badge-warning' 
-        : 'ui-badge-muted';
-        
-    const barColorClass = value >= 80 
-      ? 'bg-emerald-500' 
-      : value >= 60 
-        ? 'bg-amber-500' 
+    const badgeVariant: BadgeVariant = value >= 80
+      ? 'success'
+      : value >= 60
+        ? 'warning'
+        : 'muted';
+
+    const barColorClass = value >= 80
+      ? 'bg-emerald-500'
+      : value >= 60
+        ? 'bg-amber-500'
         : 'bg-slate-400 dark:bg-slate-600';
 
     return (
       <div className="surface-card surface-card-hover p-5">
         <div className="flex justify-between items-center text-xs">
           <span className="font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
-          <span className={`ui-badge ui-badge-xs ${badgeClass}`}>
+          <Badge variant={badgeVariant} size="xs">
             {value}%
-          </span>
+          </Badge>
         </div>
         <div className="text-2xl font-bold mt-2 text-foreground">{value}%</div>
         <div className="h-1.5 w-full bg-[var(--surface-2)] rounded-full mt-3 overflow-hidden">

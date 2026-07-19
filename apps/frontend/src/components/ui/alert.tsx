@@ -1,37 +1,52 @@
 import * as React from "react"
+import { mergeProps } from "@base-ui/react/merge-props"
+import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
 const alertVariants = cva(
-  "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
+  "ui-alert group/alert relative w-full text-left text-sm has-data-[slot=alert-action]:pr-18 *:[svg]:shrink-0 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-card text-card-foreground",
-        destructive:
-          "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
+        primary: "ui-alert-primary",
+        success: "ui-alert-success",
+        warning: "ui-alert-warning",
+        danger: "ui-alert-danger",
+        muted: "ui-alert-muted",
+        // Compatibility aliases.
+        default: "ui-alert-muted",
+        destructive: "ui-alert-danger",
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: "muted",
     },
   }
 )
 
 function Alert({
   className,
-  variant,
+  variant = "muted",
+  render,
   ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
-  return (
-    <div
-      data-slot="alert"
-      role="alert"
-      className={cn(alertVariants({ variant }), className)}
-      {...props}
-    />
-  )
+}: useRender.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
+  return useRender({
+    defaultTagName: "div",
+    props: mergeProps<"div">(
+      {
+        role: "alert",
+        className: cn(alertVariants({ variant }), className),
+      },
+      props
+    ),
+    render,
+    state: {
+      slot: "alert",
+      variant,
+    },
+  })
 }
 
 function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
@@ -73,4 +88,4 @@ function AlertAction({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-export { Alert, AlertTitle, AlertDescription, AlertAction }
+export { Alert, AlertTitle, AlertDescription, AlertAction, alertVariants }

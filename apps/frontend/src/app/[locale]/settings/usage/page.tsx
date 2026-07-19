@@ -20,6 +20,8 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 type UsageTransaction = {
   id: string;
@@ -164,15 +166,18 @@ export default function CreditUsageSettingsPage() {
             Monitor your credit allocations, bucket breakdowns, and real-time usage trail.
           </p>
         </div>
-        <button
+        <Button
+          type="button"
           onClick={() => void fetchUsageData(true)}
           disabled={refreshing}
-          className="ui-btn ui-btn-surface ui-btn-sm shrink-0 flex items-center gap-1.5"
+          variant="surface"
+          size="sm"
+          className="shrink-0 flex items-center gap-1.5"
           aria-label="Refresh credit usage logs"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
           {refreshing ? 'Syncing...' : 'Refresh'}
-        </button>
+        </Button>
       </div>
 
       {data && (
@@ -397,15 +402,13 @@ export default function CreditUsageSettingsPage() {
 
                             {/* Bucket */}
                             <td className="p-3 whitespace-nowrap">
-                              <span className={`ui-badge ui-badge-xs uppercase tracking-wider font-extrabold ${
-                                tx.bucket === 'trial'
-                                  ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                                  : tx.bucket === 'subscription'
-                                    ? 'bg-purple-500/10 text-purple-500 border-purple-500/20'
-                                    : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                              }`}>
+                              <Badge
+                                variant={tx.bucket === 'trial' ? 'warning' : tx.bucket === 'subscription' ? 'primary' : 'success'}
+                                size="xs"
+                                className="uppercase tracking-wider font-extrabold"
+                              >
                                 {tx.bucket === 'trial' ? 'Free' : tx.bucket === 'subscription' ? 'Plan' : 'Add-on'}
-                              </span>
+                              </Badge>
                             </td>
 
                             {/* Amount */}

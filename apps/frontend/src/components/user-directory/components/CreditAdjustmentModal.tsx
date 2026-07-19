@@ -10,6 +10,7 @@ import {
 import type { DirectoryUser } from '../types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 
 interface CreditAdjustmentModalProps {
   selectedUser: DirectoryUser;
@@ -158,21 +159,24 @@ export function CreditAdjustmentModal({
           </div>
 
           <div className="flex items-center justify-end gap-2 mt-2">
-            <button
+            <Button
               type="button"
               onClick={onClose}
-              className="ui-btn ui-btn-outline text-xs"
+              variant="outline"
+              size="sm"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={submittingAdjustment}
-              className="ui-btn ui-btn-primary text-xs flex items-center gap-1.5"
+              variant="primary"
+              size="sm"
+              className="flex items-center gap-1.5"
             >
               {submittingAdjustment && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               <span>Submit Adjustment</span>
-            </button>
+            </Button>
           </div>
         </form>
       </div>

@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Skeleton } from '@/components/ui/skeleton';
 import { storeThemePreference } from '@/lib/preferences';
 import { SidebarItem } from '@/components/ui/sidebar-item';
+import { Badge } from '@/components/ui/badge';
 
 export type WorkspacePage = 'editor' | 'dashboard' | 'publication' | 'settings';
 
@@ -145,17 +146,19 @@ export function AppSidebarShell({
               />
             </div>
             {activePlan && (
-              <span className={`shrink-0 ui-badge ui-badge-xs uppercase tracking-wider font-extrabold ${
-                activePlan.replace('org:', '') === 'starter' || activePlan.replace('org:', '') === 'starter_yearly'
-                  ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                  : activePlan.replace('org:', '') === 'pro' || activePlan.replace('org:', '') === 'pro_yearly'
-                    ? 'bg-purple-500/10 text-purple-500 border-purple-500/20'
-                    : activePlan.replace('org:', '') === 'team' || activePlan.replace('org:', '') === 'team_yearly'
-                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                      : 'bg-muted/40 text-muted-foreground border-muted-foreground/10'
-              }`}>
+              <Badge
+                variant={
+                  activePlan.replace('org:', '').startsWith('team')
+                    ? 'success'
+                    : activePlan.replace('org:', '').startsWith('starter') || activePlan.replace('org:', '').startsWith('pro')
+                      ? 'primary'
+                      : 'muted'
+                }
+                size="xs"
+                className="shrink-0 uppercase tracking-wider font-extrabold"
+              >
                 {activePlan.replace('org:', '').replace('_yearly', '')}
-              </span>
+              </Badge>
             )}
           </div>
         )}

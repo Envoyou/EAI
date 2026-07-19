@@ -5,6 +5,9 @@ import { fetchWithTimeout } from '@/lib/fetch-utils';
 import React, { useState } from 'react';
 import { Search, Loader2, Cpu, Save, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/alert';
 
 type OrgSearchResult = {
   id: string;
@@ -123,7 +126,7 @@ export default function AiConfigAdminPage() {
   return (
     <>
       <div className="settings-page-intro">
-        <span className="ui-badge ui-badge-warning uppercase tracking-wider !text-[9px] mb-2 inline-flex">Internal Use Only</span>
+        <Badge variant="warning" size="xs" className="mb-2 uppercase tracking-wider">Internal Use Only</Badge>
         <h2 className="text-balance">Refine AI Engine Settings</h2>
         <p className="text-pretty">Configure AI provider and specific model overrides for refinement and review stages.</p>
       </div>
@@ -144,10 +147,12 @@ export default function AiConfigAdminPage() {
                 placeholder="Organization, slug..."
                 aria-label="Search organization"
               />
-              <button
+              <Button
                 type="submit"
                 disabled={searching}
-                className="ui-btn ui-btn-primary ui-btn-sm shrink-0"
+                variant="primary"
+                size="sm"
+                className="shrink-0"
               >
                 {searching ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -155,7 +160,7 @@ export default function AiConfigAdminPage() {
                   <Search className="h-4 w-4" />
                 )}
                 Search
-              </button>
+              </Button>
             </div>
           </form>
 
@@ -189,16 +194,16 @@ export default function AiConfigAdminPage() {
         {/* Right Detail Panel */}
         <div className="lg:col-span-2">
           {errorMsg && (
-            <div className="ui-alert ui-alert-danger mb-4 flex items-start gap-2.5">
+            <Alert variant="danger" className="mb-4 flex items-start gap-2.5">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <div className="text-xs">{errorMsg}</div>
-            </div>
+            </Alert>
           )}
 
           {saveSuccess && (
-            <div className="ui-alert ui-alert-success mb-4 text-xs font-semibold">
+            <Alert variant="success" className="mb-4 text-xs font-semibold">
               AI Engine configuration updated successfully. Cache invalidated.
-            </div>
+            </Alert>
           )}
 
           {loadingConfig ? (
@@ -217,7 +222,7 @@ export default function AiConfigAdminPage() {
               </div>
 
               {/* Dynamic Warning Alert */}
-              <div className="ui-alert ui-alert-warning flex items-start gap-2.5">
+              <Alert variant="warning" className="flex items-start gap-2.5">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-[var(--warning)]" />
                 <div className="text-xs space-y-1">
                   <p className="font-semibold">B2B Override Scope Alert:</p>
@@ -226,7 +231,7 @@ export default function AiConfigAdminPage() {
                     Tahap chat strategist dan draf awal di editor akan tetap dikunci menggunakan Google Gemini untuk efisiensi performa.
                   </p>
                 </div>
-              </div>
+              </Alert>
 
               {/* Provider Selection */}
               <div className="space-y-2">
@@ -282,23 +287,23 @@ export default function AiConfigAdminPage() {
                   <div className="flex flex-wrap gap-1.5">
                     {config.provider === 'gemini' && (
                       <>
-                        <button type="button" onClick={() => applyModelPreset('gemini-2.5-pro')} className="ui-badge ui-badge-muted hover:bg-[var(--surface-3)] cursor-pointer py-1">gemini-2.5-pro</button>
-                        <button type="button" onClick={() => applyModelPreset('gemini-2.5-flash')} className="ui-badge ui-badge-muted hover:bg-[var(--surface-3)] cursor-pointer py-1">gemini-2.5-flash</button>
-                        <button type="button" onClick={() => applyModelPreset('gemini-1.5-pro')} className="ui-badge ui-badge-muted hover:bg-[var(--surface-3)] cursor-pointer py-1">gemini-1.5-pro</button>
+                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('gemini-2.5-pro')} className="rounded-full">gemini-2.5-pro</Button>
+                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('gemini-2.5-flash')} className="rounded-full">gemini-2.5-flash</Button>
+                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('gemini-1.5-pro')} className="rounded-full">gemini-1.5-pro</Button>
                       </>
                     )}
                     {config.provider === 'groq' && (
                       <>
-                        <button type="button" onClick={() => applyModelPreset('qwen/qwen3-32b')} className="ui-badge ui-badge-muted hover:bg-[var(--surface-3)] cursor-pointer py-1">qwen/qwen3-32b</button>
-                        <button type="button" onClick={() => applyModelPreset('llama-3.3-70b-versatile')} className="ui-badge ui-badge-muted hover:bg-[var(--surface-3)] cursor-pointer py-1">llama-3.3-70b</button>
-                        <button type="button" onClick={() => applyModelPreset('llama-3.1-8b-instant')} className="ui-badge ui-badge-muted hover:bg-[var(--surface-3)] cursor-pointer py-1">llama-3.1-8b</button>
+                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('qwen/qwen3-32b')} className="rounded-full">qwen/qwen3-32b</Button>
+                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('llama-3.3-70b-versatile')} className="rounded-full">llama-3.3-70b</Button>
+                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('llama-3.1-8b-instant')} className="rounded-full">llama-3.1-8b</Button>
                       </>
                     )}
                     {config.provider === 'openrouter' && (
                       <>
-                        <button type="button" onClick={() => applyModelPreset('google/gemini-2.5-pro')} className="ui-badge ui-badge-muted hover:bg-[var(--surface-3)] cursor-pointer py-1">gemini-2.5-pro</button>
-                        <button type="button" onClick={() => applyModelPreset('openai/gpt-4o-mini')} className="ui-badge ui-badge-muted hover:bg-[var(--surface-3)] cursor-pointer py-1">gpt-4o-mini</button>
-                        <button type="button" onClick={() => applyModelPreset('anthropic/claude-3.5-sonnet')} className="ui-badge ui-badge-muted hover:bg-[var(--surface-3)] cursor-pointer py-1">claude-3.5-sonnet</button>
+                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('google/gemini-2.5-pro')} className="rounded-full">gemini-2.5-pro</Button>
+                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('openai/gpt-4o-mini')} className="rounded-full">gpt-4o-mini</Button>
+                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('anthropic/claude-3.5-sonnet')} className="rounded-full">claude-3.5-sonnet</Button>
                       </>
                     )}
                   </div>
@@ -307,10 +312,11 @@ export default function AiConfigAdminPage() {
 
               {/* Submit Buttons */}
               <div className="flex justify-end pt-4 border-t border-[var(--border)]">
-                <button
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="ui-btn ui-btn-primary ui-btn-md gap-2"
+                  variant="primary"
+                  className="gap-2"
                 >
                   {saving ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -318,7 +324,7 @@ export default function AiConfigAdminPage() {
                     <Save className="h-4 w-4" />
                   )}
                   Save Configuration
-                </button>
+                </Button>
               </div>
             </form>
           ) : (

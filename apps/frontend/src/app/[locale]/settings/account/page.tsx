@@ -3,6 +3,7 @@
 import React from 'react';
 import { useClerk, useOrganization } from '@clerk/nextjs';
 import { SettingSection, SettingRow } from '@/components/SettingsUI';
+import { Button } from '@/components/ui/button';
 
 export default function AccountSettingsPage() {
   const { openUserProfile, openOrganizationProfile, openCreateOrganization } = useClerk();
@@ -23,19 +24,23 @@ export default function AccountSettingsPage() {
           title="User"
           description="Manage your login credentials, security settings, or delete your account."
         >
-          <button
+          <Button
+            type="button"
             onClick={() => openUserProfile()}
-            className="ui-btn ui-btn-surface ui-btn-sm font-medium"
+            variant="surface"
+            size="sm"
+            className="font-medium"
           >
             Manage
-          </button>
+          </Button>
         </SettingRow>
 
         <SettingRow
           title="Organization"
           description="Manage your organization settings and members."
         >
-          <button
+          <Button
+            type="button"
             onClick={() => {
               if (organization) {
                 openOrganizationProfile();
@@ -43,10 +48,12 @@ export default function AccountSettingsPage() {
                 openCreateOrganization();
               }
             }}
-            className="ui-btn ui-btn-surface ui-btn-sm font-medium"
+            variant="surface"
+            size="sm"
+            className="font-medium"
           >
             {organization ? 'Manage' : 'Create'}
-          </button>
+          </Button>
         </SettingRow>
       </SettingSection>
     </>

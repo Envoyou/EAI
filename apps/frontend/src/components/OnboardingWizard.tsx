@@ -27,6 +27,7 @@ import { EAILogo } from '@/components/EAILogo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { DEFAULT_ONBOARDING_DATA, type OnboardingData, type OnboardingStep } from '@eai/shared';
 import {
   Select,
@@ -547,10 +548,12 @@ export function OnboardingWizard() {
                           const active = data.activation.primaryGoal === goal.id;
                           const GoalIcon = goal.icon;
                           return (
-                            <button
+                            <Button
                               key={goal.id}
                               type="button"
                               onClick={() => updateActivation('primaryGoal', goal.id)}
+                              variant="muted"
+                              aria-pressed={active}
                               className={`rounded-2xl border p-4 text-left transition select-none flex flex-col justify-between h-32 cursor-pointer ${
                                 active
                                   ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]'
@@ -567,7 +570,7 @@ export function OnboardingWizard() {
                                   {goal.desc}
                                 </p>
                               </div>
-                            </button>
+                            </Button>
                           );
                         })}
                       </div>
@@ -680,23 +683,28 @@ export function OnboardingWizard() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <button
+                            <Button
                               type="button"
                               onClick={() => setIsEditing(!isEditing)}
-                              className="ui-btn ui-btn-muted text-xs gap-1.5 px-3 h-8 border border-[var(--border)]"
+                              variant="muted"
+                              size="sm"
+                              aria-pressed={isEditing}
+                              className="text-xs gap-1.5 px-3 border border-[var(--border)]"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                               {isEditing ? 'Done' : 'Edit'}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               type="button"
                               onClick={() => void runDiscovery()}
-                              className="ui-btn ui-btn-muted text-xs gap-1.5 px-3 h-8 border border-[var(--border)] text-primary hover:bg-primary/5"
+                              variant="muted"
+                              size="sm"
+                              className="text-xs gap-1.5 px-3 border border-[var(--border)] text-primary"
                               disabled={discovering}
                             >
                               <RefreshCw className={`w-3.5 h-3.5 ${discovering ? 'animate-spin' : ''}`} />
                               Regenerate
-                            </button>
+                            </Button>
                           </div>
                         </div>
 
@@ -900,47 +908,54 @@ export function OnboardingWizard() {
             <div className="mt-10 flex items-center justify-between border-t border-[var(--border)] pt-6">
               <div className="flex items-center gap-3">
                 {step === 'review' ? (
-                  <button
+                  <Button
                     type="button"
                     onClick={() => void goBack()}
                     disabled={saving || activating}
-                    className="ui-btn ui-btn-muted text-sm gap-2"
+                    variant="muted"
+                    className="text-sm gap-2"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     Back
-                  </button>
+                  </Button>
                 ) : (
-                  <button
+                  <Button
                     type="button"
                     onClick={() => void skipOnboarding()}
                     disabled={saving || activating}
-                    className="ui-btn ui-btn-muted text-xs opacity-60 hover:opacity-100 font-normal underline underline-offset-4 gap-1.5"
+                    variant="link"
+                    size="sm"
+                    className="text-xs opacity-60 hover:opacity-100 font-normal gap-1.5"
                   >
                     Use defaults
-                  </button>
+                  </Button>
                 )}
               </div>
               
               {step === 'review' ? (
-                <button
+                <Button
                   type="button"
                   onClick={() => void activateWorkspace()}
                   disabled={activating || saving}
-                  className="ui-btn ui-btn-primary h-11 px-6 shadow-xl shadow-[var(--primary)]/15 text-sm gap-2"
+                  variant="primary"
+                  size="lg"
+                  className="px-6 shadow-xl shadow-[var(--primary)]/15 text-sm gap-2"
                 >
                   {activating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
                   {activating ? 'Activating...' : 'Activate Workspace'}
-                </button>
+                </Button>
               ) : step === 'activation' ? (
-                <button
+                <Button
                   type="button"
                   onClick={() => void goNext()}
                   disabled={saving}
-                  className="ui-btn ui-btn-primary h-11 px-6 shadow-xl shadow-[var(--primary)]/15 text-sm gap-2"
+                  variant="primary"
+                  size="lg"
+                  className="px-6 shadow-xl shadow-[var(--primary)]/15 text-sm gap-2"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                   {saving ? 'Saving...' : 'Continue'}
-                </button>
+                </Button>
               ) : (
                 <div className="h-11" /> // space placeholder for discovery loading
               )}

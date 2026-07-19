@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Loader2, ArrowRight, Check, X } from 'lucide-react';
 import type { CheckoutDisclosure } from '@eai/shared';
+import { Button } from '@/components/ui/button';
 
 interface PricingCheckoutButtonProps {
   planId: string;
@@ -131,22 +132,6 @@ export default function PricingCheckoutButton({
   const isYearly = planId.endsWith('_yearly') || planId.includes('yearly');
   const isBlockedByQueued = hasQueuedDowngrade && isYearly;
 
-  const getButtonStyles = () => {
-    if (!billingEnabled || isBlockedByQueued) {
-      return 'bg-[var(--surface-2)] text-muted-foreground font-semibold border border-[var(--border)] cursor-not-allowed opacity-60';
-    }
-    if (current) {
-      return 'bg-transparent text-muted-foreground font-semibold border border-[var(--border)] cursor-default';
-    }
-    if (variant === 'primary') {
-      return 'bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/10';
-    }
-    if (variant === 'addon') {
-      return 'bg-primary/10 hover:bg-primary/20 text-primary font-semibold border border-primary/20';
-    }
-    return 'bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-foreground font-semibold border border-[var(--border)]';
-  };
-
   const formatUsd = (value: number) =>
     new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -169,11 +154,23 @@ export default function PricingCheckoutButton({
 
   return (
     <>
-      <button
+      <Button
+        type="button"
+        variant={
+          !billingEnabled || isBlockedByQueued
+            ? 'muted'
+            : current
+              ? 'outline'
+              : variant === 'primary'
+                ? 'primary'
+                : variant === 'addon'
+                  ? 'accent'
+                  : 'surface'
+        }
         onClick={handleCheckout}
         disabled={loading || current || !billingEnabled || isBlockedByQueued}
         aria-disabled={current || !billingEnabled || isBlockedByQueued}
-        className={`w-full py-3 px-4 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 text-sm active:scale-98 disabled:cursor-not-allowed ${current ? '' : 'cursor-pointer disabled:opacity-75'} ${getButtonStyles()} ${className}`}
+        className={`w-full py-3 px-4 rounded-2xl duration-300 gap-2 active:scale-98 ${current ? 'cursor-default' : 'disabled:opacity-75'} ${className}`}
       >
         {!billingEnabled ? (
           <span>Coming Soon</span>
@@ -195,7 +192,7 @@ export default function PricingCheckoutButton({
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </>
         )}
-      </button>
+      </Button>
       {isBlockedByQueued && (
         <p className="mt-2 text-[10px] text-amber-500 font-semibold text-center leading-normal">
           Downgrade pending. Cancel it in settings to buy yearly.
@@ -234,15 +231,16 @@ export default function PricingCheckoutButton({
                         {isDelayedDowngrade ? 'Confirm plan downgrade' : 'Confirm your prepaid purchase'}
                       </h2>
                     </div>
-                    <button
+                    <Button
                       type="button"
                       onClick={handleCancel}
                       disabled={loading}
                       aria-label="Close checkout confirmation"
-                      className="rounded-full p-1.5 text-muted-foreground transition hover:bg-[var(--surface-2)] hover:text-foreground disabled:opacity-50"
+                      variant="muted"
+                      size="icon-xs"
                     >
                       <X className="h-4 w-4" />
-                    </button>
+                    </Button>
                   </div>
 
                   {previewLoading ? (
@@ -347,23 +345,23 @@ export default function PricingCheckoutButton({
                   </p>
 
                   <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                    <button
+                    <Button
                       type="button"
                       onClick={handleCancel}
                       disabled={loading || previewLoading}
-                      className="ui-btn ui-btn-outline"
+                      variant="outline"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       onClick={createCheckout}
                       disabled={loading || previewLoading}
-                      className="ui-btn ui-btn-primary"
+                      variant="primary"
                     >
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                       {isDelayedDowngrade ? 'Confirm Downgrade' : (preview && preview.finalAmountIdr === 0 ? 'Confirm & Activate' : 'Continue to payment')}
-                    </button>
+                    </Button>
                   </div>
                 </>
               );

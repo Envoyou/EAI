@@ -7,6 +7,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Changed
+- **Canonical Status & Callout APIs**:
+  - Added regression-tested semantic `muted`, `surface`, `primary`, `success`, `warning`, and `danger` variants to Badge, plus `xs` sizing and polymorphic link rendering.
+  - Added semantic `primary`, `success`, `warning`, `danger`, and `muted` Alert variants with polymorphic rendering for animated surfaces.
+  - Migrated all feature-level direct `ui-badge` and `ui-alert` composition to the canonical primitives across workspace readiness, dashboards, billing/admin, strategist sources, and feedback/error states.
+  - Corrected interactive badge-styled model presets and source-expansion controls to canonical Button semantics.
 - **Canonical Form-Control API**:
   - Added regression-tested `default` and `surface` variants to the shared `Input`, `Textarea`, and `SelectTrigger` primitives; `surface` preserves the existing filled `ui-control` visual contract during incremental migration.
   - Migrated all Support Form text fields, its honeypot field, and both actions from raw elements/direct visual classes to canonical component APIs.
@@ -23,6 +28,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Consolidated the Base UI `Button` wrapper and global `ui-btn` visual contract into one semantic component API with `primary`, `outline`, `surface`, `muted`, `accent`, `danger`, and `link` variants.
   - Preserved the previous shadcn-style variant names as compatibility aliases, migrated AI Preview and existing primitive consumers to semantic variants, and added focused variant/size regression coverage.
   - Migrated all eight Tiptap Bubble Menu actions to the canonical API, isolated the toolbar with `not-prose`, and exposed formatting toggle state through `aria-pressed` with focused regression coverage.
+  - Removed all remaining direct `ui-btn` composition from feature code across admin, settings, billing, workspace/editor, onboarding, strategist, history, and feedback surfaces; added a source-level ownership regression contract while recording the remaining raw-button inventory for bounded follow-up.
 
 ### Fixed
 - **Editor Link Overlay Architecture**:

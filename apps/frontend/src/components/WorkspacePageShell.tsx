@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Menu } from 'lucide-react';
 import { AppSidebarShell, WorkspacePage } from '@/components/AppSidebarShell';
+import { Button } from '@/components/ui/button';
 
 
 
@@ -87,14 +88,16 @@ export function WorkspacePageShell({
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <header className="ide-titlebar workspace-page-titlebar" role="banner">
             <div className="flex min-w-0 items-center gap-2">
-              <button
+              <Button
                 type="button"
                 onClick={() => setSidebarOpen((current) => !current)}
-                className="ui-btn ui-btn-muted ui-btn-icon h-7 w-7 workspace-page-sidebar-toggle shrink-0"
+                variant="muted"
+                size="icon-xs"
+                className="workspace-page-sidebar-toggle shrink-0"
                 aria-label="Toggle page navigation"
               >
                 <Menu className="h-4 w-4" />
-              </button>
+              </Button>
               <span className="hidden sm:inline text-sm font-semibold text-[var(--foreground)]">Workspace</span>
               <span className="hidden sm:inline text-[11px] text-[var(--muted-foreground)]">/</span>
               <span className="truncate text-xs sm:text-[13px] font-medium text-[var(--muted-foreground)] max-w-[120px] sm:max-w-none">

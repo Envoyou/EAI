@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { Activity, ExternalLink, ShieldAlert } from 'lucide-react';
 import { SettingSection } from '@/components/SettingsUI';
 import * as Sentry from '@sentry/nextjs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export function TelemetryClient({ hasDsn }: { hasDsn: boolean }) {
   const triggerTestError = async () => {
@@ -56,9 +58,9 @@ export function TelemetryClient({ hasDsn }: { hasDsn: boolean }) {
             <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
               Connection Status
               {hasDsn ? (
-                <span className="ui-badge bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none">Active</span>
+                <Badge variant="success">Active</Badge>
               ) : (
-                <span className="ui-badge bg-rose-500/10 text-rose-600 dark:text-rose-400 border-none">Disconnected</span>
+                <Badge variant="danger">Disconnected</Badge>
               )}
             </h4>
             <p className="text-sm text-muted-foreground mt-1">
@@ -70,23 +72,24 @@ export function TelemetryClient({ hasDsn }: { hasDsn: boolean }) {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200/60 dark:border-slate-800/60">
-          <a
-            href="https://sentry.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ui-btn ui-btn-primary flex items-center gap-2"
+          <Button
+            render={<a href="https://sentry.io" target="_blank" rel="noopener noreferrer" />}
+            variant="primary"
+            className="flex items-center gap-2"
           >
             <span>Open Sentry Dashboard</span>
             <ExternalLink className="h-4 w-4" />
-          </a>
+          </Button>
           
-          <button
+          <Button
+            type="button"
             onClick={() => void triggerTestError()}
-            className="ui-btn ui-btn-outline flex items-center gap-2"
+            variant="outline"
+            className="flex items-center gap-2"
           >
             <ShieldAlert className="h-4 w-4 text-rose-500" />
             <span>Test Error Capture</span>
-          </button>
+          </Button>
         </div>
       </div>
     </SettingSection>

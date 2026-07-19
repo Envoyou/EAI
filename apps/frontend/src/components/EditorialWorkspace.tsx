@@ -24,9 +24,11 @@ import EditorCanvas from '@/components/EditorCanvas';
 import AICopilotPanel from '@/components/AICopilotPanel';
 import ShortcutsModal from '@/components/ShortcutsModal';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 import { useEditorialWorkspace } from '@/workspace/useEditorialWorkspace';
-import { editorStatusBadgeClass } from '@/workspace/utils';
+import { editorStatusBadgeVariant } from '@/workspace/utils';
 
 export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) {
   const router = useRouter();
@@ -144,9 +146,9 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
             {isDemoMode ? (
               <>
                 <span className="titlebar-workspace text-sm font-bold text-[var(--foreground)] tracking-tight">EAI</span>
-                <span className="ui-badge ui-badge-surface ui-badge-xs ml-1 font-semibold tracking-wide uppercase">
+                <Badge variant="surface" size="xs" className="ml-1 font-semibold tracking-wide uppercase">
                   Try Demo
-                </span>
+                </Badge>
               </>
             ) : (
               <>
@@ -158,9 +160,9 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
               </>
             )}
             {analysis.editorStatus && (
-              <span className={`ui-badge ui-badge-xs ml-1 capitalize ${editorStatusBadgeClass(analysis.editorStatus)}`}>
+              <Badge variant={editorStatusBadgeVariant(analysis.editorStatus)} size="xs" className="ml-1 capitalize">
                 {analysis.editorStatus}
-              </span>
+              </Badge>
             )}
           </div>
 
@@ -174,16 +176,16 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <a
+                    <Button
                       id="titlebar-whats-new"
-                      href="https://envoyou.com/changelog"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ui-btn ui-btn-muted ui-btn-sm no-underline"
+                      render={<a href="https://envoyou.com/changelog" target="_blank" rel="noopener noreferrer" />}
+                      variant="muted"
+                      size="sm"
+                      className="no-underline"
                     >
                       <Megaphone className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">What&apos;s New</span>
-                    </a>
+                    </Button>
                   }
                 />
                 <TooltipContent side="bottom" className="text-xs">
@@ -197,16 +199,18 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <button
+                    <Button
+                      type="button"
                       id="titlebar-undo"
                       onClick={handleUndoLastEdit}
                       disabled={draftHistory.length === 0 || analysis.status === 'loading'}
-                      className="ui-btn ui-btn-muted ui-btn-sm"
+                      variant="muted"
+                      size="sm"
                       aria-label="Undo last edit"
                     >
                       <RotateCcw className="w-4 h-4" />
                       <span className="hidden sm:inline">Undo</span>
-                    </button>
+                    </Button>
                   }
                 />
                 <TooltipContent side="bottom" className="text-xs">
@@ -235,10 +239,13 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                         )}
                       </div>
                     ) : (
-                      <button
+                      <Button
+                        type="button"
                         onClick={handleCloudSave}
                         disabled={isSavingToCloud}
-                        className="ui-btn ui-btn-muted ui-btn-sm text-[var(--primary)] border-[var(--primary)]/20 hover:bg-[var(--primary)]/10"
+                        variant="muted"
+                        size="sm"
+                        className="text-[var(--primary)] border-[var(--primary)]/20"
                       >
                         {isSavingToCloud ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -246,7 +253,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                           <CloudUpload className="w-3.5 h-3.5" />
                         )}
                         <span>Save to Cloud</span>
-                      </button>
+                      </Button>
                     )
                   }
                 />
@@ -315,7 +322,8 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <button
+                  <Button
+                    type="button"
                     id="titlebar-refine"
                     onClick={() => {
                       if (analysis.status === 'loading' || isTargetedFixing !== null) {
@@ -325,7 +333,9 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                       }
                     }}
                     disabled={!draft.trim() && analysis.status !== 'loading' && isTargetedFixing === null}
-                    className={`ui-btn ui-btn-primary ui-btn-sm ${activeTab !== 'draft' && analysis.status !== 'loading' && isTargetedFixing === null ? 'max-sm:hidden' : ''}`}
+                    variant="primary"
+                    size="sm"
+                    className={activeTab !== 'draft' && analysis.status !== 'loading' && isTargetedFixing === null ? 'max-sm:hidden' : ''}
                   >
                     {analysis.status === 'loading' || isTargetedFixing !== null ? (
                       <X className="w-4 h-4" />
@@ -335,7 +345,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     <span className="hidden sm:inline">
                       {analysis.status === 'loading' || isTargetedFixing !== null ? 'Cancel' : 'Refine Draft'}
                     </span>
-                  </button>
+                  </Button>
                 }
               />
               <TooltipContent side="bottom" className="text-xs">
@@ -353,9 +363,9 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
               >
                 Login
               </button>
-              <button onClick={() => router.push('/signup')} className="ui-btn ui-btn-primary ui-btn-sm text-xs px-3">
+              <Button type="button" onClick={() => router.push('/signup')} variant="primary" size="sm" className="text-xs px-3">
                 Start Free
-              </button>
+              </Button>
             </div>
           )}
         </header>
@@ -662,12 +672,14 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
 
               {/* Actions */}
               <div className="flex flex-col gap-2.5">
-                <button
+                <Button
+                  type="button"
                   onClick={() => router.push('/signup')}
-                  className="ui-btn ui-btn-primary w-full justify-center py-2.5 text-sm font-semibold"
+                  variant="primary"
+                  className="w-full justify-center py-2.5 text-sm font-semibold"
                 >
                   Start Free
-                </button>
+                </Button>
                 <button
                   onClick={() => setShowDemoSignupModal(false)}
                   className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center py-1 transition-colors"
@@ -738,18 +750,22 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
 
               {/* Actions */}
               <div className="flex flex-col gap-2.5">
-                <button
+                <Button
+                  type="button"
                   onClick={() => handleProceedRefinement({ restore: true })}
-                  className="ui-btn ui-btn-primary w-full justify-center py-2.5 text-sm font-semibold"
+                  variant="primary"
+                  className="w-full justify-center py-2.5 text-sm font-semibold"
                 >
                   Restore Sources & Refine
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
                   onClick={() => handleProceedRefinement({ restore: false })}
-                  className="ui-btn w-full justify-center py-2.5 text-sm font-semibold border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors text-[var(--foreground)] font-medium"
+                  variant="outline"
+                  className="w-full justify-center py-2.5 text-sm font-semibold"
                 >
                   Refine Anyway
-                </button>
+                </Button>
                 <button
                   onClick={() => setShowMissingSourcesModal(false)}
                   className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center py-1 transition-colors"

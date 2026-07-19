@@ -7,6 +7,7 @@ import { FileText, CheckCircle, Activity, AlertTriangle, Loader2, ArrowLeft, Dow
 import Link from 'next/link';
 import { WorkspacePageShell } from '@/components/WorkspacePageShell';
 import { useRouter } from 'next/navigation';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
 
 interface MetricDetail {
   current: number;
@@ -160,13 +161,13 @@ export default function ValidationDashboardPage() {
     const target = metric.target;
     
     if (metric.isReverse) {
-      if (current <= target) return { badgeClass: 'ui-badge-success', label: 'Met' };
-      if (current <= target * 1.5) return { badgeClass: 'ui-badge-warning', label: 'Developing' };
-      return { badgeClass: 'ui-badge-danger', label: 'At Risk' };
+      if (current <= target) return { badgeVariant: 'success' as BadgeVariant, label: 'Met' };
+      if (current <= target * 1.5) return { badgeVariant: 'warning' as BadgeVariant, label: 'Developing' };
+      return { badgeVariant: 'danger' as BadgeVariant, label: 'At Risk' };
     } else {
-      if (current >= target) return { badgeClass: 'ui-badge-success', label: 'Met' };
-      if (current >= target * 0.7) return { badgeClass: 'ui-badge-warning', label: 'Developing' };
-      return { badgeClass: 'ui-badge-danger', label: 'At Risk' };
+      if (current >= target) return { badgeVariant: 'success' as BadgeVariant, label: 'Met' };
+      if (current >= target * 0.7) return { badgeVariant: 'warning' as BadgeVariant, label: 'Developing' };
+      return { badgeVariant: 'danger' as BadgeVariant, label: 'At Risk' };
     }
   };
 
@@ -330,9 +331,9 @@ export default function ValidationDashboardPage() {
                     <div key={key} className="space-y-1.5">
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-semibold text-muted-foreground uppercase tracking-wider">{metric.label}</span>
-                        <span className={`ui-badge ui-badge-xs ${status.badgeClass}`}>
+                        <Badge variant={status.badgeVariant} size="xs">
                           {status.label}
-                        </span>
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-baseline">
                         <span className="text-2xl font-bold text-foreground">
@@ -371,9 +372,9 @@ export default function ValidationDashboardPage() {
                     <div key={key} className="space-y-1.5">
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-semibold text-muted-foreground uppercase tracking-wider">{metric.label}</span>
-                        <span className={`ui-badge ui-badge-xs ${status.badgeClass}`}>
+                        <Badge variant={status.badgeVariant} size="xs">
                           {status.label}
-                        </span>
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-baseline">
                         <span className="text-2xl font-bold text-foreground">
@@ -419,9 +420,9 @@ export default function ValidationDashboardPage() {
                             </span>
                           )}
                         </span>
-                        <span className={`ui-badge ui-badge-xs ${status.badgeClass}`}>
+                        <Badge variant={status.badgeVariant} size="xs">
                           {status.label}
-                        </span>
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-baseline">
                         <span className="text-2xl font-bold text-foreground">
@@ -460,9 +461,9 @@ export default function ValidationDashboardPage() {
                     <div key={key} className="space-y-1.5">
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-semibold text-muted-foreground uppercase tracking-wider">{metric.label}</span>
-                        <span className={`ui-badge ui-badge-xs ${status.badgeClass}`}>
+                        <Badge variant={status.badgeVariant} size="xs">
                           {status.label}
-                        </span>
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-baseline">
                         <span className="text-2xl font-bold text-foreground">

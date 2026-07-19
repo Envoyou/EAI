@@ -21,6 +21,8 @@ import {
 import { motion, Variants, AnimatePresence } from 'framer-motion';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { canShowAutoApply } from '../utils';
 
 const itemVariants: Variants = {
@@ -37,23 +39,23 @@ const verificationBadgeMap: Record<
   {
     label: string;
     icon: typeof ShieldAlert;
-    className: string;
+    variant: BadgeVariant;
   }
 > = {
   source_backed: {
     label: 'Source-backed',
     icon: CheckCircle2,
-    className: 'ui-badge-success',
+    variant: 'success',
   },
   needs_citation: {
     label: 'Needs citation',
     icon: AlertTriangle,
-    className: 'ui-badge-warning',
+    variant: 'warning',
   },
   high_risk_factual_claim: {
     label: 'High-risk factual claim',
     icon: ShieldAlert,
-    className: 'ui-badge-danger',
+    variant: 'danger',
   },
 };
 
@@ -248,8 +250,9 @@ export function FeedbackItemCard({
               </p>
 
               {verificationMeta && (
-                <div
-                  className={`ui-badge ${verificationMeta.className} whitespace-normal flex-wrap h-auto py-1.5`}
+                <Badge
+                  variant={verificationMeta.variant}
+                  className="h-auto flex-wrap whitespace-normal py-1.5"
                 >
                   {VerificationIcon && (
                     <VerificationIcon className="w-3.5 h-3.5 shrink-0" />
@@ -257,7 +260,7 @@ export function FeedbackItemCard({
                   <span className="break-words">
                     Verification Status: {verificationMeta.label}
                   </span>
-                </div>
+                </Badge>
               )}
 
               {targetText && !showApplyFeature && (
@@ -365,7 +368,8 @@ export function FeedbackItemCard({
                       </p>
                     </div>
                     <div className="flex justify-end pt-1">
-                      <button
+                      <Button
+                        type="button"
                         onClick={() =>
                           onApplyClick(
                             targetText,
@@ -376,20 +380,9 @@ export function FeedbackItemCard({
                           )
                         }
                         disabled={isApplied || isApplying}
-                        className={`ui-btn ui-btn-sm ${
-                          isApplied ? '' : 'ui-btn-primary'
-                        }`}
-                        style={
-                          isApplied
-                            ? {
-                                background: 'rgba(74,222,128,0.1)',
-                                color: 'var(--success)',
-                              }
-                            : {
-                                  background: 'var(--primary)',
-                                  color: 'var(--primary-foreground)',
-                                }
-                        }
+                        variant={isApplied ? 'surface' : 'primary'}
+                        size="sm"
+                        className={isApplied ? 'text-[var(--success)]' : undefined}
                       >
                         {isApplied ? (
                           <>
@@ -404,7 +397,7 @@ export function FeedbackItemCard({
                             <Wand2 className="w-3.5 h-3.5" /> Apply
                           </>
                         )}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -417,38 +410,44 @@ export function FeedbackItemCard({
                   {!showApplyFeature &&
                     (item.status === 'warning' || item.status === 'fail') &&
                     item.suggestion && (
-                      <button
+                      <Button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           onCopy(item.suggestion!, 'Suggestion');
                         }}
-                        className="ui-btn ui-btn-xs ui-btn-muted"
+                        variant="muted"
+                        size="xs"
                       >
                         <Copy className="w-3.5 h-3.5" /> Copy Suggestion
-                      </button>
+                      </Button>
                     )}
 
 
                   {item.category === 'Editorial Addition' && (
                     <>
-                      <button
+                      <Button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (onAcceptFeedback) onAcceptFeedback(index);
                         }}
-                        className="ui-btn ui-btn-success ui-btn-xs"
+                        variant="primary"
+                        size="xs"
                       >
                         <Check className="w-3.5 h-3.5" />
                         Accept Addition
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (onRemoveFeedbackAddition)
                             onRemoveFeedbackAddition(index);
                         }}
                         disabled={isTargetedFixing !== null}
-                        className="ui-btn ui-btn-muted ui-btn-xs"
+                        variant="muted"
+                        size="xs"
                       >
                         {isTargetedFixing === index ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -456,26 +455,29 @@ export function FeedbackItemCard({
                           <Trash2 className="w-3.5 h-3.5" />
                         )}
                         Remove Addition
-                      </button>
+                      </Button>
                     </>
                   )}
 
                   {item.category === 'Internal Linking' && (
-                    <button
+                    <Button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (onAcceptFeedback) onAcceptFeedback(index);
                       }}
-                      className="ui-btn ui-btn-success ui-btn-xs"
+                      variant="primary"
+                      size="xs"
                     >
                       <Check className="w-3.5 h-3.5" />
                       Confirm Link
-                    </button>
+                    </Button>
                   )}
 
                   {item.verificationStatus && (
                     <>
-                      <button
+                      <Button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveSourceInput(
@@ -483,25 +485,29 @@ export function FeedbackItemCard({
                           );
                           setSourceText('');
                         }}
-                        className="ui-btn ui-btn-primary ui-btn-xs"
+                        variant="primary"
+                        size="xs"
+                        aria-expanded={activeSourceInput === feedbackKey}
                       >
                         <Link className="w-3.5 h-3.5" />
                         Add Source
-                      </button>
+                      </Button>
                     </>
                   )}
 
                   {targetText &&
                     (item.category === 'Source Fidelity' ||
                       item.category === 'Internal Linking') && (
-                      <button
+                      <Button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (onRemoveFeedbackAddition)
                             onRemoveFeedbackAddition(index);
                         }}
                         disabled={isTargetedFixing !== null}
-                        className="ui-btn ui-btn-muted ui-btn-xs"
+                        variant="muted"
+                        size="xs"
                       >
                         {isTargetedFixing === index ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -509,17 +515,19 @@ export function FeedbackItemCard({
                           <Trash2 className="w-3.5 h-3.5" />
                         )}
                         Remove or Neutralize
-                      </button>
+                      </Button>
                     )}
 
                   {targetText && (
-                    <button
+                    <Button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (onFixFeedbackWithEAI) onFixFeedbackWithEAI(index);
                       }}
                       disabled={isTargetedFixing !== null}
-                      className="ui-btn ui-btn-primary ui-btn-xs"
+                      variant="primary"
+                      size="xs"
                     >
                       {isTargetedFixing === index ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -527,7 +535,7 @@ export function FeedbackItemCard({
                         <Wand2 className="w-3.5 h-3.5" />
                       )}
                       Rewrite with EAI
-                    </button>
+                    </Button>
                   )}
                 </div>
               )}
@@ -559,37 +567,41 @@ export function FeedbackItemCard({
                         }
                       }}
                     />
-                    <button
+                    <Button
+                      type="button"
                       onClick={() => void onSubmitSource(index, feedbackKey)}
                       disabled={isSubmittingSource}
-                      className="ui-btn ui-btn-primary ui-btn-xs"
+                      variant="primary"
+                      size="xs"
                     >
                       {isSubmittingSource && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                       Submit
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      type="button"
                       onClick={() => setActiveSourceInput(null)}
-                      className="ui-btn ui-btn-muted ui-btn-xs"
+                      variant="muted"
+                      size="xs"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
 
               {/* Accepted Banner */}
               {isAccepted && (
-                <div className="mt-2 ui-badge ui-badge-success w-max">
+                <Badge variant="success" className="mt-2 w-max">
                   <Check className="w-3.5 h-3.5" />
                   <span>Accepted as Editorial Choice</span>
-                </div>
+                </Badge>
               )}
 
               {isApplied && (
-                <div className="mt-2 ui-badge ui-badge-success w-max">
+                <Badge variant="success" className="mt-2 w-max">
                   <Check className="w-3.5 h-3.5" />
                   <span>Applied to draft</span>
-                </div>
+                </Badge>
               )}
 
               {/* Verified Banner */}
@@ -622,16 +634,18 @@ export function FeedbackItemCard({
                           <Tooltip>
                             <TooltipTrigger
                               render={
-                                <button
+                                <Button
                                   type="button"
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     onCopy(item.verifiedSource!, 'Source URL');
                                   }}
-                                  className="ui-btn ui-btn-muted ui-btn-icon !h-7 !w-7 rounded-md border-emerald-500/20 bg-emerald-950/30 text-emerald-100 hover:bg-emerald-900/45"
+                                  variant="muted"
+                                  size="icon-xs"
+                                  className="rounded-md border-emerald-500/20 bg-emerald-950/30 text-emerald-100 hover:bg-emerald-900/45"
                                 >
                                   <Copy className="h-3.5 w-3.5" />
-                                </button>
+                                </Button>
                               }
                             />
                             <TooltipContent>Copy source URL</TooltipContent>
@@ -640,15 +654,15 @@ export function FeedbackItemCard({
                             <Tooltip>
                               <TooltipTrigger
                                 render={
-                                  <a
-                                    href={item.verifiedSource}
-                                    target="_blank"
-                                    rel="noreferrer"
+                                  <Button
+                                    render={<a href={item.verifiedSource} target="_blank" rel="noreferrer" />}
+                                    variant="muted"
+                                    size="icon-xs"
                                     onClick={(event) => event.stopPropagation()}
-                                    className="ui-btn ui-btn-muted ui-btn-icon !h-7 !w-7 rounded-md border-emerald-500/20 bg-emerald-950/30 text-emerald-100 hover:bg-emerald-900/45"
+                                    className="rounded-md border-emerald-500/20 bg-emerald-950/30 text-emerald-100 hover:bg-emerald-900/45"
                                   >
                                     <ExternalLink className="h-3.5 w-3.5" />
-                                  </a>
+                                  </Button>
                                 }
                               />
                               <TooltipContent>Open source</TooltipContent>

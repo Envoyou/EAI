@@ -20,6 +20,8 @@ import { FormEvent, type ReactNode, useState } from 'react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 type Balance = {
@@ -347,16 +349,18 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                 placeholder="Email, organization, slug..."
                 aria-label="Search email or organization"
               />
-              <button
+              <Button
                 type="submit"
                 disabled={searching}
-                className="ui-btn ui-btn-primary ui-btn-sm shrink-0"
+                variant="primary"
+                size="sm"
+                className="shrink-0"
               >
                 {searching
                   ? <Loader2 className="h-4 w-4 animate-spin" />
                   : <Search className="h-4 w-4" />}
                 Search
-              </button>
+              </Button>
             </div>
           </form>
 
@@ -459,9 +463,9 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                               <p className="font-semibold truncate text-[var(--foreground)]">{user.name || 'No Name'}</p>
                               <p className="text-[10px] text-[var(--muted-foreground)] truncate">{user.email}</p>
                             </div>
-                            <span className="ui-badge ui-badge-surface text-[9px] uppercase tracking-wider px-1.5 py-0.5 shrink-0 font-bold">
+                            <Badge variant="surface" className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider">
                               {user.role}
-                            </span>
+                            </Badge>
                           </div>
                         ))}
                       </div>
@@ -541,22 +545,26 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                           </p>
 
                           <div className="grid grid-cols-2 gap-2">
-                            <button
+                            <Button
                               type="button"
                               onClick={() => setDirection('add')}
-                              className={`ui-btn ui-btn-sm ${direction === 'add' ? 'ui-btn-primary' : 'ui-btn-surface'}`}
+                              variant={direction === 'add' ? 'primary' : 'surface'}
+                              size="sm"
+                              aria-pressed={direction === 'add'}
                             >
                               <PlusCircle className="h-4 w-4" />
                               Add
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               type="button"
                               onClick={() => setDirection('deduct')}
-                              className={`ui-btn ui-btn-sm ${direction === 'deduct' ? 'ui-btn-danger bg-rose-500/10' : 'ui-btn-surface'}`}
+                              variant={direction === 'deduct' ? 'danger' : 'surface'}
+                              size="sm"
+                              aria-pressed={direction === 'deduct'}
                             >
                               <MinusCircle className="h-4 w-4" />
                               Deduct
-                            </button>
+                            </Button>
                           </div>
 
                           <label className="mt-3 block text-xs font-semibold">
@@ -605,17 +613,19 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                                 />
                               </div>
                               {zohoDeskEnabled && (
-                                <button
+                                <Button
                                   type="button"
                                   onClick={verifyTicket}
                                   disabled={verifyingTicket || !ticketReference.trim()}
-                                  className="ui-btn ui-btn-surface ui-btn-sm shrink-0"
+                                  variant="surface"
+                                  size="sm"
+                                  className="shrink-0"
                                 >
                                   {verifyingTicket
                                     ? <Loader2 className="h-4 w-4 animate-spin" />
                                     : <ShieldCheck className="h-4 w-4" />}
                                   Verify
-                                </button>
+                                </Button>
                               )}
                             </div>
                           </label>
@@ -635,28 +645,29 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                                   </p>
                                 </div>
                                 {verifiedTicket.url && (
-                                  <a
-                                    href={verifiedTicket.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="ui-btn ui-btn-muted ui-btn-icon shrink-0"
+                                  <Button
+                                    render={<a href={verifiedTicket.url} target="_blank" rel="noreferrer" />}
+                                    variant="muted"
+                                    size="icon"
+                                    className="shrink-0"
                                     aria-label="Open ticket in Zoho Desk"
                                   >
                                     <ExternalLink className="h-4 w-4" />
-                                  </a>
+                                  </Button>
                                 )}
                               </div>
                             </div>
                           )}
                         </div>
 
-                        <button
+                        <Button
                           type="submit"
-                          className={`ui-btn mt-5 w-full ${direction === 'add' ? 'ui-btn-primary' : 'ui-btn-outline'}`}
+                          variant={direction === 'add' ? 'primary' : 'outline'}
+                          className="mt-5 w-full"
                         >
                           {direction === 'add' ? <PlusCircle className="h-4 w-4" /> : <MinusCircle className="h-4 w-4" />}
                           Review {direction === 'add' ? 'addition' : 'deduction'}
-                        </button>
+                        </Button>
                       </form>
                     ) : (
                       <form onSubmit={prepareOverride} className="flex-1 flex flex-col justify-between">
@@ -736,17 +747,19 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                                 />
                               </div>
                               {zohoDeskEnabled && (
-                                <button
+                                <Button
                                   type="button"
                                   onClick={verifyTicket}
                                   disabled={verifyingTicket || !ticketReference.trim()}
-                                  className="ui-btn ui-btn-surface ui-btn-sm shrink-0"
+                                  variant="surface"
+                                  size="sm"
+                                  className="shrink-0"
                                 >
                                   {verifyingTicket
                                     ? <Loader2 className="h-4 w-4 animate-spin" />
                                     : <ShieldCheck className="h-4 w-4" />}
                                   Verify
-                                </button>
+                                </Button>
                               )}
                             </div>
                           </label>
@@ -766,28 +779,29 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                                   </p>
                                 </div>
                                 {verifiedTicket.url && (
-                                  <a
-                                    href={verifiedTicket.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="ui-btn ui-btn-muted ui-btn-icon shrink-0"
+                                  <Button
+                                    render={<a href={verifiedTicket.url} target="_blank" rel="noreferrer" />}
+                                    variant="muted"
+                                    size="icon"
+                                    className="shrink-0"
                                     aria-label="Open ticket in Zoho Desk"
                                   >
                                     <ExternalLink className="h-4 w-4" />
-                                  </a>
+                                  </Button>
                                 )}
                               </div>
                             </div>
                           )}
                         </div>
 
-                        <button
+                        <Button
                           type="submit"
-                          className="ui-btn ui-btn-primary mt-5 w-full"
+                          variant="primary"
+                          className="mt-5 w-full"
                         >
                           <CheckCircle2 className="h-4 w-4" />
                           Review plan override
-                        </button>
+                        </Button>
                       </form>
                     )}
                   </div>
@@ -825,9 +839,9 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                             {transaction.type.replaceAll('_', ' ')}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
-                            <span className="ui-badge ui-badge-surface capitalize text-[9px] font-semibold tracking-wider">
+                            <Badge variant="surface" className="text-[9px] font-semibold capitalize tracking-wider">
                               {transaction.bucket}
-                            </span>
+                            </Badge>
                           </td>
                           <td className={`whitespace-nowrap px-4 py-4 text-right font-mono font-bold text-sm ${
                             transaction.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'
@@ -895,15 +909,16 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                   This creates an immutable ledger transaction.
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={() => setPending(null)}
                 disabled={submitting}
-                className="ui-btn ui-btn-muted ui-btn-icon"
+                variant="muted"
+                size="icon"
                 aria-label="Close confirmation"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
 
             <dl className="mt-5 grid grid-cols-[140px_1fr] gap-x-4 gap-y-3 rounded-2xl bg-[var(--surface-2)] p-4 text-sm">
@@ -935,23 +950,23 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
             </dl>
 
             <div className="mt-6 flex justify-end gap-2">
-              <button
+              <Button
                 type="button"
                 onClick={() => setPending(null)}
                 disabled={submitting}
-                className="ui-btn ui-btn-surface"
+                variant="surface"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={executeAdjustment}
                 disabled={submitting}
-                className={`ui-btn ${pending.direction === 'add' ? 'ui-btn-primary' : 'ui-btn-danger bg-rose-500/10'}`}
+                variant={pending.direction === 'add' ? 'primary' : 'danger'}
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Confirm {pending.direction}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -966,15 +981,16 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                   This manually overrides the organization&apos;s subscription package.
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={() => setPendingOverride(null)}
                 disabled={submitting}
-                className="ui-btn ui-btn-muted ui-btn-icon"
+                variant="muted"
+                size="icon"
                 aria-label="Close confirmation"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
 
             <dl className="mt-5 grid grid-cols-[140px_1fr] gap-x-4 gap-y-3 rounded-2xl bg-[var(--surface-2)] p-4 text-sm">
@@ -1000,23 +1016,23 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
             </dl>
 
             <div className="mt-6 flex justify-end gap-2">
-              <button
+              <Button
                 type="button"
                 onClick={() => setPendingOverride(null)}
                 disabled={submitting}
-                className="ui-btn ui-btn-surface"
+                variant="surface"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={executeOverride}
                 disabled={submitting}
-                className="ui-btn ui-btn-primary"
+                variant="primary"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Confirm override
-              </button>
+              </Button>
             </div>
           </div>
         </div>
