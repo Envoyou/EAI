@@ -2,6 +2,7 @@ import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Check, X, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export const AIPreviewBlockComponent = ({ node, editor }: NodeViewProps) => {
   const { content, originalContent, action } = node.attrs;
@@ -25,18 +26,22 @@ export const AIPreviewBlockComponent = ({ node, editor }: NodeViewProps) => {
           <span className="capitalize">{action.replace('_', ' ')} Preview</span>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            type="button"
             onClick={handleReject}
-            className="ui-btn ui-btn-muted ui-btn-xs"
+            variant="muted"
+            size="xs"
           >
             <X className="h-3 w-3" /> Reject
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
             onClick={handleAccept}
-            className="ui-btn ui-btn-primary ui-btn-xs"
+            variant="primary"
+            size="xs"
           >
             <Check className="h-3 w-3" /> Accept
-          </button>
+          </Button>
         </div>
       </div>
       <div

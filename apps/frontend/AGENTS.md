@@ -58,7 +58,7 @@ npm run lint
 
 - **Language**: TypeScript 5 in strict mode. Avoid `any` — use proper types from `@eai/shared`.
 - **Components**: Use React Server Components by default; add `'use client'` only when browser APIs or hooks are required.
-- **Styling**: Tailwind CSS v4 utility classes are acceptable for layout. For buttons, badges, alerts, and interactive components, **always use the project's `ui-*` CSS classes** (see Section 4 below).
+- **Styling**: Tailwind CSS v4 utility classes are acceptable for layout. New or migrated buttons must use the canonical `<Button>` from `@/components/ui/button`; its variants own the project's `ui-btn` classes. Existing direct `ui-*` consumers are compatibility code to migrate incrementally.
 - **Imports**: Use `@/` path alias. Never use relative `../../../` chains.
 - **i18n**: All user-facing strings must go through `next-intl`; never hardcode English strings in components.
 
@@ -105,7 +105,7 @@ apps/frontend/
 │   │   │   ├── select.tsx        # Custom Select (Mobile Bottom Sheet via Base UI)
 │   │   │   ├── tooltip.tsx       # Custom Tooltip (Base UI — use render prop, not asChild)
 │   │   │   ├── badge.tsx         # Custom Badge
-│   │   │   ├── button.tsx        # Button wrapper
+│   │   │   ├── button.tsx        # Canonical semantic Button API backed by ui-btn classes
 │   │   │   ├── alert.tsx         # Alert wrapper
 │   │   │   ├── skeleton.tsx      # Loading skeleton
 │   │   │   ├── input.tsx         # Input field
@@ -158,13 +158,11 @@ apps/frontend/
 
 To maintain visual consistency across the EAI application (especially dark/light mode support), **all developers and AI agents MUST comply with the following rules**:
 
-### 🚫 RULE 1: Do Not Style Buttons with Manual Tailwind Classes
-Do not write custom Tailwind classes like `bg-blue-600 px-4 py-2 text-white hover:bg-blue-700` to style buttons.
-* **Solution**: Use the project's standardized button classes defined in `globals.css`:
-  * Primary Button: `ui-btn ui-btn-primary` (Automatically adjusts: white background in Dark mode, brand blue background in Light mode).
-  * Outline Button: `ui-btn ui-btn-outline`
-  * Surface Button: `ui-btn ui-btn-surface`
-  * Sizing: Add `ui-btn-sm`, `ui-btn-xs`, or `ui-btn-lg`.
+### 🚫 RULE 1: Do Not Style or Assemble Buttons Manually
+Do not create new raw `<button>` controls with manual Tailwind styling or direct `ui-btn` class composition.
+* **Solution**: Use `<Button>` from `@/components/ui/button`. Canonical variants are `primary`, `outline`, `surface`, `muted`, `danger`, and `link`; canonical sizes are `default`, `xs`, `sm`, `lg`, and the `icon*` sizes.
+* **Compatibility**: `default`, `secondary`, `ghost`, and `destructive` remain supported aliases for existing consumers. Do not use those aliases in new code.
+* **Migration boundary**: Existing raw buttons and direct `ui-btn` consumers may be migrated feature-by-feature. Do not perform unrelated global rewrites.
 
 ### 🚫 RULE 2: Do Not Use Standard HTML `<select>` Tags
 Standard browser `<select>` tags have poor aesthetics on mobile devices and lack consistency.
@@ -236,7 +234,7 @@ Before submitting a PR for frontend changes:
 - [ ] `npm run lint -- --filter=frontend` passes with zero errors
 - [ ] `npm run build -- --filter=frontend` compiles without TypeScript errors
 - [ ] No raw `<select>` tags — use `<Select>` from `@/components/ui/select`
-- [ ] No manual button Tailwind classes — use `ui-btn ui-btn-*`
+- [ ] New or migrated buttons use `<Button>` with canonical semantic variants; no new direct `ui-btn` composition
 - [ ] No `asChild` prop on `<TooltipTrigger>` — use `render` prop
 - [ ] External avatar images use `<Image />` from `next/image`
 - [ ] Tiptap NodeView controls use a `not-prose` control boundary and no inline color workaround
@@ -249,11 +247,12 @@ Before submitting a PR for frontend changes:
 
 ```tsx
 // ✅ Correct
-<button className="ui-btn ui-btn-primary">Save</button>
-<button className="ui-btn ui-btn-outline ui-btn-sm">Cancel</button>
+<Button variant="primary">Save</Button>
+<Button variant="outline" size="sm">Cancel</Button>
 
 // ❌ Wrong
 <button className="bg-blue-600 px-4 py-2 text-white">Save</button>
+<button className="ui-btn ui-btn-primary">Save</button>
 ```
 
 ### Correct tooltip usage

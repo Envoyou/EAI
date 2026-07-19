@@ -6,6 +6,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Changed
+- **API Button Kanonis**:
+  - Mengonsolidasikan wrapper Base UI `Button` dan kontrak visual global `ui-btn` menjadi satu API komponen semantik dengan variant `primary`, `outline`, `surface`, `muted`, `danger`, dan `link`.
+  - Mempertahankan nama variant bergaya shadcn sebelumnya sebagai alias kompatibilitas, memigrasikan AI Preview serta consumer primitive yang sudah ada ke variant semantik, dan menambahkan regression test variant/size terfokus.
+
 ### Fixed
 - **Boundary Style UI Editor**:
   - Mengisolasi kontrol AI Preview dari typography artikel Tiptap menggunakan boundary `not-prose`, sambil mempertahankan rendering heading, link, tabel, dan kode Markdown pada area konten sibling.

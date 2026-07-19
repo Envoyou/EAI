@@ -60,12 +60,12 @@ export function ArrayField({
             />
             <Button
               type="button"
-              variant="ghost"
+              variant="danger"
               size="icon"
               onClick={() => onChange(values.filter((_, itemIndex) => itemIndex !== index))}
               disabled={values.length === 1}
               aria-label={`Delete ${label} ${index + 1}`}
-              className="text-muted-foreground opacity-60 hover:text-destructive group-hover:opacity-100"
+              className="opacity-60 group-hover:opacity-100"
             >
               <Trash2 />
             </Button>
@@ -73,10 +73,9 @@ export function ArrayField({
         ))}
         <Button
           type="button"
-          variant="secondary"
+          variant="surface"
           size="sm"
           onClick={() => onChange([...values, ''])}
-          className="bg-muted/20 hover:bg-muted/40 text-muted-foreground border-transparent shadow-none"
         >
           <Plus />
           Add

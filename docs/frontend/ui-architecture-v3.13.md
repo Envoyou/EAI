@@ -150,15 +150,17 @@ Components should depend on semantic intent, not copy palette hex values.
 
 ### Layer 4: component and semantic-control APIs
 
-Two mechanisms currently coexist:
+Two mechanisms currently coexist during migration:
 
-1. global semantic classes such as `ui-btn`, `ui-badge`, `ui-alert`,
-   `ui-control`, and `ui-card`;
-2. Base UI/shadcn wrappers under `src/components/ui` using variants and slots.
+1. the canonical Base UI `Button` wrapper under `src/components/ui`, whose
+   semantic variants are backed by the global `ui-btn` implementation classes;
+2. direct global classes such as `ui-btn`, `ui-badge`, `ui-alert`, `ui-control`,
+   and `ui-card` in legacy feature code, plus other Base UI/shadcn wrappers that
+   have not yet completed the same consolidation.
 
-The scoped frontend guide currently defines `ui-*` classes as the normative API
-for interactive feature controls. The component wrappers are an emerging second
-API and must not silently replace the contract without a planned migration.
+New and migrated buttons must use `components/ui/Button`. Direct `ui-btn`
+composition remains compatibility code and should be migrated feature-by-feature
+without broad visual rewrites.
 
 ### Target direction
 
@@ -173,8 +175,8 @@ Feature component
 ```
 
 Global `ui-*` classes may remain internal compatibility building blocks during
-migration. The frontend guide should be updated only after equivalent behavior,
-adoption, and visual tests are complete.
+migration. The Button milestone is complete; Badge, Alert, Input, Textarea, and
+legacy raw controls still need equivalent ownership decisions and validation.
 
 ## 6. Editor content and embedded UI boundary
 
@@ -264,7 +266,7 @@ responsible for:
 
 | Priority | Risk | Impact | Recommended next step |
 | --- | --- | --- | --- |
-| P1 | Two public control APIs coexist | Inconsistent visuals, accessibility, and maintenance ownership | Inventory `ui-*` consumers, define variant parity, and migrate feature-by-feature |
+| P1 | Primitive consolidation is incomplete beyond Button | Inconsistent visuals, accessibility, and maintenance ownership | Inventory Badge, Alert, Input, Textarea, and legacy button consumers, then migrate feature-by-feature |
 | P2 | Large feature components remain | High review cost and hidden state coupling | Continue facade/subsystem extraction around coherent behavior, not arbitrary file-size targets |
 | P2 | Custom link overlay owns manual positioning | Scroll, resize, focus, and mobile edge cases | Capture behavior with tests, then migrate to a maintained floating positioner |
 | P2 | Hard-coded user-facing strings remain in feature components | Incomplete localization and duplicated copy | Add an i18n audit and migrate by feature namespace |
@@ -295,6 +297,10 @@ responsible for:
 
 ### Phase 3: consolidate the design system
 
+- Completed for Button on 2026-07-19: mapped canonical semantic variants to the
+  existing `ui-btn` visual contract, preserved compatibility aliases, migrated
+  AI Preview and existing primitive consumers, and added variant regression
+  coverage.
 - Move feature controls behind `components/ui` primitives incrementally.
 - Preserve current visuals and mobile behavior during migration.
 - Retire redundant global classes only when no consumers remain.

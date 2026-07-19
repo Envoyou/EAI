@@ -869,6 +869,11 @@
   font-size: 12px;
 }
 
+.ui-btn-lg {
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
 .ui-btn-surface {
   background: var(--surface-2);
   color: var(--foreground);
@@ -921,10 +926,39 @@
   color: var(--foreground);
 }
 
+.ui-btn-link {
+  border-radius: 0;
+  padding-inline: 0;
+  background: transparent;
+  color: var(--primary);
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+
+.ui-btn-link:hover:not(:disabled) {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
 .ui-btn-icon {
   width: 32px;
   height: 32px;
   padding: 0;
+}
+
+.ui-btn-icon-xs {
+  width: 24px;
+  height: 24px;
+}
+
+.ui-btn-icon-sm {
+  width: 28px;
+  height: 28px;
+}
+
+.ui-btn-icon-lg {
+  width: 36px;
+  height: 36px;
 }
 
 .dark .ui-btn-surface:hover:not(:disabled) {

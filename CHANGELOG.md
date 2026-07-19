@@ -6,6 +6,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Changed
+- **Canonical Button API**:
+  - Consolidated the Base UI `Button` wrapper and global `ui-btn` visual contract into one semantic component API with `primary`, `outline`, `surface`, `muted`, `danger`, and `link` variants.
+  - Preserved the previous shadcn-style variant names as compatibility aliases, migrated AI Preview and existing primitive consumers to semantic variants, and added focused variant/size regression coverage.
+
 ### Fixed
 - **Editor UI Style Boundary**:
   - Isolated AI Preview controls from Tiptap article typography with a `not-prose` control boundary while preserving Markdown heading, link, table, and code rendering in the sibling content region.

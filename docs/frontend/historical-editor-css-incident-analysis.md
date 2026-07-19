@@ -28,7 +28,7 @@ that historical workarounds are not mistaken for current design guidance.
 | Button colors need inline overrides in the AI preview | **Resolved** | Reject and Accept now rely on semantic `ui-btn` variants without inline color declarations. |
 | Dark editor links require a high-specificity override | **Resolved** | Light and dark link colors now flow through `--editor-link` and Tailwind Typography variables without a broad selector or `!important`. |
 | The custom link popup needs manual coordinates and dynamic height | **Still active** | `Editor.tsx` still calculates coordinates against `scrollContainerRef` and changes `minHeight` using `isEditingLink`. |
-| Shared UI primitives should be introduced | **Partially resolved** | `components/ui` now contains Base UI/shadcn primitives, but most feature UI still uses raw elements plus global `ui-*` classes. |
+| Shared UI primitives should be introduced | **Partially resolved** | `components/ui/Button` is now the canonical semantic API backed by `ui-btn` classes, while other controls and legacy feature buttons still require incremental migration. |
 | Theme tokens should be bridged into Tailwind | **Resolved** | Tailwind v4 `@theme` and `@theme inline` now map runtime CSS variables to utilities. |
 | Portal positioning is missing across the application | **Partially resolved** | Base UI Select, Tooltip, and other maintained primitives use portals; the editor's custom link popup does not. |
 | Configure theme colors through Tailwind v3 config | **Superseded** | The frontend now uses Tailwind CSS v4 with CSS-first configuration. |
