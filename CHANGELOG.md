@@ -13,6 +13,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Migrated Billing Details Form's legal-name, NPWP, address, and save controls; corrected the address textarea's previous use of input-specific legacy styling.
   - Migrated General and Defaults Settings to canonical surface inputs and select triggers, removing all direct legacy control classes from both pages.
   - Migrated the Usage ledger search and Workflow language trigger while intentionally retaining the native auto-save checkbox as a specialized control.
+  - Migrated the Editor metadata category, article type, audience, target length, and writing-instruction fields to canonical surface controls while retaining the raw Markdown canvas as an editor-owned control.
   - Recorded the remaining raw-field and legacy-control inventory in the UI architecture plan to guide bounded feature-by-feature migration.
 - **Canonical Button API**:
   - Consolidated the Base UI `Button` wrapper and global `ui-btn` visual contract into one semantic component API with `primary`, `outline`, `surface`, `muted`, `accent`, `danger`, and `link` variants.

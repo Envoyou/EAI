@@ -1,6 +1,7 @@
 import { ArticleMetadata } from '@eai/shared';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Sparkles, Loader2, Type, Code } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -403,7 +404,8 @@ export default function Editor({
           <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
             {isPersonal ? (
               <>
-                <input
+                <Input
+                  variant="surface"
                   type="text"
                   name="article-category"
                   autoComplete="off"
@@ -419,7 +421,6 @@ export default function Editor({
                   }}
                   disabled={isLoading}
                   placeholder="Category…"
-                  className="ui-control ui-input"
                 />
                 <datalist id="category-options">
                   {categoryOptions.map((option) => (
@@ -427,7 +428,8 @@ export default function Editor({
                   ))}
                 </datalist>
 
-                <input
+                <Input
+                  variant="surface"
                   type="text"
                   name="article-type"
                   autoComplete="off"
@@ -443,7 +445,6 @@ export default function Editor({
                   }}
                   disabled={isLoading}
                   placeholder="Article type…"
-                  className="ui-control ui-input"
                 />
                 <datalist id="type-options">
                   {articleTypeOptions.map((option) => (
@@ -459,8 +460,9 @@ export default function Editor({
                   disabled={isLoading}
                 >
                   <SelectTrigger
+                    variant="surface"
                     aria-label="Article category"
-                    className={`ui-control ui-select ${metadata.category ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}`}
+                    className={metadata.category ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}
                   >
                     <SelectValue placeholder="Category…" />
                   </SelectTrigger>
@@ -477,8 +479,9 @@ export default function Editor({
                   disabled={isLoading}
                 >
                   <SelectTrigger
+                    variant="surface"
                     aria-label="Article type"
-                    className={`ui-control ui-select ${metadata.type ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}`}
+                    className={metadata.type ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}
                   >
                     <SelectValue placeholder="Article type…" />
                   </SelectTrigger>
@@ -492,6 +495,7 @@ export default function Editor({
             )}
 
             <Input
+              variant="surface"
               type="text"
               name="target-audience"
               autoComplete="off"
@@ -500,9 +504,9 @@ export default function Editor({
               value={metadata.targetAudience || ''}
               onChange={e => updateMeta('targetAudience', e.target.value)}
               disabled={isLoading}
-              className="ui-control ui-input"
             />
             <Input
+              variant="surface"
               type="text"
               name="target-length"
               autoComplete="off"
@@ -511,7 +515,6 @@ export default function Editor({
               value={metadata.targetLength || ''}
               onChange={e => updateMeta('targetLength', e.target.value)}
               disabled={isLoading}
-              className="ui-control ui-input"
             />
           </div>
 
@@ -545,7 +548,8 @@ export default function Editor({
 
             {showBrief && (
               <div className="mt-2">
-                <textarea
+                <Textarea
+                  variant="surface"
                   name="writing-instructions"
                   autoComplete="off"
                   aria-label="Writing instructions"
@@ -554,7 +558,6 @@ export default function Editor({
                   placeholder={`Add article-specific guidance…\n\nExample: Use a conversational tone, avoid technical jargon, and prioritize Indonesian sources.`}
                   disabled={isLoading}
                   rows={4}
-                  className="ui-control ui-textarea"
                 />
                 <p className="mt-1.5 px-1 text-[11px] ui-muted">
                   Leave empty to use the default {editorialBrandName} writing standard.
