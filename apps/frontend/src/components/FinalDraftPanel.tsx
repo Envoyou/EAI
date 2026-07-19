@@ -10,6 +10,7 @@ import {
   MoreVertical, FileText, Download, Sparkles, ChevronDown, ChevronUp, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Textarea } from '@/components/ui/textarea';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
@@ -900,7 +901,8 @@ export default function FinalDraftPanel({
 
             {showRefineBox && (
               <div className="mt-2 space-y-2">
-                <textarea
+                <Textarea
+                  variant="surface"
                   name="revision-instructions"
                   autoComplete="off"
                   aria-label="Revision instructions"
@@ -909,7 +911,6 @@ export default function FinalDraftPanel({
                   placeholder="Example: Shorten the introduction, strengthen the opening, and add a business perspective…"
                   disabled={isRefining}
                   rows={3}
-                  className="ui-control ui-textarea"
                 />
                 <button
                   onClick={() => {

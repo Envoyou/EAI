@@ -521,21 +521,23 @@ export function OnboardingWizard() {
                   <div className="space-y-6">
                     <WizardField label="Nama Workspace" icon={Building2}>
                       <Input
+                        variant="surface"
                         type="text"
                         value={data.activation.workspaceName}
                         onChange={(event) => updateActivation('workspaceName', event.target.value)}
                         placeholder="Nama Publikasi / Workspace Anda (misal: EAI Blog)"
-                        className="ui-control ui-input h-11"
+                        className="h-11"
                       />
                     </WizardField>
 
                     <WizardField label="Website Publikasi" icon={Globe2} optional>
                       <Input
+                        variant="surface"
                         type="url"
                         value={data.activation.website}
                         onChange={(event) => updateActivation('website', event.target.value)}
                         placeholder="https://blog.envoyou.com (opsional)"
-                        className="ui-control ui-input h-11"
+                        className="h-11"
                       />
                     </WizardField>
 

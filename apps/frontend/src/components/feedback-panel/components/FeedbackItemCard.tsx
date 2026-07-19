@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, Variants, AnimatePresence } from 'framer-motion';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Input } from '@/components/ui/input';
 import { canShowAutoApply } from '../utils';
 
 const itemVariants: Variants = {
@@ -541,7 +542,8 @@ export function FeedbackItemCard({
                     Enter Source URL
                   </div>
                   <div className="flex min-w-0 gap-2">
-                    <input
+                    <Input
+                      variant="surface"
                       type="text"
                       name={`feedback-source-${index}`}
                       autoComplete="off"
@@ -549,7 +551,7 @@ export function FeedbackItemCard({
                       placeholder="https://example.com/source…"
                       value={sourceText}
                       onChange={(e) => setSourceText(e.target.value)}
-                      className="ui-control ui-input min-w-0 flex-1 text-xs"
+                      className="min-w-0 flex-1 text-xs"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !isSubmittingSource) {
                           e.preventDefault();

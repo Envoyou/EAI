@@ -293,9 +293,10 @@ responsible for:
 - Completed on 2026-07-19 for form controls: after migrating Support Form,
   Billing Details Form, General Settings, Defaults Settings, Usage Settings, and
   Workflow Settings, the Editor metadata panel, AI Config, Audit Logs, and
-  Billing Admin, 14 feature files still contain raw `<input>`, 6 contain raw
-  `<textarea>`, none contain raw `<select>`, and 3 directly compose `ui-control`
-  / `ui-input` /
+  Billing Admin, Final Draft revision instructions, Onboarding activation, and
+  Feedback source entry, 13 feature files still contain raw `<input>`, 5 contain
+  raw `<textarea>`, none contain raw `<select>`, and none directly compose
+  `ui-control` / `ui-input` /
   `ui-textarea` / `ui-select`. Tests and primitive implementations are excluded
   from these counts.
 - Define the public variants and accessibility behavior required from each
@@ -323,8 +324,10 @@ responsible for:
   and `surface` variants for Input, Textarea, and SelectTrigger, then migrated
   Support Form, Billing Details Form, General Settings, Defaults Settings, Usage
   Settings, Workflow Settings, the Editor metadata panel, AI Config, Audit Logs,
-  and Billing Admin without changing their filled-control visual contract. The
-  Editor's raw Markdown textarea and specialized checkboxes remain native
+  Billing Admin, Final Draft revision instructions, Onboarding activation, and
+  Feedback source entry without changing their filled-control visual contract.
+  No feature code directly composes the legacy form-control classes anymore.
+  The Editor's raw Markdown textarea and specialized checkboxes remain native
   because they have separate ownership contracts.
 - Move feature controls behind `components/ui` primitives incrementally.
 - Preserve current visuals and mobile behavior during migration.

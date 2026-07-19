@@ -15,6 +15,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Memigrasikan pencarian ledger Usage dan trigger bahasa Workflow, sambil sengaja mempertahankan checkbox auto-save native sebagai kontrol khusus.
   - Memigrasikan field kategori metadata Editor, tipe artikel, audiens, target panjang, dan instruksi penulisan ke kontrol surface kanonis, sambil mempertahankan canvas Markdown mentah sebagai kontrol milik editor.
   - Memigrasikan field teks AI Config, Audit Logs, dan Billing Admin ke kontrol surface kanonis; mengganti raw select admin terakhir dengan API Select adaptif sambil mempertahankan alur review dan konfirmasi operasi istimewa.
+  - Memigrasikan instruksi revisi Final Draft, field aktivasi Onboarding, dan input sumber Feedback ke kontrol surface kanonis, sehingga feature code tidak lagi menyusun class form-control legacy secara langsung.
   - Mencatat inventaris raw field dan legacy control yang tersisa pada rencana arsitektur UI untuk memandu migrasi per fitur yang terukur.
 - **API Button Kanonis**:
   - Mengonsolidasikan wrapper Base UI `Button` dan kontrak visual global `ui-btn` menjadi satu API komponen semantik dengan variant `primary`, `outline`, `surface`, `muted`, `accent`, `danger`, dan `link`.
