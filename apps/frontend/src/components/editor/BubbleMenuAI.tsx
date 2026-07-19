@@ -4,6 +4,7 @@ import { BubbleMenu } from '@tiptap/react/menus';
 import { Bold, Italic, Minimize2, Maximize2, Link2, Check, X, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface BubbleMenuAIProps {
   editor: Editor;
@@ -77,7 +78,7 @@ export const BubbleMenuAI = ({ editor }: BubbleMenuAIProps) => {
           }}
         >
           <Link2 className="h-3.5 w-3.5 text-[var(--muted-foreground)] ml-1" />
-          <input
+          <Input
             type="text"
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
@@ -91,7 +92,7 @@ export const BubbleMenuAI = ({ editor }: BubbleMenuAIProps) => {
               }
             }}
             placeholder="Paste or type link..."
-            className="flex-1 min-w-0 bg-transparent text-xs text-[var(--foreground)] border-none outline-none focus:ring-0 focus:outline-none placeholder:text-[var(--muted-foreground)]"
+            className="h-auto min-w-0 flex-1 border-none bg-transparent px-0 py-0 text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
             autoFocus
           />
           <div className="flex items-center gap-0.5 border-l border-[var(--border)] pl-1.5 shrink-0">

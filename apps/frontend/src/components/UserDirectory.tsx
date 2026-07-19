@@ -4,6 +4,8 @@ import dynamic from 'next/dynamic';
 import { AlertCircle, ShieldAlert, Mail, Loader2, X } from 'lucide-react';
 import { useUserDirectory } from './user-directory/hooks/useUserDirectory';
 import { UserTable } from './user-directory/components/UserTable';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 const CreditAdjustmentModal = dynamic(
   () =>
@@ -185,11 +187,11 @@ export function UserDirectory() {
                 <label className="text-xs font-semibold text-[var(--muted-foreground)] uppercase block mb-1">
                   Email Subject
                 </label>
-                <input
+                <Input
+                  variant="surface"
                   type="text"
                   value={dir.inviteSubject}
                   onChange={(e) => dir.setInviteSubject(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--foreground)] focus:outline-none focus:border-sky-500"
                 />
               </div>
 
@@ -197,11 +199,12 @@ export function UserDirectory() {
                 <label className="text-xs font-semibold text-[var(--muted-foreground)] uppercase block mb-1">
                   Custom Message Content
                 </label>
-                <textarea
+                <Textarea
+                  variant="surface"
                   rows={5}
                   value={dir.inviteMessage}
                   onChange={(e) => dir.setInviteMessage(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--foreground)] focus:outline-none focus:border-sky-500 resize-none font-sans"
+                  className="resize-none font-sans"
                 />
               </div>
 

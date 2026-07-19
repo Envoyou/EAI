@@ -8,6 +8,8 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { DirectoryUser } from '../types';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface CreditAdjustmentModalProps {
   selectedUser: DirectoryUser;
@@ -100,7 +102,8 @@ export function CreditAdjustmentModal({
             <label className="text-xs font-semibold text-[var(--muted-foreground)] uppercase block mb-1">
               Credit Amount
             </label>
-            <input
+            <Input
+              variant="surface"
               type="number"
               min="1"
               max="1000000"
@@ -109,7 +112,7 @@ export function CreditAdjustmentModal({
               onChange={(e) =>
                 setAdjustAmount(e.target.value ? Number(e.target.value) : '')
               }
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--foreground)] focus:outline-none focus:border-amber-500 font-mono"
+              className="font-mono"
             />
           </div>
 
@@ -117,12 +120,13 @@ export function CreditAdjustmentModal({
             <label className="text-xs font-semibold text-[var(--muted-foreground)] uppercase block mb-1">
               Reason / Justification
             </label>
-            <textarea
+            <Textarea
+              variant="surface"
               rows={3}
               placeholder="Detail the justification for this credit adjustment..."
               value={adjustReason}
               onChange={(e) => setAdjustReason(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--foreground)] focus:outline-none focus:border-amber-500 resize-none"
+              className="resize-none"
             />
           </div>
 
@@ -130,12 +134,13 @@ export function CreditAdjustmentModal({
             <label className="text-xs font-semibold text-[var(--muted-foreground)] uppercase block mb-1">
               Ticket Reference
             </label>
-            <input
+            <Input
+              variant="surface"
               type="text"
               placeholder="e.g. ZOHO-10294 or INC-8291"
               value={adjustTicket}
               onChange={(e) => setAdjustTicket(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--foreground)] focus:outline-none focus:border-amber-500 font-mono"
+              className="font-mono"
             />
           </div>
 
@@ -143,11 +148,12 @@ export function CreditAdjustmentModal({
             <label className="text-xs font-semibold text-[var(--muted-foreground)] uppercase block mb-1">
               Idempotency Key
             </label>
-            <input
+            <Input
+              variant="surface"
               type="text"
               readOnly
               value={adjustIdempotency}
-              className="w-full px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-3)] text-xs text-[var(--muted-foreground)] font-mono select-all"
+              className="bg-[var(--surface-3)] text-xs text-[var(--muted-foreground)] font-mono select-all"
             />
           </div>
 

@@ -7,6 +7,7 @@ import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { X, AlertTriangle, ChevronRight, ArrowLeft } from 'lucide-react';
 import { getApiUrl } from '@/lib/api-url';
+import { Textarea } from '@/components/ui/textarea';
 
 interface CancelSubscriptionButtonProps {
   planName: string;
@@ -174,13 +175,14 @@ export default function CancelSubscriptionButton({ planName }: CancelSubscriptio
                     <label htmlFor="additional-feedback" className="text-xs font-bold text-foreground block">
                       Any additional feedback for us? (Optional)
                     </label>
-                    <textarea
+                    <Textarea
+                      variant="surface"
                       id="additional-feedback"
                       rows={3}
                       value={feedback}
                       onChange={(e) => setFeedback(e.target.value)}
                       placeholder="Tell us how we can improve Envoyou..."
-                      className="w-full text-xs p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition resize-none"
+                      className="rounded-xl p-3 text-xs resize-none"
                     />
                   </div>
                 </div>

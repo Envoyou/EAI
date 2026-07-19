@@ -20,6 +20,7 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Input } from '@/components/ui/input';
 import { UserActionMenu } from './UserActionMenu';
 import type { DirectoryUser, PaginationMeta } from '../types';
 import { formatDate, getInitials } from '../hooks/useUserDirectory';
@@ -85,12 +86,13 @@ export function UserTable({
         <form onSubmit={onSearchSubmit} className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)]" />
-            <input
+            <Input
+              variant="surface"
               type="text"
               placeholder="Search by Name, Email, User ID, or Org Slug..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-sm focus:outline-none focus:border-indigo-500 text-[var(--foreground)] placeholder-[var(--muted-foreground)]"
+              className="pl-9 pr-4 text-sm"
             />
           </div>
           <div className="flex flex-wrap gap-2 items-center">

@@ -18,6 +18,7 @@ import { useStrategistChat } from './strategist-tab/hooks/useStrategistChat';
 import { SessionSidebar } from './strategist-tab/components/SessionSidebar';
 import { ChatMessageList } from './strategist-tab/components/ChatMessageList';
 import { ChatInputBar } from './strategist-tab/components/ChatInputBar';
+import { Input } from '@/components/ui/input';
 
 export default function StrategistTab({
   messages,
@@ -325,11 +326,12 @@ export default function StrategistTab({
               <label className="block text-xs font-medium text-[var(--muted-foreground)]">
                 Session Title
               </label>
-              <input
+              <Input
+                variant="surface"
                 type="text"
                 value={editingTitle}
                 onChange={(e) => setEditingTitle(e.target.value)}
-                className="w-full text-xs px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--surface-2)] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)]"
+                className="text-xs"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {

@@ -294,9 +294,10 @@ responsible for:
   Billing Details Form, General Settings, Defaults Settings, Usage Settings, and
   Workflow Settings, the Editor metadata panel, AI Config, Audit Logs, and
   Billing Admin, Final Draft revision instructions, Onboarding activation, and
-  Feedback source entry, 13 feature files still contain raw `<input>`, 5 contain
-  raw `<textarea>`, none contain raw `<select>`, and none directly compose
-  `ui-control` / `ui-input` /
+  Feedback source entry, plus standard text fields in History, User Directory,
+  Strategist, Bubble Menu, and subscription cancellation, 6 feature files still
+  contain raw `<input>`, 2 contain raw `<textarea>`, none contain raw `<select>`,
+  and none directly compose `ui-control` / `ui-input` /
   `ui-textarea` / `ui-select`. Tests and primitive implementations are excluded
   from these counts.
 - Define the public variants and accessibility behavior required from each
@@ -325,10 +326,13 @@ responsible for:
   Support Form, Billing Details Form, General Settings, Defaults Settings, Usage
   Settings, Workflow Settings, the Editor metadata panel, AI Config, Audit Logs,
   Billing Admin, Final Draft revision instructions, Onboarding activation, and
-  Feedback source entry without changing their filled-control visual contract.
-  No feature code directly composes the legacy form-control classes anymore.
-  The Editor's raw Markdown textarea and specialized checkboxes remain native
-  because they have separate ownership contracts.
+  Feedback source entry, followed by History search/rename, User Directory,
+  Strategist session rename, Bubble Menu link editing, and cancellation feedback
+  without changing their interaction contracts. Standard text-like feature
+  controls are now fully canonical and no feature code directly composes the
+  legacy form-control classes. Remaining raw controls are specialized checkbox,
+  date, and file inputs plus the auto-resizing chat and raw Markdown canvases;
+  they require separate ownership contracts.
 - Move feature controls behind `components/ui` primitives incrementally.
 - Preserve current visuals and mobile behavior during migration.
 - Retire redundant global classes only when no consumers remain.

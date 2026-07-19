@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { toast } from 'sonner';
 import { AppSidebarShell } from '@/components/AppSidebarShell';
 import { SidebarItem } from '@/components/ui/sidebar-item';
+import { Input } from '@/components/ui/input';
 
 export interface HistoryItem {
   id: string;
@@ -251,7 +252,7 @@ export default function HistorySidebar({
                 <Search className="w-3.5 h-3.5 text-[var(--muted-foreground)] pointer-events-none" />
               </div>
               {sidebarOpen && (
-                <input
+                <Input
                   ref={searchInputRef}
                   type="text"
                   name="draft-search"
@@ -260,7 +261,7 @@ export default function HistorySidebar({
                   placeholder="Search drafts…"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="flex-1 bg-transparent border-none outline-none text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] h-full min-w-0 pr-3"
+                  className="h-full min-w-0 flex-1 border-none bg-transparent px-0 pr-3 py-0 text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
                 />
               )}
             </div>
@@ -335,7 +336,7 @@ export default function HistorySidebar({
                         >
                           <div className="flex-1 min-w-0 flex items-center">
                             {editingId === item.id ? (
-                              <input
+                              <Input
                                 type="text"
                                 name={`draft-title-${item.id}`}
                                 autoComplete="off"
@@ -348,7 +349,7 @@ export default function HistorySidebar({
                                 }}
                                 onClick={e => e.stopPropagation()}
                                 autoFocus
-                                className="flex-1 text-[13px] font-medium bg-transparent border-none outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm px-1 min-w-0"
+                                className="h-auto min-w-0 flex-1 border-none bg-transparent px-1 py-0 text-[13px] font-medium shadow-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:bg-transparent"
                                 style={{ color: 'var(--foreground)' }}
                               />
                             ) : (

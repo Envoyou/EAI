@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { AppSidebarShell } from '@/components/AppSidebarShell';
+import { Input } from '@/components/ui/input';
 
 export interface HistoryItem {
   id: string;
@@ -280,7 +281,8 @@ export default function DocumentHistoryPanel({
       <div className="pt-2">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted-foreground)]" />
-          <input
+          <Input
+            variant="surface"
             ref={searchInputRef}
             type="text"
             name="draft-search"
@@ -289,7 +291,7 @@ export default function DocumentHistoryPanel({
             placeholder="Search drafts…"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-8 py-1.5 text-xs bg-[var(--surface-2)] border border-[var(--border)] rounded-md focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]/20 text-[var(--foreground)] placeholder:text-[var(--muted-foreground)]"
+            className="pl-8 pr-8 text-xs"
           />
           {searchQuery && (
             <button
@@ -387,7 +389,7 @@ export default function DocumentHistoryPanel({
                           <div className="flex items-start gap-2">
                             <div className="flex-1 min-w-0">
                               {editingId === item.id ? (
-                                <input
+                                <Input
                                   type="text"
                                   name={`draft-title-${item.id}`}
                                   autoComplete="off"
@@ -400,7 +402,7 @@ export default function DocumentHistoryPanel({
                                   }}
                                   onClick={e => e.stopPropagation()}
                                   autoFocus
-                                  className="w-full text-[13px] font-medium bg-transparent border-none outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm px-1 min-w-0 text-[var(--foreground)]"
+                                  className="h-auto min-w-0 border-none bg-transparent px-1 py-0 text-[13px] font-medium shadow-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:bg-transparent"
                                 />
                               ) : (
                                 <div className="flex items-center gap-2">
