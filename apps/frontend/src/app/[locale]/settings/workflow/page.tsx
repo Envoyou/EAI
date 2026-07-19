@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSettings } from '@/components/SettingsProvider';
 import { SettingSection, SettingRow } from '@/components/SettingsUI';
 import { AppSettings } from '@/lib/preferences';
+import { Switch } from '@/components/ui/switch';
 
 export default function WorkflowSettingsPage() {
   const { settings, updateSettings } = useSettings();
@@ -29,15 +30,11 @@ export default function WorkflowSettingsPage() {
           title="Auto-save workspace"
           description="Keep draft text, metadata, and the latest review in this browser."
         >
-          <label className="settings-switch">
-            <input
-              type="checkbox"
-              checked={settings.autoSave}
-              onChange={(event) => updateSettings({ autoSave: event.target.checked })}
-            />
-            <span aria-hidden="true" />
-            <span className="sr-only">Auto-save workspace</span>
-          </label>
+          <Switch
+            checked={settings.autoSave}
+            onCheckedChange={(checked) => updateSettings({ autoSave: checked })}
+            aria-label="Auto-save workspace"
+          />
         </SettingRow>
 
         <SettingRow

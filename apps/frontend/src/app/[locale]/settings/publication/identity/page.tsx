@@ -14,6 +14,7 @@ import {
   cleanUniqueList,
 } from '@/components/PublicationUI';
 import { SettingSection } from '@/components/SettingsUI';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const PREDEFINED_CATEGORY_VALUES = PREDEFINED_CATEGORIES.flatMap((pillar) => pillar.items);
 const PREDEFINED_ARTICLE_TYPE_VALUES = PREDEFINED_ARTICLE_TYPES.map((type) => type.name);
@@ -135,16 +136,16 @@ export default function IdentitySettingsPage() {
                       const checked = (form.categories || []).includes(cat);
                       return (
                         <label key={cat} className="flex items-start gap-2.5 cursor-pointer text-xs group py-0.5">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={checked}
-                            onChange={() => {
+                            onCheckedChange={() => {
                               const next = checked
                                 ? (form.categories || []).filter((item) => item !== cat)
                                 : [...(form.categories || []), cat];
                               updateField('categories', next);
                             }}
-                            className="mt-0.5 rounded border-transparent bg-background/50 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer shadow-sm"
+                            className="mt-0.5 size-3.5"
+                            aria-label={cat}
                           />
                           <span className={`leading-tight ${checked ? 'text-foreground font-medium' : 'text-muted-foreground group-hover:text-foreground'}`}>
                             {cat}
@@ -189,17 +190,17 @@ export default function IdentitySettingsPage() {
                         : 'hover:bg-muted/30 text-foreground ring-1 ring-transparent'
                     }`}
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={checked}
-                      onChange={() => {
+                      onCheckedChange={() => {
                         const current = form.articleTypes || [];
                         const next = current.includes(typeObj.name)
                           ? current.filter((item) => item !== typeObj.name)
                           : [...current, typeObj.name];
                         updateField('articleTypes', next);
                       }}
-                      className="mt-0.5 rounded border-transparent bg-background/50 text-primary focus:ring-primary h-4 w-4 cursor-pointer shadow-sm"
+                      className="mt-0.5"
+                      aria-label={typeObj.name}
                     />
                     <div className="min-w-0">
                       <div className={`text-xs font-bold ${checked ? 'text-primary' : 'text-foreground'}`}>

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { X, AlertTriangle, ChevronRight, ArrowLeft } from 'lucide-react';
 import { getApiUrl } from '@/lib/api-url';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface CancelSubscriptionButtonProps {
   planName: string;
@@ -157,11 +158,11 @@ export default function CancelSubscriptionButton({ planName }: CancelSubscriptio
                                   : 'bg-[var(--surface-2)] border-[var(--border)] text-muted-foreground hover:text-foreground hover:border-[var(--border-hover)]'
                               }`}
                             >
-                              <input
-                                type="checkbox"
+                              <Checkbox
                                 checked={isChecked}
-                                onChange={() => handleReasonChange(option)}
-                                className="mt-0.5 h-3.5 w-3.5 rounded border-[var(--border)] text-primary focus:ring-primary/20 accent-primary"
+                                onCheckedChange={() => handleReasonChange(option)}
+                                className="mt-0.5 size-3.5"
+                                aria-label={option}
                               />
                               <span>{option}</span>
                             </label>

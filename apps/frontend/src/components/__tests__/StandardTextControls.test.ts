@@ -37,10 +37,11 @@ describe('standard text-control migration contract', () => {
     expect(creditAdjustment).toContain('<form onSubmit={onSubmit}');
   });
 
-  it('migrates cancellation feedback but retains its specialized checkboxes', () => {
+  it('uses canonical cancellation feedback and checkbox controls', () => {
+    expect(cancellation).not.toMatch(/<input\b/);
     expect(cancellation).not.toMatch(/<textarea\b/);
     expect(cancellation.match(/<Textarea\b/g)).toHaveLength(1);
-    expect(cancellation).toMatch(/<input\b[\s\S]*?type="checkbox"/);
+    expect(cancellation.match(/<Checkbox\b/g)).toHaveLength(1);
   });
 
   it('preserves keyboard-owned interactions', () => {

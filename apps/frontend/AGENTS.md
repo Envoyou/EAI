@@ -110,6 +110,9 @@ apps/frontend/
 │   │   │   ├── skeleton.tsx      # Loading skeleton
 │   │   │   ├── input.tsx         # Input field
 │   │   │   ├── textarea.tsx      # Textarea field
+│   │   │   ├── checkbox.tsx      # Canonical Base UI checkbox
+│   │   │   ├── switch.tsx        # Canonical Base UI switch
+│   │   │   ├── file-input.tsx    # Native file semantics boundary
 │   │   │   ├── scroll-area.tsx   # Scroll area
 │   │   │   ├── sidebar-item.tsx  # Sidebar navigation item
 │   │   │   └── sonner.tsx        # Toast provider (Sonner)
@@ -221,7 +224,8 @@ Anchored editor overlays must not calculate popup `top`/`left` values from `getB
 ### 🚫 RULE 12: Do Not Assemble Text Fields with Raw Visual Classes
 New or migrated text-like fields must not combine raw `<input>`/`<textarea>` elements with direct `ui-control`, `ui-input`, or `ui-textarea` classes.
 * **Solution**: Use `<Input>` and `<Textarea>` from `@/components/ui`. Use `variant="surface"` when preserving the filled `ui-control` visual contract during incremental migration; `variant="default"` remains available for existing primitive consumers. The same variants apply to `<SelectTrigger>`; do not attach `ui-control ui-select` directly in feature code.
-* **Scope**: Native checkbox, radio, file, and other controls with specialized interaction semantics require their appropriate primitive and are not automatically replaced with text-field styling.
+* **Specialized controls**: Use canonical `<Checkbox>`, `<Switch>`, and `<FileInput>` primitives. Native date pickers use `<Input type="date">`; auto-resizing behavior may remain feature-owned while rendering through `<Textarea>`.
+* **Documented exemption**: The raw Markdown canvas in `Editor.tsx` remains a native `<textarea>` because it is an editor surface rather than a form field. Keep its regression contract intact; do not treat it as a general-purpose textarea precedent.
 
 ---
 
@@ -249,6 +253,7 @@ Before submitting a PR for frontend changes:
 - [ ] Tiptap NodeView controls use a `not-prose` control boundary and no inline color workaround
 - [ ] Anchored editor overlays use a portal and maintained positioner, not manual viewport arithmetic
 - [ ] New or migrated fields use `<Input>` / `<Textarea>` / `<SelectTrigger>` variants; no new direct `ui-control` composition
+- [ ] Checkbox, switch, file, and date controls use their canonical primitives; the Editor Markdown canvas is the only feature-level raw form-control exemption
 - [ ] All user-facing strings routed through `next-intl`
 - [ ] API requests have a finite deadline and every loading/streaming placeholder has success, failure, and cancellation exits
 

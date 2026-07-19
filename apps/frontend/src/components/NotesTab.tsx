@@ -8,6 +8,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ResearchNote, Attachment } from '@/lib/hooks/useContentStrategist';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface NotesTabProps {
   researchNotes: ResearchNote[];
@@ -141,18 +142,18 @@ export default function NotesTab({
                 className="flex items-center gap-1.5 pr-5 cursor-pointer select-none"
               >
                 {onGenerateDraft && (
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={!unselectedNoteIds.includes(note.id)}
                     onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      if (e.target.checked) {
+                    onCheckedChange={(checked) => {
+                      if (checked) {
                         setUnselectedNoteIds(prev => prev.filter(id => id !== note.id));
                       } else {
                         setUnselectedNoteIds(prev => [...prev, note.id]);
                       }
                     }}
-                    className="w-3 h-3 shrink-0 rounded border border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer bg-[var(--surface-1)]"
+                    className="size-3"
+                    aria-label={`Include note ${idx + 1} in draft generation`}
                   />
                 )}
                 <div className="flex min-w-0 flex-1 items-center gap-1.5 px-1 py-0.5 rounded">

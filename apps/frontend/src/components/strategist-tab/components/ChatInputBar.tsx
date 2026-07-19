@@ -18,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { FileInput } from '@/components/ui/file-input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface ChatInputBarProps {
   chatInput: string;
@@ -95,15 +97,14 @@ export function ChatInputBar({
         </div>
       )}
       <div className="flex flex-col bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-1.5 focus-within:ring-1 focus-within:ring-[var(--primary)]/30 focus-within:border-[var(--primary)]/30 transition-all">
-        <input
-          type="file"
+        <FileInput
           ref={fileInputRef}
           onChange={handleFileChange}
           accept=".pdf,.csv,.txt"
           className="hidden"
         />
 
-        <textarea
+        <Textarea
           ref={textareaRef}
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
@@ -111,7 +112,7 @@ export function ChatInputBar({
           placeholder="Ask about your article..."
           rows={1}
           disabled={isTyping}
-          className="w-full resize-none bg-transparent border-none outline-none text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] px-2 py-1.5 min-h-[44px] max-h-[120px] focus:ring-0"
+          className="min-h-[44px] max-h-[120px] resize-none border-none bg-transparent px-2 py-1.5 text-xs shadow-none focus-visible:ring-0 dark:bg-transparent"
         />
 
         <div className="flex items-center justify-between border-t border-[var(--border)]/20 pt-2 mt-1 px-1">

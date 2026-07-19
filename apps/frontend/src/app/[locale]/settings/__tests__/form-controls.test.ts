@@ -30,9 +30,10 @@ describe('Settings form-control contract', () => {
     expect(usageSource.match(/variant="surface"/g)).toHaveLength(1);
   });
 
-  it('keeps the Workflow checkbox native while migrating its select trigger', () => {
-    expect(workflowSource.match(/<input\b/g)).toHaveLength(1);
-    expect(workflowSource).toContain('type="checkbox"');
+  it('uses canonical Switch and Select controls in Workflow Settings', () => {
+    expect(workflowSource).not.toMatch(/<input\b/);
+    expect(workflowSource.match(/<Switch\b/g)).toHaveLength(1);
+    expect(workflowSource).toContain('onCheckedChange={(checked)');
     expect(workflowSource).not.toMatch(/ui-control|ui-select/);
     expect(workflowSource).toContain('<SelectTrigger variant="surface">');
   });

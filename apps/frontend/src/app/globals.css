@@ -1505,60 +1505,6 @@
   width: min(100%, 360px);
 }
 
-.settings-switch {
-  position: relative;
-  display: inline-flex;
-  cursor: pointer;
-}
-
-.settings-switch input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-}
-
-.settings-switch > span[aria-hidden="true"] {
-  position: relative;
-  width: 38px;
-  height: 22px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-3);
-  transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast);
-}
-
-.settings-switch > span[aria-hidden="true"]::after {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--muted-foreground);
-  content: "";
-  transition:
-    transform var(--transition-fast),
-    background var(--transition-fast);
-}
-
-.settings-switch input:checked + span {
-  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
-  background: color-mix(in srgb, var(--primary) 23%, var(--surface-2));
-}
-
-.settings-switch input:checked + span::after {
-  transform: translateX(16px);
-  background: var(--primary);
-}
-
-.settings-switch input:focus-visible + span {
-  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
-  outline-offset: 2px;
-}
-
 .settings-page-future {
   max-width: 1040px;
   margin-top: 38px;

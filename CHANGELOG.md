@@ -17,6 +17,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Migrated AI Config, Audit Logs, and Billing Admin text-like fields to canonical surface controls; replaced the final raw admin select with the adaptive Select API while preserving privileged-operation review and confirmation flows.
   - Migrated Final Draft revision instructions, Onboarding activation fields, and Feedback source entry to canonical surface controls, eliminating direct legacy form-control class composition from feature code.
   - Migrated the remaining standard text-like controls across History, User Directory, Strategist session rename, Bubble Menu link editing, and subscription cancellation while preserving inline keyboard, privileged-form, and editor control boundaries.
+  - Added canonical Base UI Checkbox and Switch primitives plus a native-semantics FileInput boundary; migrated Notes, cancellation reasons, Publication Identity, Workflow auto-save, Dashboard dates, and the auto-resizing Chat composer, leaving only the documented Editor Markdown canvas exemption.
   - Recorded the remaining raw-field and legacy-control inventory in the UI architecture plan to guide bounded feature-by-feature migration.
 - **Canonical Button API**:
   - Consolidated the Base UI `Button` wrapper and global `ui-btn` visual contract into one semantic component API with `primary`, `outline`, `surface`, `muted`, `accent`, `danger`, and `link` variants.

@@ -295,9 +295,11 @@ responsible for:
   Workflow Settings, the Editor metadata panel, AI Config, Audit Logs, and
   Billing Admin, Final Draft revision instructions, Onboarding activation, and
   Feedback source entry, plus standard text fields in History, User Directory,
-  Strategist, Bubble Menu, and subscription cancellation, 6 feature files still
-  contain raw `<input>`, 2 contain raw `<textarea>`, none contain raw `<select>`,
-  and none directly compose `ui-control` / `ui-input` /
+  Strategist, Bubble Menu, and subscription cancellation, followed by checkbox,
+  switch, date, file, and Chat composer controls, no feature files contain raw
+  `<input>` or `<select>`. Only the Editor Markdown canvas retains one raw
+  `<textarea>` as a documented exemption, and no feature code directly composes
+  `ui-control` / `ui-input` /
   `ui-textarea` / `ui-select`. Tests and primitive implementations are excluded
   from these counts.
 - Define the public variants and accessibility behavior required from each
@@ -321,7 +323,7 @@ responsible for:
   AI Preview, Publication UI, and the Tiptap Bubble Menu, then added variant and
   editor-toolbar regression coverage. The `accent` variant owns low-emphasis AI
   actions, while `muted[aria-pressed="true"]` owns formatting-toggle state.
-- Started for form controls on 2026-07-19: introduced regression-tested `default`
+- Completed for feature form controls on 2026-07-19: introduced regression-tested `default`
   and `surface` variants for Input, Textarea, and SelectTrigger, then migrated
   Support Form, Billing Details Form, General Settings, Defaults Settings, Usage
   Settings, Workflow Settings, the Editor metadata panel, AI Config, Audit Logs,
@@ -330,9 +332,10 @@ responsible for:
   Strategist session rename, Bubble Menu link editing, and cancellation feedback
   without changing their interaction contracts. Standard text-like feature
   controls are now fully canonical and no feature code directly composes the
-  legacy form-control classes. Remaining raw controls are specialized checkbox,
-  date, and file inputs plus the auto-resizing chat and raw Markdown canvases;
-  they require separate ownership contracts.
+  legacy form-control classes. Checkbox and switch behavior is owned by Base UI
+  primitives, file upload has a native-semantics boundary, Dashboard dates use
+  canonical Input, and the auto-resizing Chat composer uses canonical Textarea.
+  The raw Markdown canvas is the sole documented feature-level exemption.
 - Move feature controls behind `components/ui` primitives incrementally.
 - Preserve current visuals and mobile behavior during migration.
 - Retire redundant global classes only when no consumers remain.
