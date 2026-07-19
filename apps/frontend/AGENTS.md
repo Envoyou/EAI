@@ -160,7 +160,7 @@ To maintain visual consistency across the EAI application (especially dark/light
 
 ### 🚫 RULE 1: Do Not Style or Assemble Buttons Manually
 Do not create new raw `<button>` controls with manual Tailwind styling or direct `ui-btn` class composition.
-* **Solution**: Use `<Button>` from `@/components/ui/button`. Canonical variants are `primary`, `outline`, `surface`, `muted`, `danger`, and `link`; canonical sizes are `default`, `xs`, `sm`, `lg`, and the `icon*` sizes.
+* **Solution**: Use `<Button>` from `@/components/ui/button`. Canonical variants are `primary`, `outline`, `surface`, `muted`, `accent`, `danger`, and `link`; canonical sizes are `default`, `xs`, `sm`, `lg`, and the `icon*` sizes. Toggle controls must expose their active state with `aria-pressed`.
 * **Compatibility**: `default`, `secondary`, `ghost`, and `destructive` remain supported aliases for existing consumers. Do not use those aliases in new code.
 * **Migration boundary**: Existing raw buttons and direct `ui-btn` consumers may be migrated feature-by-feature. Do not perform unrelated global rewrites.
 

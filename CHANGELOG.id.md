@@ -8,8 +8,9 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ### Changed
 - **API Button Kanonis**:
-  - Mengonsolidasikan wrapper Base UI `Button` dan kontrak visual global `ui-btn` menjadi satu API komponen semantik dengan variant `primary`, `outline`, `surface`, `muted`, `danger`, dan `link`.
+  - Mengonsolidasikan wrapper Base UI `Button` dan kontrak visual global `ui-btn` menjadi satu API komponen semantik dengan variant `primary`, `outline`, `surface`, `muted`, `accent`, `danger`, dan `link`.
   - Mempertahankan nama variant bergaya shadcn sebelumnya sebagai alias kompatibilitas, memigrasikan AI Preview serta consumer primitive yang sudah ada ke variant semantik, dan menambahkan regression test variant/size terfokus.
+  - Memigrasikan seluruh delapan aksi Tiptap Bubble Menu ke API kanonis, mengisolasi toolbar dengan `not-prose`, serta mengekspos state aktif toggle format melalui `aria-pressed` beserta regression test terfokus.
 
 ### Fixed
 - **Boundary Style UI Editor**:

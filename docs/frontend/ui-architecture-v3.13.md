@@ -190,6 +190,8 @@ controls can share the ProseMirror DOM.
 - AI Preview marks its control header as `not-prose` and keeps rendered Markdown
   in a sibling `editor-content` region.
 - AI Preview buttons use semantic `ui-btn` variants without inline colors.
+- The Tiptap Bubble Menu is a `not-prose` control surface; all eight actions use
+  the canonical `Button` API, and formatting toggles expose `aria-pressed`.
 - Light and dark article links use the semantic `--editor-link` token through
   Tailwind Typography's normal and inverted link variables.
 - A regression contract protects headings, links, tables, inline code, the
@@ -299,8 +301,9 @@ responsible for:
 
 - Completed for Button on 2026-07-19: mapped canonical semantic variants to the
   existing `ui-btn` visual contract, preserved compatibility aliases, migrated
-  AI Preview and existing primitive consumers, and added variant regression
-  coverage.
+  AI Preview, Publication UI, and the Tiptap Bubble Menu, then added variant and
+  editor-toolbar regression coverage. The `accent` variant owns low-emphasis AI
+  actions, while `muted[aria-pressed="true"]` owns formatting-toggle state.
 - Move feature controls behind `components/ui` primitives incrementally.
 - Preserve current visuals and mobile behavior during migration.
 - Retire redundant global classes only when no consumers remain.

@@ -12,6 +12,7 @@ const buttonVariants = cva(
         outline: "ui-btn-outline",
         surface: "ui-btn-surface",
         muted: "ui-btn-muted",
+        accent: "ui-btn-accent",
         danger: "ui-btn-danger",
         link: "ui-btn-link",
         // Compatibility aliases for existing shadcn-style consumers.

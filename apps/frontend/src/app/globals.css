@@ -926,6 +926,26 @@
   color: var(--foreground);
 }
 
+.ui-btn-muted[aria-pressed="true"] {
+  background: var(--surface-2);
+  color: var(--primary);
+}
+
+.ui-btn-muted[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--primary);
+}
+
+.ui-btn-accent {
+  background: transparent;
+  color: var(--primary);
+}
+
+.ui-btn-accent:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+}
+
 .ui-btn-link {
   border-radius: 0;
   padding-inline: 0;

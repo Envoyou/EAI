@@ -8,8 +8,9 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ### Changed
 - **Canonical Button API**:
-  - Consolidated the Base UI `Button` wrapper and global `ui-btn` visual contract into one semantic component API with `primary`, `outline`, `surface`, `muted`, `danger`, and `link` variants.
+  - Consolidated the Base UI `Button` wrapper and global `ui-btn` visual contract into one semantic component API with `primary`, `outline`, `surface`, `muted`, `accent`, `danger`, and `link` variants.
   - Preserved the previous shadcn-style variant names as compatibility aliases, migrated AI Preview and existing primitive consumers to semantic variants, and added focused variant/size regression coverage.
+  - Migrated all eight Tiptap Bubble Menu actions to the canonical API, isolated the toolbar with `not-prose`, and exposed formatting toggle state through `aria-pressed` with focused regression coverage.
 
 ### Fixed
 - **Editor UI Style Boundary**:

@@ -12,6 +12,7 @@ describe('canonical Button style contract', () => {
     ['outline', 'ui-btn-outline'],
     ['surface', 'ui-btn-surface'],
     ['muted', 'ui-btn-muted'],
+    ['accent', 'ui-btn-accent'],
     ['danger', 'ui-btn-danger'],
   ] as const)('maps the %s variant to its semantic ui class', (variant, expected) => {
     const classes = classTokens(buttonVariants({ variant }));

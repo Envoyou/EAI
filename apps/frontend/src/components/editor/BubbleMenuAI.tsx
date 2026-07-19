@@ -3,6 +3,8 @@ import { Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { Bold, Italic, Minimize2, Maximize2, Link2, Check, X, Trash2 } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+
 interface BubbleMenuAIProps {
   editor: Editor;
 }
@@ -47,7 +49,7 @@ export const BubbleMenuAI = ({ editor }: BubbleMenuAIProps) => {
   return (
     <BubbleMenu 
       editor={editor} 
-      className="flex overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-1)] shadow-xl"
+      className="not-prose flex overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-1)] shadow-xl"
       shouldShow={({ from, to, view }) => {
         if (from === to) return false;
 
@@ -93,78 +95,100 @@ export const BubbleMenuAI = ({ editor }: BubbleMenuAIProps) => {
             autoFocus
           />
           <div className="flex items-center gap-0.5 border-l border-[var(--border)] pl-1.5 shrink-0">
-            <button
+            <Button
+              type="button"
+              variant="accent"
+              size="icon-xs"
               onClick={handleSave}
-              className="p-1 hover:bg-[var(--surface-2)] text-[var(--primary)] rounded transition"
+              aria-label="Save link"
               title="Save link"
             >
               <Check className="h-3.5 w-3.5" />
-            </button>
+            </Button>
             {editor.isActive('link') && (
-              <button
+              <Button
+                type="button"
+                variant="danger"
+                size="icon-xs"
                 onClick={handleUnlink}
-                className="p-1 hover:bg-red-500/10 text-red-500 rounded transition"
+                aria-label="Remove link"
                 title="Remove link"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             )}
-            <button
+            <Button
+              type="button"
+              variant="muted"
+              size="icon-xs"
               onClick={() => setShowLinkInput(false)}
-              className="p-1 hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] rounded transition"
+              aria-label="Cancel"
               title="Cancel"
             >
               <X className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
         <>
           <div className="flex border-r border-[var(--border)]">
-            <button
+            <Button
+              type="button"
+              variant="muted"
+              size="icon-lg"
               onClick={() => editor.chain().focus().toggleBold().run()}
-              className={`flex h-9 w-9 items-center justify-center text-[var(--foreground)] hover:bg-[var(--surface-2)] ${
-                editor.isActive('bold') ? 'bg-[var(--surface-2)] text-[var(--primary)]' : ''
-              }`}
+              aria-label="Bold"
+              aria-pressed={editor.isActive('bold')}
+              title="Bold"
             >
               <Bold className="h-4 w-4" />
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="muted"
+              size="icon-lg"
               onClick={() => editor.chain().focus().toggleItalic().run()}
-              className={`flex h-9 w-9 items-center justify-center text-[var(--foreground)] hover:bg-[var(--surface-2)] ${
-                editor.isActive('italic') ? 'bg-[var(--surface-2)] text-[var(--primary)]' : ''
-              }`}
+              aria-label="Italic"
+              aria-pressed={editor.isActive('italic')}
+              title="Italic"
             >
               <Italic className="h-4 w-4" />
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="muted"
+              size="icon-lg"
               onClick={() => {
                 setLinkUrl(editor.getAttributes('link').href || '');
                 setShowLinkInput(true);
               }}
-              className={`flex h-9 w-9 items-center justify-center text-[var(--foreground)] hover:bg-[var(--surface-2)] ${
-                editor.isActive('link') ? 'bg-[var(--surface-2)] text-[var(--primary)]' : ''
-              }`}
+              aria-label="Edit link"
+              aria-pressed={editor.isActive('link')}
+              title="Edit link"
             >
               <Link2 className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
 
           <div className="flex px-1 items-center">
             <span className="mx-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">AI</span>
             
-            <button
+            <Button
+              type="button"
+              variant="accent"
+              size="lg"
               onClick={() => editor.commands.triggerAiAction('shorten')}
-              className="flex h-9 items-center gap-1.5 px-3 text-sm text-[var(--primary)] hover:bg-[var(--primary)]/10 rounded-md transition-colors"
             >
               <Minimize2 className="h-4 w-4" /> Shorten
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="accent"
+              size="lg"
               onClick={() => editor.commands.triggerAiAction('expand')}
-              className="flex h-9 items-center gap-1.5 px-3 text-sm text-[var(--primary)] hover:bg-[var(--primary)]/10 rounded-md transition-colors"
             >
               <Maximize2 className="h-4 w-4" /> Expand
-            </button>
+            </Button>
           </div>
         </>
       )}
