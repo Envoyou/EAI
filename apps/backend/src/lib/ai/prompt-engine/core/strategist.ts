@@ -88,39 +88,21 @@ Search Engine Optimization (SEO) is the practice of optimizing web content to im
 <example id="2">
 Input:
 <context>
-Today's Date: ${today} (Asia/Jakarta)
-<attached_file>
-<filename>perf_report.csv</filename>
-<type>text/csv</type>
-<content>
-Page,Clicks,Impressions
-/blog/ai-tools,150,2000
-/blog/nextjs-guide,85,900
-/blog/seo-tips,210,4000
-</content>
-</attached_file>
+[perf_report.csv attached containing URL clicks and impressions]
 user: Give a brief analysis of our blog's performance.
 </context>
 Output:
 ## Content Performance Analysis
-
-Based on the performance data attached in \`perf_report.csv\`, here is an analysis of your blog content performance:
+Based on the performance data attached, here is the analysis:
 
 ### Key Metrics Summary
----
 | Page | Clicks | Impressions | CTR (%) |
 | :--- | :---: | :---: | :---: |
 | \`/blog/seo-tips\` | **210** | 4,000 | 5.25% |
-| \`/blog/ai-tools\` | 150 | 2,000 | **7.50%** |
-| \`/blog/nextjs-guide\` | 85 | 900 | 9.44% |
+... [additional rows] ...
 
 ### Key Findings
-* **Highest Authority**: The page \`/blog/seo-tips\` records the highest clicks (**210 clicks**) and the most impressions (**4,000 impressions**), making it the main pillar of current traffic.
-* **Best CTR Efficiency**: The page \`/blog/nextjs-guide\` has the highest click efficiency with a CTR reaching **9.44%**, although its impressions are still low (**900 impressions**). This page has great potential if its distribution is boosted.
-
-### Action Recommendations
-* **Leverage High CTR**: Allocate more search optimization and internal links to \`/blog/nextjs-guide\` to maximize its high CTR potential.
-* **Analyze SEO Tips CTR**: Even though \`/blog/seo-tips\` has high clicks, its CTR (5.25%) can still be improved by tweaking meta descriptions and title tags.
+* **Highest Authority**: The page \`/blog/seo-tips\` records the highest clicks.
 
 [SUGGESTIONS: Action items to improve /blog/seo-tips CTR | Search queries driving traffic to /blog/nextjs-guide | Analyze page /blog/ai-tools metrics]
 </example>
@@ -208,6 +190,7 @@ export class StrategistFastModeInstructionNode implements PromptNode {
 <instructions>
 You are in FAST MODE — a professional content strategist.
 Your task: answer the user's question with focused, actionable insights. Use rich Markdown formatting (headings like ## and ###, horizontal dividers ---, bold labels **Label**:, bullet points, and tables) to make your output visually beautiful, structured, and easy to read.
+Before responding, determine internally whether the google_search tool is required based on the <search_trigger_rules>.
 </instructions>
 
 <constraints>
@@ -264,26 +247,11 @@ export class DraftFromNotesConstraintsNode implements PromptNode {
     // criteria before generating the article, not after.
     const constraints = `
 <cognitive_framework>
-Before writing, you MUST process the input through these three stages internally:
+Before writing the draft, you MUST internally process the input through these stages:
 
-STAGE 1 — IDENTIFY: Scan the input and determine what kind of content it contains.
-- If it contains MULTIPLE article topics/outlines → SELECT exactly ONE to write about. Choose the first complete topic brief you find.
-- If it contains performance audits, strategy sections, SEO plans, or meta-commentary → IGNORE them completely. They are NOT article material.
-- If it contains exactly ONE article outline or topic brief → USE it directly.
-- If it contains raw research facts/notes (not an outline) → SYNTHESIZE them into an article.
-
-STAGE 2 — EXTRACT: From the selected topic, extract:
-- The recommended title (use as the article's H1 headline)
-- The angle/perspective (guides your tone and framing)
-- The structure outline (use as the article skeleton — each point becomes a section)
-- Any source URLs provided (for citations)
-- Any key facts, data points, or statistics mentioned
-
-STAGE 3 — EXPAND: Transform the outline into a full article.
-- Each structure point becomes 1-2 paragraphs of substantive prose.
-- Use your knowledge to add relevant examples, context, and explanations that support each section.
-- Maintain the specified angle throughout the entire article.
-- Integrate source URLs using hybrid citation style (see citation rules below).
+STAGE 1 — IDENTIFY: Determine what kind of content it contains (Choose ONE topic, ignore meta-commentary).
+STAGE 2 — EXTRACT: List the Title, Angle, Structure, and Sources.
+STAGE 3 — EXPAND STRATEGY: Briefly note how you will expand the bullet points into flowing prose.
 </cognitive_framework>
 
 <absolute_prohibitions priority="critical">
@@ -314,21 +282,15 @@ If ANY answer is NO, rewrite before outputting.
 </self_check>
 
 <writing_spec>
-- Output format: Start the draft strictly with the article title as an H1 Markdown heading (e.g., "# Title") on the very first line. Do NOT write the title as plain text or omit the "# " prefix.
-- Length: 600–800 words (4–6 paragraphs minimum of substantive prose).
-- Tone: Match the angle specified in the topic brief (e.g., practical-strategic, macro-geopolitical, critical/contrarian).
-- Language: Follow the Output Language specified in the ARTICLE METADATA. If not specified, use the language of the input material.
-- Paragraphs: Keep paragraphs relatively short (2-4 sentences) for readability.
-- Structure: Clear introduction/hook → logical body sections → strategic conclusion or takeaway.
+- Output format: Start directly with the article title as an H1 Markdown heading (e.g., "# Title") on the very first line.
+- Length: 600–800 words (4–6 paragraphs minimum).
+- Tone: Match the specified angle.
+- Focus: Write ONLY the article. Do not add introductions, meta-commentary, or closing remarks.
 </writing_spec>
 
 <citation_rules>
-- Use a Hybrid Citation Style (Verbal Attribution + Contextual Hyperlinking).
-- First mention of a source: Introduce the source naturally in the sentence and hyperlink the source name (e.g., "According to [recent study from Apple](url), apples are red.").
-- Subsequent mentions: Do not repeat the source name. Simply hyperlink the relevant keyword or data point contextually (e.g., "This color is [caused by anthocyanin](url).").
-- Do NOT place bare links or titles at the end of a sentence. Integrate markdown links seamlessly into the narrative text.
-- Use ONLY the source URLs provided in the input material. Do NOT invent or hallucinate URLs.
-- Do NOT wrap markdown links in extra parentheses or brackets outside standard markdown syntax.
+- Use Hybrid Citation Style: Integrate markdown links seamlessly into the narrative text (e.g., "...according to [OECD](https://oecd.org)...").
+- Use ONLY the source URLs provided in the input. Do not hallucinate links.
 </citation_rules>
 
 <few_shot_demonstration>
@@ -380,7 +342,6 @@ Output the detailed blueprint in the 'plan' object with the following fields:
 - outline: A detailed markdown-formatted section outline.
 - seoIntent: The primary search intent this article targets.
 - sources: Verified source domains or full URLs found during research.
-- draft: A cohesive 400–600 word synthesis of the outline and sources.
 </instructions>
 
 <constraints>
@@ -392,6 +353,7 @@ Output the detailed blueprint in the 'plan' object with the following fields:
 6. Keep the draft focused on the agreed angle and audience.
 7. Do NOT include meta-commentary (e.g., "Here is your draft") anywhere in the JSON response. Just output the clean data.
 8. The "draft" inside the "plan" object MUST start with the article title formatted strictly as an H1 Markdown heading (e.g., "# Article Title") on the very first line. Do NOT write the title as plain text without the "# " prefix.
+9. IMPLICIT REASONING: Generate the JSON keys in a logical order. Always formulate the "angle", "audience", and "outline" BEFORE generating the "draft". Let the outline guide your draft generation.
 </constraints>
 
 <output_format>

@@ -51,7 +51,7 @@ export class SeoExamplesNode implements PromptNode {
   "metaTitle": "Agentic OS Is Reshaping WealthTech",
   "metaDescription": "Explore how autonomous financial planners are reshaping wealth management and widening access for a new generation of investors.",
   "coverImageAltText": "A conceptual illustration of interconnected digital nodes forming a modern network on a sleek dark interface representing financial assets.",
-  "tags": ["Technology & AI", "WealthTech", "Asset Management"]
+  "tags": ["Technology", "WealthTech", "Asset Management", "Agentic OS", "Financial Planning", "Investment Platforms"]
 }
 `.trim();
 

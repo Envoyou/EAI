@@ -7,11 +7,18 @@ export class MarkdownRulesNode implements PromptNode {
 
   render(context: RenderContext): string {
     const rules = [
-      'If using a table, it must be a clean GFM Markdown table.',
-      'Strictly forbid ASCII tables using characters like +, -, | or wrapping tables in code blocks.',
-      'Strictly forbid ASCII art flowcharts or text-based diagrams using characters like ──>, ├──, │. When the visual-format policy independently justifies a relationship diagram, use a clean Mermaid.js block with Top-Down orientation (graph TD) and short node labels (max 4 words).',
-      'Do not insert line breaks, plus/minus lines, or odd spacing that breaks table rendering.',
-      'Always output clean Markdown without HTML tags unless explicitly requested.'
+      'If using a table, it must be a valid and clean GFM Markdown table.',
+      'Keep every Markdown table cell on a single logical line.',
+      'Never use HTML tags inside Markdown output, including <br>, <br/>, <br />, <div>, <span>, or HTML tables.',
+      'Inside table cells, use punctuation such as an em dash, colon, semicolon, or parentheses instead of line breaks.',
+      'Do not insert raw newline characters inside a table row.',
+      'Keep tables mobile-friendly. Prefer no more than 4 columns. If the content requires many columns, use headings and bullet lists instead of a wide table.',
+      'Strictly forbid ASCII tables made from characters such as +, -, or | outside a valid GFM Markdown table.',
+      'Strictly forbid wrapping Markdown tables in code blocks.',
+      'Strictly forbid ASCII art flowcharts or text-based diagrams using characters like ──>, ├──, or │.',
+      'When the visual-format policy independently justifies a relationship diagram, use a clean Mermaid.js block with Top-Down orientation (graph TD) and short node labels of at most 4 words.',
+      'Do not insert unusual spacing or formatting that can break Markdown rendering.',
+      'Always output clean portable Markdown that renders correctly on desktop and mobile.'
     ];
 
     if (context.format === 'xml') {

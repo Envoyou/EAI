@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { shouldShowAssistantSpinner } from '@/lib/strategist-stream';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { extractDynamicSuggestions } from '@/lib/strategist-utils';
+import { extractDynamicSuggestions, normalizeStrategistMarkdown } from '@/lib/strategist-utils';
 import type { ChatMessage } from '@/lib/hooks/useContentStrategist';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -79,9 +79,11 @@ export function ChatMessageList({
               const finalSuggestions =
                 msg.payload?.suggestions || parsedSuggestions || [];
 
+              const normalizedContent = normalizeStrategistMarkdown(displayContent);
+
               return (
-                <div className="flex justify-start w-full">
-                  <div className="max-w-[95%] min-w-0 overflow-hidden bg-[var(--background)] border border-[var(--border)] rounded-xl rounded-bl-sm p-2.5 shadow-sm">
+                <div className="flex min-w-0 w-full justify-start">
+                  <div className="w-full min-w-0 max-w-[95%] bg-[var(--background)] border border-[var(--border)] rounded-xl rounded-bl-sm p-2.5 shadow-sm">
                     {shouldShowAssistantSpinner(msg.payload?.lifecycle, msg.payload?.status) ? (
                       (() => {
                         const statusText = msg.payload?.status ?? '';
@@ -112,9 +114,57 @@ export function ChatMessageList({
                       })()
                     ) : (
                       <>
-                        <div className="prose strategist-prose max-w-none text-[var(--foreground)] text-xs">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {displayContent}
+                        <div
+                          className="
+                            prose strategist-prose
+                            w-full min-w-0 max-w-full
+                            text-[var(--foreground)] text-xs
+                            break-words [overflow-wrap:anywhere]
+                            [&_p]:max-w-full
+                            [&_p]:whitespace-normal
+                            [&_li]:max-w-full
+                            [&_li]:whitespace-normal
+                            [&_blockquote]:max-w-full
+                            [&_a]:break-words
+                            [&_:not(pre)>code]:whitespace-normal
+                            [&_:not(pre)>code]:break-words
+                          "
+                        >
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              table: ({ children, ...props }) => (
+                                <div className="my-3 w-full max-w-full overflow-x-auto">
+                                  <div className="mb-1 text-[9px] text-[var(--muted-foreground)] sm:hidden">
+                                    Swipe horizontally to view all columns
+                                  </div>
+                                  <table
+                                    {...props}
+                                    className="w-max min-w-full border-collapse"
+                                  >
+                                    {children}
+                                  </table>
+                                </div>
+                              ),
+                              th: ({ children, ...props }) => (
+                                <th
+                                  {...props}
+                                  className="whitespace-normal break-words px-3 py-2 text-left align-top"
+                                >
+                                  {children}
+                                </th>
+                              ),
+                              td: ({ children, ...props }) => (
+                                <td
+                                  {...props}
+                                  className="whitespace-normal break-words px-3 py-2 align-top"
+                                >
+                                  {children}
+                                </td>
+                              ),
+                            }}
+                          >
+                            {normalizedContent}
                           </ReactMarkdown>
                         </div>
 
@@ -186,7 +236,7 @@ export function ChatMessageList({
                               render={
                                 <button
                                   onClick={() =>
-                                    handleCopy(displayContent, msg.id)
+                                    handleCopy(normalizedContent, msg.id)
                                   }
                                   className="p-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
                                 >
@@ -207,7 +257,12 @@ export function ChatMessageList({
                             <TooltipTrigger
                               render={
                                 <button
-                                  onClick={() => saveNote(msg)}
+                                  onClick={() =>
+                                    saveNote({
+                                      ...msg,
+                                      content: normalizedContent,
+                                    })
+                                  }
                                   className="p-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
                                 >
                                   <Bookmark className="w-3.5 h-3.5" />
@@ -224,9 +279,11 @@ export function ChatMessageList({
                               render={
                                 <button
                                   onClick={() => {
-                                    const clean = msg.content.replace(
-                                      /\[SUGGESTIONS:[\s\S]*?\]/g,
-                                      ''
+                                    const clean = normalizeStrategistMarkdown(
+                                      msg.content.replace(
+                                        /\[SUGGESTIONS:[\s\S]*?\]/g,
+                                        ''
+                                      )
                                     );
                                     const blob = new Blob([clean], {
                                       type: 'text/markdown;charset=utf-8;',

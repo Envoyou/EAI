@@ -98,25 +98,25 @@ REWRITE PRIORITIES (highest first):
 
 Mandatory Editorial Guardrails:
 - Establish one main thesis from the original draft. Every heading and section must reinforce that same thesis.
-- Do not jump to a new topic without a clear cause-and-effect transition from the previous paragraph.
+- DO NOT jump to a new topic without a clear cause-and-effect transition from the previous paragraph.
 - Use a sharp, objective, rational editorial voice.
 - Avoid hyperbolic, sensational, or excessive metaphors such as "brutal", "doomsday", "black hole", "kiamat", or "lubang hitam" unless factually necessary.
 - Write for this audience: ${this.audience}.
-- Track numbers, statistics, and important entities already mentioned. Do not repeat the same data within 3 paragraphs unless adding a clearly new implication.
+- Track numbers, statistics, and important entities already mentioned. DO NOT repeat the same data within 3 paragraphs unless adding a clearly new implication.
 - The conclusion must not be a summary or generic call to action. End with 1-2 strategic implications or asymmetric projections that make readers rethink their strategy.
-- Do not change numbers, entity names, quotes, or factual claims from the draft except to fix obviously wrong formatting.
-- The editorial date may be used only as neutral time orientation when truly needed. Do not automatically insert months, quarters, semesters, beginning/mid/end-of-year framing, or other calendar phases into the opening.
-- Do not use the editorial date to create new trend status, outcomes, developments, or data absent from the draft, for example claiming 2026 sales increased or a prediction has been proven merely because the current year is 2026.
+- DO NOT change numbers, entity names, quotes, or factual claims from the draft except to fix obviously wrong formatting.
+- The editorial date may be used only as neutral time orientation when truly needed. DO NOT automatically insert months, quarters, semesters, beginning/mid/end-of-year framing, or other calendar phases into the opening.
+- DO NOT use the editorial date to create new trend status, outcomes, developments, or data absent from the draft, for example claiming 2026 sales increased or a prediction has been proven merely because the current year is 2026.
 - Sentences like "the reality of 2026 shows...", "the 2026 landscape has confirmed...", or "this year has made the trend clearer" are not neutral time orientation; they are new factual claims and may appear only if the substance exists in the source draft.
-- Do not guess or invent expansions of abbreviations. If the draft only uses abbreviations such as GDP, FDI, ROI, PDB, or other technical terms without explicit expansions, preserve the abbreviation.
-- Do not invent motives, personal interests, or psychological reasons for people/organizations that sources do not state.
-- Do not increase source certainty. Wording such as "may", "estimated", or probability language must not become "almost certainly", "certainly", or a new certainty claim.
-- Do not add country, region, market, regulatory, or geographic audience context unless requested by the draft, brief, or target audience.
+- DO NOT guess or invent expansions of abbreviations. If the draft only uses abbreviations such as GDP, FDI, ROI, PDB, or other technical terms without explicit expansions, preserve the abbreviation.
+- DO NOT invent motives, personal interests, or psychological reasons for people/organizations that sources DO NOT state.
+- DO NOT increase source certainty. Wording such as "may", "estimated", or probability language must not become "almost certainly", "certainly", or a new certainty claim.
+- DO NOT add country, region, market, regulatory, or geographic audience context unless requested by the draft, brief, or target audience.
 - If geographic implications are requested, frame analysis not present in sources as ${this.brandName} editorial analysis, not as fact or source conclusion.
 - Preserve as much of the draft's logical structure and core facts as possible. Rewrite only as needed to improve cohesion, tone, clarity, and argument quality.
 - Each section must have one main function: build context, show evidence, explain implications, or draw strategic consequences.
-- Connect business or career impact to a specific geography only if that context already exists in the draft, brief, or target audience; do not localize automatically.
-- Do not write internal markers such as "[Source verification recommended]", "[Citation recommended]", or editor instruction notes into the final article. EAI handles verification needs in the refinement report.
+- Connect business or career impact to a specific geography only if that context already exists in the draft, brief, or target audience; DO NOT localize automatically.
+- DO NOT write internal markers such as "[Source verification recommended]", "[Citation recommended]", or editor instruction notes into the final article. SYSTEM handles verification needs in the refinement report.
 `.trim();
 
     if (context.format === 'xml') {
@@ -153,7 +153,7 @@ ${postsList}
 
 ADDITIONAL TASK:
 If relevant, insert contextual references to related internal articles naturally in the article body using Markdown format: [Anchor Text](${this.baseUrl}/slug).
-Do not use stiff, mechanical, or generic CTA phrases such as "read more", "click here", "related article", "baca selengkapnya", "klik di sini", or "baca juga".
+DO NOT use stiff, mechanical, or generic CTA phrases such as "read more", "click here", "related article", "baca selengkapnya", "klik di sini", or "baca juga".
 Internal links must feel integrated into the sentence flow and should provide extra insight, supporting context, or a deeper exploration path.
 
 GOOD example:
@@ -168,7 +168,7 @@ Additional link rules:
 - Insert at most 1-2 internal references, and only when genuinely relevant to the discussion.
 - Judge relevance from the destination article title and slug. If the topic relationship is doubtful or only shares generic words, do not insert the link.
 - Anchor text and destination article must meaningfully expand the paragraph's idea, not merely relate loosely to the article category.
-- Do not create a new narrative bridge solely to insert a link. No internal link is better than a weakly relevant link.
+- DO NOT create a new narrative bridge solely to insert a link. No internal link is better than a weakly relevant link.
 - Prioritize narrative flow over SEO density.
 - Avoid forcing links into unrelated paragraphs.
 `.trim();
@@ -197,7 +197,7 @@ export class RewriteOutputFormatNode implements PromptNode {
 Output rules:
 - Reply ONLY with the final article text.
 - Preserve and use rich Markdown formatting (headings, list bullets, bold **, etc.) so the article is CMS-ready.
-- Heading rule: do not write the article title at the top of the output. The output must begin directly with the first paragraph (Hook). Use H2 (##) for every primary section. Use H3 (###) only beneath a preceding H2, never as the first or only heading. Never use H1 (#) inside the article body.
+- Heading rule: DO NOT write the article title at the top of the output. The output must begin directly with the first paragraph (Hook). Use H2 (##) for every primary section. Use H3 (###) only beneath a preceding H2, never as the first or only heading. Never use H1 (#) inside the article body.
 - Use **bold** for important terms and bullet points (-) for long lists.
 - Do not output JSON.
 - Do not add an opening or closing explanation.
