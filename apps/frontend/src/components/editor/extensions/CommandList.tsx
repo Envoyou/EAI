@@ -1,5 +1,6 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { CommandItem } from './slash-command';
+import { Button } from '@/components/ui/button';
 
 interface CommandListProps {
   items: CommandItem[];
@@ -52,8 +53,10 @@ export const CommandList = forwardRef((props: CommandListProps, ref) => {
           const isSelected = index === selectedIndex;
           const isAiCommand = item.title.includes('(AI)');
           return (
-            <button
-              className={`flex w-full items-center space-x-2 rounded-md px-2 py-1.5 text-left text-sm ${
+            <Button
+              type="button"
+              variant="ghost"
+              className={`flex w-full items-center justify-start space-x-2 rounded-md px-2 py-1.5 text-left text-sm h-auto border-none ${
                 isSelected
                   ? 'bg-[var(--surface-2)] text-[var(--foreground)]'
                   : 'text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'
@@ -72,7 +75,7 @@ export const CommandList = forwardRef((props: CommandListProps, ref) => {
                 <p className={`font-medium ${isAiCommand ? 'text-[var(--primary)]' : ''}`}>{item.title}</p>
                 <p className="text-xs text-[var(--muted-foreground)]">{item.description}</p>
               </div>
-            </button>
+            </Button>
           );
         })
       ) : (

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { MessageCircle, Notebook, MessagesSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import StrategistTab from '@/components/StrategistTab';
 import FeedbackTab from '@/components/FeedbackTab';
 import NotesTab from '@/components/NotesTab';
@@ -182,10 +183,12 @@ export default function AICopilotPanel({
       <div className="flex items-center justify-between border-b border-[var(--border)] px-1">
         <div className="flex items-center">
           {TABS.map((tab) => (
-            <button
+            <Button
+              type="button"
               key={tab.key}
               onClick={() => handleTabChange(tab.key)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px ${
+              variant="ghost"
+              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors border-b-2 rounded-none h-auto -mb-px ${
                 activeTab === tab.key
                   ? 'text-[var(--foreground)] border-[var(--primary)]'
                   : 'text-[var(--muted-foreground)] border-transparent hover:text-[var(--foreground)]'
@@ -193,7 +196,7 @@ export default function AICopilotPanel({
             >
               {tab.icon}
               <span className="hidden xl:inline">{tab.label}</span>
-            </button>
+            </Button>
           ))}
         </div>
 

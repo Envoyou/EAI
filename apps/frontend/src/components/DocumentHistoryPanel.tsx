@@ -273,13 +273,16 @@ export default function DocumentHistoryPanel({
 
       {/* New Article Button */}
       <div className="pt-1">
-        <button
+        <Button
+          type="button"
           onClick={onNew}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--primary)] bg-[var(--primary)]/5 border border-[var(--primary)]/15 rounded-md hover:bg-[var(--primary)]/10 transition-colors"
+          variant="primary"
+          size="sm"
+          className="w-full justify-center gap-1.5 text-xs font-medium bg-[var(--primary)]/5 border border-[var(--primary)]/15 text-[var(--primary)] hover:bg-[var(--primary)]/10"
         >
           <Plus className="w-3.5 h-3.5" />
           New Article
-        </button>
+        </Button>
       </div>
 
       {/* Search */}
@@ -299,12 +302,15 @@ export default function DocumentHistoryPanel({
             className="pl-8 pr-8 text-xs"
           />
           {searchQuery && (
-            <button
+            <Button
+              type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-[var(--surface-3)] text-[var(--muted-foreground)]"
+              variant="ghost"
+              size="icon-xs"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-[var(--muted-foreground)] hover:bg-[var(--surface-3)]"
             >
               <X className="w-3.5 h-3.5" />
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -312,17 +318,19 @@ export default function DocumentHistoryPanel({
       {/* Filter Chips */}
       <div className="flex gap-1 mt-2 bg-[var(--surface-2)] rounded-full p-1 border border-[var(--border)]">
         {FILTERS.map(f => (
-          <button
+          <Button
+            type="button"
             key={f.key}
             onClick={() => setActiveFilter(f.key)}
-            className={`min-w-0 flex-1 px-1.5 py-1 text-[10px] font-medium rounded-full transition-colors border-none cursor-pointer ${
+            variant={activeFilter === f.key ? 'surface' : 'ghost'}
+            className={`min-w-0 flex-1 px-1.5 py-1 text-[10px] font-medium rounded-full transition-colors border-none h-auto ${
               activeFilter === f.key
-                ? 'bg-[var(--card)] text-[var(--foreground)] font-semibold shadow-sm'
+                ? 'bg-[var(--card)] text-[var(--foreground)] font-semibold shadow-xs'
                 : 'text-[var(--muted-foreground)] hover:bg-[var(--surface-3)] hover:text-[var(--foreground)]'
             }`}
           >
             {f.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -349,18 +357,20 @@ export default function DocumentHistoryPanel({
           <div className="space-y-1">
             {/* Unsaved Draft */}
             {hasUnsavedDraft && activeFilter === 'All' && !searchQuery && (
-              <button
+              <Button
+                type="button"
                 onClick={handleUnsavedDraftClick}
-                className="w-full text-left px-3 py-2 rounded-md transition-colors border border-dashed border-[var(--primary)]/20 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 cursor-pointer"
+                variant="ghost"
+                className="w-full text-left justify-start px-3 py-2 h-auto rounded-md transition-colors border border-dashed border-[var(--primary)]/20 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 cursor-pointer"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full">
                   <FileText className="w-3.5 h-3.5 text-[var(--primary)] shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="text-[13px] font-medium text-[var(--primary)] truncate">Unsaved Draft</div>
                     <div className="text-[10px] text-[var(--muted-foreground)] mt-0.5">Click to continue editing</div>
                   </div>
                 </div>
-              </button>
+              </Button>
             )}
 
             {/* History Items */}
@@ -383,15 +393,17 @@ export default function DocumentHistoryPanel({
 
                     return (
                       <div key={item.id} className="relative group">
-                        <button
+                        <Button
+                          type="button"
                           onClick={() => onSelect(item.id)}
-                          className={`w-full text-left px-3 py-2 rounded-md transition-colors cursor-pointer ${
+                          variant="ghost"
+                          className={`w-full text-left justify-start px-3 py-2 h-auto rounded-md transition-colors border-none ${
                             isActive
                               ? 'bg-[var(--primary)]/10'
                               : 'hover:bg-[var(--surface-2)]'
                           }`}
                         >
-                          <div className="flex items-start gap-2">
+                          <div className="flex items-start gap-2 w-full">
                             <div className="flex-1 min-w-0">
                               {editingId === item.id ? (
                                 <Input
@@ -440,15 +452,18 @@ export default function DocumentHistoryPanel({
                               </div>
                             </div>
                           </div>
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
+                          type="button"
                           onClick={(e) => handleDelete(item.id, e)}
-                          className="absolute right-2 top-2 w-5 h-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity border-none cursor-pointer bg-transparent hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-red-500"
+                          variant="ghost"
+                          size="icon-xs"
+                          className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity border-none hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-red-500"
                           aria-label="Delete draft"
                         >
                           <Trash2 className="w-3 h-3" />
-                        </button>
+                        </Button>
                       </div>
                     );
                   })}

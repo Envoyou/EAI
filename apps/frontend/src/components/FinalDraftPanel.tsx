@@ -793,36 +793,42 @@ export default function FinalDraftPanel({
                     <div className="ui-menu-label">
                       Export / Download
                     </div>
-                    <button
+                    <Button
+                      type="button"
                       onClick={() => {
                         handleDownloadPDF();
                         setMenuOpen(false);
                       }}
-                      className="ui-menu-item"
+                      variant="ghost"
+                      className="ui-menu-item justify-start w-full font-normal border-none"
                     >
-                      <Download className="h-3.5 w-3.5 text-[var(--primary)]" />
-                      Download PDF (.pdf)
-                    </button>
-                    <button
+                      <Download className="h-3.5 w-3.5 text-[var(--primary)] shrink-0" />
+                      <span>Download PDF (.pdf)</span>
+                    </Button>
+                    <Button
+                      type="button"
                       onClick={() => {
                         handleDownloadWord();
                         setMenuOpen(false);
                       }}
-                      className="ui-menu-item"
+                      variant="ghost"
+                      className="ui-menu-item justify-start w-full font-normal border-none"
                     >
-                      <FileText className="h-3.5 w-3.5 text-blue-400" />
-                      Download Word (.doc)
-                    </button>
-                    <button
+                      <FileText className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                      <span>Download Word (.doc)</span>
+                    </Button>
+                    <Button
+                      type="button"
                       onClick={() => {
                         handleDownloadMarkdown();
                         setMenuOpen(false);
                       }}
-                      className="ui-menu-item"
+                      variant="ghost"
+                      className="ui-menu-item justify-start w-full font-normal border-none"
                     >
-                      <FileText className="h-3.5 w-3.5 text-amber-500" />
-                      Download Markdown (.md)
-                    </button>
+                      <FileText className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                      <span>Download Markdown (.md)</span>
+                    </Button>
                   </Popover.Popup>
                 </Popover.Positioner>
               </Popover.Portal>
@@ -987,10 +993,12 @@ export default function FinalDraftPanel({
             {tabs.map(tab => {
               const active = displayTab === tab.key;
               return (
-                <button
+                <Button
+                  type="button"
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`document-tab flex items-center justify-center gap-1.5 ${
+                  variant="ghost"
+                  className={`document-tab flex items-center justify-center gap-1.5 h-auto rounded-none border-none ${
                     active
                       ? 'is-active'
                       : ''
@@ -999,7 +1007,7 @@ export default function FinalDraftPanel({
                 >
                   {tab.icon}
                   {tab.label}
-                </button>
+                </Button>
               );
             })}
           </div>

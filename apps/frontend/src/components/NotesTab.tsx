@@ -64,15 +64,18 @@ export default function NotesTab({
             {researchNotes.length}
           </Badge>
         </span>
-        <button
+        <Button
+          type="button"
           onClick={() => {
             onNotesChange([]);
             toast.success('All notes cleared');
           }}
-          className="text-[10px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+          variant="ghost"
+          size="xs"
+          className="text-[10px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] h-auto p-0 border-none bg-transparent"
         >
           Clear all
-        </button>
+        </Button>
       </div>
 
       {/* Generate Draft Button */}
@@ -121,17 +124,20 @@ export default function NotesTab({
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <button
+                    <Button
+                      type="button"
                       onClick={() => {
                         const updated = researchNotes.filter(n => n.id !== note.id);
                         onNotesChange(updated);
                         if (expandedNoteId === note.id) setExpandedNoteId(null);
                         toast.success('Note deleted');
                       }}
+                      variant="ghost"
+                      size="icon-xs"
                       className="absolute top-2 right-2 md:opacity-0 md:group-hover:opacity-100 opacity-80 p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all"
                     >
                       <X className="w-3 h-3" />
-                    </button>
+                    </Button>
                   }
                 />
                 <TooltipContent>Delete note</TooltipContent>

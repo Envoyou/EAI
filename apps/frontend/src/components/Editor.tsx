@@ -366,20 +366,26 @@ export default function Editor({
 
             {/* Editor Mode Toggle */}
             <div className="hidden sm:flex items-center bg-[var(--surface-2)] rounded-lg p-0.5 border border-[var(--border)] shrink-0">
-              <button
+              <Button
+                type="button"
                 onClick={() => handleModeChange('tiptap')}
-                className={`flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md transition duration-150 ${editorMode === 'tiptap' ? 'bg-[var(--surface-1)] text-[var(--foreground)] shadow-sm' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}
+                variant={editorMode === 'tiptap' ? 'surface' : 'ghost'}
+                size="xs"
+                className={`gap-1 text-[10px] font-medium transition duration-150 ${editorMode === 'tiptap' ? 'bg-[var(--surface-1)] text-[var(--foreground)] shadow-xs' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}
               >
                 <Type className="w-3 h-3" />
                 <span className="max-sm:hidden">Rich Text</span>
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
                 onClick={() => handleModeChange('markdown')}
-                className={`flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md transition duration-150 ${editorMode === 'markdown' ? 'bg-[var(--surface-1)] text-[var(--foreground)] shadow-sm' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}
+                variant={editorMode === 'markdown' ? 'surface' : 'ghost'}
+                size="xs"
+                className={`gap-1 text-[10px] font-medium transition duration-150 ${editorMode === 'markdown' ? 'bg-[var(--surface-1)] text-[var(--foreground)] shadow-xs' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}
               >
                 <Code className="w-3 h-3" />
                 <span className="max-sm:hidden">Markdown</span>
-              </button>
+              </Button>
             </div>
 
              <div className="flex shrink-0 items-center gap-1">

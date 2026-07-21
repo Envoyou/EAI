@@ -7,8 +7,9 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Changed
-- **Migrasi Raw Button Shell & Navigasi (Batch 1)**:
+- **Migrasi Raw Button Workspace & Navigasi (Batch 1 & 2)**:
   - Memigrasikan elemen `<button>` mentah pada komponen shell & navigasi (`AdminLayoutShell`, `AppSidebarShell`, `sidebar-item`, `DashboardLayoutShell`, `WorkspacePageShell`, `AuthPageShell`, `PanelTabBar`, `ThemeToggle`, `RoleToggle`) ke API `Button` kanonis (`@/components/ui/button`) dan polymorphic `render` prop.
+  - Memigrasikan elemen `<button>` mentah pada komponen workspace & editor (`EditorialWorkspace`, `Editor`, `CommandList`, `FinalDraftPanel`, `DocumentHistoryPanel`, `AICopilotPanel`, `NotesTab`) ke API `Button` kanonis (`@/components/ui/button`).
   - Mengintegrasikan `@shadcn/message-scroller` pada Strategist Chat, menggantikan logika scroll manual dengan `MessageScrollerProvider`, `MessageScrollerViewport`, dan `MessageScrollerContent` sambil mempertahankan styling bubble custom serta menambahkan `ChatPositionIndicator` dan `TranscriptOutline` (menggunakan `useMessageScrollerVisibility` dan `useMessageScroller`).
 - **API Status & Callout Kanonis**:
   - Menambahkan variant semantik `muted`, `surface`, `primary`, `success`, `warning`, dan `danger` yang dilindungi regression test pada Badge, beserta ukuran `xs` dan polymorphic rendering untuk link.

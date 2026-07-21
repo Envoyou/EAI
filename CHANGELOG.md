@@ -7,8 +7,9 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Changed
-- **Shell & Navigation Raw Button Migration (Batch 1)**:
+- **Workspace & Navigation Raw Button Migration (Batch 1 & 2)**:
   - Migrated raw `<button>` elements in shell & navigation components (`AdminLayoutShell`, `AppSidebarShell`, `sidebar-item`, `DashboardLayoutShell`, `WorkspacePageShell`, `AuthPageShell`, `PanelTabBar`, `ThemeToggle`, `RoleToggle`) to the canonical `Button` API (`@/components/ui/button`) and polymorphic `render` prop.
+  - Migrated raw `<button>` elements in workspace & editor components (`EditorialWorkspace`, `Editor`, `CommandList`, `FinalDraftPanel`, `DocumentHistoryPanel`, `AICopilotPanel`, `NotesTab`) to the canonical `Button` API (`@/components/ui/button`).
   - Integrated `@shadcn/message-scroller` into Strategist Chat, replacing manual scroll logic with `MessageScrollerProvider`, `MessageScrollerViewport`, and `MessageScrollerContent` while preserving custom bubble styling and adding `ChatPositionIndicator` and `TranscriptOutline` (using `useMessageScrollerVisibility` and `useMessageScroller`).
 - **Canonical Status & Callout APIs**:
   - Added regression-tested semantic `muted`, `surface`, `primary`, `success`, `warning`, and `danger` variants to Badge, plus `xs` sizing and polymorphic link rendering.

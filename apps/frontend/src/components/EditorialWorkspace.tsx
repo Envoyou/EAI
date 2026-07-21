@@ -135,13 +135,16 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
           {/* Left Side: Active Document Path */}
           <div className="titlebar-path flex min-w-0 shrink-0 items-center gap-2 select-none">
             {!rightPanelOpen && !isDemoMode && (
-              <button
+              <Button
+                type="button"
                 onClick={() => setRightPanelOpen(true)}
-                className="mr-2 p-1.5 -ml-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] md:hidden"
+                variant="ghost"
+                size="icon-xs"
+                className="mr-2 -ml-1.5 hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] md:hidden"
                 aria-label="Open Sidebar"
               >
                 <Menu className="w-4 h-4" />
-              </button>
+              </Button>
             )}
             {isDemoMode ? (
               <>
@@ -270,9 +273,11 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
               <TooltipTrigger
                 render={
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button
+                      type="button"
                       onClick={() => setAnalysisSpeed('fast')}
-                      className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[13px] font-[550] transition-colors border-none bg-transparent cursor-pointer rounded-md ${
+                      variant="ghost"
+                      className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[13px] font-[550] transition-colors border-none bg-transparent cursor-pointer rounded-md h-auto ${
                         analysisSpeed === 'fast'
                           ? 'text-[var(--foreground)]'
                           : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
@@ -283,8 +288,9 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                       {analysisSpeed === 'fast' && (
                         <div className="absolute -bottom-[5px] left-2 right-2 h-[2px] bg-[var(--primary)] rounded-t-sm" />
                       )}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      type="button"
                       onClick={() => {
                         if (isDemoMode) {
                           setShowDemoSignupModal(true);
@@ -292,7 +298,8 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                         }
                         setAnalysisSpeed('publish');
                       }}
-                      className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[13px] font-[550] transition-colors border-none bg-transparent cursor-pointer rounded-md ${
+                      variant="ghost"
+                      className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[13px] font-[550] transition-colors border-none bg-transparent cursor-pointer rounded-md h-auto ${
                         analysisSpeed === 'publish'
                           ? 'text-[var(--foreground)]'
                           : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
@@ -307,7 +314,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                       {analysisSpeed === 'publish' && (
                         <div className="absolute -bottom-[5px] left-2 right-2 h-[2px] bg-[var(--primary)] rounded-t-sm" />
                       )}
-                    </button>
+                    </Button>
                   </div>
                 }
               />
@@ -357,12 +364,15 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
           {/* Demo CTAs */}
           {isDemoMode && (
             <div className="flex items-center gap-2 ml-2 pl-2 border-l border-[var(--border)]">
-              <button
+              <Button
+                type="button"
                 onClick={() => router.push('/login')}
+                variant="ghost"
+                size="sm"
                 className="text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors px-2"
               >
                 Login
-              </button>
+              </Button>
               <Button type="button" onClick={() => router.push('/signup')} variant="primary" size="sm" className="text-xs px-3">
                 Start Free
               </Button>
@@ -482,9 +492,11 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
               {/* Bottom Tab Bar Navigation for Mobile */}
               <div className="fixed bottom-0 left-0 right-0 h-16 border-t border-[var(--border)] bg-[var(--surface-1)] flex items-center justify-around z-[100] px-4 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
                 {!isDemoMode && (
-                  <button
+                  <Button
+                    type="button"
                     onClick={() => setMobileViewTab('history')}
-                    className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer ${
+                    variant="ghost"
+                    className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer h-auto p-1 border-none ${
                       mobileViewTab === 'history'
                         ? 'text-[var(--primary)] font-semibold'
                         : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -492,11 +504,13 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                   >
                     <History className="w-5 h-5" />
                     <span>History</span>
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
+                  type="button"
                   onClick={() => setMobileViewTab('editor')}
-                  className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer ${
+                  variant="ghost"
+                  className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer h-auto p-1 border-none ${
                     mobileViewTab === 'editor'
                       ? 'text-[var(--primary)] font-semibold'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -504,10 +518,12 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                 >
                   <FileEdit className="w-5 h-5" />
                   <span>Editor</span>
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
                   onClick={() => setMobileViewTab('copilot')}
-                  className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer ${
+                  variant="ghost"
+                  className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer h-auto p-1 border-none ${
                     mobileViewTab === 'copilot'
                       ? 'text-[var(--primary)] font-semibold'
                       : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -515,7 +531,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                 >
                   <Sparkles className="w-5 h-5" />
                   <span>EAI Chat</span>
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -646,15 +662,18 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
               style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.35)' }}
             >
               {/* Close */}
-              <button
+              <Button
+                type="button"
                 onClick={() => setShowDemoSignupModal(false)}
-                className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] transition-colors"
+                variant="ghost"
+                size="icon-xs"
+                className="absolute top-4 right-4 w-7 h-7 rounded-full hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] transition-colors border-none p-0"
                 aria-label="Close"
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                   <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                 </svg>
-              </button>
+              </Button>
 
               {/* Icon */}
               <div className="w-10 h-10 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center mb-4">
@@ -680,12 +699,14 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                 >
                   Start Free
                 </Button>
-                <button
+                <Button
+                  type="button"
                   onClick={() => setShowDemoSignupModal(false)}
-                  className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center py-1 transition-colors"
+                  variant="ghost"
+                  className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center py-1 transition-colors border-none w-full"
                 >
                   Maybe Later
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -704,15 +725,18 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
               style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.35)' }}
             >
               {/* Close */}
-              <button
+              <Button
+                type="button"
                 onClick={() => setShowMissingSourcesModal(false)}
-                className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] transition-colors"
+                variant="ghost"
+                size="icon-xs"
+                className="absolute top-4 right-4 w-7 h-7 rounded-full hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] transition-colors border-none p-0"
                 aria-label="Close"
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                   <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                 </svg>
-              </button>
+              </Button>
 
               {/* Icon */}
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4">
@@ -766,12 +790,14 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                 >
                   Refine Anyway
                 </Button>
-                <button
+                <Button
+                  type="button"
                   onClick={() => setShowMissingSourcesModal(false)}
-                  className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center py-1 transition-colors"
+                  variant="ghost"
+                  className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center py-1 transition-colors border-none w-full"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </div>
           </div>
