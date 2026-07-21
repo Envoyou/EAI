@@ -50,8 +50,9 @@ export function WorkspacePageShell({
   return (
     <div className="workspace-page-shell">
       <div className="workspace-page-body">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           className="workspace-page-sidebar-backdrop"
           data-open={sidebarOpen}
           aria-label="Close page navigation"

@@ -83,8 +83,9 @@ export function AdminLayoutShell({ children }: AdminLayoutShellProps) {
     <div className="workspace-page-shell">
       <div className="workspace-page-body">
         {/* Backdrop for mobile */}
-        <button
+        <Button
           type="button"
+          variant="ghost"
           className="workspace-page-sidebar-backdrop"
           data-open={sidebarOpen}
           aria-label="Close admin navigation"
@@ -104,8 +105,10 @@ export function AdminLayoutShell({ children }: AdminLayoutShellProps) {
             <Tooltip disabled={sidebarOpen}>
               <TooltipTrigger
                 render={
-                  <button
+                  <Button
+                    type="button"
                     onClick={() => setSidebarOpen((current) => !current)}
+                    variant="ghost"
                     className={`flex items-center transition-all duration-300 border-none bg-transparent cursor-pointer overflow-hidden ${
                       sidebarOpen
                         ? 'px-2 py-2 mb-2 rounded-full hover:bg-[var(--surface-2)] text-left w-full'
@@ -126,7 +129,7 @@ export function AdminLayoutShell({ children }: AdminLayoutShellProps) {
                         Internal Control
                       </span>
                     </div>
-                  </button>
+                  </Button>
                 }
               />
               <TooltipContent side="right" className="text-xs">
@@ -181,9 +184,10 @@ export function AdminLayoutShell({ children }: AdminLayoutShellProps) {
             <Tooltip disabled={sidebarOpen}>
               <TooltipTrigger
                 render={
-                  <button
+                  <Button
                     type="button"
                     onClick={toggleTheme}
+                    variant="ghost"
                     className={`flex items-center gap-3 w-full px-3 py-2 rounded-xl text-xs font-semibold text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] transition-colors border-none bg-transparent cursor-pointer ${
                       !sidebarOpen ? 'justify-center px-0' : ''
                     }`}
@@ -192,7 +196,7 @@ export function AdminLayoutShell({ children }: AdminLayoutShellProps) {
                     <span className={`${sidebarOpen ? 'block' : 'hidden'} truncate`}>
                       {isDark ? 'Light Mode' : 'Dark Mode'}
                     </span>
-                  </button>
+                  </Button>
                 }
               />
               <TooltipContent side="right" className="text-xs">

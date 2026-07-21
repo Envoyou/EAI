@@ -2,6 +2,7 @@
 
 import { FileEdit, FileCheck, PanelRight, PanelLeft } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 
 export type PanelTab = 'draft' | 'refined';
 
@@ -72,10 +73,13 @@ export default function PanelTabBar({
           <Tooltip>
             <TooltipTrigger
               render={
-                <button
+                <Button
+                  type="button"
                   onClick={leftToggleHandler}
+                  variant="ghost"
+                  size="icon-xs"
                   className={`
-                    w-7.5 h-7.5 flex items-center justify-center rounded-md transition-colors text-xs border border-transparent cursor-pointer
+                    transition-colors border border-transparent
                     ${leftToggleActive
                       ? 'bg-[var(--surface-2)] text-[var(--foreground)]'
                       : 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'}
@@ -83,7 +87,7 @@ export default function PanelTabBar({
                   aria-label={leftToggleActive ? `Hide ${leftToggleLabel} Panel` : `Show ${leftToggleLabel} Panel`}
                 >
                   {leftIcon}
-                </button>
+                </Button>
               }
             />
             <TooltipContent side="bottom" className="text-xs">
@@ -99,7 +103,7 @@ export default function PanelTabBar({
         const isLoadingTab = isLoading && tab.key === 'refined';
 
         const button = (
-          <button
+          <Button
             type="button"
             key={tab.key}
             id={`panel-tab-${tab.key}`}
@@ -108,6 +112,7 @@ export default function PanelTabBar({
             aria-controls={`panel-${tab.key}`}
             onClick={() => !isDisabled && !isLoading && onTabChange(tab.key)}
             disabled={isDisabled}
+            variant="ghost"
             className={`ide-tab${isActive ? ' active' : ''}`}
           >
             {isLoadingTab ? (
@@ -127,7 +132,7 @@ export default function PanelTabBar({
                 …
               </span>
             )}
-          </button>
+          </Button>
         );
 
         if (isDisabled) {
@@ -166,10 +171,13 @@ export default function PanelTabBar({
           <Tooltip>
             <TooltipTrigger
               render={
-                <button
+                <Button
+                  type="button"
                   onClick={rightFeedbackHandler}
+                  variant="ghost"
+                  size="icon-xs"
                   className={`
-                    w-7.5 h-7.5 flex items-center justify-center rounded-md transition-colors text-xs border border-transparent cursor-pointer
+                    transition-colors border border-transparent
                     ${rightToggleActiveFeedback
                       ? 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
                       : 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'}
@@ -177,7 +185,7 @@ export default function PanelTabBar({
                   aria-label={rightToggleActiveFeedback ? 'Hide Assistant Panel' : 'Show Assistant Panel'}
                 >
                   {rightIcon}
-                </button>
+                </Button>
               }
             />
             <TooltipContent side="bottom" className="text-xs">
@@ -193,10 +201,13 @@ export default function PanelTabBar({
           <Tooltip>
             <TooltipTrigger
               render={
-                <button
+                <Button
+                  type="button"
                   onClick={rightNotesHandler}
+                  variant="ghost"
+                  size="icon-xs"
                   className={`
-                    w-7.5 h-7.5 flex items-center justify-center rounded-md transition-colors text-xs border border-transparent cursor-pointer
+                    transition-colors border border-transparent
                     ${rightToggleActiveNotes
                       ? 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
                       : 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'}
@@ -204,7 +215,7 @@ export default function PanelTabBar({
                   aria-label={rightToggleActiveNotes ? 'Hide Assistant Panel' : 'Show Assistant Panel'}
                 >
                   {rightIcon}
-                </button>
+                </Button>
               }
             />
             <TooltipContent side="bottom" className="text-xs">

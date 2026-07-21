@@ -8,6 +8,7 @@ import { WorkspacePageShell } from '@/components/WorkspacePageShell';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useDashboard } from './DashboardProvider';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const sections = [
   { id: 'overview', label: 'Overview', icon: Activity, href: '/dashboard/overview' },
@@ -86,14 +87,17 @@ export function DashboardLayoutShell({ children, isSuperAdmin }: { children: Rea
           )}
 
           {/* Download CSV Button */}
-          <button
+          <Button
+            type="button"
             onClick={handleDownloadCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-colors shadow-sm cursor-pointer text-[var(--foreground)]"
+            variant="outline"
+            size="sm"
+            className="rounded-full text-xs font-semibold text-[var(--foreground)] shadow-xs"
             aria-label="Download Report as CSV"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export CSV</span>
-          </button>
+          </Button>
         </div>
       }
       sidebar={

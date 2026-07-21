@@ -22,6 +22,7 @@ import {
 import { EAILogo } from '@/components/EAILogo';
 import { version } from '../../package.json';
 import { useTranslations } from 'next-intl';
+import { Button } from '@/components/ui/button';
 
 type AuthPageShellProps = {
   mode: 'login' | 'signup';
@@ -143,10 +144,12 @@ export function AuthPageShell({
           {/* slide indicators */}
           <div className="absolute -bottom-8 left-0 flex gap-2">
             {slides.map((_, i) => (
-              <button
+              <Button
                 key={i}
+                type="button"
                 onClick={() => setCurrentSlide(i)}
-                className={`h-1.5 rounded-full transition-all duration-500 ${
+                variant="ghost"
+                className={`h-1.5 p-0 rounded-full transition-all duration-500 min-w-0 ${
                   i === currentSlide ? 'w-8 bg-primary-400' : 'w-2 bg-white/20 hover:bg-white/40'
                 }`}
                 aria-label={`Go to slide ${i + 1}`}

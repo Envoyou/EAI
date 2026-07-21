@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 
 export interface SidebarItemProps {
   icon: React.ElementType;
@@ -65,9 +66,15 @@ export function SidebarItem({
       );
     }
     return (
-      <button onClick={disabled ? undefined : onClick} className={`${combinedClasses} bg-transparent`} disabled={disabled}>
+      <Button
+        type="button"
+        onClick={disabled ? undefined : onClick}
+        variant="ghost"
+        disabled={disabled}
+        className={`${combinedClasses} bg-transparent`}
+      >
         {innerContent}
-      </button>
+      </Button>
     );
   };
 

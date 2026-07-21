@@ -106,6 +106,8 @@ apps/frontend/
 │   │   │   ├── tooltip.tsx       # Custom Tooltip (Base UI — use render prop, not asChild)
 │   │   │   ├── badge.tsx         # Custom Badge
 │   │   │   ├── button.tsx        # Canonical semantic Button API backed by ui-btn classes
+│   │   │   ├── message-scroller.tsx # MessageScroller primitive for auto-scrolling & turn tracking
+│   │   │   ├── popover.tsx       # Popover primitive (Base UI)
 │   │   │   ├── alert.tsx         # Alert wrapper
 │   │   │   ├── skeleton.tsx      # Loading skeleton
 │   │   │   ├── input.tsx         # Input field

@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { storeThemePreference } from '@/lib/preferences';
 import { SidebarItem } from '@/components/ui/sidebar-item';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export type WorkspacePage = 'editor' | 'dashboard' | 'publication' | 'settings';
 
@@ -98,8 +99,10 @@ export function AppSidebarShell({
         <Tooltip disabled={sidebarOpen}>
           <TooltipTrigger
             render={
-              <button
+              <Button
+                type="button"
                 onClick={onToggleSidebar}
+                variant="ghost"
                 className={`flex items-center transition-all duration-300 border-none bg-transparent cursor-pointer overflow-hidden ${
                   sidebarOpen
                     ? 'px-2 py-2 mb-2 rounded-full hover:bg-[var(--surface-2)] text-left w-full'
@@ -120,7 +123,7 @@ export function AppSidebarShell({
                     Editorial Intelligence
                   </span>
                 </div>
-              </button>
+              </Button>
             }
           />
           <TooltipContent side="right" className="text-xs">

@@ -1,5 +1,6 @@
 import { Role } from '@eai/shared';
 import { PenTool, ShieldCheck, Search, Scale } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface RoleToggleProps {
   role: Role;
@@ -9,8 +10,10 @@ interface RoleToggleProps {
 export default function RoleToggle({ role, onChange }: RoleToggleProps) {
   return (
     <div className="flex bg-brand-100 dark:bg-brand-800 p-1 rounded-lg w-fit">
-      <button
+      <Button
+        type="button"
         onClick={() => onChange('author')}
+        variant={role === 'author' ? 'surface' : 'ghost'}
         className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
           role === 'author'
             ? 'bg-white dark:bg-brand-900 text-brand-900 dark:text-white shadow-sm'
@@ -19,9 +22,11 @@ export default function RoleToggle({ role, onChange }: RoleToggleProps) {
       >
         <PenTool className="w-4 h-4" />
         Author Mode
-      </button>
-      <button
+      </Button>
+      <Button
+        type="button"
         onClick={() => onChange('editor')}
+        variant={role === 'editor' ? 'surface' : 'ghost'}
         className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
           role === 'editor'
             ? 'bg-white dark:bg-brand-900 text-brand-900 dark:text-white shadow-sm'
@@ -30,9 +35,11 @@ export default function RoleToggle({ role, onChange }: RoleToggleProps) {
       >
         <ShieldCheck className="w-4 h-4" />
         Editor Mode
-      </button>
-      <button
+      </Button>
+      <Button
+        type="button"
         onClick={() => onChange('seo')}
+        variant={role === 'seo' ? 'surface' : 'ghost'}
         className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
           role === 'seo'
             ? 'bg-white dark:bg-brand-900 text-brand-900 dark:text-white shadow-sm'
@@ -41,9 +48,11 @@ export default function RoleToggle({ role, onChange }: RoleToggleProps) {
       >
         <Search className="w-4 h-4" />
         SEO Mode
-      </button>
-      <button
+      </Button>
+      <Button
+        type="button"
         onClick={() => onChange('fact-checker')}
+        variant={role === 'fact-checker' ? 'surface' : 'ghost'}
         className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
           role === 'fact-checker'
             ? 'bg-white dark:bg-brand-900 text-brand-900 dark:text-white shadow-sm'
@@ -52,7 +61,7 @@ export default function RoleToggle({ role, onChange }: RoleToggleProps) {
       >
         <Scale className="w-4 h-4" />
         Fact-Checker
-      </button>
+      </Button>
     </div>
   );
 }
