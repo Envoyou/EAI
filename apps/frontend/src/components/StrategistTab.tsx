@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import {
@@ -16,8 +16,9 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { StrategistTabProps } from './strategist-tab/types';
 import { useStrategistChat } from './strategist-tab/hooks/useStrategistChat';
 import { SessionSidebar } from './strategist-tab/components/SessionSidebar';
-import { ChatMessageList } from './strategist-tab/components/ChatMessageList';
+import { ChatMessageList, ChatPositionIndicator } from './strategist-tab/components/ChatMessageList';
 import { ChatInputBar } from './strategist-tab/components/ChatInputBar';
+import { MessageScrollerProvider } from '@/components/ui/message-scroller';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -52,10 +53,7 @@ export default function StrategistTab({
   onCancelChat,
 }: StrategistTabProps) {
   const { user } = useUser();
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [showReportModal, setShowReportModal] = useState(false);
-  const prevIsTypingRef = useRef(isTyping);
 
   const {
     fileInputRef,
@@ -68,26 +66,6 @@ export default function StrategistTab({
     handleStartRename,
     handleSaveRename,
   } = useStrategistChat(handleFileUpload, renameSession);
-
-  const handleScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-    setShouldAutoScroll(isAtBottom);
-  };
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const prevIsTyping = prevIsTypingRef.current;
-    if (isTyping && !prevIsTyping) {
-      el.scrollTop = el.scrollHeight;
-      setTimeout(() => setShouldAutoScroll(true), 0);
-    } else if (shouldAutoScroll) {
-      el.scrollTop = el.scrollHeight;
-    }
-    prevIsTypingRef.current = isTyping;
-  }, [messages, isTyping, shouldAutoScroll]);
 
   const downloadConversation = () => {
     if (messages.length === 0) {
@@ -130,7 +108,7 @@ export default function StrategistTab({
           onStartRename={handleStartRename}
         />
       ) : (
-        <>
+        <MessageScrollerProvider autoScroll>
           <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border)] text-xs text-[var(--muted-foreground)] shrink-0">
             <div className="flex items-center gap-1.5 ml-1">
               {user && (
@@ -169,6 +147,9 @@ export default function StrategistTab({
                   <span>View Report</span>
                 </Button>
               )}
+
+              {/* Reader position indicator — visible when scrolled away from latest */}
+              <ChatPositionIndicator />
 
               {messages.length > 0 && (
                 <Tooltip>
@@ -214,12 +195,7 @@ export default function StrategistTab({
             </div>
           </div>
 
-          <div
-            className="flex-1 overflow-y-auto overflow-x-hidden"
-            ref={scrollRef}
-            onScroll={handleScroll}
-          >
-            <ChatMessageList
+          <ChatMessageList
               messages={messages}
               isTyping={isTyping}
               copiedMessageId={copiedMessageId}
@@ -228,7 +204,6 @@ export default function StrategistTab({
               handleCopy={handleCopy}
               saveNote={saveNote}
             />
-          </div>
 
           <ChatInputBar
             chatInput={chatInput}
@@ -246,7 +221,7 @@ export default function StrategistTab({
             fileInputRef={fileInputRef}
             handleFileChange={handleFileChange}
           />
-        </>
+        </MessageScrollerProvider>
       )}
 
       {showReportModal && (

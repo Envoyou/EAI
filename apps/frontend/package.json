@@ -15,6 +15,7 @@
     "@clerk/themes": "^2.4.57",
     "@eai/shared": "*",
     "@sentry/nextjs": "^10.57.0",
+    "@shadcn/react": "^0.2.1",
     "@tailwindcss/typography": "^0.5.19",
     "@tiptap/extension-bubble-menu": "^3.27.1",
     "@tiptap/extension-link": "^3.27.1",
