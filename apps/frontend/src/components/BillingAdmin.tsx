@@ -367,11 +367,12 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
           {results.length > 0 && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {results.map((organization) => (
-                <button
+                <Button
                   key={organization.id}
                   type="button"
                   onClick={() => loadOrganization(organization.id)}
-                  className={`ui-card ui-card-hover w-full p-4 text-left ${
+                  variant="ghost"
+                  className={`ui-card ui-card-hover w-full p-4 text-left justify-start flex-col items-stretch h-auto border-none ${
                     selected?.id === organization.id ? 'ring-2 ring-[var(--primary)]/40' : ''
                   }`}
                 >
@@ -390,7 +391,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                     <span>{planLabel(organization.subscription)}</span>
                     <span>{organization.users.length} member{organization.users.length === 1 ? '' : 's'}</span>
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -512,28 +513,30 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                   <div className="flex-1 flex flex-col">
                     {/* Tab Switcher */}
                     <div className="flex border-b border-[var(--border)] mb-4">
-                      <button
+                      <Button
                         type="button"
                         onClick={() => setActiveTab('credits')}
-                        className={`flex-1 pb-2 text-xs font-bold transition-all border-b-2 text-center cursor-pointer ${
+                        variant="ghost"
+                        className={`flex-1 pb-2 text-xs font-bold transition-all border-b-2 text-center rounded-none h-auto -mb-px border-none ${
                           activeTab === 'credits'
-                            ? 'border-[var(--primary)] text-[var(--foreground)]'
+                            ? 'border-[var(--primary)] text-[var(--foreground)] border-b-2'
                             : 'border-transparent text-[var(--muted-foreground)]'
                         }`}
                       >
                         Adjust Credits
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
                         onClick={() => setActiveTab('plan')}
-                        className={`flex-1 pb-2 text-xs font-bold transition-all border-b-2 text-center cursor-pointer ${
+                        variant="ghost"
+                        className={`flex-1 pb-2 text-xs font-bold transition-all border-b-2 text-center rounded-none h-auto -mb-px border-none ${
                           activeTab === 'plan'
-                            ? 'border-[var(--primary)] text-[var(--foreground)]'
+                            ? 'border-[var(--primary)] text-[var(--foreground)] border-b-2'
                             : 'border-transparent text-[var(--muted-foreground)]'
                         }`}
                       >
                         Override Plan
-                      </button>
+                      </Button>
                     </div>
 
                     {activeTab === 'credits' ? (

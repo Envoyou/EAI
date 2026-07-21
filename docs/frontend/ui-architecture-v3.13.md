@@ -349,14 +349,12 @@ responsible for:
   including readiness/status indicators, source links, animated review flags,
   admin callouts, and billing states. Interactive model presets and source
   expansion controls were corrected to canonical Button semantics.
-- Completed for Shell & Navigation and Workspace & Editor raw Buttons on 2026-07-21:
-  migrated raw controls across `AdminLayoutShell`, `AppSidebarShell`, `sidebar-item`,
-  `DashboardLayoutShell`, `WorkspacePageShell`, `AuthPageShell`, `PanelTabBar`,
-  `ThemeToggle`, `RoleToggle`, `EditorialWorkspace`, `Editor`, `CommandList`,
-  `FinalDraftPanel`, `DocumentHistoryPanel`, `AICopilotPanel`, and `NotesTab` to
-  canonical `Button` and `render` prop APIs. Integrated `@shadcn/message-scroller`
-  and `TranscriptOutline` into the Strategist chat workspace, removing legacy manual
-  scroll logic while preserving custom bubble markup.
+- Completed 100% raw Button migration across all 41 feature files on 2026-07-21:
+  migrated all raw controls across shell & navigation, workspace & editor, admin & billing,
+  user directory, strategist chat, feedback panel, wizards, modals, and settings pages to
+  canonical `Button` and `render` prop APIs. Zero raw `<button>` elements remain in `src/`.
+  Enforced via `ShellAndWorkspaceControls.test.ts` (144/144 unit tests passing). Integrated
+  `@shadcn/message-scroller` and `TranscriptOutline` into the Strategist chat workspace.
 - Move feature controls behind `components/ui` primitives incrementally.
 - Preserve current visuals and mobile behavior during migration.
 - Retire redundant global classes only when no consumers remain.

@@ -9,6 +9,7 @@ import {
   ArrowUp,
   Square,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Attachment } from '@/lib/hooks/useContentStrategist';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
@@ -21,7 +22,6 @@ import {
 import { FileInput } from '@/components/ui/file-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 interface ChatInputBarProps {
   chatInput: string;
@@ -83,13 +83,15 @@ export function ChatInputBar({
           <Tooltip>
             <TooltipTrigger
               render={
-                <button
+                <Button
                   type="button"
                   onClick={() => setUploadedAttachment(null)}
-                  className="p-0.5 rounded hover:bg-[var(--surface-4)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none bg-transparent cursor-pointer ml-1"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none p-0 ml-1"
                 >
                   <X className="w-2.5 h-2.5" />
-                </button>
+                </Button>
               }
             />
             <TooltipContent side="bottom" className="text-xs">

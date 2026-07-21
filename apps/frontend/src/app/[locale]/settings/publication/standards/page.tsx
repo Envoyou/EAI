@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Check } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { usePublication } from '@/components/PublicationProvider';
 import { ArrayField, FieldLabel } from '@/components/PublicationUI';
 import { SettingSection } from '@/components/SettingsUI';
@@ -24,19 +25,20 @@ export default function StandardsSettingsPage() {
             <FieldLabel>Source checking level</FieldLabel>
             <div className="mt-2 grid grid-cols-2 rounded-md bg-muted/20 p-1">
               {(['standard', 'strict'] as const).map((policy) => (
-                <button
+                <Button
                   key={policy}
                   type="button"
                   onClick={() => updateField('sourcePolicy', policy)}
+                  variant={form.sourcePolicy === policy ? 'surface' : 'ghost'}
                   className={`flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 text-xs font-semibold capitalize transition ${
                     form.sourcePolicy === policy
-                      ? 'bg-card text-primary shadow-sm'
+                      ? 'bg-card text-primary shadow-xs'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {form.sourcePolicy === policy ? <Check className="h-3.5 w-3.5" /> : null}
+                  <ShieldCheck className="h-4 w-4" />
                   {policy}
-                </button>
+                </Button>
               ))}
             </div>
             <p className="mt-2 text-[11px] leading-4 text-muted-foreground">

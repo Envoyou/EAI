@@ -627,7 +627,7 @@ export function OnboardingWizard() {
                       </div>
                     </div>
 
-                    <button
+                    <Button
                       type="button"
                       onClick={async () => {
                         discoverCancelledRef.current = true;
@@ -649,10 +649,11 @@ export function OnboardingWizard() {
                           console.error(err);
                         }
                       }}
-                      className="px-6 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all font-medium font-mono"
+                      variant="outline"
+                      className="px-6 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all font-medium font-mono h-auto"
                     >
                       Batal & Kembali
-                    </button>
+                    </Button>
                   </div>
                 )}
 
@@ -755,13 +756,15 @@ export function OnboardingWizard() {
                                 >
                                   {cat}
                                   {isEditing && (
-                                    <button
+                                    <Button
                                       type="button"
                                       onClick={() => handleToggleCategory(cat)}
-                                      className="hover:text-red-500 font-bold ml-0.5 text-xs"
+                                      variant="ghost"
+                                      size="icon-xs"
+                                      className="hover:text-red-500 font-bold ml-0.5 text-xs border-none p-0 h-auto"
                                     >
                                       ×
-                                    </button>
+                                    </Button>
                                   )}
                                 </span>
                               ))}
@@ -774,18 +777,19 @@ export function OnboardingWizard() {
                                   {PREDEFINED_CATEGORIES.map((cat) => {
                                     const active = data.editorialProfile?.categories.includes(cat);
                                     return (
-                                      <button
+                                      <Button
                                         key={cat}
                                         type="button"
                                         onClick={() => handleToggleCategory(cat)}
-                                        className={`px-2 py-0.5 rounded-lg text-[9px] border transition ${
+                                        variant={active ? 'primary' : 'surface'}
+                                        className={`px-2 py-0.5 rounded-lg text-[9px] border transition h-auto ${
                                           active
                                             ? 'bg-primary/10 border-primary/40 text-primary'
                                             : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
                                         }`}
                                       >
                                         {cat}
-                                      </button>
+                                      </Button>
                                     );
                                   })}
                                 </div>
@@ -805,13 +809,15 @@ export function OnboardingWizard() {
                                 >
                                   {type}
                                   {isEditing && (
-                                    <button
+                                    <Button
                                       type="button"
                                       onClick={() => handleToggleArticleType(type)}
-                                      className="hover:text-red-500 font-bold ml-0.5 text-xs"
+                                      variant="ghost"
+                                      size="icon-xs"
+                                      className="hover:text-red-500 font-bold ml-0.5 text-xs border-none p-0 h-auto"
                                     >
                                       ×
-                                    </button>
+                                    </Button>
                                   )}
                                 </span>
                               ))}
@@ -824,18 +830,19 @@ export function OnboardingWizard() {
                                   {PREDEFINED_ARTICLE_TYPES.map((type) => {
                                     const active = data.editorialProfile?.articleTypes?.includes(type);
                                     return (
-                                      <button
+                                      <Button
                                         key={type}
                                         type="button"
                                         onClick={() => handleToggleArticleType(type)}
-                                        className={`px-2 py-0.5 rounded-lg text-[9px] border transition ${
+                                        variant={active ? 'primary' : 'surface'}
+                                        className={`px-2 py-0.5 rounded-lg text-[9px] border transition h-auto ${
                                           active
                                             ? 'bg-primary/10 border-primary/40 text-primary'
                                             : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
                                         }`}
                                       >
                                         {type}
-                                      </button>
+                                      </Button>
                                     );
                                   })}
                                 </div>
@@ -855,13 +862,15 @@ export function OnboardingWizard() {
                                 >
                                   {tn}
                                   {isEditing && (
-                                    <button
+                                    <Button
                                       type="button"
                                       onClick={() => handleToggleTone(tn)}
-                                      className="hover:text-red-500 font-bold ml-0.5 text-xs"
+                                      variant="ghost"
+                                      size="icon-xs"
+                                      className="hover:text-red-500 font-bold ml-0.5 text-xs border-none p-0 h-auto"
                                     >
                                       ×
-                                    </button>
+                                    </Button>
                                   )}
                                 </span>
                               ))}
@@ -874,18 +883,19 @@ export function OnboardingWizard() {
                                   {['professional', 'clear', 'analytical', 'conversational', 'bold', 'data-driven', 'insightful', 'strategic', 'academic'].map((tn) => {
                                     const active = data.editorialProfile?.tone.includes(tn);
                                     return (
-                                      <button
+                                      <Button
                                         key={tn}
                                         type="button"
                                         onClick={() => handleToggleTone(tn)}
-                                        className={`px-2 py-0.5 rounded-lg text-[9px] border transition capitalize ${
+                                        variant={active ? 'primary' : 'surface'}
+                                        className={`px-2 py-0.5 rounded-lg text-[9px] border transition capitalize h-auto ${
                                           active
                                             ? 'bg-primary/10 border-primary/40 text-primary'
                                             : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
                                         }`}
                                       >
                                         {tn}
-                                      </button>
+                                      </Button>
                                     );
                                   })}
                                 </div>

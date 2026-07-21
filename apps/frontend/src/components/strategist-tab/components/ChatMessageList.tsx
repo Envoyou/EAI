@@ -118,14 +118,15 @@ function TranscriptOutline({ messages }: { messages: ChatMessage[] }) {
           {userMessages.map((msg, index) => {
             const isCurrent = currentAnchorId === msg.id;
             return (
-              <button
+              <Button
                 key={msg.id}
                 type="button"
                 onClick={() => {
                   scrollToMessage(msg.id, { align: 'start', behavior: 'smooth' });
                   setOpen(false);
                 }}
-                className={`w-full text-left p-2 rounded-lg text-xs transition-colors flex items-start gap-2 ${
+                variant="ghost"
+                className={`w-full text-left justify-start p-2 rounded-lg text-xs transition-colors flex items-start gap-2 h-auto ${
                   isCurrent
                     ? 'bg-[var(--primary)]/10 text-[var(--primary)] font-medium border border-[var(--primary)]/20'
                     : 'hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
@@ -140,7 +141,7 @@ function TranscriptOutline({ messages }: { messages: ChatMessage[] }) {
                 {isCurrent && (
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shrink-0 mt-1.5 animate-pulse" />
                 )}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -417,11 +418,14 @@ function ChatMessageRow({
                       <Tooltip>
                         <TooltipTrigger
                           render={
-                            <button
+                            <Button
+                              type="button"
                               onClick={() =>
                                 handleCopy(normalizedContent, msg.id)
                               }
-                              className="p-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                              variant="ghost"
+                              size="icon-xs"
+                              className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                             >
                               {copiedMessageId === msg.id ? (
                                 // Use --success token instead of hardcoded emerald-500
@@ -429,7 +433,7 @@ function ChatMessageRow({
                               ) : (
                                 <Copy className="w-3.5 h-3.5" />
                               )}
-                            </button>
+                            </Button>
                           }
                         />
                         <TooltipContent side="bottom" className="text-xs">
@@ -440,17 +444,20 @@ function ChatMessageRow({
                       <Tooltip>
                         <TooltipTrigger
                           render={
-                            <button
+                            <Button
+                              type="button"
                               onClick={() =>
                                 saveNote({
                                   ...msg,
                                   content: normalizedContent,
                                 })
                               }
-                              className="p-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                              variant="ghost"
+                              size="icon-xs"
+                              className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                             >
                               <Bookmark className="w-3.5 h-3.5" />
-                            </button>
+                            </Button>
                           }
                         />
                         <TooltipContent side="bottom" className="text-xs">
@@ -461,7 +468,8 @@ function ChatMessageRow({
                       <Tooltip>
                         <TooltipTrigger
                           render={
-                            <button
+                            <Button
+                              type="button"
                               onClick={() => {
                                 const clean = normalizeStrategistMarkdown(
                                   msg.content.replace(
@@ -479,10 +487,12 @@ function ChatMessageRow({
                                 a.click();
                                 URL.revokeObjectURL(url);
                               }}
-                              className="p-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                              variant="ghost"
+                              size="icon-xs"
+                              className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                             >
                               <Download className="w-3.5 h-3.5" />
-                            </button>
+                            </Button>
                           }
                         />
                         <TooltipContent side="bottom" className="text-xs">
@@ -493,12 +503,15 @@ function ChatMessageRow({
                       <Tooltip>
                         <TooltipTrigger
                           render={
-                            <button
+                            <Button
+                              type="button"
                               onClick={() => handleRewrite(msg.id)}
-                              className="p-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                              variant="ghost"
+                              size="icon-xs"
+                              className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
-                            </button>
+                            </Button>
                           }
                         />
                         <TooltipContent side="bottom" className="text-xs">

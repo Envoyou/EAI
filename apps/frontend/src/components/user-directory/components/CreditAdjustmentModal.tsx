@@ -46,13 +46,15 @@ export function CreditAdjustmentModal({
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-end p-0 animate-fade-in">
       <div className="bg-[var(--surface-1)] border-l border-[var(--border)] h-full max-w-md w-full p-6 shadow-2xl flex flex-col relative overflow-y-auto">
-        <button
+        <Button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-1 rounded-lg transition-colors"
+          variant="ghost"
+          size="icon-xs"
+          className="absolute right-4 top-4 text-[var(--muted-foreground)] hover:text-[var(--foreground)] rounded-lg"
         >
           <X className="h-4 w-4" />
-        </button>
+        </Button>
 
         <div className="flex items-center gap-2 mb-6">
           <div className="p-2.5 rounded-lg bg-[var(--warning)]/10 text-[var(--warning)]">
@@ -72,10 +74,11 @@ export function CreditAdjustmentModal({
               Adjustment Type
             </label>
             <div className="grid grid-cols-2 gap-2">
-              <button
+              <Button
                 type="button"
                 onClick={() => setAdjustDirection('add')}
-                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                variant={adjustDirection === 'add' ? 'primary' : 'surface'}
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer h-auto ${
                   adjustDirection === 'add'
                     ? 'bg-[var(--success)]/10 border-[var(--success)]/40 text-[var(--success)]'
                     : 'border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--surface-2)]'
@@ -83,11 +86,12 @@ export function CreditAdjustmentModal({
               >
                 <PlusCircle className="h-4 w-4" />
                 <span>Add Credits</span>
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => setAdjustDirection('deduct')}
-                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                variant={adjustDirection === 'deduct' ? 'danger' : 'surface'}
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer h-auto ${
                   adjustDirection === 'deduct'
                     ? 'bg-[var(--destructive)]/10 border-[var(--destructive)]/40 text-[var(--destructive)]'
                     : 'border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--surface-2)]'
@@ -95,7 +99,7 @@ export function CreditAdjustmentModal({
               >
                 <MinusCircle className="h-4 w-4" />
                 <span>Deduct Credits</span>
-              </button>
+              </Button>
             </div>
           </div>
 

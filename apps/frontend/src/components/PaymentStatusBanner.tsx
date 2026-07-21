@@ -5,6 +5,7 @@ import { fetchWithTimeout } from '@/lib/fetch-utils';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle2, Clock3, Loader2, TriangleAlert, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 type PaymentStatus = {
   id: string;
@@ -148,14 +149,16 @@ export default function PaymentStatusBanner() {
             Order: {orderId}
           </p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={dismiss}
           aria-label="Dismiss payment status"
-          className="rounded-full p-1 text-slate-500 hover:bg-black/5 dark:hover:bg-white/10"
+          variant="ghost"
+          size="icon-xs"
+          className="rounded-full text-slate-500 hover:bg-black/5 dark:hover:bg-white/10"
         >
           <X className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </section>
   );

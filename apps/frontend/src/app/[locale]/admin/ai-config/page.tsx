@@ -171,21 +171,22 @@ export default function AiConfigAdminPage() {
                 Search Results ({results.length})
               </div>
               {results.map((org) => (
-                <button
+                <Button
                   key={org.id}
                   type="button"
                   onClick={() => loadOrgConfig(org.id)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors border-none bg-transparent cursor-pointer ${
+                  variant="ghost"
+                  className={`w-full text-left justify-start flex-col items-start px-3 py-2 h-auto rounded-lg text-xs transition-colors border-none bg-transparent cursor-pointer ${
                     selectedOrgId === org.id
                       ? 'bg-[var(--surface-3)] text-[var(--foreground)] font-semibold'
                       : 'text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'
                   }`}
                 >
-                  <div className="font-semibold truncate">{org.name}</div>
+                  <div className="font-semibold truncate w-full">{org.name}</div>
                   <div className="text-[10px] text-[var(--muted-foreground)] truncate mt-0.5">
                     slug: {org.slug}
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -240,18 +241,19 @@ export default function AiConfigAdminPage() {
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {(['gemini', 'groq', 'openrouter'] as const).map((prov) => (
-                    <button
+                    <Button
                       key={prov}
                       type="button"
                       onClick={() => setProviderAndClearModel(prov)}
-                      className={`px-3 py-2.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                      variant={config.provider === prov ? 'primary' : 'surface'}
+                      className={`px-3 py-2.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer h-auto ${
                         config.provider === prov
-                          ? 'bg-[var(--primary-bg)] border-[var(--primary)] text-[var(--primary)] shadow-sm'
+                          ? 'bg-[var(--primary-bg)] border-[var(--primary)] text-[var(--primary)] shadow-xs'
                           : 'bg-[var(--surface-2)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-3)]'
                       }`}
                     >
                       <span className="capitalize">{prov === 'gemini' ? 'Gemini API' : prov}</span>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>

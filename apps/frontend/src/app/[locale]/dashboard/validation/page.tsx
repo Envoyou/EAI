@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { FileText, CheckCircle, Activity, AlertTriangle, Loader2, ArrowLeft, Download, WalletCards } from 'lucide-react';
 import Link from 'next/link';
 import { WorkspacePageShell } from '@/components/WorkspacePageShell';
+import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 
@@ -204,31 +205,37 @@ export default function ValidationDashboardPage() {
           {/* Demo Mode Toggle */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] shadow-sm transition-all">
             <span className="text-[10px] font-semibold text-muted-foreground">Demo</span>
-            <button
+            <Button
+              type="button"
               onClick={toggleDemoMode}
-              className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              variant="ghost"
+              size="icon-xs"
+              className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent p-0 transition-colors duration-200 ease-in-out focus:outline-none ${
                 demoMode ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'
               }`}
               role="switch"
               aria-checked={demoMode}
             >
               <span
-                className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
                   demoMode ? 'translate-x-3' : 'translate-x-0'
                 }`}
               />
-            </button>
+            </Button>
           </div>
 
           {/* Download CSV Button */}
-          <button
+          <Button
+            type="button"
             onClick={handleDownloadCSV}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-sm cursor-pointer text-foreground"
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-xs cursor-pointer text-foreground h-auto"
             aria-label="Download Report as CSV"
           >
             <Download className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Export CSV</span>
-          </button>
+          </Button>
 
           <Link
             href="/settings/billing"

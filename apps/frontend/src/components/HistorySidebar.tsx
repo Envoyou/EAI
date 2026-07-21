@@ -279,15 +279,17 @@ export default function HistorySidebar({
           {filters.map(f => {
             const active = activeFilter === f;
             return (
-              <button
+              <Button
                 key={f}
+                type="button"
                 onClick={() => setActiveFilter(f)}
-                className={`min-w-0 flex-1 px-2 py-1.5 text-[10px] capitalize rounded-full transition-all border-none cursor-pointer ${
-                  active ? 'bg-[var(--card)] text-[var(--foreground)] font-semibold shadow-sm' : 'bg-transparent text-[var(--muted-foreground)] hover:bg-[var(--surface-3)] hover:text-[var(--foreground)]'
+                variant={active ? 'surface' : 'ghost'}
+                className={`min-w-0 flex-1 px-2 py-1.5 text-[10px] capitalize rounded-full transition-all border-none cursor-pointer h-auto ${
+                  active ? 'bg-[var(--card)] text-[var(--foreground)] font-semibold shadow-xs' : 'bg-transparent text-[var(--muted-foreground)] hover:bg-[var(--surface-3)] hover:text-[var(--foreground)]'
                 }`}
               >
                   {f === 'needs_review' ? 'Needs Review' : f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -331,9 +333,11 @@ export default function HistorySidebar({
                     
                     return (
                       <div key={item.id} className="relative group">
-                        <button
+                        <Button
+                          type="button"
                           onClick={() => onSelect(item.id)}
-                          className={`group w-full text-left px-3 py-1.5 rounded-full transition-colors relative flex items-center gap-2 border-none cursor-pointer ${
+                          variant="ghost"
+                          className={`group w-full text-left justify-start px-3 py-1.5 rounded-full transition-colors relative flex items-center gap-2 border-none cursor-pointer h-auto ${
                             isActive
                               ? 'bg-[var(--sidebar-accent)]'
                               : 'bg-transparent hover:bg-[var(--sidebar-accent)]'
@@ -382,18 +386,21 @@ export default function HistorySidebar({
                           <span className="text-[10.5px] text-[var(--muted-foreground)] shrink-0 transition-opacity duration-200 group-hover:opacity-0">
                             {timeAgo(item.createdAt).replace(' ago', '')}
                           </span>
-                        </button>
+                        </Button>
 
                         <Tooltip>
                           <TooltipTrigger
                             render={
-                              <button
+                              <Button
+                                type="button"
                                 onClick={e => { e.stopPropagation(); setItemToDelete(item.id); }}
-                                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full transition-[opacity,background-color,color] border-none cursor-pointer bg-transparent opacity-0 group-hover:opacity-100 hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                                variant="ghost"
+                                size="icon-xs"
+                                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full transition-[opacity,background-color,color] border-none bg-transparent opacity-0 group-hover:opacity-100 hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                                 aria-label="Delete draft"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              </Button>
                             }
                           />
                           <TooltipContent>Delete draft</TooltipContent>

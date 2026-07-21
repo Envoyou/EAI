@@ -4,6 +4,7 @@ import React, { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { toggleFeatureFlag } from './actions';
 import { Power, Settings, Globe, AlertTriangle, type LucideIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { SettingSection } from '@/components/SettingsUI';
 import type { FeatureFlagKey } from '@eai/shared/server';
 
@@ -122,12 +123,13 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
               </div>
               
               <div className="shrink-0 pl-14 sm:pl-0">
-                <button
+                <Button
                   type="button"
                   onClick={() => handleToggle(key, value)}
                   disabled={isProcessing}
+                  variant="ghost"
                   className={`
-                    relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed
+                    relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent p-0 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed
                     ${value ? 'bg-primary' : 'bg-[var(--surface-3)]'}
                   `}
                   role="switch"
@@ -141,7 +143,7 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
                       ${value ? 'translate-x-5 bg-primary-foreground' : 'translate-x-0 bg-white'}
                     `}
                   />
-                </button>
+                </Button>
               </div>
             </div>
           );

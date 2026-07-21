@@ -186,7 +186,7 @@ export function FeedbackItemCard({
         onHoveredFeedbackChange && onHoveredFeedbackChange(null)
       }
     >
-      <button
+      <Button
         type="button"
         onClick={() => {
           onToggleFeedback(feedbackKey);
@@ -194,7 +194,8 @@ export function FeedbackItemCard({
             onActiveFeedbackChange(isActiveCard ? null : index);
           }
         }}
-        className="flex w-full items-center justify-between border-0 bg-transparent px-3 py-2.5 text-left cursor-pointer select-none transition-colors hover:bg-[var(--surface-2)]"
+        variant="ghost"
+        className="flex w-full items-center justify-between border-0 bg-transparent px-3 py-2.5 text-left cursor-pointer select-none transition-colors hover:bg-[var(--surface-2)] h-auto rounded-none"
         style={{ borderRadius: isExpanded ? '0' : undefined }}
         aria-expanded={isExpanded}
       >
@@ -226,14 +227,12 @@ export function FeedbackItemCard({
             </span>
           )}
         </div>
-        <span className="ml-2 shrink-0 ui-muted">
-          {isExpanded ? (
-            <ChevronUp className="w-3.5 h-3.5" />
-          ) : (
-            <ChevronDown className="w-3.5 h-3.5" />
-          )}
-        </span>
-      </button>
+        {isExpanded ? (
+          <ChevronUp className="w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0 ml-2" />
+        ) : (
+          <ChevronDown className="w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0 ml-2" />
+        )}
+      </Button>
 
       <AnimatePresence>
         {isExpanded && (

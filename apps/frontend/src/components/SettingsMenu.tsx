@@ -37,15 +37,17 @@ export function SettingsMenu({
         <TooltipTrigger
           render={
             isDemoMode ? (
-              <button
-                type="button"
+              <Button
                 id="activitybar-settings"
+                type="button"
                 onClick={openSettings}
+                variant="ghost"
+                size="icon-xs"
                 className="ide-activitybar-btn opacity-50"
                 aria-label="Settings require sign in"
               >
                 <Settings className="h-4 w-4" />
-              </button>
+              </Button>
             ) : (
               <Link
                 id="activitybar-settings"

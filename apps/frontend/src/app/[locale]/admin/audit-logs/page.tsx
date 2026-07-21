@@ -271,10 +271,11 @@ export default function AuditLogsAdminPage() {
       {selectedLog && (
         <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
           {/* Backdrop */}
-          <button
+          <Button
             type="button"
             onClick={() => setSelectedLog(null)}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity border-none cursor-pointer"
+            variant="ghost"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity border-none rounded-none p-0 w-full h-full cursor-pointer"
             aria-label="Close detail panel"
           />
           

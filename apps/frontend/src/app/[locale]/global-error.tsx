@@ -5,6 +5,7 @@ import { AlertTriangle, LifeBuoy, RefreshCw } from 'lucide-react';
 import { useEffect } from 'react';
 
 import { EAILogo } from '@/components/EAILogo';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 export default function GlobalError({
@@ -47,14 +48,15 @@ export default function GlobalError({
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <button
+              <Button
                 type="button"
                 onClick={reset}
+                variant="primary"
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white"
               >
                 <RefreshCw className="h-4 w-4" />
                 Try again
-              </button>
+              </Button>
               <Link
                 href="/support"
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-5 text-sm font-semibold text-slate-200 no-underline"

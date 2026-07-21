@@ -110,13 +110,15 @@ export function UserDirectory() {
       {dir.activeModal === 'ban-confirm' && dir.selectedUser && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl max-w-sm w-full p-6 shadow-2xl relative">
-            <button
+            <Button
               type="button"
               onClick={() => dir.setActiveModal(null)}
-              className="absolute right-4 top-4 text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-1 rounded-lg transition-colors"
+              variant="ghost"
+              size="icon-xs"
+              className="absolute right-4 top-4 text-[var(--muted-foreground)] hover:text-[var(--foreground)] rounded-lg"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
             <div className="flex items-center gap-3 mb-4">
               <div
                 className={`p-2.5 rounded-lg ${
@@ -167,13 +169,15 @@ export function UserDirectory() {
       {dir.activeModal === 'send-invite' && dir.selectedUser && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-end p-0 animate-fade-in">
           <div className="bg-[var(--surface-1)] border-l border-[var(--border)] h-full max-w-md w-full p-6 shadow-2xl flex flex-col relative overflow-y-auto">
-            <button
+            <Button
               type="button"
               onClick={() => dir.setActiveModal(null)}
-              className="absolute right-4 top-4 text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-1 rounded-lg transition-colors"
+              variant="ghost"
+              size="icon-xs"
+              className="absolute right-4 top-4 text-[var(--muted-foreground)] hover:text-[var(--foreground)] rounded-lg"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2.5 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]">
                 <Mail className="h-6 w-6" />

@@ -268,17 +268,19 @@ export function UserTable({
                             <Tooltip>
                               <TooltipTrigger
                                 render={
-                                  <button
+                                  <Button
                                     type="button"
                                     onClick={() => onCopyToClipboard(user.email, `${user.id}-email`)}
-                                    className="opacity-0 group-hover:opacity-100 hover:text-[var(--primary)] transition-opacity p-0.5 cursor-pointer"
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    className="opacity-0 group-hover:opacity-100 hover:text-[var(--primary)] transition-opacity cursor-pointer border-none p-0"
                                   >
                                     {copiedText === `${user.id}-email` ? (
                                       <Check className="h-3 w-3 text-green-500" />
                                     ) : (
                                       <Copy className="h-3 w-3" />
                                     )}
-                                  </button>
+                                  </Button>
                                 }
                               />
                               <TooltipContent>Copy email</TooltipContent>
@@ -369,22 +371,26 @@ export function UserTable({
               Page {pagination.page} of {pagination.totalPages}
             </span>
             <div className="flex items-center gap-1.5">
-              <button
+              <Button
                 type="button"
                 disabled={page <= 1}
                 onClick={() => setPage(page - 1)}
-                className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-3)] text-[var(--foreground)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                variant="ghost"
+                size="icon-xs"
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-3)] text-[var(--foreground)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 disabled={page >= pagination.totalPages}
                 onClick={() => setPage(page + 1)}
-                className="p-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-3)] text-[var(--foreground)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                variant="ghost"
+                size="icon-xs"
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-3)] text-[var(--foreground)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           </div>
         )}

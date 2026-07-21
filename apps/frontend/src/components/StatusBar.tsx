@@ -4,6 +4,7 @@ import { CheckCircle2, AlertTriangle, ShieldAlert, Loader2, Keyboard, ArrowLeftR
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditorialReadiness } from '@eai/shared';
 import packageJson from '../../package.json';
+import { Button } from '@/components/ui/button';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 
 interface StatusBarProps {
@@ -139,13 +140,16 @@ export default function StatusBar({
           <Tooltip>
             <TooltipTrigger
               render={
-                <button
+                <Button
+                  type="button"
                   onClick={onToggleLayoutReversed}
-                  className={`ide-statusbar-item hover:bg-[var(--surface-2)] transition-colors rounded-sm px-1.5 ml-1 ${layoutReversed ? 'text-[var(--primary)]' : ''}`}
+                  variant="ghost"
+                  size="icon-xs"
+                  className={`ide-statusbar-item hover:bg-[var(--surface-2)] transition-colors rounded-sm ml-1 ${layoutReversed ? 'text-[var(--primary)]' : ''}`}
                   aria-label="Swap panel positions"
                 >
                   <ArrowLeftRight className="w-3.5 h-3.5" />
-                </button>
+                </Button>
               }
             />
             <TooltipContent side="top" className="text-xs">
@@ -161,13 +165,16 @@ export default function StatusBar({
           <Tooltip>
             <TooltipTrigger
               render={
-                <button
+                <Button
+                  type="button"
                   onClick={onOpenShortcuts}
-                  className="status-shortcuts-button ide-statusbar-item hover:bg-[var(--surface-2)] transition-colors rounded-sm px-1.5 ml-1"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="status-shortcuts-button ide-statusbar-item hover:bg-[var(--surface-2)] transition-colors rounded-sm ml-1"
                   aria-label="View Keyboard Shortcuts"
                 >
                   <Keyboard className="w-3.5 h-3.5" />
-                </button>
+                </Button>
               }
             />
             <TooltipContent side="top" className="text-xs">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 import PricingCheckoutButton from './PricingCheckoutButton';
 import type { CheckoutDisclosure } from '@eai/shared';
 
@@ -94,16 +95,19 @@ export default function PricingGrid({ workspace, disclosures, billingEnabled }: 
         <span className={`text-xs font-semibold ${billingCycle === 'monthly' ? 'text-slate-900 dark:text-slate-50' : 'text-slate-400'}`}>
           Monthly
         </span>
-        <button
+        <Button
+          type="button"
           onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
-          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 transition-colors duration-200 ease-in-out dark:bg-slate-800 focus:outline-none"
+          variant="ghost"
+          size="icon-xs"
+          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 p-0 transition-colors duration-200 ease-in-out dark:bg-slate-800 focus:outline-none"
         >
           <span
             className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
               billingCycle === 'yearly' ? 'translate-x-5 bg-primary' : 'translate-x-0'
             }`}
           />
-        </button>
+        </Button>
         <div className="flex items-center gap-2">
           <span className={`text-xs font-semibold ${billingCycle === 'yearly' ? 'text-slate-900 dark:text-slate-50' : 'text-slate-400'}`}>
             Annually

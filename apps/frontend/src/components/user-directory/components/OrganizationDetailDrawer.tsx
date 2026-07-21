@@ -1,10 +1,7 @@
 'use client';
 
-import {
-  History,
-  X,
-  Loader2,
-} from 'lucide-react';
+import { History, X, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { DirectoryUser, UserDetailsData } from '../types';
 import { formatDate } from '../hooks/useUserDirectory';
 import { Badge } from '@/components/ui/badge';
@@ -29,13 +26,15 @@ export function OrganizationDetailDrawer({
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-end p-0 animate-fade-in">
       <div className="bg-[var(--surface-1)] border-l border-[var(--border)] h-full max-w-xl w-full p-6 shadow-2xl flex flex-col relative overflow-y-auto">
-        <button
+        <Button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-1 rounded-lg transition-colors"
+          variant="ghost"
+          size="icon-xs"
+          className="absolute right-4 top-4 text-[var(--muted-foreground)] hover:text-[var(--foreground)] rounded-lg"
         >
           <X className="h-4 w-4" />
-        </button>
+        </Button>
 
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]">
@@ -51,39 +50,42 @@ export function OrganizationDetailDrawer({
 
         {/* Details Navigation Tabs */}
         <div className="flex border-b border-[var(--border)] mb-4">
-          <button
+          <Button
             type="button"
             onClick={() => setActiveDetailsTab('profile')}
-            className={`py-2 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+            variant="ghost"
+            className={`py-2 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer rounded-none h-auto -mb-px border-none ${
               activeDetailsTab === 'profile'
-                ? 'border-[var(--primary)] text-[var(--primary)]'
+                ? 'border-[var(--primary)] text-[var(--primary)] border-b-2'
                 : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
             }`}
           >
             Profile & Org
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => setActiveDetailsTab('credits')}
-            className={`py-2 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+            variant="ghost"
+            className={`py-2 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer rounded-none h-auto -mb-px border-none ${
               activeDetailsTab === 'credits'
-                ? 'border-[var(--primary)] text-[var(--primary)]'
+                ? 'border-[var(--primary)] text-[var(--primary)] border-b-2'
                 : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
             }`}
           >
             Credit Transactions
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => setActiveDetailsTab('analyses')}
-            className={`py-2 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+            variant="ghost"
+            className={`py-2 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer rounded-none h-auto -mb-px border-none ${
               activeDetailsTab === 'analyses'
-                ? 'border-[var(--primary)] text-[var(--primary)]'
+                ? 'border-[var(--primary)] text-[var(--primary)] border-b-2'
                 : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
             }`}
           >
             Recent Analyses
-          </button>
+          </Button>
         </div>
 
         {loadingDetails ? (

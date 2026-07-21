@@ -6,6 +6,7 @@ import { fetchWithTimeout } from '@/lib/fetch-utils';
 import React, { Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Shield, QrCode, Building2, CheckCircle, XCircle, Copy, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { BILLING_ENABLED } from '@eai/shared';
 
 function SimulatorContent() {
@@ -138,12 +139,14 @@ function BillingSimulatorContent() {
           <div className="flex justify-between"><span className="text-slate-400">Amount:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{formatUsd(usdAmount)}</span></div>
         </div>
 
-        <button
+        <Button
+          type="button"
           onClick={() => router.push('/workspace')}
-          className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold rounded-2xl transition-all shadow-lg hover:shadow-emerald-500/10 active:scale-98 cursor-pointer"
+          variant="primary"
+          className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold rounded-2xl transition-all shadow-lg hover:shadow-emerald-500/10 active:scale-98 cursor-pointer border-none"
         >
           Enter Workspace
-        </button>
+        </Button>
       </div>
     );
   }
@@ -162,18 +165,22 @@ function BillingSimulatorContent() {
         </div>
 
         <div className="flex gap-4">
-          <button
+          <Button
+            type="button"
             onClick={() => setStatus('pending')}
+            variant="outline"
             className="flex-1 py-3 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold rounded-2xl transition-colors cursor-pointer"
           >
             Try Again
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
             onClick={() => router.push('/pricing')}
-            className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 dark:bg-slate-50 dark:hover:bg-slate-200 text-white dark:text-slate-900 font-semibold rounded-2xl transition-colors cursor-pointer"
+            variant="primary"
+            className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 dark:bg-slate-50 dark:hover:bg-slate-200 text-white dark:text-slate-900 font-semibold rounded-2xl transition-colors cursor-pointer border-none"
           >
             Go Back
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -212,51 +219,59 @@ function BillingSimulatorContent() {
         <div className="space-y-2">
           <p className="text-xs font-bold text-slate-500">Payment Method</p>
           <div className="grid grid-cols-2 gap-3">
-            <button
+            <Button
+              type="button"
               onClick={() => setPaymentMethod('qris')}
-              className={`p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
+              variant={paymentMethod === 'qris' ? 'primary' : 'surface'}
+              className={`p-3 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all cursor-pointer h-auto ${
                 paymentMethod === 'qris'
-                  ? 'border-primary bg-primary/5 text-primary shadow-sm'
+                  ? 'border-primary bg-primary/5 text-primary shadow-xs'
                   : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 text-slate-400'
               }`}
             >
               <QrCode className="w-6 h-6" />
               <span className="text-xs font-semibold">QRIS</span>
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
               onClick={() => setPaymentMethod('va')}
-              className={`p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
+              variant={paymentMethod === 'va' ? 'primary' : 'surface'}
+              className={`p-3 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all cursor-pointer h-auto ${
                 paymentMethod === 'va'
-                  ? 'border-primary bg-primary/5 text-primary shadow-sm'
+                  ? 'border-primary bg-primary/5 text-primary shadow-xs'
                   : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 text-slate-400'
               }`}
             >
               <Building2 className="w-6 h-6" />
               <span className="text-xs font-semibold">Virtual Account</span>
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="space-y-2 pt-2">
-          <button
+          <Button
+            type="button"
             onClick={() => handleSimulatePayment(true)}
             disabled={loading}
-            className="w-full py-3.5 bg-primary hover:bg-primary/95 text-white font-bold rounded-2xl transition-all shadow-md shadow-primary/10 active:scale-98 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            variant="primary"
+            className="w-full py-3.5 bg-primary hover:bg-primary/95 text-white font-bold rounded-2xl transition-all shadow-md shadow-primary/10 active:scale-98 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 border-none"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               'Simulate Success'
             )}
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
             onClick={() => handleSimulatePayment(false)}
             disabled={loading}
+            variant="ghost"
             className="w-full py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-rose-500 font-semibold rounded-2xl transition-colors cursor-pointer text-xs border border-transparent hover:border-rose-500/20"
           >
             Simulate Failure / Cancel
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -282,17 +297,20 @@ function BillingSimulatorContent() {
                   <span className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200">
                     9888802830823908
                   </span>
-                  <button
+                  <Button
+                    type="button"
                     onClick={() => copyToClipboard('9888802830823908')}
                     aria-label={copied ? 'Virtual account number copied' : 'Copy virtual account number'}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors border-none"
                   >
                     {copied ? (
                       <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
                     ) : (
                       <Copy className="w-3.5 h-3.5" />
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
               <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-2 text-[10px] text-slate-400 space-y-1">

@@ -119,13 +119,15 @@ export default function StrategistTab({
                 <Tooltip>
                   <TooltipTrigger
                     render={
-                      <button
+                      <Button
                         type="button"
                         onClick={() => setCurrentSessionId(null)}
-                        className="p-1 -ml-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)] rounded transition-colors border-none bg-transparent cursor-pointer font-bold text-xs"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="-ml-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)] rounded font-bold text-xs"
                       >
                         ←
-                      </button>
+                      </Button>
                     }
                   />
                   <TooltipContent side="right" className="text-xs">
@@ -245,16 +247,18 @@ export default function StrategistTab({
                 <Tooltip>
                   <TooltipTrigger
                     render={
-                      <button
+                      <Button
                         type="button"
                         onClick={() => {
                           navigator.clipboard.writeText(deepResearchReport || '');
                           toast.success('Report copied to clipboard!');
                         }}
-                        className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none bg-transparent cursor-pointer"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none"
                       >
                         <Copy className="w-4 h-4" />
-                      </button>
+                      </Button>
                     }
                   />
                   <TooltipContent side="bottom" className="text-xs">
@@ -265,13 +269,15 @@ export default function StrategistTab({
                 <Tooltip>
                   <TooltipTrigger
                     render={
-                      <button
+                      <Button
                         type="button"
                         onClick={() => setShowReportModal(false)}
-                        className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none bg-transparent cursor-pointer"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none"
                       >
                         <X className="w-4 h-4" />
-                      </button>
+                      </Button>
                     }
                   />
                   <TooltipContent side="bottom" className="text-xs">

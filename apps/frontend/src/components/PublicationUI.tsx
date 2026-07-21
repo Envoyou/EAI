@@ -132,14 +132,16 @@ export function SelectedValuesPanel({
                 }`}
               >
                 <span className="truncate">{value}</span>
-                <button
+                <Button
                   type="button"
                   onClick={() => onRemove(value)}
-                  className="rounded-full p-0.5 text-current/70 transition hover:bg-background/60 hover:text-current"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="rounded-full text-current/70 transition hover:bg-background/60 hover:text-current border-none p-0"
                   aria-label={`Remove ${value}`}
                 >
                   <X className="h-3 w-3" />
-                </button>
+                </Button>
               </span>
             );
           })}

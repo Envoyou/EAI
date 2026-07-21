@@ -41,10 +41,11 @@ const shortcuts = [
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button
+      <Button
         type="button"
         aria-label="Close keyboard shortcuts"
-        className="absolute inset-0 border-0 bg-black/50 backdrop-blur-sm"
+        variant="ghost"
+        className="absolute inset-0 border-0 bg-black/50 backdrop-blur-sm p-0 w-full h-full rounded-none cursor-pointer"
         onClick={onClose}
       />
       
