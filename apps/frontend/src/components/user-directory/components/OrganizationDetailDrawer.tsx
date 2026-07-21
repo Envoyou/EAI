@@ -38,7 +38,7 @@ export function OrganizationDetailDrawer({
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2.5 rounded-lg bg-indigo-500/10 text-indigo-500">
+          <div className="p-2.5 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]">
             <History className="h-6 w-6" />
           </div>
           <div>
@@ -56,7 +56,7 @@ export function OrganizationDetailDrawer({
             onClick={() => setActiveDetailsTab('profile')}
             className={`py-2 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
               activeDetailsTab === 'profile'
-                ? 'border-indigo-500 text-indigo-500'
+                ? 'border-[var(--primary)] text-[var(--primary)]'
                 : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
             }`}
           >
@@ -67,7 +67,7 @@ export function OrganizationDetailDrawer({
             onClick={() => setActiveDetailsTab('credits')}
             className={`py-2 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
               activeDetailsTab === 'credits'
-                ? 'border-indigo-500 text-indigo-500'
+                ? 'border-[var(--primary)] text-[var(--primary)]'
                 : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
             }`}
           >
@@ -78,7 +78,7 @@ export function OrganizationDetailDrawer({
             onClick={() => setActiveDetailsTab('analyses')}
             className={`py-2 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
               activeDetailsTab === 'analyses'
-                ? 'border-indigo-500 text-indigo-500'
+                ? 'border-[var(--primary)] text-[var(--primary)]'
                 : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
             }`}
           >
@@ -144,9 +144,9 @@ export function OrganizationDetailDrawer({
                 )}
 
                 {detailsData.activeSubscription && (
-                  <div className="p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-2">
+                  <div className="p-3 rounded-lg border border-[var(--success)]/20 bg-[var(--success)]/5 space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-emerald-600 dark:text-emerald-400 uppercase text-[10px]">
+                      <h4 className="font-bold text-[var(--success)] uppercase text-[10px]">
                         Active Subscription
                       </h4>
                       <Badge variant="success" className="text-[10px] font-bold uppercase">
@@ -188,7 +188,7 @@ export function OrganizationDetailDrawer({
                       <div>
                         <div className="font-semibold flex items-center gap-1.5">
                           <span
-                            className={tx.amount > 0 ? 'text-emerald-500 font-bold' : 'text-red-500 font-bold'}
+                          className={tx.amount > 0 ? 'text-[var(--success)] font-bold' : 'text-[var(--destructive)] font-bold'}
                           >
                             {tx.amount > 0 ? `+${tx.amount}` : tx.amount} credits
                           </span>

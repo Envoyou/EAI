@@ -44,8 +44,8 @@ export function CreditAdjustmentModal({
   onSubmit,
 }: CreditAdjustmentModalProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl max-w-md w-full p-6 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-end p-0 animate-fade-in">
+      <div className="bg-[var(--surface-1)] border-l border-[var(--border)] h-full max-w-md w-full p-6 shadow-2xl flex flex-col relative overflow-y-auto">
         <button
           type="button"
           onClick={onClose}
@@ -54,19 +54,19 @@ export function CreditAdjustmentModal({
           <X className="h-4 w-4" />
         </button>
 
-        <div className="flex items-center gap-2 mb-4">
-          <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="p-2.5 rounded-lg bg-[var(--warning)]/10 text-[var(--warning)]">
             <CreditCard className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-bold text-base">Adjust User Credits</h3>
+            <h3 className="font-bold text-lg">Adjust User Credits</h3>
             <p className="text-xs text-[var(--muted-foreground)]">
               {selectedUser.name || selectedUser.email}
             </p>
           </div>
         </div>
 
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <form onSubmit={onSubmit} className="flex flex-col gap-4 flex-1">
           <div>
             <label className="text-xs font-semibold text-[var(--muted-foreground)] uppercase block mb-1.5">
               Adjustment Type
@@ -77,7 +77,7 @@ export function CreditAdjustmentModal({
                 onClick={() => setAdjustDirection('add')}
                 className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
                   adjustDirection === 'add'
-                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-500'
+                    ? 'bg-[var(--success)]/10 border-[var(--success)]/40 text-[var(--success)]'
                     : 'border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--surface-2)]'
                 }`}
               >
@@ -89,7 +89,7 @@ export function CreditAdjustmentModal({
                 onClick={() => setAdjustDirection('deduct')}
                 className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
                   adjustDirection === 'deduct'
-                    ? 'bg-red-500/10 border-red-500/40 text-red-500'
+                    ? 'bg-[var(--destructive)]/10 border-[var(--destructive)]/40 text-[var(--destructive)]'
                     : 'border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--surface-2)]'
                 }`}
               >
@@ -158,7 +158,7 @@ export function CreditAdjustmentModal({
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 mt-2">
+          <div className="flex items-center justify-end gap-2 mt-auto pt-4">
             <Button
               type="button"
               onClick={onClose}

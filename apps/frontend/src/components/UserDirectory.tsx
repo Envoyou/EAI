@@ -121,8 +121,8 @@ export function UserDirectory() {
               <div
                 className={`p-2.5 rounded-lg ${
                   dir.selectedUser.isBanned
-                    ? 'bg-emerald-500/10 text-emerald-500'
-                    : 'bg-red-500/10 text-red-500'
+                    ? 'bg-[var(--success)]/10 text-[var(--success)]'
+                    : 'bg-[var(--destructive)]/10 text-[var(--destructive)]'
                 }`}
               >
                 <ShieldAlert className="h-6 w-6" />
@@ -165,8 +165,8 @@ export function UserDirectory() {
 
       {/* Custom Resend Invite Modal */}
       {dir.activeModal === 'send-invite' && dir.selectedUser && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl max-w-lg w-full p-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-end p-0 animate-fade-in">
+          <div className="bg-[var(--surface-1)] border-l border-[var(--border)] h-full max-w-md w-full p-6 shadow-2xl flex flex-col relative overflow-y-auto">
             <button
               type="button"
               onClick={() => dir.setActiveModal(null)}
@@ -174,19 +174,19 @@ export function UserDirectory() {
             >
               <X className="h-4 w-4" />
             </button>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 rounded-lg bg-sky-500/10 text-sky-500">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]">
                 <Mail className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-bold text-base">Send Custom Onboarding Invitation</h3>
+                <h3 className="font-bold text-lg">Send Custom Onboarding Invitation</h3>
                 <p className="text-xs text-[var(--muted-foreground)]">
                   Target: {dir.selectedUser.email}
                 </p>
               </div>
             </div>
 
-            <form onSubmit={dir.handleSendInviteSubmit} className="flex flex-col gap-4">
+            <form onSubmit={dir.handleSendInviteSubmit} className="flex flex-col gap-4 flex-1">
               <div>
                 <label className="text-xs font-semibold text-[var(--muted-foreground)] uppercase block mb-1">
                   Email Subject
@@ -205,14 +205,14 @@ export function UserDirectory() {
                 </label>
                 <Textarea
                   variant="surface"
-                  rows={5}
+                  rows={8}
                   value={dir.inviteMessage}
                   onChange={(e) => dir.setInviteMessage(e.target.value)}
                   className="resize-none font-sans"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 mt-2">
+              <div className="flex items-center justify-end gap-2 mt-auto pt-4">
                 <Button
                   type="button"
                   onClick={() => dir.setActiveModal(null)}

@@ -41,21 +41,21 @@ export function UserActionMenu({
               onClick={() => onOpenDetails(user)}
               className="flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--foreground)] cursor-pointer outline-none"
             >
-              <History className="h-3.5 w-3.5 text-indigo-500" />
+              <History className="h-3.5 w-3.5 text-[var(--primary)]" />
               <span>View Audit Details</span>
             </Menu.Item>
             <Menu.Item
               onClick={() => onOpenAdjustCredits(user)}
               className="flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--foreground)] cursor-pointer outline-none"
             >
-              <CreditCard className="h-3.5 w-3.5 text-amber-500" />
+              <CreditCard className="h-3.5 w-3.5 text-[var(--warning)]" />
               <span>Adjust Credits</span>
             </Menu.Item>
             <Menu.Item
               onClick={() => onResendInvite(user)}
               className="flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--foreground)] cursor-pointer outline-none"
             >
-              <Mail className="h-3.5 w-3.5 text-sky-500" />
+              <Mail className="h-3.5 w-3.5 text-[var(--primary)]" />
               <span>Send Invite Email</span>
             </Menu.Item>
             <Menu.Separator className="my-1 border-t border-[var(--border)]" />
@@ -63,8 +63,8 @@ export function UserActionMenu({
               onClick={() => onToggleBanConfirm(user)}
               className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-pointer outline-none ${
                 user.isBanned
-                  ? 'text-emerald-500 hover:bg-emerald-500/10'
-                  : 'text-red-500 hover:bg-red-500/10'
+                  ? 'text-[var(--success)] hover:bg-[var(--success)]/10'
+                  : 'text-[var(--destructive)] hover:bg-[var(--destructive)]/10'
               }`}
             >
               {user.isBanned ? (
