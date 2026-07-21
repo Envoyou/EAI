@@ -16,7 +16,11 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { StrategistTabProps } from './strategist-tab/types';
 import { useStrategistChat } from './strategist-tab/hooks/useStrategistChat';
 import { SessionSidebar } from './strategist-tab/components/SessionSidebar';
-import { ChatMessageList, ChatPositionIndicator } from './strategist-tab/components/ChatMessageList';
+import {
+  ChatMessageList,
+  ChatPositionIndicator,
+  TranscriptOutline,
+} from './strategist-tab/components/ChatMessageList';
 import { ChatInputBar } from './strategist-tab/components/ChatInputBar';
 import { MessageScrollerProvider } from '@/components/ui/message-scroller';
 import { Input } from '@/components/ui/input';
@@ -150,6 +154,9 @@ export default function StrategistTab({
 
               {/* Reader position indicator — visible when scrolled away from latest */}
               <ChatPositionIndicator />
+
+              {/* Transcript Outline — interactive turn navigator */}
+              <TranscriptOutline messages={messages} />
 
               {messages.length > 0 && (
                 <Tooltip>

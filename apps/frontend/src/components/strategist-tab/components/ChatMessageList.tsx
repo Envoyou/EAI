@@ -11,6 +11,7 @@ import {
   Bookmark,
   Download,
   RotateCcw,
+  List,
 } from 'lucide-react';
 import { shouldShowAssistantSpinner } from '@/lib/strategist-stream';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -18,12 +19,14 @@ import { extractDynamicSuggestions, normalizeStrategistMarkdown } from '@/lib/st
 import type { ChatMessage } from '@/lib/hooks/useContentStrategist';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   MessageScroller,
   MessageScrollerViewport,
   MessageScrollerContent,
   MessageScrollerItem,
   MessageScrollerButton,
+  useMessageScroller,
   useMessageScrollerVisibility,
   useMessageScrollerScrollable,
 } from '@/components/ui/message-scroller';
@@ -62,6 +65,87 @@ function ChatPositionIndicator() {
       <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-pulse shrink-0" />
       scrolling
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TranscriptOutline — Interactive outline allowing readers to track current turn
+// and jump directly to any anchored user question in the conversation.
+// ---------------------------------------------------------------------------
+
+function TranscriptOutline({ messages }: { messages: ChatMessage[] }) {
+  const [open, setOpen] = useState(false);
+  const { currentAnchorId } = useMessageScrollerVisibility();
+  const { scrollToMessage } = useMessageScroller();
+
+  const userMessages = messages.filter((m) => m.role === 'user');
+
+  if (userMessages.length === 0) return null;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            className="text-[10px] gap-1 text-[var(--foreground)]"
+          >
+            <List className="w-3 h-3 text-[var(--primary)] shrink-0" />
+            <span>Outline</span>
+            <span className="px-1 py-0.2 rounded-full bg-[var(--surface-3)] text-[9px] font-mono text-[var(--muted-foreground)]">
+              {userMessages.length}
+            </span>
+          </Button>
+        }
+      />
+      <PopoverContent
+        side="bottom"
+        align="end"
+        className="w-72 p-3 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-xl z-50"
+      >
+        <div className="mb-2 pb-1.5 border-b border-[var(--border)]">
+          <div className="font-semibold text-xs text-[var(--foreground)]">
+            Transcript Outline
+          </div>
+          <div className="text-[10px] text-[var(--muted-foreground)]">
+            Track active turn & jump to messages
+          </div>
+        </div>
+
+        <div className="max-h-60 overflow-y-auto space-y-1 pr-1">
+          {userMessages.map((msg, index) => {
+            const isCurrent = currentAnchorId === msg.id;
+            return (
+              <button
+                key={msg.id}
+                type="button"
+                onClick={() => {
+                  scrollToMessage(msg.id, { align: 'start', behavior: 'smooth' });
+                  setOpen(false);
+                }}
+                className={`w-full text-left p-2 rounded-lg text-xs transition-colors flex items-start gap-2 ${
+                  isCurrent
+                    ? 'bg-[var(--primary)]/10 text-[var(--primary)] font-medium border border-[var(--primary)]/20'
+                    : 'hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                <span className="text-[10px] font-mono text-[var(--muted-foreground)] opacity-60 shrink-0 mt-0.5">
+                  #{index + 1}
+                </span>
+                <span className="truncate flex-1 text-[11px] leading-snug">
+                  {msg.content}
+                </span>
+                {isCurrent && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shrink-0 mt-1.5 animate-pulse" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -124,9 +208,9 @@ export function ChatMessageList({
 }
 
 // ---------------------------------------------------------------------------
-// ChatPositionIndicator re-export for use in the parent header toolbar.
+// Exports
 // ---------------------------------------------------------------------------
-export { ChatPositionIndicator };
+export { ChatPositionIndicator, TranscriptOutline };
 
 // ---------------------------------------------------------------------------
 // ChatMessageRow — renders a single message (user or assistant).

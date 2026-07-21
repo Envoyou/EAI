@@ -1,6 +1,6 @@
 ---
 name: gemini-interactions-api
-description: Use this skill when writing code that calls the Gemini API for text generation, multi-turn chat, multimodal understanding, image generation, streaming responses, background research tasks, function calling, structured output, or migrating from the old generateContent API. This skill covers the Interactions API, the recommended way to use Gemini models and agents in Python and TypeScript.
+description: Use this skill when writing code that calls the Gemini API for text generation, multi-turn chat, multimodal understanding, image generation, video generation, streaming responses, background research tasks, function calling, structured output, or migrating from the old generateContent API. This skill covers the Interactions API, the recommended way to use Gemini models and agents in Python and TypeScript.
 ---
 
 # Gemini Interactions API Skill
@@ -12,18 +12,21 @@ description: Use this skill when writing code that calls the Gemini API for text
 
 ### Current Models (Use These)
 
-- `gemini-3.5-flash`: 1M tokens, fast, balanced performance, multimodal
+- `gemini-3.6-flash`: 1M tokens, fast, balanced performance for agentic and multimodal tasks
+- `gemini-3.5-flash-lite`: 1M tokens, fastest, lowest-cost 3.5 model for high-throughput execution
 - `gemini-3.1-pro-preview`: 1M tokens, complex reasoning, coding, research
 - `gemini-3.1-flash-lite`: cost-efficient, fastest performance for high-frequency, lightweight tasks
-- `gemini-3-pro-image`: 65k / 32k tokens, image generation and editing
-- `gemini-3.1-flash-image`: 65k / 32k tokens, image generation and editing
+- `gemini-3-pro-image` (Nano Banana Pro): 65k / 32k tokens, high-quality image generation and editing
+- `gemini-3.1-flash-image` (Nano Banana 2): 65k / 32k tokens, fast, efficient image generation and editing
+- `gemini-3.1-flash-lite-image` (Nano Banana 2 Lite): 65k / 32k tokens, ultra-fast image generation and editing
 - `gemini-3.1-flash-tts-preview`: expressive text-to-speech with Director's Chair prompting
+- `gemini-omni-flash-preview`: video generation, image-referenced video generation, first-frame-to-video, and video editing
 - `gemma-4-31b-it`: Gemma 4 dense model, 31B parameters
 - `gemma-4-26b-a4b-it`: Gemma 4 MoE model, 26B total / 4B active parameters
 
 > [!WARNING]
 > Models like `gemini-2.5-*`, `gemini-2.0-*`, `gemini-1.5-*` are **legacy and deprecated**. Never use them.
-> **If a user asks for a deprecated model, use `gemini-3.5-flash` instead and note the substitution.**
+> **If a user asks for a deprecated model, use `gemini-3.6-flash` instead and note the substitution.**
 
 ### Current Agents
 
@@ -50,7 +53,7 @@ description: Use this skill when writing code that calls the Gemini API for text
 - **Managed agents** require `environment="remote"` (or an environment ID / config object) to provision a sandbox.
 - **Migrating from `generateContent`**: Read `references/migration.md` for the scoping, checklist, and before/after code examples. Always confirm scope with the user before editing.
 - **Model upgrades**: Drop-in, swap the model string. Deprecated models (`gemini-2.0-*`, `gemini-1.5-*`) must be replaced, see `references/migration.md`.
-- **Migrating to Gemini 3.5 Flash**: Read `references/migration.md` for the scoping and checklist.
+- **Migrating to Gemini 3.6 Flash or Gemini 3.5 Flash-Lite**: Read `references/migration.md` for the scoping and checklist.
 
 ## Quick Start
 
@@ -61,7 +64,7 @@ from google import genai
 client = genai.Client()
 
 interaction = client.interactions.create(
-    model="gemini-3.5-flash",
+    model="gemini-3.6-flash",
     input="Tell me a short joke about programming."
 )
 print(interaction.output_text)
@@ -74,7 +77,7 @@ import { GoogleGenAI } from "@google/genai";
 const client = new GoogleGenAI({});
 
 const interaction = await client.interactions.create({
-    model: "gemini-3.5-flash",
+    model: "gemini-3.6-flash",
     input: "Tell me a short joke about programming.",
 });
 console.log(interaction.output_text);
@@ -95,12 +98,12 @@ The SDK provides convenience properties on the `Interaction` response object to 
 ### Python
 ```python
 interaction1 = client.interactions.create(
-    model="gemini-3.5-flash",
+    model="gemini-3.6-flash",
     input="Hi, my name is Phil."
 )
 # Second turn — server remembers context
 interaction2 = client.interactions.create(
-    model="gemini-3.5-flash",
+    model="gemini-3.6-flash",
     input="What is my name?",
     previous_interaction_id=interaction1.id
 )
@@ -110,11 +113,11 @@ print(interaction2.output_text)
 ### JavaScript/TypeScript
 ```typescript
 const interaction1 = await client.interactions.create({
-    model: "gemini-3.5-flash",
+    model: "gemini-3.6-flash",
     input: "Hi, my name is Phil.",
 });
 const interaction2 = await client.interactions.create({
-    model: "gemini-3.5-flash",
+    model: "gemini-3.6-flash",
     input: "What is my name?",
     previous_interaction_id: interaction1.id,
 });
@@ -280,7 +283,7 @@ Set `stream=True` to receive incremental server-sent events. Each stream follows
 ### Python
 ```python
 for event in client.interactions.create(
-    model="gemini-3.5-flash",
+    model="gemini-3.6-flash",
     input="Explain quantum entanglement in simple terms.",
     stream=True,
 ):
@@ -294,7 +297,7 @@ for event in client.interactions.create(
 ### JavaScript/TypeScript
 ```typescript
 const stream = await client.interactions.create({
-    model: "gemini-3.5-flash",
+    model: "gemini-3.6-flash",
     input: "Explain quantum entanglement in simple terms.",
     stream: true,
 });
@@ -364,8 +367,7 @@ For streaming with tools, thinking, agents, and image generation see the full [S
 - [Deep Research](https://ai.google.dev/gemini-api/docs/interactions/deep-research.md.txt)
 
 **Advanced Features:**
-- [Gemini 3.5](https://ai.google.dev/gemini-api/docs/interactions/whats-new-gemini-3.5.md.txt)
-- [Gemini 3](https://ai.google.dev/gemini-api/docs/interactions/gemini-3.md.txt)
+- [Latest Models (3.6 Flash & 3.5 Flash-Lite)](https://ai.google.dev/gemini-api/docs/latest-model.md.txt)
 - [Flex Inference](https://ai.google.dev/gemini-api/docs/interactions/flex-inference.md.txt)
 - [Priority Inference](https://ai.google.dev/gemini-api/docs/interactions/priority-inference.md.txt)
 
