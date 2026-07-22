@@ -2,8 +2,8 @@
 
 > Status: historical record with current-state annotations
 > Original context: EAI v3.4.0 and earlier
-> Revalidated against: EAI frontend v3.13.0 on 2026-07-19
-> Current architecture reference: [UI Architecture v3.13.0](./ui-architecture-v3.13.md)
+> Revalidated against: EAI frontend v3.14.0 on 2026-07-23
+> Current architecture reference: [UI Architecture v3.14.0](./ui-architecture-v3.13.md)
 
 ## Purpose
 

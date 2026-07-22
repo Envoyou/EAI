@@ -1,4 +1,5 @@
 <!-- Managed by agent: workflow-architect -->
+<!-- Last updated: 2026-07-23 -->
 # Envoyou AI (EAI) — Frontend Agent Guide
 
 ## Overview
@@ -110,7 +111,9 @@ apps/frontend/
 │   │       │   ├── tenants/          # Tenant/Billing administration
 │   │       │   ├── users/            # User directory console
 │   │       │   ├── telemetry/        # Telemetry & logs Sentry status
-│   │       │   └── feature-flags/    # Edge Configuration feature flags
+│   │       │   ├── feature-flags/    # Edge Configuration feature flags
+│   │       │   ├── audit-logs/       # Admin audit log viewer
+│   │       │   └── ai-config/        # AI engine configuration console
 │   │       ├── checkout/         # Payment checkout flow
 │   │       ├── pricing/          # Public pricing page
 │   │       ├── onboarding/       # New-user onboarding wizard
@@ -153,7 +156,7 @@ apps/frontend/
 │   │   │   ├── hooks/            # Custom hooks (useStrategistChat)
 │   │   │   └── components/       # Sub-components (SessionSidebar, ChatMessageList, ChatInputBar)
 │   │   ├── FinalDraftPanel.tsx   # Final draft view
-│   │   ├── StrategistTab.tsx     # Content strategy AI tab
+│   │   ├── ShortcutsModal.tsx    # Keyboard shortcuts reference modal
 │   │   ├── UserDirectory.tsx     # User management console (66KB)
 │   │   ├── BillingAdmin.tsx      # Admin billing panel
 │   │   ├── AdminLayoutShell.tsx  # Dedicated Admin Console sidebar shell

@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.14.0] - 2026-07-23
+
 ### Changed
 - **Mobile UX Refinements & Onboarding Design Token Audit**:
   - **AI Chat Output Formatting & Dark Mode Contrast**: Removed AI assistant message card background bubble (rendering background-transparent while preserving user message bubbles as `surface-2`). Fixed dark mode typography contrast for headings (`h1`-`h4`), bold text (`strong`), table headers/cells (`th`, `td`), and external links (`a`) in `ChatMessageList.tsx` and `prose.css`.
@@ -64,6 +66,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Isolated AI Preview controls from Tiptap article typography with a `not-prose` control boundary while preserving Markdown heading, link, table, and code rendering in the sibling content region.
   - Removed inline Accept/Reject color workarounds and the broad dark `.prose a` `!important` override.
   - Added a semantic light/dark `--editor-link` token wired through Tailwind Typography's normal and inverted link variables, plus a focused regression contract.
+- **Clerk Middleware Async Guard (`proxy.ts`)**:
+  - Added missing `await` to all three `auth.protect()` calls inside `clerkMiddleware` in `src/proxy.ts` (lines 88, 108, 112). In `@clerk/nextjs` v7+, `auth.protect()` is async; omitting `await` caused unhandled promise rejections logged as `unhandledRejection: Error: NEXT_REDIRECT` in the dev console, even on successful authenticated requests.
 
 ## [3.13.0] - 2026-07-19
 

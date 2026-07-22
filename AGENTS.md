@@ -1,4 +1,5 @@
 <!-- Managed by agent: workflow-architect -->
+<!-- Last updated: 2026-07-23 -->
 
 # EAI (Envoyou AI) — Monorepo Agent Guide
 

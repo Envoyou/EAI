@@ -1,7 +1,7 @@
-# EAI Frontend UI Architecture — v3.13.0
+# EAI Frontend UI Architecture — v3.14.0
 
 > Status: canonical architecture snapshot
-> Snapshot date: 2026-07-19
+> Snapshot date: 2026-07-23
 > Scope: `apps/frontend`
 > Historical editor CSS investigation: [Historical Editor CSS Incident Analysis](./historical-editor-css-incident-analysis.md)
 
@@ -62,7 +62,8 @@ Next.js App Router: src/app/[locale]
         |     |-- ThreeColumnLayout
         |     |-- DocumentHistoryPanel
         |     |-- EditorCanvas -> Editor/Tiptap + FinalDraftPanel
-        |     `-- AICopilotPanel
+        |     |-- AICopilotPanel
+        |     `-- ShortcutsModal
         |
         |-- Dashboard, settings, admin, onboarding, checkout
         `-- components/ui primitives
@@ -293,7 +294,7 @@ responsible for:
 
 | Priority | Risk | Impact | Recommended next step |
 | --- | --- | --- | --- |
-| P1 | Legacy Button adoption remains incomplete | Inconsistent interaction semantics and maintenance ownership | Migrate remaining raw buttons and direct `ui-btn` consumers in bounded feature batches |
+| P1 | Raw `<button>` migration complete; remaining debt is in polymorphic `render={}` usage on boundary components such as `FinalDraftPanel` | Isolated scope — canonical `Button` API already used, no raw element semantics | Review polymorphic render sites for consistent size/variant semantics during next feature pass |
 | P2 | Large feature components remain | High review cost and hidden state coupling | Continue facade/subsystem extraction around coherent behavior, not arbitrary file-size targets |
 | P2 | Hard-coded user-facing strings remain in feature components | Incomplete localization and duplicated copy | Add an i18n audit and migrate by feature namespace |
 | P3 | Future NodeViews could bypass the editor boundary contract | Reintroduction of typography leakage and color workarounds | Keep the AI Preview regression contract and enforce the scoped frontend guide |

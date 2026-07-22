@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.14.0] - 2026-07-23
+
 ### Changed
 - **Penyempurnaan UX Seluler & Audit Token Desain Onboarding**:
   - **Format Chat Output AI & Kontras Mode Gelap**: Menghapus background card bubble pada pesan asisten AI (rendisi transparan dengan mempertahankan bubble user sebagai `surface-2`). Memperbaiki kontras teks mode gelap untuk judul (`h1`-`h4`), teks tebal (`strong`), sel/header tabel (`th`, `td`), dan tautan (`a`) pada `ChatMessageList.tsx` dan `prose.css`.
@@ -64,6 +66,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Mengisolasi kontrol AI Preview dari typography artikel Tiptap menggunakan boundary `not-prose`, sambil mempertahankan rendering heading, link, tabel, dan kode Markdown pada area konten sibling.
   - Menghapus workaround warna inline tombol Accept/Reject dan override global dark `.prose a` yang memakai `!important`.
   - Menambahkan token semantik light/dark `--editor-link` yang terhubung ke variabel link normal dan inverted Tailwind Typography, beserta regression contract terfokus.
+- **Perbaikan Async Guard Clerk Middleware (`proxy.ts`)**:
+  - Menambahkan `await` yang hilang pada ketiga pemanggilan `auth.protect()` di dalam `clerkMiddleware` pada `src/proxy.ts` (baris 88, 108, 112). Di `@clerk/nextjs` v7+, `auth.protect()` bersifat async; tanpa `await`, promise-nya tidak ditunggu dan menyebabkan `unhandledRejection: Error: NEXT_REDIRECT` muncul di konsol dev, bahkan pada request yang berhasil dari pengguna yang sudah login.
 
 ## [3.13.0] - 2026-07-19
 

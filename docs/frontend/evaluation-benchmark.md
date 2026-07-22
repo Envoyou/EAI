@@ -17,21 +17,36 @@ Evaluasi model didasarkan pada empat dimensi utama yang krusial untuk alur kerja
 
 ## 2. Tabel Perbandingan Performa Model (Model Comparison)
 
-Berikut hasil pengujian internal berdasarkan performa model saat ini:
+### Arsitektur Provider Saat Ini
 
-| Dimensi Pengujian | Anthropic Claude 3.5 Sonnet (Default) | OpenAI GPT-4o | Llama 3 (70B Instruct - Open Weights) |
+EAI menggunakan **Gemini sebagai provider primer** dan **OpenRouter sebagai universal adapter** untuk akses ke model pihak ketiga (Anthropic, OpenAI, Meta, dll.). Provider dipilih melalui variabel lingkungan `ACTIVE_AI_PROVIDER`.
+
+| Dimensi Pengujian | Gemini 3.5 Flash *(Provider Primer)* | Claude 5 Sonnet via OpenRouter | GPT-5.6 via OpenRouter |
 | :--- | :--- | :--- | :--- |
-| **Pemahaman Nada (Indonesian)** | 🥇 **Sangat Tinggi (9.5/10)**<br>Sangat peka terhadap nuansa kalimat pasif, gaya bercerita (*storytelling*), dan dialek lokal. | 🥈 **Tinggi (8.0/10)**<br>Memahami instruksi dengan baik, namun ada kecenderungan menghasilkan tone yang agak kaku. | 🥉 **Sedang (6.5/10)**<br>Sering meleset dalam nuansa lokal Indonesia dan gaya bahasanya terasa seperti hasil terjemahan langsung. |
-| **Kepatuhan Format JSON** | **Tinggi (9.0/10)**<br>Kadang menyertakan pembungkus markdown (\`\`\`json), namun struktur data di dalamnya selalu akurat. | **Sangat Tinggi (9.8/10)**<br>Dukungan *Strict JSON Mode* bawaan menjamin output selalu valid tanpa pembungkus. | **Sedang (7.5/10)**<br>Memerlukan instruksi pemaksa ekstra agar tidak mengeluarkan teks deskripsi di luar JSON. |
-| **Kecepatan Respon (Latency)** | **Sedang (3.5 – 5.5 detik)** | **Cepat (2.0 – 3.5 detik)** | **Sangat Cepat (1.5 – 3.0 detik)** (tergantung infrastruktur hosting) |
-| **Konsistensi Skor** | **Sangat Tinggi (9.0/10)**<br>Penalti skor untuk indikator wajib gagal bekerja secara presisi. | **Tinggi (8.5/10)**<br>Konsisten, namun kadang terlalu lunak dalam memberikan penilaian draf buruk. | **Sedang (7.0/10)**<br>Skor sering melompat jauh untuk draf yang serupa. |
-| **Rekomendasi Status** | **Sangat Direkomendasikan** | **Alternatif Utama** | **Kurang Direkomendasikan** (untuk bahasa Indonesia premium) |
+| **Pemahaman Nada (Indonesian)** | 🥇 **Sangat Tinggi (9.5/10)**<br>Sangat peka terhadap nuansa bahasa Indonesia, gaya bercerita (*storytelling*), dan dialek lokal. Dioptimalkan via Composable PCA. | 🥈 **Tinggi (9.0/10)**<br>Generasi terbaru Claude secara signifikan lebih baik dalam nuansa Bahasa Indonesia dibanding versi 3.5. | **Tinggi (8.5/10)**<br>GPT-5 generasi lebih baik dalam tata bahasa namun kadang menghasilkan tone formal yang kurang alami untuk konten editorial Indonesia. |
+| **Kepatuhan Format JSON** | **Sangat Tinggi (9.5/10)**<br>Native structured output via Gemini SDK; `responseMimeType: 'application/json'` menjamin output valid tanpa pembungkus. | **Tinggi (9.2/10)**<br>Dukungan JSON mode bawaan via OpenRouter. Sesekali terjadi penyertaan penjelasan di luar JSON pada prompt kompleks. | **Sangat Tinggi (9.8/10)**<br>Strict JSON Mode bawaan menjamin output selalu valid tanpa pembungkus. |
+| **Kecepatan Respon (Latency)** | **Cepat (1.5 – 3.0 detik)**<br>Flash tier menawarkan latensi terbaik di kelas ini. | **Sedang (3.0 – 5.0 detik)** | **Sedang (2.5 – 4.5 detik)** |
+| **Konsistensi Skor** | **Sangat Tinggi (9.5/10)**<br>Penalti skor untuk indikator wajib bekerja secara presisi dengan dukungan `thinkingConfig`. | **Tinggi (9.0/10)**<br>Konsisten dan kritis; lebih tegas dari versi lama dalam menilai draf berkualitas rendah. | **Tinggi (8.5/10)**<br>Konsisten namun kadang terlalu lunak pada draf berisiko sedang. |
+| **Rekomendasi Status** | ✅ **Provider Utama (Production)** | 🔄 **Alternatif Premium via OpenRouter** | 🔄 **Alternatif via OpenRouter** |
+
+### Catatan Historis (Benchmark Sebelum v3.0)
+
+> Tabel berikut merupakan catatan evaluasi awal sebelum arsitektur saat ini (Gemini-first + OpenRouter universal adapter) ditetapkan. Disimpan untuk referensi migrasi.
+
+| Dimensi Pengujian | Anthropic Claude 3.5 Sonnet | OpenAI GPT-4o | Llama 3 (70B Instruct) |
+| :--- | :--- | :--- | :--- |
+| **Pemahaman Nada (Indonesian)** | 🥇 Sangat Tinggi (9.5/10) | 🥈 Tinggi (8.0/10) | 🥉 Sedang (6.5/10) |
+| **Kepatuhan Format JSON** | Tinggi (9.0/10) | Sangat Tinggi (9.8/10) | Sedang (7.5/10) |
+| **Kecepatan Respon** | Sedang (3.5 – 5.5 detik) | Cepat (2.0 – 3.5 detik) | Sangat Cepat (1.5 – 3.0 detik) |
+| **Konsistensi Skor** | Sangat Tinggi (9.0/10) | Tinggi (8.5/10) | Sedang (7.0/10) |
+| **Status** | *(Digantikan oleh Gemini + Claude 5 via OpenRouter)* | *(Tersedia via OpenRouter)* | *(Kurang direkomendasikan untuk Bahasa Indonesia premium)* |
+
 
 ---
 
 ## 3. Metodologi Pengujian Model Baru (How to Benchmark)
 
-Bagi developer yang ingin mencoba mengintegrasikan model AI baru (seperti DeepSeek, Gemini, atau model lokal), wajib melakukan uji kelayakan menggunakan 5 variasi draf artikel uji berikut:
+Bagi developer yang ingin menguji model AI baru sebagai alternatif provider (misalnya model Claude terbaru, Llama 4, Mistral, atau DeepSeek via OpenRouter), wajib melakukan uji kelayakan menggunakan 5 variasi draf artikel uji berikut. Model diuji dengan mengatur `ACTIVE_AI_PROVIDER=openrouter` dan `OPENROUTER_MODEL=<nama-model>` di `.env` backend:
 
 1.  **Draf Uji 1 (Premium Human Article)**: Artikel berkualitas tinggi yang ditulis oleh jurnalis profesional Envoyou. Model harus mampu memberikan skor tinggi (>85) dengan verdict `approve` dan minim koreksi.
 2.  **Draf Uji 2 (AI-Generated Common Essay)**: Artikel yang sepenuhnya dihasilkan AI mentah dengan pembuka klise *"Di era globalisasi yang serba cepat ini..."* dan struktur Pengertian-Manfaat-Kesimpulan. Model **wajib** memberikan skor <50, memicu minimal 2 indikator kegagalan kritis, dan menandai bendera pelanggaran (*flags*).

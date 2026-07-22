@@ -1,4 +1,5 @@
 <!-- Managed by agent: workflow-architect -->
+<!-- Last updated: 2026-07-23 -->
 # Envoyou AI (EAI) — Backend Agent Guide
 
 ## Overview
@@ -180,7 +181,8 @@ apps/backend/
 │       │   ├── types.ts      # Zod validation schemas & derived types
 │       │   ├── utils/        # Grounding URL resolution, leak sanitizer & workspace helpers
 │       │   ├── handlers/     # Domain HTTP handlers (chat, plan, draft-from-notes, sessions)
-│       │   └── quick-draft.ts # /api/strategist/quick-draft — quick draft generation
+│       │   ├── quick-draft.ts # /api/strategist/quick-draft — quick draft generation
+│       │   └── test-fallback.ts # Dev-only fallback route for provider resilience testing
 │       └── webhooks/
 │           ├── clerk.ts      # /api/webhooks/clerk — Clerk user sync events
 │           └── payment.ts    # /api/webhooks/payment — Midtrans payment events

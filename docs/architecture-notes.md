@@ -6,21 +6,23 @@ Dokumen ini mendokumentasikan keputusan teknis, arsitektur data, alur integrasi 
 
 ## 1. Ikhtisar Sistem (System Overview)
 
-Aplikasi ini menggunakan arsitektur **Monorepo (Turborepo)** yang memisahkan sisi klien (*frontend*) dan sisi server (*backend*). **Frontend (Next.js App Router)** menangani antarmuka interaktif dan meneruskan (*proxy*) permintaan API ke **Backend (Express.js pada VPS)** yang bertugas mengamankan kunci API, memproses orkestrasi AI multi-tahap, serta berinteraksi dengan database.
+Aplikasi ini menggunakan arsitektur **Monorepo (Turborepo)** yang memisahkan sisi klien (*frontend*) dan sisi server (*backend*). **Frontend (Next.js App Router)** menangani antarmuka interaktif dan meneruskan (*proxy*) permintaan API ke **Backend (Express.js pada Railway.app)** yang bertugas mengamankan kunci API, memproses orkestrasi AI multi-tahap, serta berinteraksi dengan database.
 
 ```text
 ┌────────────────────────────────────────────────────────┐
 │              Frontend (Next.js / Vercel)               │
-│  [Login] -> [UI Editor & Form] -> [Feedback / Export] │
-│      └─> src/proxy.ts (Auth Gate & API Rewrite)        │
+│  [Login via Clerk] -> [UI Editor & Form] -> [Export]  │
+│      └─> src/proxy.ts (clerkMiddleware + API Rewrite)  │
 └───────────┬────────────────────────────────────────────┘
-            │ (Authorization: Bearer <Clerk_JWT>)
+            │ Authorization: Bearer <Clerk JWT>
+            │ x-clerk-org-id / x-clerk-org-slug / x-clerk-org-role
             ▼
 ┌────────────────────────────────────────────────────────┐
-│             Backend (Express.js / VPS PM2)             │
-│   - Middleware Auth (@clerk/backend)                   │
+│         Backend (Express.js / Railway.app)             │
+│   - requireAuth middleware (verifyToken @clerk/backend) │
 │   - Orkestrasi Prompt & AI Provider Resolver           │
 │   - Streaming SSE (Review, Rewrite, Q-Gate, SEO)       │
+│   - BullMQ Worker (Railway Background Service)         │
 └───────────┬───────────────────────────┬────────────────┘
             │                           │
             ▼ (Validate & Normalize)    ▼ (Prisma Client)
@@ -34,13 +36,20 @@ Aplikasi ini menggunakan arsitektur **Monorepo (Turborepo)** yang memisahkan sis
 
 ## 2. Autentikasi Aplikasi & Proteksi API
 
-Mulai v0.16.0, aplikasi tidak lagi hanya memproteksi dashboard analytics. Rute editor utama (`/`), dashboard (`/dashboard`), dan API internal diproteksi oleh `src/proxy.ts`.
+Sejak migrasi ke Clerk, seluruh autentikasi berbasis cookie (`eai_auth`) dan password (`DASHBOARD_PASSWORD`) telah dihapus. Rute editor utama (`/`), dashboard (`/dashboard`), dan API internal kini diproteksi oleh Clerk secara penuh.
 
-*   **Halaman Login**: `/login` digunakan untuk akses editor utama, sementara `/dashboard/login` tetap tersedia sebagai pintu khusus dashboard analytics.
-*   **Session Cookie**: Login menghasilkan cookie HTTP-only `eai_auth` berisi payload sesi dan tanda tangan HMAC. Token dibuat dan diverifikasi melalui `src/lib/dashboard-auth.ts`.
-*   **Konfigurasi Secret**: `DASHBOARD_PASSWORD` tetap menjadi password masuk. `DASHBOARD_AUTH_SECRET` dapat ditambahkan sebagai secret terpisah untuk tanda tangan sesi; jika tidak ada, sistem memakai `DASHBOARD_PASSWORD` sebagai fallback.
-*   **API Guard**: Request tanpa sesi valid ke `/api/analyze`, `/api/history`, `/api/export`, dan `/api/analytics` mengembalikan `401 Unauthorized`.
-*   **Settings Menu**: Profil user lokal, mode tampilan, auto-save, bahasa output AI, strictness editorial, default metadata, dan logout dipusatkan di menu `Setting`. `UI Language` masih placeholder lokal; `Output Language` dikirim ke prompt untuk mengarahkan refined draft dan SEO metadata.
+*   **Frontend Middleware (`src/proxy.ts`)**: Menggunakan `clerkMiddleware` dari `@clerk/nextjs/server`. Untuk setiap request ke rute backend API, proxy mengambil Clerk session token (`auth.getToken()`) dan meneruskan header berikut ke Express:
+    *   `Authorization: Bearer <Clerk JWT>` — token sesi Clerk yang diverifikasi.
+    *   `x-clerk-org-id` — ID organisasi aktif dari sesi.
+    *   `x-clerk-org-slug` — slug organisasi aktif.
+    *   `x-clerk-org-role` — peran pengguna di organisasi aktif.
+*   **Backend Middleware (`requireAuth`)**: Didefinisikan di `apps/backend/src/middleware/auth.ts`. Setiap endpoint yang memerlukan autentikasi menggunakan middleware ini, yang:
+    1. Membaca header `Authorization: Bearer <token>`.
+    2. Memverifikasi token menggunakan `verifyToken()` dari `@clerk/backend` dan `CLERK_SECRET_KEY`.
+    3. Menetapkan objek `req.auth` berisi `userId`, `orgId`, `orgSlug`, dan `orgRole` untuk digunakan handler selanjutnya.
+    4. Mengembalikan `401 Unauthorized` jika token tidak ada atau tidak valid.
+*   **Rute Publik**: Webhook Clerk (`/api/webhooks/clerk`) dan rute health check tidak melewati `requireAuth`.
+*   **API Guard**: Request tanpa token valid ke endpoint utama seperti `/api/analyze`, `/api/history`, `/api/workspace`, dan `/api/analytics` mengembalikan `401 Unauthorized`.
 
 ---
 
