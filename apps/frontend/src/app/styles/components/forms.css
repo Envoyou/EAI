@@ -1,0 +1,77 @@
+/* ============================================================
+   Form Control Primitives (Inputs, Selects, Textareas)
+   ============================================================ */
+
+.ui-control {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  color: var(--foreground);
+  outline: none;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.ui-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.ui-control:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface-3) 85%, var(--surface-2));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.ui-control:focus,
+.ui-control:focus-visible {
+  background: var(--surface-1);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--primary) 38%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.ui-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ui-input,
+.ui-select {
+  height: 36px;
+  padding-block: 0;
+  padding-inline: 12px;
+  font-size: 12px;
+}
+
+.ui-select {
+  cursor: pointer;
+}
+
+.ui-textarea {
+  min-height: 88px;
+  padding: 12px 14px;
+  resize: none;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.dark .ui-control {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+}
+
+.dark .ui-control:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface-3) 82%, var(--primary) 7%);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+}
+
+.dark .ui-control:focus,
+.dark .ui-control:focus-visible {
+  background: color-mix(in srgb, var(--surface-1) 88%, var(--primary) 6%);
+  box-shadow:
+    inset 0 0 0 1px rgba(13, 135, 207, 0.42),
+    0 0 0 3px rgba(13, 135, 207, 0.16);
+}

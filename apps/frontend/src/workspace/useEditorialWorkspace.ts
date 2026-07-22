@@ -73,6 +73,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     setDemoRefineCount,
     activeTab,
     setActiveTab,
+    leftPanelOpen,
+    setLeftPanelOpen,
     rightPanelOpen,
     setRightPanelOpen,
     layoutReversed,
@@ -124,14 +126,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   useWorkspaceKeyboard({
     setIsMobile,
     setIsShortcutModalOpen,
-    setSidebarOpen: (open: boolean | ((p: boolean) => boolean)) => {
-      // Standard behavior updates right panel or sidebar
-      if (typeof open === 'function') {
-        setRightPanelOpen(open);
-      } else {
-        setRightPanelOpen(open);
-      }
-    },
+    setSidebarOpen: (open: boolean | ((p: boolean) => boolean)) => setLeftPanelOpen(open),
     setRightPanelOpen,
   });
 
@@ -736,6 +731,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     setActiveFeedbackIndex,
     activeTab,
     setActiveTab,
+    leftPanelOpen,
+    setLeftPanelOpen,
     rightPanelOpen,
     setRightPanelOpen,
     rightPanelTab,

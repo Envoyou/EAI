@@ -178,7 +178,11 @@ export default function AuditLogsAdminPage() {
               No audit logs found matching the search criteria.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="px-4 pt-2 text-[9px] text-[var(--muted-foreground)] sm:hidden select-none">
+                Swipe horizontally to view all columns
+              </div>
+              <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className="border-b border-[var(--border)] bg-[var(--surface-2)] text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
@@ -230,6 +234,7 @@ export default function AuditLogsAdminPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
 
           {/* Pagination */}

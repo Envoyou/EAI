@@ -7,6 +7,19 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Changed
+- **Mobile UX Refinements & Onboarding Design Token Audit**:
+  - **AI Chat Output Formatting & Dark Mode Contrast**: Removed AI assistant message card background bubble (rendering background-transparent while preserving user message bubbles as `surface-2`). Fixed dark mode typography contrast for headings (`h1`-`h4`), bold text (`strong`), table headers/cells (`th`, `td`), and external links (`a`) in `ChatMessageList.tsx` and `prose.css`.
+  - **Mobile Horizontal Swipe Indicators Across Admin Tables**: Added responsive swipe helper text (`Swipe horizontally to view all columns`) above user directory, tenant ledger, and audit log tables across `/admin/users`, `/admin/tenants`, and `/admin/audit-logs`.
+  - **Universal Mobile Sidebar Backdrop Oval Fix**: Fixed giant circle backdrop overlay bug on mobile devices by enforcing `border-radius: 0 !important;` on `.workspace-page-sidebar-backdrop` in `responsive.css`.
+  - **TipTap Text Wrapping on Mobile**: Fixed long typed text overflowing canvas width in `/workspace` by enforcing `white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; min-width: 0;` on `.ProseMirror` and editor container nodes in `editor.css` and `Editor.tsx`.
+  - **Icon-Only Metadata Collapse Button & Responsive Header**: Transformed editor metadata toggle button in `Editor.tsx` into a compact icon-only control (`size="icon-xs"` with `ChevronUp`/`ChevronDown`), and hid the header subtitle (`hidden sm:block`) to prevent header clipping on narrow mobile viewports.
+  - **Onboarding UI & Design Token Audit**: Standardized color tokens (`text-[var(--primary)]`, `bg-[var(--primary)]/10`, `hover:text-[var(--error)]`), updated onboarding step navigation border to `border-b lg:border-b-0 lg:border-r` for mobile 1-column layouts, and optimized primary goal option card heights in `OnboardingWizard.tsx` and `OnboardingOrganizationGate.tsx`.
+- **Multi-Island Floating Workbench for `/workspace` (Option A)**:
+  - Upgraded `/workspace` panel architecture into a Multi-Island Floating Workbench where the Editor Canvas (`.workspace-center-panel`) and AI Strategist Copilot (`.workspace-right-panel`) render as distinct, floating island cards (`rounded-2xl`, `border`, `shadow-xs`, `bg: var(--card)`).
+  - Separated the panels with a clean `10px` outer gap resize handle, letting the outer background canvas (`#0b0b0a` in Dark Mode) show through between panels for maximum visual breathability matching `/dashboard` and `/settings`.
+- **Modern Floating Island Layout (VS Code Modern UI & Kimi Aesthetic)**:
+  - Transformed the app workspace shell into a modern card-based floating island architecture with outer canvas padding (`10px`), gap spacing (`10px`), floating rounded panels (`rounded-2xl` / `16px`), subtle borders (`border border-[var(--border)]`), and soft elevation shadows.
+  - Sidebar panel and main workspace container now render as distinct floating island cards over the outer canvas background, providing clear visual separation and modern desktop app aesthetic.
 - **Complete Raw Button Migration & Final System Validation (Phases 1-4 Complete)**:
   - Achieved 100% codebase migration of raw `<button>` elements to the canonical `Button` API (`@/components/ui/button`) and polymorphic `render` prop across all 41 feature files in `apps/frontend/src/`.
   - Locked primitive ownership and 0 raw button policy across the entire repository via expanded `PrimitiveStyleOwnership.test.ts` and `ShellAndWorkspaceControls.test.ts` unit test suite (144/144 tests passing).
@@ -36,6 +49,13 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Removed all remaining direct `ui-btn` composition from feature code across admin, settings, billing, workspace/editor, onboarding, strategist, history, and feedback surfaces; added a source-level ownership regression contract while recording the remaining raw-button inventory for bounded follow-up.
 
 ### Fixed
+- **CSS Architecture Refactoring & Cascading Reset Fix**:
+  - Eliminated nuclear reset (`* { border-color: transparent !important; }`), replacing it with a safe cascade reset (`@layer base { * { @apply border-border outline-ring/50; } }`).
+  - Reduced `!important` statements across the CSS codebase from 113 down to 7 (a 94% reduction), retaining `!important` strictly for library-injected inline style overrides (`react-resizable-panels`).
+  - Refactored `.strategist-prose` (~45 `!important`s) and `.prose` table styles (~13 `!important`s) using `@layer components` and `:where()` zero-specificity selectors.
+  - Modularized the monolithic CSS codebase into 12 domain-based stylesheets under `src/app/styles/components/` (`buttons.css`, `forms.css`, `cards.css`, `badges.css`, `menus.css`, `feedback.css`) and `src/app/styles/workspace/` (`shell.css`, `sidebar.css`, `editor.css`, `strategist.css`, `chrome.css`, `responsive.css`), with `globals.css` acting as the master import manifest.
+  - Added semantic `--shadow-drawer` elevation token in `tokens.css`, fixing missing mobile drawer elevation shadows.
+  - Synchronized JS `isMobile` resize detection (`< 768px`) with CSS mobile/tablet layout breakpoints.
 - **Editor Link Overlay Architecture**:
   - Replaced manual bounding-rectangle and scroll-offset positioning with a controlled Base UI popover anchored directly to the hovered link.
   - Portaled the overlay with fixed, collision-aware positioning; isolated it from article typography; and migrated edit, remove, cancel, save, and input controls to canonical component APIs.

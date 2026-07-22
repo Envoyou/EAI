@@ -1,0 +1,101 @@
+/* ============================================================
+   Editor Canvas, Metadata & Document Tabs
+   ============================================================ */
+
+.editor-workspace {
+  border: none;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.editor-workspace.is-focused {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.editor-assistant {
+  background: color-mix(in srgb, var(--surface-2) 48%, var(--surface-1));
+}
+
+.editor-canvas {
+  caret-color: var(--primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* TipTap ProseMirror Canvas Text Wrapping */
+.ProseMirror {
+  outline: none;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.ProseMirror p,
+.editor-canvas p {
+  max-width: 100%;
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.ProseMirror * {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.document-tabs {
+  min-height: 38px;
+  gap: 2px;
+  padding: 0 10px;
+  border-bottom: none;
+}
+
+.document-tab {
+  position: relative;
+  min-height: 30px;
+  margin: 4px 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 550;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.document-tab:hover {
+  background: var(--surface-2);
+  color: var(--foreground);
+}
+
+.document-tab.is-active {
+  color: var(--foreground);
+}
+
+.document-tab.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 10px;
+  right: 10px;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 2px 2px 0 0;
+}
+
+.inspector-section {
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--card);
+}

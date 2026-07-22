@@ -6,7 +6,7 @@ import React from 'react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useUser, UserButton, OrganizationSwitcher } from '@clerk/nextjs';
-import { FilePenLine, LayoutDashboard, Moon, Settings, Sun } from 'lucide-react';
+import { FilePenLine, LayoutDashboard, Moon, PanelLeft, Settings, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { EAILogo } from '@/components/EAILogo';
@@ -87,12 +87,9 @@ export function AppSidebarShell({
 
   return (
     <aside
-      className={`workspace-page-sidebar-panel flex flex-col h-full ${className}`}
+      className={`workspace-page-sidebar-panel flex flex-col h-full border-none shadow-none ${className}`}
       data-open={sidebarOpen}
-      style={{
-        background: sidebarOpen ? 'var(--sidebar)' : 'var(--background)',
-        ...style,
-      }}
+      style={style}
     >
       {/* TOP SECTION */}
       <div className="shrink-0 flex flex-col px-3 py-3 gap-1">
@@ -103,15 +100,16 @@ export function AppSidebarShell({
                 type="button"
                 onClick={onToggleSidebar}
                 variant="ghost"
-                className={`flex items-center transition-all duration-300 border-none bg-transparent cursor-pointer overflow-hidden ${
+                className={`group flex items-center transition-all duration-300 border-none bg-transparent cursor-pointer overflow-hidden ${
                   sidebarOpen
                     ? 'justify-start !px-2.5 !py-2 mb-2 rounded-full hover:bg-[var(--surface-2)] text-left w-full'
                     : 'justify-center w-9 h-9 mb-2 rounded-full hover:bg-[var(--surface-2)] mx-auto'
                 }`}
-                aria-label="Toggle sidebar"
+                aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
               >
-                <div className="w-7 h-7 flex items-center justify-center shrink-0">
-                  <EAILogo className="w-7 h-7" />
+                <div className="w-7 h-7 flex items-center justify-center shrink-0 relative">
+                  <EAILogo className="w-7 h-7 transition-opacity duration-200 group-hover:opacity-0" />
+                  <PanelLeft className="w-5 h-5 absolute inset-0 m-auto text-[var(--foreground)] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
                 </div>
                 <div
                   className={`flex flex-col justify-center min-w-0 overflow-hidden transition-all duration-300 ${
@@ -145,7 +143,7 @@ export function AppSidebarShell({
                 appearance={{
                   elements: {
                     rootBox: 'w-full',
-                    organizationSwitcherTrigger: 'w-full justify-between bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)] border border-[var(--border)] rounded-full px-3 py-1.5 text-xs font-semibold shadow-xs',
+                    organizationSwitcherTrigger: 'w-full justify-between bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)] border border-[var(--border)] rounded-full px-3 py-1.5 text-xs font-semibold shadow-none',
                   }
                 }}
               />
@@ -188,7 +186,7 @@ export function AppSidebarShell({
       </div>
 
       {/* MIDDLE SECTION */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 border-t border-b border-[var(--sidebar-border)] min-h-0">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 border-none min-h-0">
         {children}
       </div>
 

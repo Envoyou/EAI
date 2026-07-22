@@ -432,7 +432,7 @@ export function OnboardingWizard() {
 
       <header className="ide-titlebar justify-between px-5 md:px-8 relative z-20 border-b border-[var(--border)] bg-[var(--surface-1)]/80 backdrop-blur-2xl shrink-0">
         <div className="flex items-center gap-3 relative z-10">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-primary">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--primary)]">
             <EAILogo className="h-5 w-5" />
           </div>
           <div>
@@ -449,12 +449,12 @@ export function OnboardingWizard() {
 
       <main className="relative z-10 mx-auto grid min-h-0 flex-1 w-full max-w-[1500px] lg:grid-cols-[300px_minmax(0,1fr)_320px]">
         {/* Navigation Sidebar */}
-        <aside className="border-r border-[var(--border)] p-6 lg:p-8 flex flex-col">
-          <div className="mb-8">
-            <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-primary">
+        <aside className="border-b lg:border-b-0 lg:border-r border-[var(--border)] p-4 md:p-6 lg:p-8 flex flex-col">
+          <div className="mb-6 lg:mb-8">
+            <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--primary)]">
               Launch sequence
             </div>
-            <p className="mt-3 text-xs leading-5 text-[var(--muted-foreground)]">
+            <p className="mt-2 lg:mt-3 text-xs leading-5 text-[var(--muted-foreground)]">
               Sederhana, cepat, berbasis kecerdasan buatan. Biarkan EAI menganalisis brand Anda secara instan.
             </p>
           </div>
@@ -501,7 +501,7 @@ export function OnboardingWizard() {
         <section className="flex min-w-0 flex-col p-5 md:p-10 lg:p-12">
           <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center">
             <div className="mb-8">
-              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--primary)]">
                 {currentStep.eyebrow}
               </div>
               <h1 className="mt-3 font-display text-4xl leading-tight md:text-5xl text-[var(--foreground)]">
@@ -554,14 +554,14 @@ export function OnboardingWizard() {
                               onClick={() => updateActivation('primaryGoal', goal.id)}
                               variant="muted"
                               aria-pressed={active}
-                              className={`rounded-2xl border p-4 text-left transition select-none flex flex-col justify-between h-32 cursor-pointer ${
+                              className={`rounded-2xl border p-3.5 text-left transition select-none flex flex-col justify-between h-auto min-h-28 cursor-pointer ${
                                 active
                                   ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]'
                                   : 'border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)]'
                               }`}
                             >
-                              <div className="flex items-center justify-between w-full">
-                                <GoalIcon className={`h-5 w-5 ${active ? 'text-primary' : 'text-[var(--muted-foreground)]'}`} />
+                              <div className="flex items-center justify-between w-full mb-2">
+                                <GoalIcon className={`h-5 w-5 ${active ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'}`} />
                                 {active && <CheckCircle2 className="h-4 w-4 text-[var(--success)]" />}
                               </div>
                               <div>
@@ -597,14 +597,14 @@ export function OnboardingWizard() {
                 {step === 'discovery' && (
                   <div className="flex flex-col items-center justify-center py-10 space-y-8">
                     <div className="relative">
-                      <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-primary relative z-10">
+                      <div className="absolute inset-0 rounded-full bg-[var(--primary)]/20 blur-xl animate-pulse" />
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full border border-[var(--primary)]/20 bg-[var(--primary)]/10 text-[var(--primary)] relative z-10">
                         <Loader2 className="h-10 w-10 animate-spin" />
                       </div>
                     </div>
 
                     <div className="w-full max-w-md space-y-3.5 bg-[var(--surface-2)]/60 border border-[var(--border)] p-6 rounded-3xl backdrop-blur-xl">
-                      <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary text-center">
+                      <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--primary)] text-center">
                         AI Scanning Progress
                       </h3>
                       <div className="space-y-3 pt-3">
@@ -614,12 +614,12 @@ export function OnboardingWizard() {
                               phase.complete
                                 ? 'bg-[var(--success)]/10 text-[var(--success)]'
                                 : loadingPhase === idx
-                                  ? 'bg-primary/20 text-primary animate-pulse'
+                                  ? 'bg-[var(--primary)]/20 text-[var(--primary)] animate-pulse'
                                   : 'bg-[var(--surface-3)] text-[var(--muted-foreground)]'
                             }`}>
                               {phase.complete ? <Check className="size-3" /> : idx + 1}
                             </span>
-                            <span className={phase.complete ? 'text-[var(--foreground)]' : loadingPhase === idx ? 'text-primary font-medium' : 'text-[var(--muted-foreground)]'}>
+                            <span className={phase.complete ? 'text-[var(--foreground)]' : loadingPhase === idx ? 'text-[var(--primary)] font-medium' : 'text-[var(--muted-foreground)]'}>
                               {phase.text}
                             </span>
                           </div>
@@ -664,7 +664,7 @@ export function OnboardingWizard() {
                       <div className="p-6 md:p-8 space-y-6">
                         <div className="flex justify-between items-start gap-4">
                           <div>
-                            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary">
+                            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--primary)]">
                               Editorial DNA Profile v1
                             </span>
                             {isEditing ? (
@@ -700,7 +700,7 @@ export function OnboardingWizard() {
                               onClick={() => void runDiscovery()}
                               variant="muted"
                               size="sm"
-                              className="text-xs gap-1.5 px-3 border border-[var(--border)] text-primary"
+                              className="text-xs gap-1.5 px-3 border border-[var(--border)] text-[var(--primary)]"
                               disabled={discovering}
                             >
                               <RefreshCw className={`w-3.5 h-3.5 ${discovering ? 'animate-spin' : ''}`} />
@@ -761,7 +761,7 @@ export function OnboardingWizard() {
                                       onClick={() => handleToggleCategory(cat)}
                                       variant="ghost"
                                       size="icon-xs"
-                                      className="hover:text-red-500 font-bold ml-0.5 text-xs border-none p-0 h-auto"
+                                      className="hover:text-[var(--error)] font-bold ml-0.5 text-xs border-none p-0 h-auto"
                                     >
                                       ×
                                     </Button>
@@ -784,7 +784,7 @@ export function OnboardingWizard() {
                                         variant={active ? 'primary' : 'surface'}
                                         className={`px-2 py-0.5 rounded-lg text-[9px] border transition h-auto ${
                                           active
-                                            ? 'bg-primary/10 border-primary/40 text-primary'
+                                            ? 'bg-[var(--primary)]/10 border-[var(--primary)]/40 text-[var(--primary)]'
                                             : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
                                         }`}
                                       >
@@ -814,7 +814,7 @@ export function OnboardingWizard() {
                                       onClick={() => handleToggleArticleType(type)}
                                       variant="ghost"
                                       size="icon-xs"
-                                      className="hover:text-red-500 font-bold ml-0.5 text-xs border-none p-0 h-auto"
+                                      className="hover:text-[var(--error)] font-bold ml-0.5 text-xs border-none p-0 h-auto"
                                     >
                                       ×
                                     </Button>
@@ -837,7 +837,7 @@ export function OnboardingWizard() {
                                         variant={active ? 'primary' : 'surface'}
                                         className={`px-2 py-0.5 rounded-lg text-[9px] border transition h-auto ${
                                           active
-                                            ? 'bg-primary/10 border-primary/40 text-primary'
+                                            ? 'bg-[var(--primary)]/10 border-[var(--primary)]/40 text-[var(--primary)]'
                                             : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
                                         }`}
                                       >
@@ -858,7 +858,7 @@ export function OnboardingWizard() {
                               {data.editorialProfile.tone.map((tn) => (
                                 <span
                                   key={tn}
-                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--primary)]/10 text-primary border border-primary/20 capitalize"
+                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 capitalize"
                                 >
                                   {tn}
                                   {isEditing && (
@@ -867,7 +867,7 @@ export function OnboardingWizard() {
                                       onClick={() => handleToggleTone(tn)}
                                       variant="ghost"
                                       size="icon-xs"
-                                      className="hover:text-red-500 font-bold ml-0.5 text-xs border-none p-0 h-auto"
+                                      className="hover:text-[var(--error)] font-bold ml-0.5 text-xs border-none p-0 h-auto"
                                     >
                                       ×
                                     </Button>
@@ -890,7 +890,7 @@ export function OnboardingWizard() {
                                         variant={active ? 'primary' : 'surface'}
                                         className={`px-2 py-0.5 rounded-lg text-[9px] border transition capitalize h-auto ${
                                           active
-                                            ? 'bg-primary/10 border-primary/40 text-primary'
+                                            ? 'bg-[var(--primary)]/10 border-[var(--primary)]/40 text-[var(--primary)]'
                                             : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
                                         }`}
                                       >

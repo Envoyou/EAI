@@ -17,6 +17,7 @@ import {
   Loader2,
   Cpu,
   Scroll,
+  PanelLeft,
 } from 'lucide-react';
 import { EAILogo } from '@/components/EAILogo';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -109,14 +110,17 @@ export function AdminLayoutShell({ children }: AdminLayoutShellProps) {
                     type="button"
                     onClick={() => setSidebarOpen((current) => !current)}
                     variant="ghost"
-                    className={`flex items-center transition-all duration-300 border-none bg-transparent cursor-pointer overflow-hidden ${
+                    className={`group flex items-center transition-all duration-300 border-none bg-transparent cursor-pointer overflow-hidden ${
                       sidebarOpen
                         ? 'justify-start px-2 py-2 mb-2 rounded-full hover:bg-[var(--surface-2)] text-left w-full'
                         : 'justify-center w-9 h-9 mb-2 rounded-full hover:bg-[var(--surface-2)] mx-auto'
                     }`}
                     aria-label="Toggle admin sidebar"
                   >
-                    <EAILogo className="w-9 h-9 shrink-0" />
+                    <div className="w-8 h-8 flex items-center justify-center shrink-0 relative">
+                      <EAILogo className="w-8 h-8 transition-opacity duration-200 group-hover:opacity-0" />
+                      <PanelLeft className="w-5 h-5 absolute inset-0 m-auto text-[var(--foreground)] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                    </div>
                     <div
                       className={`flex flex-col justify-center min-w-0 overflow-hidden transition-all duration-300 ${
                         sidebarOpen ? 'opacity-100 max-w-[200px] ml-2.5' : 'opacity-0 max-w-0 ml-0'

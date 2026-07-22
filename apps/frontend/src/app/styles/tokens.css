@@ -1,0 +1,283 @@
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   EAI Design System — Envoyou Blue × Slate Workspace
+   ============================================================ */
+
+@theme {
+  /* --- Envoyou Brand Blue Accent Palette --- */
+  --color-primary-50:  #eaf4fb;
+  --color-primary-100: #cce5f5;
+  --color-primary-200: #99cbeb;
+  --color-primary-300: #66b0e0;
+  --color-primary-400: #3396d6;
+  --color-primary-500: #0d87cf;  /* Biru cerah logo */
+  --color-primary-600: #0b79c2;  /* ← Warna utama logo SVG */
+  --color-primary-700: #0966af;  /* #0066AF logo */
+  --color-primary-800: #075190;
+  --color-primary-900: #003c70;
+  --color-primary-950: #002550;
+
+  /* --- Gold/Amber Accent Palette --- */
+  --color-gold:       #f59e0b;
+  --color-gold-light: #ffd147;
+  --color-gold-pale:  #F5E0A0;
+  --color-gold-dark:  #b45309;
+  --color-gold-muted: rgba(245, 158, 11, 0.08);
+
+  /* --- Ink Surfaces (Base Slate Colors) --- */
+  --color-ink-950:    #020617;
+  --color-ink-900:    #0f172a;
+  --color-ink-800:    #1e293b;
+  --color-ink-700:    #334155;
+  --color-ink-600:    #475569;
+  --color-ink-500:    #64748b;
+
+  /* --- Warm Grays --- */
+  --color-warm-50:    #f8fafc;
+  --color-warm-100:   #f1f5f9;
+  --color-warm-200:   #e2e8f0;
+  --color-warm-300:   #cbd5e1;
+  --color-warm-400:   #94a3b8;
+  --color-warm-500:   #64748b;
+  --color-warm-600:   #475569;
+
+  /* --- Ivory Palette (Light Mode Base) --- */
+  --color-ivory-50:   #f8fafc;
+  --color-ivory-100:  #f1f5f9;
+  --color-ivory-200:  #e2e8f0;
+  --color-ivory-300:  #cbd5e1;
+  --color-ivory-400:  #94a3b8;
+  --color-ivory-500:  #64748b;
+
+  /* --- Status Colors --- */
+  --color-status-approve: #10b981;
+  --color-status-revise:  #f59e0b;
+  --color-status-reject:  #ef4444;
+
+  /* --- Typography --- */
+  --font-display: var(--font-dm-serif), ui-serif, Georgia, serif;
+  --font-sans:    var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    var(--font-jetbrains-mono), ui-monospace, "JetBrains Mono", "Fira Code", monospace;
+  --font-serif:   var(--font-lora), ui-serif, Georgia, serif;
+}
+
+/* ============================================================
+   CSS Custom Properties (Runtime Tokens)
+   ============================================================ */
+:root {
+  /* Gold/Amber */
+  --gold:       #f59e0b;
+  --gold-light: #ffd147;
+  --gold-pale:  #F5E0A0;
+  --gold-dark:  #b45309;
+  --gold-muted: rgba(245, 158, 11, 0.08);
+
+  /* Radius */
+  --radius-xs:  4px;
+  --radius-sm:  6px;
+  --radius-md:  8px;
+  --radius-lg:  10px;
+  --radius-xl:  12px;
+  --radius-2xl: 16px;
+  --radius:     8px;
+
+  /* Transitions */
+  --transition-fast:   150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-base:   250ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-spring: 400ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* IDE Layout Tokens */
+  --titlebar-height:    48px;
+  --activitybar-width:  36px;
+  --tabbar-height:      40px;
+  --statusbar-height:   32px;
+  --sidebar-panel-width: 272px;
+  --panel-min-width:    280px;
+  --panel-handle-width: 5px;
+
+  /* Mobile Overlay Drawer Elevation Shadow */
+  --shadow-drawer: 0 24px 48px -12px rgba(0, 0, 0, 0.28);
+}
+
+/* ============================================================
+   Light Mode Tokens (Clean, Premium Slate & Solid Surfaces)
+   ============================================================ */
+:root {
+  --background:   #f1f5f9; /* slate-100 */
+  --foreground:   #0f172a; /* slate-900 */
+  --surface-1:    #ffffff; /* solid white workspace panels */
+  --surface-2:    #f8fafc; /* slate-50 — elevated sub-cards inside settings & dashboard */
+  --surface-3:    #e2e8f0; /* slate-200 — hover / active */
+  --border:       rgba(15, 23, 42, 0.12); /* Clean subtle border for dividers, buttons & inputs */
+  --border-subtle: rgba(15, 23, 42, 0.06);
+  --border-gold:  rgba(11, 121, 194, 0.2);
+  --card-border:  rgba(15, 23, 42, 0.12); /* Solid, tasteful card border for light mode */
+
+  --card:             #ffffff;
+  --card-foreground:  #0f172a;
+  --popover:          #ffffff;
+  --popover-foreground: #0f172a;
+
+  --primary:            #0b79c2; /* Envoyou blue */
+  --primary-foreground: #ffffff;
+  --editor-link:        #0b79c2;
+
+  --secondary:            #f1f5f9;
+  --secondary-foreground: #0f172a;
+
+  --muted:            #f1f5f9;
+  --muted-foreground: #64748b;
+
+  --accent:            #f1f5f9;
+  --accent-foreground: #0f172a;
+
+  --destructive:        #ef4444;
+  --input:              rgba(15, 23, 42, 0.08);
+  --ring:               rgba(11, 121, 194, 0.3);
+
+  /* Sidebar specific */
+  --sidebar:                  #f1f5f9;
+  --sidebar-foreground:       #334155;
+  --sidebar-border:           transparent;
+  --sidebar-accent:           #e2e8f0;
+  --sidebar-accent-foreground:#0f172a;
+  --sidebar-primary:          #0b79c2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring:             rgba(11, 121, 194, 0.3);
+
+  /* Status */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error:   #ef4444;
+
+  /* Surfaces */
+  --chart-1: #0b79c2;
+  --chart-2: #10b981;
+  --chart-3: #f59e0b;
+  --chart-4: #ef4444;
+  --chart-5: #64748b;
+}
+
+/* ============================================================
+   Dark Mode Tokens
+   ============================================================ */
+.dark {
+  --background:   #141413; /* Background Root — Dark Charcoal Grey */
+  --foreground:   #EDEDED; /* Neutral white */
+  --surface-1:    #0b0b0a; /* Surface Panel Internal — Deep Black */
+  --surface-2:    #181817; /* elevated sub-card surface for settings & dashboard */
+  --surface-3:    #222220; /* hover / active / pressed */
+  --border:       rgba(255, 255, 255, 0.12); /* Clean subtle border for dividers, buttons & inputs */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-gold:  rgba(255, 255, 255, 0.2);
+  --card-border:  rgba(255, 255, 255, 0.12);
+
+  --card:             #0b0b0a;
+  --card-foreground:  #EDEDED;
+  --popover:          #181817;
+  --popover-foreground: #EDEDED;
+
+  /* Primary as high-contrast monochrome */
+  --primary:            #EDEDED; 
+  --primary-foreground: #0b0b0a;
+  --editor-link:        #3b95d9;
+
+  --secondary:            #1e1e1d;
+  --secondary-foreground: #EDEDED;
+
+  --muted:            #1e1e1d;
+  --muted-foreground: #A1A1AA;
+
+  --accent:            #282826;
+  --accent-foreground: #EDEDED;
+
+  --destructive:        #ef4444;
+  --input:              rgba(255, 255, 255, 0.08);
+  --ring:               rgba(255, 255, 255, 0.2);
+
+  /* Sidebar specific */
+  --sidebar:                  #141413;
+  --sidebar-foreground:       #A1A1AA;
+  --sidebar-border:           transparent;
+  --sidebar-accent:           #1e1e1d;
+  --sidebar-accent-foreground:#EDEDED;
+  --sidebar-primary:          #EDEDED;
+  --sidebar-primary-foreground: #0b0b0a;
+  --sidebar-ring:             rgba(255, 255, 255, 0.2);
+
+  /* Status */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error:   #ef4444;
+
+  /* Surfaces */
+  --chart-1: #EDEDED;
+  --chart-2: #10b981;
+  --chart-3: #f59e0b;
+  --chart-4: #ef4444;
+  --chart-5: #A1A1AA;
+
+  --shadow-drawer: 0 24px 56px -16px rgba(0, 0, 0, 0.72);
+}
+
+/* ============================================================
+   Tailwind Inline Theme Bridge
+   ============================================================ */
+@theme inline {
+  --font-heading:   var(--font-display);
+  --font-sans:      var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:      var(--font-jetbrains-mono), ui-monospace, "JetBrains Mono", "Fira Code", monospace;
+
+  --color-background:   var(--background);
+  --color-foreground:   var(--foreground);
+  --color-surface-1:    var(--surface-1);
+  --color-surface-2:    var(--surface-2);
+  --color-surface-3:    var(--surface-3);
+  --color-border:       var(--border);
+  --color-gold:         var(--gold);
+  --color-gold-light:   var(--gold-light);
+  --color-gold-pale:    var(--gold-pale);
+  --color-gold-dark:    var(--gold-dark);
+  --color-gold-muted:   var(--gold-muted);
+
+  --color-card:             var(--card);
+  --color-card-foreground:  var(--card-foreground);
+  --color-popover:          var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary:          var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary:        var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:            var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent:           var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive:      var(--destructive);
+  --color-input:            var(--input);
+  --color-ring:             var(--ring);
+  --color-success:          var(--success);
+  --color-warning:          var(--warning);
+  --color-error:            var(--error);
+
+  --color-sidebar:                    var(--sidebar);
+  --color-sidebar-foreground:         var(--sidebar-foreground);
+  --color-sidebar-border:             var(--sidebar-border);
+  --color-sidebar-accent:             var(--sidebar-accent);
+  --color-sidebar-accent-foreground:  var(--sidebar-accent-foreground);
+  --color-sidebar-primary:            var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-ring:               var(--sidebar-ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm:  var(--radius-sm);
+  --radius-md:  var(--radius-md);
+  --radius-lg:  var(--radius-lg);
+  --radius-xl:  var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+}

@@ -56,16 +56,15 @@ export default function Editor({
   editorialBrandName = 'the active editorial profile',
   isPersonal = false,
   onAddNewMetadataOption,
-  charLimit = 15000,
 }: EditorProps) {
   const updateMeta = (field: keyof ArticleMetadata, val: string) => {
     onMetadataChange({ ...metadata, [field]: val });
   };
 
   const [showBrief, setShowBrief] = useState(false);
+  const [isMetadataExpanded, setIsMetadataExpanded] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
   const [placeholder, setPlaceholder] = useState(PLACEHOLDERS[0]);
-  const isOverLimit = value.length > charLimit;
 
   // Editor mode state: 'tiptap' (Rich Text) or 'markdown' (Raw Markdown)
   const [editorMode, setEditorMode] = useState<'tiptap' | 'markdown'>('tiptap');
@@ -146,7 +145,7 @@ export default function Editor({
     editorProps: {
       attributes: {
         spellcheck: 'false',
-        class: 'editor-canvas flex-1 w-full max-w-[95%] mx-auto resize-none border-0 outline-none px-4 py-6 md:px-4 md:py-6 leading-[1.85] font-inter text-[16px] bg-transparent text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-0 prose prose-sm dark:prose-invert focus:outline-none min-h-[500px]',
+        class: 'editor-canvas flex-1 w-full min-w-0 max-w-full mx-auto resize-none border-0 outline-none px-4 py-6 md:px-4 md:py-6 leading-[1.85] font-inter text-[16px] bg-transparent text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-0 prose prose-sm dark:prose-invert focus:outline-none min-h-[500px] break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap',
       },
       handleKeyDown: (view, event) => {
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
@@ -358,7 +357,7 @@ export default function Editor({
                 <h2 className="text-[13px] font-semibold text-[var(--foreground)]">
                   Draft Article
                 </h2>
-                <p className="truncate text-[11px] text-[var(--muted-foreground)]">
+                <p className="hidden sm:block truncate text-[11px] text-[var(--muted-foreground)]">
                   Add the editorial context EAI should follow.
                 </p>
               </div>
@@ -391,6 +390,17 @@ export default function Editor({
              <div className="flex shrink-0 items-center gap-1">
               <Button
                 type="button"
+                onClick={() => setIsMetadataExpanded(p => !p)}
+                variant="muted"
+                size="icon-xs"
+                aria-expanded={isMetadataExpanded}
+                aria-label={isMetadataExpanded ? "Collapse metadata controls" : "Expand metadata controls"}
+              >
+                {isMetadataExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </Button>
+
+              <Button
+                type="button"
                 onClick={handleCopy}
                 disabled={!value.trim()}
                 variant="muted"
@@ -412,174 +422,178 @@ export default function Editor({
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
-            {isPersonal ? (
-              <>
-                <Input
-                  variant="surface"
-                  type="text"
-                  name="article-category"
-                  autoComplete="off"
-                  aria-label="Article category"
-                  list="category-options"
-                  value={metadata.category || ''}
-                  onChange={e => updateMeta('category', e.target.value)}
-                  onBlur={e => {
-                    const val = e.target.value.trim();
-                    if (onAddNewMetadataOption && val) {
-                      onAddNewMetadataOption('category', val);
-                    }
-                  }}
-                  disabled={isLoading}
-                  placeholder="Category…"
-                />
-                <datalist id="category-options">
-                  {categoryOptions.map((option) => (
-                    <option key={option} value={option} />
-                  ))}
-                </datalist>
+          {isMetadataExpanded && (
+            <div className="animate-fade-in">
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                {isPersonal ? (
+                  <>
+                    <Input
+                      variant="surface"
+                      type="text"
+                      name="article-category"
+                      autoComplete="off"
+                      aria-label="Article category"
+                      list="category-options"
+                      value={metadata.category || ''}
+                      onChange={e => updateMeta('category', e.target.value)}
+                      onBlur={e => {
+                        const val = e.target.value.trim();
+                        if (onAddNewMetadataOption && val) {
+                          onAddNewMetadataOption('category', val);
+                        }
+                      }}
+                      disabled={isLoading}
+                      placeholder="Category…"
+                    />
+                    <datalist id="category-options">
+                      {categoryOptions.map((option) => (
+                        <option key={option} value={option} />
+                      ))}
+                    </datalist>
+
+                    <Input
+                      variant="surface"
+                      type="text"
+                      name="article-type"
+                      autoComplete="off"
+                      aria-label="Article type"
+                      list="type-options"
+                      value={metadata.type || ''}
+                      onChange={e => updateMeta('type', e.target.value)}
+                      onBlur={e => {
+                        const val = e.target.value.trim();
+                        if (onAddNewMetadataOption && val) {
+                          onAddNewMetadataOption('articleType', val);
+                        }
+                      }}
+                      disabled={isLoading}
+                      placeholder="Article type…"
+                    />
+                    <datalist id="type-options">
+                      {articleTypeOptions.map((option) => (
+                        <option key={option} value={option} />
+                      ))}
+                    </datalist>
+                  </>
+                ) : (
+                  <>
+                    <Select
+                      value={metadata.category || ''}
+                      onValueChange={val => updateMeta('category', val as string)}
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger
+                        variant="surface"
+                        aria-label="Article category"
+                        className={metadata.category ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}
+                      >
+                        <SelectValue placeholder="Category…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoryOptions.map((option) => (
+                          <SelectItem key={option} value={option}>{option}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      value={metadata.type || ''}
+                      onValueChange={val => updateMeta('type', val as string)}
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger
+                        variant="surface"
+                        aria-label="Article type"
+                        className={metadata.type ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}
+                      >
+                        <SelectValue placeholder="Article type…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {articleTypeOptions.map((option) => (
+                          <SelectItem key={option} value={option}>{option}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
 
                 <Input
                   variant="surface"
                   type="text"
-                  name="article-type"
+                  name="target-audience"
                   autoComplete="off"
-                  aria-label="Article type"
-                  list="type-options"
-                  value={metadata.type || ''}
-                  onChange={e => updateMeta('type', e.target.value)}
-                  onBlur={e => {
-                    const val = e.target.value.trim();
-                    if (onAddNewMetadataOption && val) {
-                      onAddNewMetadataOption('articleType', val);
-                    }
-                  }}
+                  aria-label="Target audience"
+                  placeholder="Target audience…"
+                  value={metadata.targetAudience || ''}
+                  onChange={e => updateMeta('targetAudience', e.target.value)}
                   disabled={isLoading}
-                  placeholder="Article type…"
                 />
-                <datalist id="type-options">
-                  {articleTypeOptions.map((option) => (
-                    <option key={option} value={option} />
-                  ))}
-                </datalist>
-              </>
-            ) : (
-              <>
-                <Select
-                  value={metadata.category || ''}
-                  onValueChange={val => updateMeta('category', val as string)}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger
-                    variant="surface"
-                    aria-label="Article category"
-                    className={metadata.category ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}
-                  >
-                    <SelectValue placeholder="Category…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryOptions.map((option) => (
-                      <SelectItem key={option} value={option}>{option}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={metadata.type || ''}
-                  onValueChange={val => updateMeta('type', val as string)}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger
-                    variant="surface"
-                    aria-label="Article type"
-                    className={metadata.type ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}
-                  >
-                    <SelectValue placeholder="Article type…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {articleTypeOptions.map((option) => (
-                      <SelectItem key={option} value={option}>{option}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </>
-            )}
-
-            <Input
-              variant="surface"
-              type="text"
-              name="target-audience"
-              autoComplete="off"
-              aria-label="Target audience"
-              placeholder="Target audience…"
-              value={metadata.targetAudience || ''}
-              onChange={e => updateMeta('targetAudience', e.target.value)}
-              disabled={isLoading}
-            />
-            <Input
-              variant="surface"
-              type="text"
-              name="target-length"
-              autoComplete="off"
-              aria-label="Target article length"
-              placeholder="Target length, e.g. 800 words…"
-              value={metadata.targetLength || ''}
-              onChange={e => updateMeta('targetLength', e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="mt-2">
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    type="button"
-                    onClick={() => setShowBrief(p => !p)}
-                    variant="muted"
-                    size="xs"
-                    aria-expanded={showBrief}
-                    className="-ml-2 w-max"
-                    style={{ color: showBrief || metadata.brief ? 'var(--primary)' : 'var(--muted-foreground)' }}
-                  >
-                    <BookOpen className="h-3.5 w-3.5" />
-                    Writing Instructions
-                    {metadata.brief && !showBrief && (
-                      <span
-                        className="ml-1 inline-block w-1.5 h-1.5 rounded-full"
-                        style={{ background: 'var(--primary)' }}
-                      />
-                    )}
-                    {showBrief
-                      ? <ChevronUp className="h-3.5 w-3.5 ml-auto" />
-                      : <ChevronDown className="h-3.5 w-3.5 ml-auto" />}
-                  </Button>
-                }
-              />
-              <TooltipContent side="bottom" className="text-xs">
-                Add voice, tone, or writing instructions for this article.
-              </TooltipContent>
-            </Tooltip>
-
-            {showBrief && (
-              <div className="mt-2">
-                <Textarea
+                <Input
                   variant="surface"
-                  name="writing-instructions"
+                  type="text"
+                  name="target-length"
                   autoComplete="off"
-                  aria-label="Writing instructions"
-                  value={metadata.brief || ''}
-                  onChange={e => updateMeta('brief', e.target.value)}
-                  placeholder={`Add article-specific guidance…\n\nExample: Use a conversational tone, avoid technical jargon, and prioritize Indonesian sources.`}
+                  aria-label="Target article length"
+                  placeholder="Target length, e.g. 800 words…"
+                  value={metadata.targetLength || ''}
+                  onChange={e => updateMeta('targetLength', e.target.value)}
                   disabled={isLoading}
-                  rows={4}
                 />
-                <p className="mt-1.5 px-1 text-[11px] ui-muted">
-                  Leave empty to use the default {editorialBrandName} writing standard.
-                </p>
               </div>
-            )}
-          </div>
+
+              <div className="mt-2">
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        type="button"
+                        onClick={() => setShowBrief(p => !p)}
+                        variant="muted"
+                        size="xs"
+                        aria-expanded={showBrief}
+                        className="-ml-2 w-max"
+                        style={{ color: showBrief || metadata.brief ? 'var(--primary)' : 'var(--muted-foreground)' }}
+                      >
+                        <BookOpen className="h-3.5 w-3.5" />
+                        Writing Instructions
+                        {metadata.brief && !showBrief && (
+                          <span
+                            className="ml-1 inline-block w-1.5 h-1.5 rounded-full"
+                            style={{ background: 'var(--primary)' }}
+                          />
+                        )}
+                        {showBrief
+                          ? <ChevronUp className="h-3.5 w-3.5 ml-auto" />
+                          : <ChevronDown className="h-3.5 w-3.5 ml-auto" />}
+                      </Button>
+                    }
+                  />
+                  <TooltipContent side="bottom" className="text-xs">
+                    Add voice, tone, or writing instructions for this article.
+                  </TooltipContent>
+                </Tooltip>
+
+                {showBrief && (
+                  <div className="mt-2">
+                    <Textarea
+                      variant="surface"
+                      name="writing-instructions"
+                      autoComplete="off"
+                      aria-label="Writing instructions"
+                      value={metadata.brief || ''}
+                      onChange={e => updateMeta('brief', e.target.value)}
+                      placeholder={`Add article-specific guidance…\n\nExample: Use a conversational tone, avoid technical jargon, and prioritize Indonesian sources.`}
+                      disabled={isLoading}
+                      rows={4}
+                    />
+                    <p className="mt-1.5 px-1 text-[11px] ui-muted">
+                      Leave empty to use the default {editorialBrandName} writing standard.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Textarea, Welcome Card, or AI Drafting Form based on state */}
@@ -612,7 +626,7 @@ export default function Editor({
             </div>
           </div>
         ) : (
-          <div className="relative flex-1 w-full overflow-y-auto">
+          <div className="relative flex-1 w-full min-w-0 max-w-full overflow-y-auto overflow-x-hidden">
             {isLoading && !value && (
               <div className="absolute inset-0 z-50 bg-[var(--surface-1)]/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 select-none">
                 <Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" />
@@ -624,13 +638,13 @@ export default function Editor({
             )}
 
             {/* Rich Text Editor (Tiptap) */}
-            <div className={editorMode === 'tiptap' ? 'w-full h-full' : 'hidden'} onClick={() => editor?.commands.focus()}>
+            <div className={editorMode === 'tiptap' ? 'w-full h-full min-w-0 max-w-full overflow-x-hidden' : 'hidden'} onClick={() => editor?.commands.focus()}>
               {editor && <BubbleMenuAI editor={editor} />}
-              <EditorContent editor={editor} className="w-full h-full" />
+              <EditorContent editor={editor} className="w-full h-full min-w-0 max-w-full" />
             </div>
 
             {/* Raw Markdown Editor */}
-            <div className={editorMode === 'markdown' ? 'w-full h-full flex flex-col' : 'hidden'}>
+            <div className={editorMode === 'markdown' ? 'w-full h-full flex flex-col min-w-0 max-w-full overflow-x-hidden' : 'hidden'}>
               <textarea
                 ref={textareaRef}
                 value={value}
@@ -645,7 +659,7 @@ export default function Editor({
                     }
                   }
                 }}
-                className="w-full h-full min-h-[500px] resize-none border-0 outline-none px-6 py-6 font-mono text-[14px] bg-transparent text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-0 focus:outline-none leading-relaxed"
+                className="w-full h-full min-h-[500px] resize-none border-0 outline-none px-4 py-6 font-mono text-[14px] bg-transparent text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-0 focus:outline-none leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap min-w-0 max-w-full"
                 placeholder={placeholder}
                 disabled={isLoading}
               />
@@ -671,23 +685,7 @@ export default function Editor({
           </div>
         )}
 
-        <div className="shrink-0 flex items-center justify-between border-t border-[var(--border)] px-5 py-2 md:px-6 bg-transparent">
-          <div className="flex items-center gap-1.5 ui-muted">
-            <kbd className="ui-kbd gap-1 px-2 py-0.5">
-              Ctrl+↵
-            </kbd>
-            <span className="text-[11px] font-medium">to Refine</span>
-          </div>
 
-          {isOverLimit && (
-            <span
-              className="text-[11px] font-mono tabular-nums font-semibold"
-              style={{ color: 'var(--error)' }}
-            >
-              {value.length.toLocaleString()} / {charLimit.toLocaleString()} — over limit
-            </span>
-          )}
-        </div>
       </div>
     </div>
   );

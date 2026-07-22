@@ -167,16 +167,20 @@ export function UserTable({
           </div>
         )}
 
-        <div className="border-b border-[var(--border)] bg-[var(--surface-2)] p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-[var(--muted-foreground)]" />
-            <h3 className="font-bold">User Administration Directory</h3>
+        <div className="border-b border-[var(--border)] bg-[var(--surface-2)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Users className="h-5 w-5 shrink-0 text-[var(--muted-foreground)]" />
+            <h3 className="font-bold text-sm sm:text-base truncate">User Directory</h3>
           </div>
-          <Badge variant="surface" className="text-xs font-mono">
+          <Badge variant="surface" className="text-xs font-mono shrink-0 self-start sm:self-auto">
             {pagination.totalCount > 0
               ? `Showing ${startNum}-${endNum} of ${pagination.totalCount} users`
               : '0 users found'}
           </Badge>
+        </div>
+
+        <div className="px-4 pt-2 text-[9px] text-[var(--muted-foreground)] sm:hidden select-none">
+          Swipe horizontally to view all columns
         </div>
 
         <div className="overflow-x-auto">

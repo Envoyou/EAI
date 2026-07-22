@@ -168,7 +168,7 @@ export default function EditorCanvas({
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="h-full w-full p-3 md:px-6 md:py-5 absolute inset-0"
+              className="h-full w-full min-w-0 max-w-full p-2 sm:p-3 md:px-6 md:py-5 absolute inset-0 overflow-x-hidden"
             >
               <Editor
                 value={draft}

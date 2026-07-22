@@ -17,7 +17,7 @@ export function OnboardingOrganizationGate() {
     <div className="flex min-h-dvh flex-col bg-[var(--background)] text-[var(--foreground)]">
       <header className="ide-titlebar relative z-20 shrink-0 justify-between border-b border-[var(--border)] bg-[var(--surface-1)] px-5 md:px-8">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-primary">
+          <div className="flex size-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--primary)]">
             <EAILogo className="size-5" />
           </div>
           <div>

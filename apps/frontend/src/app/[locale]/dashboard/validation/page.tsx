@@ -7,6 +7,7 @@ import { FileText, CheckCircle, Activity, AlertTriangle, Loader2, ArrowLeft, Dow
 import Link from 'next/link';
 import { WorkspacePageShell } from '@/components/WorkspacePageShell';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { useRouter } from 'next/navigation';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 
@@ -205,23 +206,11 @@ export default function ValidationDashboardPage() {
           {/* Demo Mode Toggle */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] shadow-sm transition-all">
             <span className="text-[10px] font-semibold text-muted-foreground">Demo</span>
-            <Button
-              type="button"
-              onClick={toggleDemoMode}
-              variant="ghost"
-              size="icon-xs"
-              className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent p-0 transition-colors duration-200 ease-in-out focus:outline-none ${
-                demoMode ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'
-              }`}
-              role="switch"
-              aria-checked={demoMode}
-            >
-              <span
-                className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
-                  demoMode ? 'translate-x-3' : 'translate-x-0'
-                }`}
-              />
-            </Button>
+            <Switch
+              checked={demoMode}
+              onCheckedChange={toggleDemoMode}
+              aria-label="Toggle Demo Mode"
+            />
           </div>
 
           {/* Download CSV Button */}

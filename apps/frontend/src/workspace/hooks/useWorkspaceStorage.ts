@@ -45,7 +45,14 @@ export function useWorkspaceStorage({ mode }: { mode: 'demo' | 'workspace' }) {
   const [demoRefineCount, setDemoRefineCount] = useState(0);
 
   const [activeTab, setActiveTab] = useState<PanelTab>('draft');
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [leftPanelOpen, setLeftPanelOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.innerWidth > 1024;
+  });
+  const [rightPanelOpen, setRightPanelOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.innerWidth > 1024;
+  });
   const [layoutReversed, setLayoutReversed] = useState(false);
 
   const [researchNotes, setResearchNotes] = useState<ResearchNote[]>(() => {
@@ -89,6 +96,7 @@ export function useWorkspaceStorage({ mode }: { mode: 'demo' | 'workspace' }) {
       const savedHistoryId = localStorage.getItem('eai-active-history-id');
       const savedSourceDraft = localStorage.getItem('eai-source-draft');
       const savedActiveTab = localStorage.getItem('eai-active-tab');
+      const savedShowLeftSidebar = localStorage.getItem('eai-show-left-sidebar');
       const savedShowSidebar = localStorage.getItem('eai-show-feedback-sidebar');
       const savedSpeed = localStorage.getItem('eai-analysis-speed');
       const savedDemoCount = localStorage.getItem('eai-demo-refine-count');
@@ -106,7 +114,16 @@ export function useWorkspaceStorage({ mode }: { mode: 'demo' | 'workspace' }) {
       if (savedHistoryId !== null) setActiveHistoryId(savedHistoryId || null);
       if (savedSourceDraft !== null) setSourceDraft(savedSourceDraft);
       if (savedActiveTab !== null) setActiveTab(savedActiveTab as PanelTab);
-      if (savedShowSidebar !== null) setRightPanelOpen(savedShowSidebar === 'true');
+      if (savedShowLeftSidebar !== null) {
+        setLeftPanelOpen(savedShowLeftSidebar === 'true');
+      } else if (window.innerWidth <= 1024) {
+        setLeftPanelOpen(false);
+      }
+      if (savedShowSidebar !== null) {
+        setRightPanelOpen(savedShowSidebar === 'true');
+      } else if (window.innerWidth <= 1024) {
+        setRightPanelOpen(false);
+      }
 
       const savedLayoutReversed = localStorage.getItem('eai-layout-reversed');
       if (savedLayoutReversed !== null) setLayoutReversed(savedLayoutReversed === 'true');
@@ -164,11 +181,12 @@ export function useWorkspaceStorage({ mode }: { mode: 'demo' | 'workspace' }) {
 
   useEffect(() => {
     if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('eai-show-left-sidebar', String(leftPanelOpen));
       localStorage.setItem('eai-show-feedback-sidebar', String(rightPanelOpen));
       localStorage.setItem('eai-analysis-speed', analysisSpeed);
       localStorage.setItem('eai-layout-reversed', String(layoutReversed));
     }
-  }, [rightPanelOpen, analysisSpeed, layoutReversed, isLoaded]);
+  }, [leftPanelOpen, rightPanelOpen, analysisSpeed, layoutReversed, isLoaded]);
 
   return {
     workspaceChecking,
@@ -195,6 +213,8 @@ export function useWorkspaceStorage({ mode }: { mode: 'demo' | 'workspace' }) {
     setDemoRefineCount,
     activeTab,
     setActiveTab,
+    leftPanelOpen,
+    setLeftPanelOpen,
     rightPanelOpen,
     setRightPanelOpen,
     layoutReversed,

@@ -1,0 +1,58 @@
+/* ============================================================
+   Base Styles & Safe Border Cascade Reset
+   ============================================================ */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    @apply antialiased;
+  }
+
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.2);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.5);
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.15);
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.3);
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgba(11, 121, 194, 0.15);
+    color: var(--foreground);
+  }
+
+  /* Focus Visible */
+  :focus-visible {
+    outline: 1.5px solid rgba(11, 121, 194, 0.5);
+    outline-offset: 2px;
+  }
+}

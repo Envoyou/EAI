@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MotionConfig } from 'framer-motion';
 import {
@@ -16,6 +17,7 @@ import {
   History,
   FileEdit,
   X,
+  ChevronDown,
 } from 'lucide-react';
 
 import DocumentHistoryPanel from '@/components/DocumentHistoryPanel';
@@ -26,12 +28,14 @@ import ShortcutsModal from '@/components/ShortcutsModal';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { useEditorialWorkspace } from '@/workspace/useEditorialWorkspace';
 import { editorStatusBadgeVariant } from '@/workspace/utils';
 
 export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) {
   const router = useRouter();
+  const [isMobileModeSheetOpen, setIsMobileModeSheetOpen] = useState(false);
   const workspace = useEditorialWorkspace({ mode });
 
   const {
@@ -64,6 +68,8 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
     setHoveredFeedbackIndex,
     activeFeedbackIndex,
     setActiveFeedbackIndex,
+    leftPanelOpen,
+    setLeftPanelOpen,
     rightPanelOpen,
     setRightPanelOpen,
     rightPanelTab,
@@ -120,24 +126,17 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
     );
   }
 
-  return (
-    <MotionConfig reducedMotion="user">
-      <div
-        className="flex flex-col h-screen overflow-hidden relative"
-        style={{ background: 'var(--background)' }}
-      >
-        {/* ── Title Bar ── */}
-        <header
-          className="ide-titlebar max-sm:h-14 max-sm:px-3 max-sm:gap-2 border-b border-[var(--border)]"
-          role="banner"
-          style={{ background: 'var(--surface-1)' }}
-        >
+  const renderHeader = () => (
+    <header
+      className="ide-titlebar max-w-full min-w-0 max-sm:h-14 max-sm:px-3 max-sm:gap-2 [container-type:inline-size]"
+      role="banner"
+    >
           {/* Left Side: Active Document Path */}
           <div className="titlebar-path flex min-w-0 shrink-0 items-center gap-2 select-none">
-            {!rightPanelOpen && !isDemoMode && (
+            {!leftPanelOpen && !isDemoMode && (
               <Button
                 type="button"
-                onClick={() => setRightPanelOpen(true)}
+                onClick={() => setLeftPanelOpen(true)}
                 variant="ghost"
                 size="icon-xs"
                 className="mr-2 -ml-1.5 hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] md:hidden"
@@ -173,7 +172,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
           <div className="flex-1" />
 
           {/* Global Actions */}
-          <div className="titlebar-actions flex items-center gap-1.5">
+          <div className="titlebar-actions flex shrink-0 items-center gap-1.5 min-w-0">
             {/* What's New */}
             {!isDemoMode && (
               <Tooltip>
@@ -187,7 +186,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                       className="no-underline"
                     >
                       <Megaphone className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">What&apos;s New</span>
+                      <span className="hidden @[640px]:inline">What&apos;s New</span>
                     </Button>
                   }
                 />
@@ -212,7 +211,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                       aria-label="Undo last edit"
                     >
                       <RotateCcw className="w-4 h-4" />
-                      <span className="hidden sm:inline">Undo</span>
+                      <span className="hidden @[560px]:inline">Undo</span>
                     </Button>
                   }
                 />
@@ -232,12 +231,12 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                         {isSavingToCloud ? (
                           <>
                             <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--primary)]" />
-                            <span>Saving...</span>
+                            <span className="hidden @[640px]:inline">Saving...</span>
                           </>
                         ) : (
                           <>
                             <Cloud className="w-3.5 h-3.5 text-emerald-500" />
-                            <span className="hidden sm:inline">Saved to Cloud</span>
+                            <span className="hidden @[640px]:inline">Saved to Cloud</span>
                           </>
                         )}
                       </div>
@@ -255,7 +254,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                         ) : (
                           <CloudUpload className="w-3.5 h-3.5" />
                         )}
-                        <span>Save to Cloud</span>
+                        <span className="hidden @[640px]:inline">Save to Cloud</span>
                       </Button>
                     )
                   }
@@ -268,62 +267,92 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
               </Tooltip>
             )}
 
-            {/* Mode Selector */}
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      onClick={() => setAnalysisSpeed('fast')}
-                      variant="ghost"
-                      className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[13px] font-[550] transition-colors border-none bg-transparent cursor-pointer rounded-md h-auto ${
-                        analysisSpeed === 'fast'
-                          ? 'text-[var(--foreground)]'
-                          : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
-                      }`}
-                    >
-                      <Zap className="w-3.5 h-3.5" />
-                      <span className="hidden md:inline">Fast</span>
-                      {analysisSpeed === 'fast' && (
-                        <div className="absolute -bottom-[5px] left-2 right-2 h-[2px] bg-[var(--primary)] rounded-t-sm" />
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        if (isDemoMode) {
-                          setShowDemoSignupModal(true);
-                          return;
-                        }
-                        setAnalysisSpeed('publish');
-                      }}
-                      variant="ghost"
-                      className={`relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[13px] font-[550] transition-colors border-none bg-transparent cursor-pointer rounded-md h-auto ${
-                        analysisSpeed === 'publish'
-                          ? 'text-[var(--foreground)]'
-                          : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
-                      }`}
-                    >
-                      {isDemoMode ? (
-                        <Lock className="w-3.5 h-3.5 text-slate-400" />
-                      ) : (
-                        <Rocket className="w-3.5 h-3.5" />
-                      )}
-                      <span className="hidden md:inline">Publish</span>
-                      {analysisSpeed === 'publish' && (
-                        <div className="absolute -bottom-[5px] left-2 right-2 h-[2px] bg-[var(--primary)] rounded-t-sm" />
-                      )}
-                    </Button>
-                  </div>
-                }
-              />
-              <TooltipContent side="bottom" className="text-xs">
-                {analysisSpeed === 'fast'
-                  ? 'Fast Review: Quick and cost-efficient. Skips SEO generation and internal link lookup.'
-                  : 'Publish Ready: Full editorial workflow with SEO metadata and internal links.'}
-              </TooltipContent>
-            </Tooltip>
+            {/* Mode Selector Dropdown (Web: Select Dropdown, Mobile: Bottom Sheet Trigger) */}
+            <div className="hidden sm:block">
+              <Select
+                value={analysisSpeed}
+                onValueChange={(val) => {
+                  if (val === 'publish' && isDemoMode) {
+                    setShowDemoSignupModal(true);
+                    return;
+                  }
+                  setAnalysisSpeed(val as 'fast' | 'publish');
+                }}
+              >
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <SelectTrigger className="h-8 px-3 py-1 text-xs font-semibold rounded-full border border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)] text-[var(--foreground)] gap-1.5 shadow-xs cursor-pointer">
+                        <SelectValue>
+                          {analysisSpeed === 'fast' ? (
+                            <span className="flex items-center gap-1.5 font-bold">
+                              <Zap className="w-3.5 h-3.5 text-[var(--warning)] shrink-0" />
+                              <span className="hidden @[680px]:inline">Fast Review</span>
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 font-bold">
+                              {isDemoMode ? (
+                                <Lock className="w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0" />
+                              ) : (
+                                <Rocket className="w-3.5 h-3.5 text-[var(--primary)] shrink-0" />
+                              )}
+                              <span className="hidden @[680px]:inline">Publish Ready</span>
+                            </span>
+                          )}
+                        </SelectValue>
+                      </SelectTrigger>
+                    }
+                  />
+                  <TooltipContent side="bottom" className="text-xs">
+                    Change Editorial Analysis Mode
+                  </TooltipContent>
+                </Tooltip>
+                <SelectContent className="z-50 bg-[var(--popover)] border border-[var(--border)] shadow-xl rounded-xl p-1 min-w-[220px]">
+                  <SelectItem value="fast" className="flex items-start gap-2.5 px-3 py-2 text-xs rounded-lg cursor-pointer hover:bg-[var(--surface-2)]">
+                    <Zap className="w-4 h-4 text-[var(--warning)] shrink-0 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="font-bold text-[var(--foreground)]">Fast Review</span>
+                      <span className="text-[11px] text-[var(--muted-foreground)]">Quick & cost-efficient analysis.</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="publish" className="flex items-start gap-2.5 px-3 py-2 text-xs rounded-lg cursor-pointer hover:bg-[var(--surface-2)]">
+                    {isDemoMode ? (
+                      <Lock className="w-4 h-4 text-[var(--muted-foreground)] shrink-0 mt-0.5" />
+                    ) : (
+                      <Rocket className="w-4 h-4 text-[var(--primary)] shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex flex-col">
+                      <span className="font-bold text-[var(--foreground)] flex items-center gap-1.5">
+                        Publish Ready
+                        {isDemoMode && <Badge variant="surface" size="xs">Pro</Badge>}
+                      </span>
+                      <span className="text-[11px] text-[var(--muted-foreground)]">Full SEO metadata & internal links.</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Mobile Mode Selector Button (triggers Bottom Sheet) */}
+            <div className="sm:hidden">
+              <Button
+                type="button"
+                onClick={() => setIsMobileModeSheetOpen(true)}
+                variant="muted"
+                size="sm"
+                className="gap-1 px-2.5"
+                aria-label="Select Mode"
+              >
+                {analysisSpeed === 'fast' ? (
+                  <Zap className="w-3.5 h-3.5 text-[var(--warning)]" />
+                ) : isDemoMode ? (
+                  <Lock className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
+                ) : (
+                  <Rocket className="w-3.5 h-3.5 text-[var(--primary)]" />
+                )}
+                <ChevronDown className="w-3 h-3 text-[var(--muted-foreground)]" />
+              </Button>
+            </div>
 
             {/* Refine Draft CTA */}
             <Tooltip>
@@ -349,7 +378,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     ) : (
                       <Sparkles className="w-4 h-4" />
                     )}
-                    <span className="hidden sm:inline">
+                    <span className="hidden @[560px]:inline">
                       {analysis.status === 'loading' || isTargetedFixing !== null ? 'Cancel' : 'Refine Draft'}
                     </span>
                   </Button>
@@ -379,11 +408,17 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
             </div>
           )}
         </header>
+  );
 
-        {/* ── Body: Three Column Layout or Mobile Tab View ── */}
-        <div className="flex flex-1 min-h-0 overflow-hidden relative">
-          {isMobile ? (
-            <div className="flex flex-col flex-1 min-h-0 pb-16 relative bg-[var(--background)] mobile-workspace-container">
+  return (
+    <MotionConfig reducedMotion="user">
+      <div className="workspace-page-shell">
+        <div className="workspace-page-body">
+          {/* ── Body: Three Column Layout or Mobile Tab View ── */}
+          <div className="flex flex-1 min-w-0 h-full overflow-hidden relative workspace-multi-island">
+            {isMobile ? (
+              <div className="flex flex-col flex-1 min-h-0 pb-16 relative bg-[var(--background)] mobile-workspace-container">
+                {renderHeader()}
               <div className="flex-1 min-h-0 overflow-hidden w-full max-w-full overflow-x-hidden">
                 {mobileViewTab === 'history' && !isDemoMode && (
                   <DocumentHistoryPanel
@@ -408,8 +443,8 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     onTabChange={setActiveTab}
                     isGeneratingDraft={isGeneratingDraftFromNotes}
                     hasResult={hasResult}
-                    sidebarOpen={rightPanelOpen}
-                    onToggleSidebar={() => setRightPanelOpen(p => !p)}
+                    sidebarOpen={leftPanelOpen}
+                    onToggleSidebar={() => setLeftPanelOpen(p => !p)}
                     showFeedbackSidebar={showFeedbackSidebar}
                     onToggleFeedbackSidebar={() => {
                       if (rightPanelOpen) {
@@ -536,7 +571,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
             </div>
           ) : (
             <ThreeColumnLayout
-              leftPanelOpen={rightPanelOpen && !isDemoMode}
+              leftPanelOpen={leftPanelOpen && !isDemoMode}
               rightPanelOpen={rightPanelOpen}
               reversed={layoutReversed}
               leftPanel={
@@ -546,10 +581,67 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     onNew={handleNewDraft}
                     activeId={activeHistoryId}
                     refreshTrigger={refreshTrigger}
-                    onToggle={() => setRightPanelOpen(p => !p)}
+                    onToggle={() => setLeftPanelOpen(p => !p)}
                     isDemoMode={isDemoMode}
                   />
                 ) : null
+              }
+              centerPanel={
+                <div className="flex flex-col h-full overflow-hidden">
+                  {renderHeader()}
+                  <EditorCanvas
+                    draft={draft}
+                    onDraftChange={setDraft}
+                    metadata={metadata}
+                    onMetadataChange={setMetadata}
+                    analysis={analysis}
+                    sourceDraft={sourceDraft}
+                    editorialOptions={editorialOptions}
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    isGeneratingDraft={isGeneratingDraftFromNotes}
+                    hasResult={hasResult}
+                    sidebarOpen={leftPanelOpen}
+                    onToggleSidebar={() => setLeftPanelOpen(p => !p)}
+                    showFeedbackSidebar={showFeedbackSidebar}
+                    onToggleFeedbackSidebar={() => {
+                      if (rightPanelOpen) {
+                        setRightPanelOpen(false);
+                      } else {
+                        setRightPanelOpen(true);
+                        setRightPanelTab('feedback');
+                      }
+                    }}
+                    showNotesSidebar={showNotesSidebar}
+                    onToggleNotesSidebar={() => {
+                      if (rightPanelOpen) {
+                        setRightPanelOpen(false);
+                      } else {
+                        setRightPanelOpen(true);
+                        setRightPanelTab('notes');
+                      }
+                    }}
+                    hasNotes={hasNotes}
+                    isDemoMode={isDemoMode}
+                    wordCount={wordCount}
+                    charCount={charCount}
+                    charLimit={MAX_TEXT_LENGTH}
+                    hoveredFeedbackIndex={hoveredFeedbackIndex}
+                    activeFeedbackIndex={activeFeedbackIndex}
+                    onActiveFeedbackChange={setActiveFeedbackIndex}
+                    isStreaming={isStreaming}
+                    isRefining={isRefining}
+                    processStage={processStage}
+                    processStartedAt={processStartedAt}
+                    onAnalyze={handleAnalyze}
+                    onRefineAgain={handleRefineAgain}
+                    onReanalyze={handleReanalyze}
+                    onAddNewMetadataOption={handleAddNewCategoryOrType}
+                    onOpenShortcuts={() => setIsShortcutModalOpen(true)}
+                    layoutReversed={layoutReversed}
+                    onToggleLayoutReversed={() => setLayoutReversed(p => !p)}
+                  />
+                </div>
               }
               rightPanel={
                 <AICopilotPanel
@@ -587,65 +679,114 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                   onInsertToDraft={text => {
                     setDraft(prev => prev + text);
                   }}
-                />
-              }
-              centerPanel={
-                <EditorCanvas
-                  draft={draft}
-                  onDraftChange={setDraft}
-                  metadata={metadata}
-                  onMetadataChange={setMetadata}
-                  analysis={analysis}
-                  sourceDraft={sourceDraft}
-                  editorialOptions={editorialOptions}
-                  activeTab={activeTab}
-                  onTabChange={setActiveTab}
-                  isGeneratingDraft={isGeneratingDraftFromNotes}
-                  hasResult={hasResult}
-                  sidebarOpen={rightPanelOpen}
                   onToggleSidebar={() => setRightPanelOpen(p => !p)}
-                  showFeedbackSidebar={showFeedbackSidebar}
-                  onToggleFeedbackSidebar={() => {
-                    if (rightPanelOpen) {
-                      setRightPanelOpen(false);
-                    } else {
-                      setRightPanelOpen(true);
-                      setRightPanelTab('feedback');
-                    }
-                  }}
-                  showNotesSidebar={showNotesSidebar}
-                  onToggleNotesSidebar={() => {
-                    if (rightPanelOpen) {
-                      setRightPanelOpen(false);
-                    } else {
-                      setRightPanelOpen(true);
-                      setRightPanelTab('notes');
-                    }
-                  }}
-                  hasNotes={hasNotes}
-                  isDemoMode={isDemoMode}
-                  wordCount={wordCount}
-                  charCount={charCount}
-                  charLimit={MAX_TEXT_LENGTH}
-                  hoveredFeedbackIndex={hoveredFeedbackIndex}
-                  activeFeedbackIndex={activeFeedbackIndex}
-                  onActiveFeedbackChange={setActiveFeedbackIndex}
-                  isStreaming={isStreaming}
-                  isRefining={isRefining}
-                  processStage={processStage}
-                  processStartedAt={processStartedAt}
-                  onAnalyze={handleAnalyze}
-                  onRefineAgain={handleRefineAgain}
-                  onReanalyze={handleReanalyze}
-                  onAddNewMetadataOption={handleAddNewCategoryOrType}
-                  onOpenShortcuts={() => setIsShortcutModalOpen(true)}
-                  layoutReversed={layoutReversed}
-                  onToggleLayoutReversed={() => setLayoutReversed(p => !p)}
                 />
               }
             />
           )}
+
+          {/* Bottom-Right Floating Trigger Button (when AI Copilot Panel is hidden) */}
+          {!rightPanelOpen && (
+            <div className="fixed right-6 bottom-6 z-40 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      onClick={() => setRightPanelOpen(true)}
+                      variant="primary"
+                      className="group flex items-center justify-center rounded-full p-2.5 hover:px-4 h-10 shadow-2xl transition-all duration-300 opacity-40 hover:opacity-100 hover:scale-105 cursor-pointer bg-[var(--primary)] text-black border border-[var(--primary)]/40 overflow-hidden"
+                      aria-label="Open AI Copilot"
+                    >
+                      <Sparkles className="w-4.5 h-4.5 shrink-0 text-black dark:text-black" />
+                      <span className="max-w-0 group-hover:max-w-[100px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out whitespace-nowrap text-xs font-bold text-black dark:text-black ml-0 group-hover:ml-2">
+                        AI Copilot
+                      </span>
+                    </Button>
+                  }
+                />
+                <TooltipContent side="top" className="text-xs font-medium">
+                  Open AI Copilot
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
         </div>
+
+        {/* Mobile Analysis Speed Bottom Sheet Modal */}
+        {isMobileModeSheetOpen && (
+          <div
+            className="fixed inset-0 z-[100] flex items-end sm:hidden bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={() => setIsMobileModeSheetOpen(false)}
+          >
+            <div
+              className="w-full bg-[var(--surface-1)] border-t border-[var(--border)] rounded-t-2xl p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-200"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+                <h3 className="text-sm font-bold text-[var(--foreground)]">Select Analysis Mode</h3>
+                <Button
+                  type="button"
+                  onClick={() => setIsMobileModeSheetOpen(false)}
+                  variant="ghost"
+                  size="icon-xs"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setAnalysisSpeed('fast');
+                    setIsMobileModeSheetOpen(false);
+                  }}
+                  variant="ghost"
+                  className={`w-full flex items-start justify-start gap-3 p-3 h-auto rounded-xl border text-left transition-colors cursor-pointer ${
+                    analysisSpeed === 'fast'
+                      ? 'border-[var(--primary)] bg-[var(--surface-2)]'
+                      : 'border-[var(--border)] bg-transparent'
+                  }`}
+                >
+                  <Zap className="w-5 h-5 text-[var(--warning)] shrink-0 mt-0.5" />
+                  <div className="flex flex-col text-left">
+                    <div className="text-xs font-bold text-[var(--foreground)]">Fast Review</div>
+                    <div className="text-[11px] text-[var(--muted-foreground)]">Quick and cost-efficient analysis.</div>
+                  </div>
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (isDemoMode) {
+                      setIsMobileModeSheetOpen(false);
+                      setShowDemoSignupModal(true);
+                      return;
+                    }
+                    setAnalysisSpeed('publish');
+                    setIsMobileModeSheetOpen(false);
+                  }}
+                  variant="ghost"
+                  className={`w-full flex items-start justify-start gap-3 p-3 h-auto rounded-xl border text-left transition-colors cursor-pointer ${
+                    analysisSpeed === 'publish'
+                      ? 'border-[var(--primary)] bg-[var(--surface-2)]'
+                      : 'border-[var(--border)] bg-transparent'
+                  }`}
+                >
+                  {isDemoMode ? <Lock className="w-5 h-5 text-[var(--muted-foreground)] shrink-0 mt-0.5" /> : <Rocket className="w-5 h-5 text-[var(--primary)] shrink-0 mt-0.5" />}
+                  <div className="flex flex-col text-left">
+                    <div className="text-xs font-bold text-[var(--foreground)] flex items-center gap-1.5">
+                      Publish Ready
+                      {isDemoMode && <Badge variant="surface" size="xs">Pro</Badge>}
+                    </div>
+                    <div className="text-[11px] text-[var(--muted-foreground)]">Full SEO metadata and internal links.</div>
+                  </div>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <ShortcutsModal isOpen={isShortcutModalOpen} onClose={() => setIsShortcutModalOpen(false)} />
 
@@ -803,6 +944,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
           </div>
         )}
       </div>
-    </MotionConfig>
+    </div>
+  </MotionConfig>
   );
 }

@@ -653,7 +653,7 @@ export default function FinalDraftPanel({
   return (
     <div className="ui-panel h-full">
       {/* ── Header ── */}
-      <div className="ui-panel-header px-4 py-3 md:px-5">
+      <div className="ui-panel-header [container-type:inline-size] px-4 py-3 md:px-5">
         {/* Title row */}
         <div className="final-draft-header-row flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="final-draft-title min-w-0 w-full">
@@ -681,7 +681,7 @@ export default function FinalDraftPanel({
                     aria-label="Copy refined draft"
                   >
                     <Copy className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Copy</span>
+                    <span className="hidden @[380px]:inline">Copy</span>
                   </Button>
                 }
               />
@@ -707,7 +707,7 @@ export default function FinalDraftPanel({
                     ) : (
                       <Send className="h-3.5 w-3.5" />
                     )}
-                    <span className="hidden sm:inline">
+                    <span className="hidden @[420px]:inline">
                       {exportStatus?.blogEditUrl ? 'Update' : 'Export to CMS'}
                     </span>
                   </Button>
@@ -729,7 +729,7 @@ export default function FinalDraftPanel({
                   aria-label="Re-analyze Draft"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Re-analyze</span>
+                  <span className="hidden @[440px]:inline">Re-analyze</span>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
                   Analyze this refined draft again

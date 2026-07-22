@@ -1,6 +1,6 @@
 'use client';
 
-import { FileEdit, FileCheck, PanelRight, PanelLeft } from 'lucide-react';
+import { FileEdit, FileCheck } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 
@@ -44,59 +44,9 @@ export default function PanelTabBar({
   onTabChange,
   hasResult,
   isLoading,
-  showFeedbackSidebar = true,
-  onToggleFeedbackSidebar,
-  showHistorySidebar = true,
-  onToggleHistorySidebar,
-  showNotesSidebar = true,
-  onToggleNotesSidebar,
-  layoutReversed = false,
 }: PanelTabBarProps) {
-  // When layout is reversed, swap the left ↔ right toggle icons and their handlers
-  const leftToggleActive   = layoutReversed ? (showFeedbackSidebar || showNotesSidebar) : showHistorySidebar;
-  const leftToggleHandler  = layoutReversed
-    ? (activeTab === 'refined' ? onToggleFeedbackSidebar : onToggleNotesSidebar)
-    : onToggleHistorySidebar;
-  const leftToggleLabel    = layoutReversed ? 'AI Copilot' : 'History';
-  const leftIcon           = layoutReversed ? <PanelRight className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />;
-
-  const rightToggleActiveFeedback = layoutReversed ? showHistorySidebar : showFeedbackSidebar;
-  const rightToggleActiveNotes    = layoutReversed ? showHistorySidebar : showNotesSidebar;
-  const rightFeedbackHandler      = layoutReversed ? onToggleHistorySidebar : onToggleFeedbackSidebar;
-  const rightNotesHandler         = layoutReversed ? onToggleHistorySidebar : onToggleNotesSidebar;
-  const rightIcon                 = layoutReversed ? <PanelLeft className="w-4 h-4" /> : <PanelRight className="w-4 h-4" />;
   return (
-    <div className="ide-tabbar" role="tablist" aria-label="Editor Panels">
-      {/* Left Sidebar Toggle Button */}
-      {(onToggleHistorySidebar || layoutReversed) && (
-        <div className="flex items-center px-2 mr-1 border-r border-[var(--border)] max-sm:hidden">
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  type="button"
-                  onClick={leftToggleHandler}
-                  variant="ghost"
-                  size="icon-xs"
-                  className={`
-                    transition-colors border border-transparent
-                    ${leftToggleActive
-                      ? 'bg-[var(--surface-2)] text-[var(--foreground)]'
-                      : 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'}
-                  `}
-                  aria-label={leftToggleActive ? `Hide ${leftToggleLabel} Panel` : `Show ${leftToggleLabel} Panel`}
-                >
-                  {leftIcon}
-                </Button>
-              }
-            />
-            <TooltipContent side="bottom" className="text-xs">
-              {leftToggleActive ? `Hide ${leftToggleLabel}` : `Show ${leftToggleLabel}`}
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      )}
-
+    <div className="ide-tabbar [container-type:inline-size] flex items-center min-w-0" role="tablist" aria-label="Editor Panels">
       {TABS.map((tab) => {
         const isActive = activeTab === tab.key;
         const isDisabled = tab.key !== 'draft' && !hasResult && !isLoading;
@@ -113,20 +63,22 @@ export default function PanelTabBar({
             onClick={() => !isDisabled && !isLoading && onTabChange(tab.key)}
             disabled={isDisabled}
             variant="ghost"
-            className={`ide-tab${isActive ? ' active' : ''}`}
+            className={`ide-tab flex items-center gap-1.5 shrink-0 ${isActive ? ' active' : ''}`}
           >
             {isLoadingTab ? (
               <span
-                className="w-4 h-4 rounded-full border-t border-current animate-spin"
+                className="w-4 h-4 rounded-full border-t border-current animate-spin shrink-0"
                 style={{ borderColor: 'var(--primary)' }}
               />
             ) : (
               tab.icon
             )}
-            {tab.label}
+            <span className="hidden @[340px]:inline truncate max-w-[120px]">
+              {tab.label}
+            </span>
             {isLoadingTab && (
               <span
-                className="ml-1 text-sm font-mono"
+                className="ml-1 text-sm font-mono shrink-0"
                 style={{ color: 'var(--primary)' }}
               >
                 …
@@ -153,77 +105,14 @@ export default function PanelTabBar({
         }
 
         return (
-  <Tooltip key={tab.key}>
-    <TooltipTrigger render={button} />
-    <TooltipContent side="bottom" className="text-xs">
-      {tab.description}
-    </TooltipContent>
-  </Tooltip>
+          <Tooltip key={tab.key}>
+            <TooltipTrigger render={button} />
+            <TooltipContent side="bottom" className="text-xs">
+              {tab.description}
+            </TooltipContent>
+          </Tooltip>
         );
       })}
-
-      {/* Right spacer / breadcrumb area */}
-      <div className="flex-1" />
-
-      {/* Right Sidebar Toggle Button for Feedback */}
-      {activeTab === 'refined' && hasResult && (onToggleFeedbackSidebar || layoutReversed) && (
-        <div className="pr-3 flex items-center max-sm:hidden">
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  type="button"
-                  onClick={rightFeedbackHandler}
-                  variant="ghost"
-                  size="icon-xs"
-                  className={`
-                    transition-colors border border-transparent
-                    ${rightToggleActiveFeedback
-                      ? 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
-                      : 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'}
-                  `}
-                  aria-label={rightToggleActiveFeedback ? 'Hide Assistant Panel' : 'Show Assistant Panel'}
-                >
-                  {rightIcon}
-                </Button>
-              }
-            />
-            <TooltipContent side="bottom" className="text-xs">
-              {rightToggleActiveFeedback ? 'Hide Assistant' : 'Show Assistant'}
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      )}
-
-      {/* Right Sidebar Toggle Button for Notes Studio */}
-      {activeTab === 'draft' && (onToggleNotesSidebar || layoutReversed) && (
-        <div className="pr-3 flex items-center max-sm:hidden">
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  type="button"
-                  onClick={rightNotesHandler}
-                  variant="ghost"
-                  size="icon-xs"
-                  className={`
-                    transition-colors border border-transparent
-                    ${rightToggleActiveNotes
-                      ? 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'
-                      : 'bg-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]'}
-                  `}
-                  aria-label={rightToggleActiveNotes ? 'Hide Assistant Panel' : 'Show Assistant Panel'}
-                >
-                  {rightIcon}
-                </Button>
-              }
-            />
-            <TooltipContent side="bottom" className="text-xs">
-              {rightToggleActiveNotes ? 'Hide Assistant' : 'Show Assistant'}
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      )}
     </div>
   );
 }

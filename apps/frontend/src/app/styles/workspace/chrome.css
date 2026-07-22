@@ -1,0 +1,250 @@
+/* ============================================================
+   IDE Window Chrome (Titlebar, Tabbar, Statusbar, Activitybar)
+   ============================================================ */
+
+/* Title Bar */
+.ide-titlebar {
+  height: var(--titlebar-height);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  flex-shrink: 0;
+  gap: 12px;
+  background: transparent;
+  border-bottom: none;
+  box-shadow: none;
+  user-select: none;
+  z-index: 40;
+}
+
+/* Activity Bar */
+.ide-activitybar {
+  width: var(--activitybar-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  gap: 4px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--sidebar-border);
+  z-index: 50;
+}
+
+.ide-activitybar-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  transition: color 150ms ease, background 150ms ease;
+  position: relative;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+
+.ide-activitybar-btn:hover {
+  color: var(--foreground);
+  background: var(--sidebar-accent);
+}
+
+.ide-activitybar-btn.active {
+  color: var(--primary);
+  background: var(--sidebar-accent);
+}
+
+.ide-activitybar-btn.active::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 25%;
+  height: 50%;
+  width: 2px;
+  background: var(--primary);
+  border-radius: 0 3px 3px 0;
+}
+
+/* Tab Bar */
+.ide-tabbar {
+  height: var(--tabbar-height);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  background: transparent;
+  border-bottom: 1px solid var(--card-border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 12px;
+  gap: 2px;
+}
+
+.ide-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+  position: relative;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  height: calc(100% - 8px);
+  margin: 4px 0;
+}
+
+.ide-tab:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--surface-2);
+}
+
+.ide-tab.active {
+  color: var(--foreground);
+  background: transparent;
+}
+
+.ide-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 2px 2px 0 0;
+}
+
+.ide-tab:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Status Bar */
+.ide-statusbar {
+  height: var(--statusbar-height);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  flex-shrink: 0;
+  gap: 6px;
+  background: transparent;
+  border-top: 1px solid var(--card-border);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: var(--muted-foreground);
+  overflow: hidden;
+  z-index: 30;
+}
+
+.ide-statusbar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  cursor: default;
+  transition: color var(--transition-fast), background var(--transition-fast);
+  background: transparent;
+}
+
+.ide-statusbar-item:hover {
+  background: var(--surface-2);
+  color: var(--foreground);
+}
+
+.ide-statusbar-item.clickable {
+  cursor: pointer;
+}
+
+.ide-sidebar-icon-button {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.ide-sidebar-icon-button:hover {
+  background: var(--sidebar-accent);
+  color: var(--foreground);
+}
+
+/* Panel Resize Handle (react-resizable-panels Separator) */
+.panel-resize-handle {
+  width: var(--panel-handle-width);
+  background: transparent;
+  cursor: col-resize;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 150ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-resize-handle:hover,
+.panel-resize-handle[data-resize-handle-active] {
+  background: var(--border-gold);
+}
+
+.panel-resize-handle::after {
+  content: '';
+  width: 1px;
+  height: 40px;
+  border-radius: 1px;
+  background: var(--border);
+  transition: background 150ms ease, height 150ms ease;
+}
+
+.panel-resize-handle:hover::after,
+.panel-resize-handle[data-resize-handle-active]::after {
+  background: var(--primary);
+  height: 60px;
+}
+
+@media (min-width: 769px) {
+  .workspace-multi-island .panel-resize-handle {
+    width: 10px;
+    background: transparent;
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .workspace-multi-island .panel-resize-handle::after {
+    content: '';
+    width: 2px;
+    height: 32px;
+    border-radius: 9999px;
+    background: var(--border);
+    opacity: 0.4;
+    transition: background 150ms ease, opacity 150ms ease, height 150ms ease;
+  }
+
+  .workspace-multi-island .panel-resize-handle:hover::after,
+  .workspace-multi-island .panel-resize-handle[data-resize-handle-active]::after {
+    background: var(--primary);
+    opacity: 1;
+    height: 56px;
+  }
+}

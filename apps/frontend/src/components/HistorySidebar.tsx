@@ -283,9 +283,9 @@ export default function HistorySidebar({
                 key={f}
                 type="button"
                 onClick={() => setActiveFilter(f)}
-                variant={active ? 'surface' : 'ghost'}
-                className={`min-w-0 flex-1 px-2 py-1.5 text-[10px] capitalize rounded-full transition-all border-none cursor-pointer h-auto ${
-                  active ? 'bg-[var(--card)] text-[var(--foreground)] font-semibold shadow-xs' : 'bg-transparent text-[var(--muted-foreground)] hover:bg-[var(--surface-3)] hover:text-[var(--foreground)]'
+                variant="ghost"
+                className={`sidebar-filter-pill min-w-0 flex-1 px-2 py-1.5 text-[10px] capitalize rounded-full border-none cursor-pointer h-auto${
+                  active ? ' active' : ''
                 }`}
               >
                   {f === 'needs_review' ? 'Needs Review' : f.charAt(0).toUpperCase() + f.slice(1)}

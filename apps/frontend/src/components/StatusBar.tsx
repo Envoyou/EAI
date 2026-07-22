@@ -119,19 +119,18 @@ export default function StatusBar({
 
       {/* Shortcut hint */}
       {!isLoading && !isStreaming && !isRefining && activeTab === 'draft' && (
-        <Badge variant="muted" className="status-shortcut hidden sm:inline-flex" aria-label="Press Ctrl+Enter to refine">
+        <div className="status-shortcut hidden sm:inline-flex items-center text-[11px] font-medium text-[var(--muted-foreground)]" aria-label="Press Ctrl+Enter to refine">
           <kbd
-            className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[12px] font-mono border-none"
+            className="inline-flex items-center px-1 py-0.5 rounded-md text-[11px] font-mono border-none bg-transparent"
             style={{
-              background: 'var(--surface-2)',
               color: 'var(--muted-foreground)',
               lineHeight: '1.4',
             }}
           >
             Ctrl+↵
           </kbd>
-          <span className="ml-1">to Refine</span>
-        </Badge>
+          <span className="ml-0.5">to Refine</span>
+        </div>
       )}
 
       {/* Layout Swap Trigger */}

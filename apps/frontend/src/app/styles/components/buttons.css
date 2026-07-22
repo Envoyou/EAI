@@ -1,0 +1,188 @@
+/* ============================================================
+   Button Primitives & Semantic Variants
+   ============================================================ */
+
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 9999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1.2;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    filter var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.ui-btn:hover:not(:disabled) {
+  transform: none;
+}
+
+.ui-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.ui-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.ui-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.ui-btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.ui-btn-xs {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.ui-btn-lg {
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+.ui-btn-surface {
+  background: var(--surface-2);
+  color: var(--foreground);
+}
+
+.ui-btn-surface:hover:not(:disabled) {
+  background: var(--surface-3);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.ui-btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 1px 2px rgba(11, 121, 194, 0.2);
+}
+
+.ui-btn-primary:hover:not(:disabled) {
+  filter: brightness(0.96);
+  box-shadow: 0 1px 3px rgba(11, 121, 194, 0.26);
+}
+
+.ui-btn-outline {
+  background: transparent;
+  color: var(--foreground);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.ui-btn-outline:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--foreground);
+}
+
+.ui-btn-danger {
+  background: transparent;
+  color: var(--error);
+}
+
+.ui-btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--error) 18%, transparent);
+}
+
+.ui-btn-muted {
+  background: transparent;
+  color: var(--muted-foreground);
+}
+
+.ui-btn-muted:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--foreground);
+}
+
+.ui-btn-muted[aria-pressed="true"] {
+  background: var(--surface-2);
+  color: var(--primary);
+}
+
+.ui-btn-muted[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--primary);
+}
+
+.ui-btn-accent {
+  background: transparent;
+  color: var(--primary);
+}
+
+.ui-btn-accent:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+}
+
+.ui-btn-link {
+  border-radius: 0;
+  padding-inline: 0;
+  background: transparent;
+  color: var(--primary);
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+
+.ui-btn-link:hover:not(:disabled) {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.ui-btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.ui-btn-icon-xs {
+  width: 24px;
+  height: 24px;
+}
+
+.ui-btn-icon-sm {
+  width: 28px;
+  height: 28px;
+}
+
+.ui-btn-icon-lg {
+  width: 36px;
+  height: 36px;
+}
+
+.dark .ui-btn-surface:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface-3) 72%, var(--primary) 8%);
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.12),
+    0 2px 10px rgba(0, 0, 0, 0.16);
+}
+
+.dark .ui-btn-primary {
+  background: color-mix(in srgb, var(--primary) 82%, var(--card));
+  color: var(--primary-foreground);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.dark .ui-btn-outline:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface-3) 72%, var(--primary) 8%);
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.12),
+    0 2px 10px rgba(0, 0, 0, 0.16);
+}
+
+.dark .ui-btn-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 90%, var(--card));
+  filter: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 26%, transparent);
+}

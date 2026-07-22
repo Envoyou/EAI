@@ -1,0 +1,47 @@
+/* ============================================================
+   AI Strategist Copilot Panel & Feedback Surface
+   ============================================================ */
+
+.panel-header-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 0%, rgba(13, 135, 207, 0.06), transparent 40%),
+              linear-gradient(180deg, rgba(255, 255, 255, 0.45), transparent);
+}
+
+.dark .panel-header-glow {
+  background: radial-gradient(circle at 30% 0%, rgba(255, 255, 255, 0.04), transparent 40%),
+              linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+}
+
+.ui-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  transition:
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+}
+
+.ui-panel-header {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+}
+
+.ui-panel-body {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.dark .ui-panel {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+}

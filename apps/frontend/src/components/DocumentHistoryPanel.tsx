@@ -322,11 +322,9 @@ export default function DocumentHistoryPanel({
             type="button"
             key={f.key}
             onClick={() => setActiveFilter(f.key)}
-            variant={activeFilter === f.key ? 'surface' : 'ghost'}
-            className={`min-w-0 flex-1 px-1.5 py-1 text-[10px] font-medium rounded-full transition-colors border-none h-auto ${
-              activeFilter === f.key
-                ? 'bg-[var(--card)] text-[var(--foreground)] font-semibold shadow-xs'
-                : 'text-[var(--muted-foreground)] hover:bg-[var(--surface-3)] hover:text-[var(--foreground)]'
+            variant="ghost"
+            className={`sidebar-filter-pill min-w-0 flex-1 px-1.5 py-1 text-[10px] rounded-full border-none h-auto${
+              activeFilter === f.key ? ' active' : ''
             }`}
           >
             {f.label}

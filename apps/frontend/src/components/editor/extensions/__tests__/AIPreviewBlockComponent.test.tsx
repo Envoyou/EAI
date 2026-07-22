@@ -67,10 +67,10 @@ describe('AI Preview editor style boundary', () => {
   });
 
   it('defines light and dark prose links through theme variables without important selectors', () => {
-    const css = readFileSync(
-      new URL('../../../../app/globals.css', import.meta.url),
-      'utf8'
-    );
+    const css = [
+      readFileSync(new URL('../../../../app/styles/tokens.css', import.meta.url), 'utf8'),
+      readFileSync(new URL('../../../../app/styles/prose.css', import.meta.url), 'utf8'),
+    ].join('\n');
 
     expect(css).toMatch(/--editor-link:\s+#0b79c2;/);
     expect(css).toMatch(/--editor-link:\s+#3b95d9;/);

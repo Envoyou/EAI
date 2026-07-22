@@ -1,0 +1,278 @@
+/* ============================================================
+   Workspace & Settings Sidebar Navigation
+   ============================================================ */
+
+.workspace-page-sidebar-panel {
+  display: flex;
+  width: var(--sidebar-panel-width);
+  min-width: var(--sidebar-panel-width);
+  flex-direction: column;
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: none;
+  transition:
+    width 0.3s cubic-bezier(0.2, 0, 0, 1),
+    min-width 0.3s cubic-bezier(0.2, 0, 0, 1),
+    background-color 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Desktop: sidebar floats transparently over the canvas background */
+@media (min-width: 769px) {
+  .workspace-page-sidebar-panel {
+    background: transparent;
+  }
+}
+
+.workspace-page-sidebar-panel[data-open="false"] {
+  width: 56px;
+  min-width: 56px;
+}
+
+.workspace-page-sidebar-heading {
+  min-height: 58px;
+  border-bottom: 1px solid var(--sidebar-border);
+  padding: 13px 16px 11px;
+}
+
+.workspace-page-sidebar-heading h1 {
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: -0.01em;
+}
+
+.workspace-page-sidebar-heading p {
+  margin-top: 3px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.workspace-page-sidebar-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: 12px 10px;
+}
+
+/* Sidebar filter pills (All / Ready / Review / Blocked) */
+.sidebar-filter-pill {
+  background: transparent;
+  color: var(--muted-foreground);
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.sidebar-filter-pill:hover {
+  background: rgba(15, 23, 42, 0.10);
+  color: var(--foreground);
+}
+
+.sidebar-filter-pill.active {
+  background: rgba(15, 23, 42, 0.12);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.dark .sidebar-filter-pill:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: var(--foreground);
+}
+
+.dark .sidebar-filter-pill.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* Sidebar Header Radial Glow */
+.sidebar-header-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 0%, rgba(13, 135, 207, 0.14), transparent 45%),
+              linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent);
+}
+
+.dark .sidebar-header-glow {
+  background: radial-gradient(circle at 30% 0%, rgba(255, 255, 255, 0.06), transparent 45%),
+              linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent);
+}
+
+.settings-page-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 2px 6px 14px;
+}
+
+.settings-page-nav {
+  display: grid;
+  gap: 3px;
+  padding: 12px 0;
+}
+
+.settings-page-nav a,
+.settings-page-sidebar-footer button {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 620;
+  text-decoration: none;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.settings-page-nav a:hover,
+.settings-page-nav a:focus-visible,
+.settings-page-sidebar-footer button:hover,
+.settings-page-sidebar-footer button:focus-visible {
+  outline: none;
+  background: var(--surface-2);
+  color: var(--foreground);
+}
+
+.settings-page-nav a[data-active="true"] {
+  background: var(--surface-2);
+  color: var(--foreground);
+}
+
+.settings-page-sidebar-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 10px;
+}
+
+.settings-page-sidebar-footer button {
+  color: var(--error);
+  cursor: pointer;
+}
+
+.settings-page-content {
+  min-width: 0;
+  width: 100%;
+  padding: 28px clamp(24px, 4vw, 52px) 64px;
+}
+
+.settings-page-intro {
+  max-width: 820px;
+  margin-bottom: 32px;
+}
+
+.settings-page-intro > span,
+.settings-page-future > div:first-child > span {
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.settings-page-intro h2 {
+  margin-top: 8px;
+  font-size: 20px;
+  font-weight: 660;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.settings-page-intro p {
+  max-width: 720px;
+  margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.settings-page-section {
+  max-width: 1040px;
+  margin-top: 30px;
+}
+
+.settings-page-section-heading {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.42fr) minmax(0, 0.58fr);
+  gap: 28px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-page-section-heading h2 {
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.settings-page-section-heading p {
+  margin-top: 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.settings-page-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.42fr) minmax(280px, 0.58fr);
+  align-items: center;
+  gap: 28px;
+  min-height: 76px;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-page-row h3 {
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.settings-page-row p {
+  max-width: 430px;
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.settings-page-control {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.settings-page-control > .ui-control,
+.settings-page-control > .ui-segmented {
+  width: min(100%, 360px);
+}
+
+.settings-page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  margin-top: 18px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.settings-page-status {
+  display: flex;
+  min-height: var(--statusbar-height);
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 12px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+

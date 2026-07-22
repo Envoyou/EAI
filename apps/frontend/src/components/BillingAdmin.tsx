@@ -819,6 +819,9 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                     All ledger entries, credit adjustments, and purchases recorded for this workspace.
                   </p>
                 </div>
+                <div className="px-5 pt-2 text-[9px] text-[var(--muted-foreground)] sm:hidden select-none">
+                  Swipe horizontally to view all columns
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[900px] text-left text-xs">
                     <thead className="bg-[var(--surface-2)] text-[10px] uppercase tracking-wider text-[var(--muted-foreground)] border-b border-[var(--border)]">

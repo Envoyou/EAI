@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { MessageCircle, Notebook, MessagesSquare } from 'lucide-react';
+import { MessageCircle, Notebook, MessagesSquare, PanelRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import StrategistTab from '@/components/StrategistTab';
 import FeedbackTab from '@/components/FeedbackTab';
 import NotesTab from '@/components/NotesTab';
@@ -40,6 +41,7 @@ interface AICopilotPanelProps {
   onCancelGenerateDraft?: () => void;
   onInsertToDraft?: (text: string) => void;
   activeHistoryId?: string | null;
+  onToggleSidebar?: () => void;
 }
 
 const TABS: { key: RightTab; label: string; icon: React.ReactNode }[] = [
@@ -76,6 +78,7 @@ export default function AICopilotPanel({
   onCancelGenerateDraft,
   onInsertToDraft,
   activeHistoryId,
+  onToggleSidebar,
 }: AICopilotPanelProps) {
   const [internalTab, setInternalTab] = useState<RightTab>('strategist');
   const activeTab = controlledTab ?? internalTab;
@@ -156,12 +159,8 @@ export default function AICopilotPanel({
           );
         }
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
-            <MessageCircle className="w-10 h-10 text-[var(--primary)]/30 mb-3" />
-            <p className="text-xs text-[var(--muted-foreground)] font-medium mb-1">Editorial Feedback</p>
-            <p className="text-xs text-[var(--muted-foreground)]/70">
-              Your content will be analyzed and feedback will be provided here once the analysis is complete.
-            </p>
+          <div className="p-4 text-center text-xs text-[var(--muted-foreground)]">
+            Run &quot;Refine Draft&quot; to view editorial analysis feedback.
           </div>
         );
       case 'notes':
@@ -179,27 +178,59 @@ export default function AICopilotPanel({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[var(--surface-1)] border-l border-[var(--border)] min-w-0 w-full overflow-hidden">
+    <div className="flex flex-col h-full min-w-0 w-full overflow-hidden [container-type:inline-size]">
       <div className="flex items-center justify-between border-b border-[var(--border)] px-1">
-        <div className="flex items-center">
+        <div className="flex items-center min-w-0">
           {TABS.map((tab) => (
-            <Button
-              type="button"
-              key={tab.key}
-              onClick={() => handleTabChange(tab.key)}
-              variant="ghost"
-              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors border-b-2 rounded-none h-auto -mb-px ${
-                activeTab === tab.key
-                  ? 'text-[var(--foreground)] border-[var(--primary)]'
-                  : 'text-[var(--muted-foreground)] border-transparent hover:text-[var(--foreground)]'
-              }`}
-            >
-              {tab.icon}
-              <span className="hidden xl:inline">{tab.label}</span>
-            </Button>
+            <Tooltip key={tab.key}>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    onClick={() => handleTabChange(tab.key)}
+                    variant="ghost"
+                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2.5 text-xs font-medium transition-colors border-b-2 rounded-none h-auto -mb-px shrink-0 ${
+                      activeTab === tab.key
+                        ? 'text-[var(--foreground)] border-[var(--primary)]'
+                        : 'text-[var(--muted-foreground)] border-transparent hover:text-[var(--foreground)]'
+                    }`}
+                    aria-label={tab.label}
+                  >
+                    {tab.icon}
+                    <span className="hidden @[340px]:inline truncate max-w-[120px]">
+                      {tab.label}
+                    </span>
+                  </Button>
+                }
+              />
+              <TooltipContent side="bottom" className="text-xs">
+                {tab.label}
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
 
+        {onToggleSidebar && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  onClick={onToggleSidebar}
+                  variant="ghost"
+                  size="icon-xs"
+                  className="mr-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)] shrink-0"
+                  aria-label="Hide Assistant Panel"
+                >
+                  <PanelRight className="w-4 h-4" />
+                </Button>
+              }
+            />
+            <TooltipContent side="bottom" className="text-xs">
+              Hide Assistant
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden">

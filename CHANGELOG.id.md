@@ -7,6 +7,19 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Changed
+- **Penyempurnaan UX Seluler & Audit Token Desain Onboarding**:
+  - **Format Chat Output AI & Kontras Mode Gelap**: Menghapus background card bubble pada pesan asisten AI (rendisi transparan dengan mempertahankan bubble user sebagai `surface-2`). Memperbaiki kontras teks mode gelap untuk judul (`h1`-`h4`), teks tebal (`strong`), sel/header tabel (`th`, `td`), dan tautan (`a`) pada `ChatMessageList.tsx` dan `prose.css`.
+  - **Petunjuk Geser Horisontal Tabel Admin Seluler**: Menambahkan petunjuk geser seluler (`Swipe horizontally to view all columns`) di atas semua tabel admin pada `/admin/users`, `/admin/tenants`, dan `/admin/audit-logs`.
+  - **Perbaikan Lingkaran Backdrop Sidebar Seluler**: Memperbaiki bug tampilan lingkaran raksasa pada backdrop overlay sidebar HP dengan menambahkan `border-radius: 0 !important;` pada `.workspace-page-sidebar-backdrop` di `responsive.css`.
+  - **Text Wrapping TipTap Editor di HP**: Memperbaiki masalah kalimat panjang menembus lebar layar di `/workspace` dengan menerapkan `white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; min-width: 0;` pada `.ProseMirror` dan wadah canvas editor di `editor.css` dan `Editor.tsx`.
+  - **Tombol Lipat Metadata Ikon-Saja & Header Responsif**: Mengubah tombol lipat kontrol metadata editor di `Editor.tsx` menjadi tombol ikon ringkas (`size="icon-xs"` dengan `ChevronUp`/`ChevronDown`), serta menyembunyikan subjudul header di HP (`hidden sm:block`) agar header tidak terpotong pada layar HP yang sempit.
+  - **Audit Token Desain & UI Halaman Onboarding**: Menyelaraskan token warna (`text-[var(--primary)]`, `bg-[var(--primary)]/10`, `hover:text-[var(--error)]`), memperbarui border sidebar langkah onboarding menjadi `border-b lg:border-b-0 lg:border-r` untuk tata letak HP 1-kolom, dan mengoptimalkan tinggi kartu opsi tujuan utama di `OnboardingWizard.tsx` dan `OnboardingOrganizationGate.tsx`.
+- **Multi-Island Floating Workbench untuk `/workspace` (Opsi A)**:
+  - Meningkatkan arsitektur panel `/workspace` menjadi Multi-Island Floating Workbench di mana Editor Canvas (`.workspace-center-panel`) dan AI Strategist Copilot (`.workspace-right-panel`) dirender sebagai kartu melayang terpisah (`rounded-2xl`, `border`, `shadow-xs`, `bg: var(--card)`).
+  - Memisahkan panel dengan pembatas sela luar (*outer gap resize handle*) selebar `10px`, memperlihatkan background canvas luar (`#0b0b0a` pada Dark Mode) di antara panel untuk memberikan tampilan bernafas yang lega dan se-*clean* `/dashboard` serta `/settings`.
+- **Tata Letak Modern Floating Island (Estetika VS Code Modern UI & Kimi)**:
+  - Mentransformasikan shell workspace aplikasi menjadi arsitektur kartu melayang (*floating island*) modern dengan outer canvas padding (`10px`), gap spacing (`10px`), panel ber-sudut melengkung halus (`rounded-2xl` / `16px`), border lembut (`border border-[var(--border)]`), dan elevasi bayangan halus.
+  - Panel sidebar dan wadah workspace utama kini dirender sebagai kartu melayang terpisah di atas background canvas luar, memberikan pemisahan visual yang jernih dan estetika aplikasi desktop modern.
 - **Migrasi Raw Button Lengkap & Validasi Sistem Akhir (Phase 1-4 Selesai)**:
   - Mencapai 100% migrasi codebase dari elemen `<button>` mentah ke API `Button` kanonis (`@/components/ui/button`) dan polymorphic `render` prop di seluruh 41 berkas fitur pada `apps/frontend/src/`.
   - Mengunci primitive ownership dan kebijakan 0 raw button di seluruh repositori via test suite `PrimitiveStyleOwnership.test.ts` dan `ShellAndWorkspaceControls.test.ts` (144/144 test lulus).
@@ -36,6 +49,13 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menghapus seluruh komposisi langsung `ui-btn` yang tersisa dari feature code pada area admin, settings, billing, workspace/editor, onboarding, strategist, history, dan feedback; menambahkan regression contract ownership berbasis source sambil mencatat inventaris raw button tersisa untuk tindak lanjut terukur.
 
 ### Fixed
+- **Refactoring Arsitektur CSS & Perbaikan Reset Cascading**:
+  - Menghapus nuclear reset (`* { border-color: transparent !important; }`), menggantikannya dengan reset cascade aman (`@layer base { * { @apply border-border outline-ring/50; } }`).
+  - Mengurangi penggunaan `!important` di seluruh codebase CSS dari 113 menjadi 7 (penurunan 94%), mempertahankan `!important` hanya untuk override inline style bawaan library (`react-resizable-panels`).
+  - Merefaktor style `.strategist-prose` (~45 `!important`) dan tabel `.prose` (~13 `!important`) menggunakan `@layer components` dan selector `:where()` tanpa spesifisitas tinggi.
+  - Membagi codebase CSS monolitik menjadi 12 stylesheet modular berbasis domain di bawah `src/app/styles/components/` (`buttons.css`, `forms.css`, `cards.css`, `badges.css`, `menus.css`, `feedback.css`) dan `src/app/styles/workspace/` (`shell.css`, `sidebar.css`, `editor.css`, `strategist.css`, `chrome.css`, `responsive.css`), dengan `globals.css` sebagai master import manifest.
+  - Menambahkan token elevasi semantik `--shadow-drawer` di `tokens.css`, memperbaik bayangan elevasi drawer mobile yang sebelumnya hilang.
+  - Menyinkronkan deteksi resize JS `isMobile` (`< 768px`) dengan breakpoint tata letak mobile/tablet CSS.
 - **Arsitektur Overlay Link Editor**:
   - Mengganti positioning manual berbasis bounding rectangle dan scroll offset dengan Base UI popover terkontrol yang langsung ditambatkan ke link yang sedang di-hover.
   - Merender overlay melalui portal dengan positioning fixed dan collision-aware, mengisolasinya dari typography artikel, serta memigrasikan kontrol edit, hapus, batal, simpan, dan input ke API komponen kanonis.

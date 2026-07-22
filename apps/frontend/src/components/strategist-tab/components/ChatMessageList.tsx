@@ -247,7 +247,7 @@ function ChatMessageRow({
       {/* User message */}
       {msg.role === 'user' && (
         <div className="flex justify-end">
-          <div className="max-w-[85%] rounded-xl rounded-br-sm px-3 py-2 text-xs bg-[var(--primary)]/10 text-[var(--foreground)]">
+          <div className="max-w-[85%] rounded-2xl rounded-tr-xs px-3.5 py-2.5 text-xs bg-[var(--surface-2)] border border-[var(--border)] text-[var(--foreground)] shadow-xs">
             <p className="whitespace-pre-wrap break-words leading-relaxed">
               {msg.content}
             </p>
@@ -267,7 +267,7 @@ function ChatMessageRow({
 
           return (
             <div className="flex min-w-0 w-full justify-start">
-              <div className="w-full min-w-0 max-w-[95%] bg-[var(--background)] border border-[var(--border)] rounded-xl rounded-bl-sm p-2.5 shadow-sm">
+              <div className="w-full min-w-0 max-w-full text-[var(--foreground)] px-0 py-1">
                 {shouldShowAssistantSpinner(msg.payload?.lifecycle, msg.payload?.status) ? (
                   (() => {
                     const statusText = msg.payload?.status ?? '';
@@ -300,7 +300,7 @@ function ChatMessageRow({
                   <>
                     <div
                       className="
-                        prose strategist-prose
+                        prose dark:prose-invert strategist-prose
                         w-full min-w-0 max-w-full
                         text-[var(--foreground)] text-xs
                         break-words [overflow-wrap:anywhere]
@@ -333,7 +333,7 @@ function ChatMessageRow({
                           th: ({ children, ...props }) => (
                             <th
                               {...props}
-                              className="whitespace-normal break-words px-3 py-2 text-left align-top"
+                              className="whitespace-normal break-words px-3 py-2 text-left align-top font-bold text-[var(--foreground)] bg-[var(--surface-2)] border border-[var(--border)]"
                             >
                               {children}
                             </th>
@@ -341,10 +341,40 @@ function ChatMessageRow({
                           td: ({ children, ...props }) => (
                             <td
                               {...props}
-                              className="whitespace-normal break-words px-3 py-2 align-top"
+                              className="whitespace-normal break-words px-3 py-2 align-top text-[var(--foreground)] border border-[var(--border)]"
                             >
                               {children}
                             </td>
+                          ),
+                          h1: ({ children, ...props }) => (
+                            <h1 {...props} className="text-base font-bold text-[var(--foreground)] mt-3 mb-1.5">
+                              {children}
+                            </h1>
+                          ),
+                          h2: ({ children, ...props }) => (
+                            <h2 {...props} className="text-sm font-bold text-[var(--foreground)] mt-3 mb-1.5">
+                              {children}
+                            </h2>
+                          ),
+                          h3: ({ children, ...props }) => (
+                            <h3 {...props} className="text-xs font-bold text-[var(--foreground)] mt-2.5 mb-1">
+                              {children}
+                            </h3>
+                          ),
+                          h4: ({ children, ...props }) => (
+                            <h4 {...props} className="text-xs font-bold text-[var(--foreground)] mt-2 mb-1">
+                              {children}
+                            </h4>
+                          ),
+                          strong: ({ children, ...props }) => (
+                            <strong {...props} className="font-bold text-[var(--foreground)]">
+                              {children}
+                            </strong>
+                          ),
+                          a: ({ children, ...props }) => (
+                            <a {...props} className="text-[var(--editor-link)] underline underline-offset-2 hover:opacity-80">
+                              {children}
+                            </a>
                           ),
                         }}
                       >

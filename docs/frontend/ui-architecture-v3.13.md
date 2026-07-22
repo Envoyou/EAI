@@ -25,6 +25,9 @@ The frontend must preserve these constraints:
 - Long-running requests and streams must have deadlines, cancellation, and
   terminal UI states.
 - Browser code must never import `@eai/shared/server`.
+- All tables across admin/dashboard/workspace pages must include a mobile horizontal swipe indicator (`Swipe horizontally to view all columns`) above containers.
+- TipTap editor canvas nodes must enforce explicit word-wrapping (`white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; min-width: 0`).
+- Feature styling must consume canonical CSS design tokens (`var(--primary)`, `var(--surface-1)`, `var(--error)`) instead of raw utility colors.
 
 ## 2. Technology baseline
 
@@ -124,31 +127,42 @@ success, error, cancellation, or timeout exit.
 
 ## 5. Styling and design-system layers
 
-The current style system has four layers:
+The current style system has five modular layers managed under `src/app/styles/` and imported by the master `globals.css` manifest:
 
-### Layer 1: compile-time Tailwind theme
+```text
+globals.css (Import Manifest)
+  ├── styles/tokens.css             (Layer 1 & 2: @theme, :root, .dark, --shadow-drawer)
+  ├── styles/base.css               (Layer 3: Safe @layer base reset & typography)
+  ├── styles/prose.css              (Layer 5: Article prose & strategist-prose via @layer components + :where())
+  ├── styles/components/
+  │   ├── buttons.css, forms.css, cards.css, badges.css, menus.css, feedback.css
+  └── styles/workspace/
+      ├── shell.css, sidebar.css, editor.css, strategist.css, chrome.css, responsive.css
+```
+
+### Layer 1: compile-time Tailwind theme (`tokens.css`)
 
 The `@theme` block defines build-time palettes, fonts, and named utilities.
 
-### Layer 2: runtime semantic tokens
+### Layer 2: runtime semantic tokens (`tokens.css`)
 
 `:root` and `.dark` define semantic values such as:
 
 - `--background`, `--foreground`;
 - `--surface-1`, `--surface-2`, `--surface-3`;
 - `--primary`, `--primary-foreground`;
-- `--border`, `--ring`;
+- `--border`, `--ring`, `--shadow-drawer`;
 - success, warning, and error colors;
 - layout dimensions, radii, and transitions.
 
 Components should depend on semantic intent, not copy palette hex values.
 
-### Layer 3: Tailwind runtime bridge
+### Layer 3: safe base cascade & Tailwind runtime bridge (`base.css` & `tokens.css`)
 
-`@theme inline` exposes runtime semantic tokens as Tailwind utilities such as
-`bg-background`, `text-primary`, and `border-border`.
+- Base element resets are scoped to `@layer base` (`* { @apply border-border outline-ring/50; }`), avoiding nuclear `!important` overrides so standard CSS cascade rules apply naturally.
+- `@theme inline` exposes runtime semantic tokens as Tailwind utilities such as `bg-background`, `text-primary`, and `border-border`.
 
-### Layer 4: component and semantic-control APIs
+### Layer 4: component and semantic-control APIs (`components.css`)
 
 Two mechanisms currently coexist during migration:
 
@@ -163,6 +177,10 @@ New and migrated controls must use the corresponding `components/ui` primitive.
 Direct `ui-btn` composition remains compatibility code and should be migrated
 feature-by-feature without broad visual rewrites. Direct `ui-control`,
 `ui-badge`, and `ui-alert` composition has been removed from feature code.
+
+### Layer 5: zero-specificity typography overrides (`prose.css`)
+
+Prose typography (`.prose`) and Strategist AI chat formatting (`.strategist-prose`) are encapsulated inside `@layer components` using `:where()` zero-specificity pseudo-class selectors. This allows custom typography spacing and colors to customize default Tailwind Typography rules without introducing `!important` selector wars.
 
 ### Target direction
 

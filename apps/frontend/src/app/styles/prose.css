@@ -1,0 +1,193 @@
+/* ============================================================
+   Typography — Prose & Strategist Chat Overrides
+   ============================================================ */
+@layer components {
+  .prose {
+    --tw-prose-body:        var(--foreground);
+    --tw-prose-headings:    var(--foreground);
+    --tw-prose-lead:        var(--muted-foreground);
+    --tw-prose-links:       var(--editor-link);
+    --tw-prose-invert-links: var(--editor-link);
+    --tw-prose-bold:        var(--foreground);
+    --tw-prose-counters:    var(--muted-foreground);
+    --tw-prose-bullets:     var(--muted-foreground);
+    --tw-prose-hr:          var(--border);
+    --tw-prose-quotes:      var(--foreground);
+    --tw-prose-quote-borders: var(--primary);
+    --tw-prose-captions:    var(--muted-foreground);
+    --tw-prose-code:        var(--foreground);
+    --tw-prose-pre-code:    var(--foreground);
+    --tw-prose-pre-bg:      var(--surface-2);
+    --tw-prose-th-borders:  var(--border);
+    --tw-prose-td-borders:  var(--border);
+  }
+
+  .prose :where(h1, h2, h3):not(:where([class~="not-prose"] *)) {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  .prose :where(hr):not(:where([class~="not-prose"] *)) {
+    margin-block: 1.25rem;
+  }
+
+  .prose :where(table):not(:where([class~="not-prose"] *)) {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .prose :where(th):not(:where([class~="not-prose"] *)) {
+    background-color: var(--surface-2);
+    color: var(--foreground);
+    font-weight: 600;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--border);
+    text-align: left;
+  }
+
+  .prose :where(td):not(:where([class~="not-prose"] *)) {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--border);
+    color: var(--foreground);
+  }
+
+  .prose :where(tr:nth-child(even)):not(:where([class~="not-prose"] *)) {
+    background-color: var(--surface-1);
+  }
+
+  .prose :where(tr:nth-child(odd)):not(:where([class~="not-prose"] *)) {
+    background-color: transparent;
+  }
+
+  .prose :where(tr:hover):not(:where([class~="not-prose"] *)) {
+    background-color: var(--surface-2);
+  }
+
+  /* Strategist Chat Panel Custom Typography spacing */
+  .strategist-prose {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--foreground);
+    --tw-prose-body: var(--foreground);
+    --tw-prose-headings: var(--foreground);
+    --tw-prose-links: var(--editor-link);
+    --tw-prose-bold: var(--foreground);
+    --tw-prose-bullets: var(--muted-foreground);
+    --tw-prose-counters: var(--muted-foreground);
+    --tw-prose-code: var(--foreground);
+  }
+
+  .strategist-prose :where(p):not(:where([class~="not-prose"] *)) {
+    margin-block: 0.5rem;
+    color: var(--foreground);
+  }
+
+  .strategist-prose :where(h1, h2, h3, h4, h5, h6):not(:where([class~="not-prose"] *)) {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    margin-top: 1rem;
+    margin-bottom: 0.4rem;
+    color: var(--foreground);
+  }
+
+  .strategist-prose :where(strong, b):not(:where([class~="not-prose"] *)) {
+    color: var(--foreground);
+    font-weight: 700;
+  }
+
+  .strategist-prose :where(ul, ol):not(:where([class~="not-prose"] *)) {
+    margin-block: 0.4rem;
+    padding-inline-start: 1.25rem;
+    color: var(--foreground);
+  }
+
+  .strategist-prose :where(li):not(:where([class~="not-prose"] *)) {
+    margin-block: 0.2rem;
+    color: var(--foreground);
+  }
+
+  .strategist-prose :where(hr):not(:where([class~="not-prose"] *)) {
+    margin-block: 0.75rem;
+    border-color: var(--border);
+  }
+
+  .strategist-prose :where(code):not(:where([class~="not-prose"] *)) {
+    font-size: 0.75rem;
+    background: var(--surface-2);
+    color: var(--foreground);
+    border-radius: 4px;
+    padding: 0.1em 0.3em;
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+
+  .strategist-prose :where(pre):not(:where([class~="not-prose"] *)) {
+    background: var(--surface-2);
+    color: var(--foreground);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-block: 0.6rem;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+
+  .strategist-prose :where(pre code):not(:where([class~="not-prose"] *)) {
+    background: transparent;
+    color: var(--foreground);
+    padding: 0;
+    border-radius: 0;
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+
+  .strategist-prose :where(a):not(:where([class~="not-prose"] *)) {
+    color: var(--editor-link);
+    word-break: break-all;
+    overflow-wrap: break-word;
+  }
+
+  .strategist-prose :where(table):not(:where([class~="not-prose"] *)) {
+    margin-block: 0.75rem;
+    width: 100%;
+    max-width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 0.8125rem;
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .strategist-prose :where(th):not(:where([class~="not-prose"] *)) {
+    background-color: var(--surface-2);
+    color: var(--foreground);
+    font-weight: 600;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--border);
+    text-align: left;
+  }
+
+  .strategist-prose :where(td):not(:where([class~="not-prose"] *)) {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--border);
+    color: var(--foreground);
+  }
+
+  .strategist-prose :where(tr:nth-child(even)):not(:where([class~="not-prose"] *)) {
+    background-color: var(--surface-1);
+  }
+
+  .strategist-prose :where(tr:nth-child(odd)):not(:where([class~="not-prose"] *)) {
+    background-color: transparent;
+  }
+
+  .strategist-prose :where(tr:hover):not(:where([class~="not-prose"] *)) {
+    background-color: var(--surface-2);
+  }
+}

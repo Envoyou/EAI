@@ -1,0 +1,162 @@
+/* ============================================================
+   Menu, Dropdown & Segmented Control Primitives
+   ============================================================ */
+
+.ui-menu {
+  overflow: hidden;
+  border: 0;
+  border-radius: 16px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1px var(--border-subtle);
+}
+
+.ui-menu-label {
+  padding: 6px 12px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ui-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: transparent;
+  color: var(--popover-foreground);
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 650;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.ui-menu-item:hover:not(:disabled),
+.ui-menu-item:focus-visible {
+  outline: none;
+  background: var(--surface-2);
+  color: var(--foreground);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+
+.ui-menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ui-menu-item-danger {
+  color: var(--error);
+}
+
+.ui-menu-item-danger:hover:not(:disabled),
+.ui-menu-item-danger:focus-visible {
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+  color: var(--error);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--error) 18%, transparent);
+}
+
+.ui-menu-divider {
+  height: 1px;
+  margin: 8px 0;
+  background: var(--border);
+  opacity: 0.45;
+}
+
+.dark .ui-menu {
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.42),
+    inset 0 0 0 1px rgba(248, 250, 252, 0.05);
+}
+
+.dark .ui-menu-item:hover:not(:disabled),
+.dark .ui-menu-item:focus-visible {
+  background: color-mix(in srgb, var(--surface-2) 82%, var(--primary) 7%);
+}
+
+.ui-segmented,
+.mode-segmented {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.ui-segmented-item,
+.mode-segmented-item {
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.25;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.ui-segmented-item:hover,
+.mode-segmented-item:hover {
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+  color: var(--foreground);
+}
+
+.ui-segmented-item:active,
+.mode-segmented-item:active {
+  transform: scale(0.98);
+}
+
+.ui-segmented-item:focus-visible,
+.mode-segmented-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.ui-segmented-item[data-active="true"],
+.mode-segmented-item[data-active="true"] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.ui-segmented-item[data-active="true"]:hover,
+.mode-segmented-item[data-active="true"]:hover {
+  background: var(--card);
+  color: var(--foreground);
+}
+
+.dark .ui-segmented,
+.dark .mode-segmented {
+  background: var(--surface-2);
+}
+
+.dark .ui-segmented-item:hover,
+.dark .mode-segmented-item:hover {
+  background: rgba(13, 135, 207, 0.18);
+  color: #eaf4fb;
+  box-shadow: 0 2px 10px rgba(13, 135, 207, 0.12);
+}
+
+.dark .ui-segmented-item[data-active="true"],
+.dark .mode-segmented-item[data-active="true"] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+}

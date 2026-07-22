@@ -59,6 +59,8 @@ npm run lint
 - **Language**: TypeScript 5 in strict mode. Avoid `any` — use proper types from `@eai/shared`.
 - **Components**: Use React Server Components by default; add `'use client'` only when browser APIs or hooks are required.
 - **Styling**: Tailwind CSS v4 utility classes are acceptable for layout. **STRICT RULE**: All button elements across feature code must use the canonical `<Button>` primitive from `@/components/ui/button` or its polymorphic `render` prop. Raw `<button>` tags are strictly forbidden in feature code and enforced via automated regression tests (`ShellAndWorkspaceControls.test.ts` & `PrimitiveStyleOwnership.test.ts`).
+- **Mobile UX & Responsive Table Guidelines**: All tables rendered across admin/dashboard/workspace pages must include a mobile swipe helper text `<div className="px-4 pt-2 text-[9px] text-[var(--muted-foreground)] sm:hidden select-none">Swipe horizontally to view all columns</div>` right above table containers. TipTap editor canvas elements must explicitly set `white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; min-width: 0;` to prevent un-wrapped text from pushing past screen boundaries on mobile devices.
+- **Design Tokens**: Always use canonical CSS design tokens (`var(--primary)`, `var(--surface-1)`, `var(--surface-2)`, `var(--error)`) instead of raw utility colors like `bg-primary/10` or `text-red-500`.
 - **Imports**: Use `@/` path alias. Never use relative `../../../` chains.
 - **i18n**: All user-facing strings must go through `next-intl`; never hardcode English strings in components.
 
@@ -70,7 +72,25 @@ apps/frontend/
 ├── src/
 │   ├── proxy.ts          # Clerk middleware + next-intl + feature flags (replaces middleware.ts)
 │   ├── app/
-│   │   ├── globals.css   # Tailwind v4 + all ui-btn / ui-badge / ui-alert CSS classes
+│   │   ├── globals.css   # Master CSS import manifest
+│   │   ├── styles/       # Domain-based modular CSS architecture
+│   │   │   ├── tokens.css       # Design tokens, color palettes, radius, --shadow-drawer
+│   │   │   ├── base.css         # Safe @layer base cascade reset & typography base
+│   │   │   ├── prose.css        # Prose & strategist-prose styles (@layer components + :where())
+│   │   │   ├── components/      # Primitive component modules
+│   │   │   │   ├── buttons.css  # ui-btn primitives & variants
+│   │   │   │   ├── forms.css    # ui-control, input, select, textarea
+│   │   │   │   ├── cards.css    # ui-card, surface-card, pressroom-card
+│   │   │   │   ├── badges.css   # ui-badge & ui-alert
+│   │   │   │   ├── menus.css    # ui-menu, ui-segmented, mode-segmented
+│   │   │   │   └── feedback.css # feedback-check & verdict colors
+│   │   │   └── workspace/       # Workspace domain modules
+│   │   │       ├── shell.css      # workspace shell & multi-island containers
+│   │   │       ├── sidebar.css    # sidebar nav, filter pills & header glow
+│   │   │       ├── editor.css     # editor canvas & document tabs
+│   │   │       ├── strategist.css # strategist copilot panel styles
+│   │   │       ├── chrome.css     # titlebar, tabbar, statusbar & activitybar
+│   │   │       └── responsive.css # unified mobile & tablet media queries
 │   │   └── [locale]/     # All routes under locale prefix (en / id)
 │   │       ├── page.tsx          # Landing / home page
 │   │       ├── layout.tsx        # Root layout (Clerk + Sentry + ThemeProvider)
