@@ -7,9 +7,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Changed
-- **Migrasi Raw Button Lengkap (Batch 1, 2 & 3 - 100% Cakupan Codebase)**:
-  - Memigrasikan 100% elemen `<button>` mentah di seluruh 41 berkas fitur pada shell & navigasi (`AdminLayoutShell`, `AppSidebarShell`, `sidebar-item`, `DashboardLayoutShell`, `WorkspacePageShell`, `AuthPageShell`, `PanelTabBar`, `ThemeToggle`, `RoleToggle`), workspace & editor (`EditorialWorkspace`, `Editor`, `CommandList`, `FinalDraftPanel`, `DocumentHistoryPanel`, `AICopilotPanel`, `NotesTab`), dan kartu/menu/halaman fitur (`BillingAdmin`, `PricingGrid`, `PaymentStatusBanner`, `UserDirectory`, `UserTable`, `OrganizationDetailDrawer`, `CreditAdjustmentModal`, `StrategistTab`, `ChatInputBar`, `ChatMessageList`, `FeedbackPanel`, `FeedbackItemCard`, `HistorySidebar`, `StatusBar`, `OnboardingWizard`, `ShortcutsModal`, `SettingsMenu`, `PublicationUI`, `admin/ai-config`, `admin/audit-logs`, `admin/feature-flags`, `checkout/simulate`, `dashboard/validation`, `global-error`, `settings/publication/standards`) ke API `Button` kanonis (`@/components/ui/button`) dan polymorphic `render` prop.
+- **Migrasi Raw Button Lengkap & Validasi Sistem Akhir (Phase 1-4 Selesai)**:
+  - Mencapai 100% migrasi codebase dari elemen `<button>` mentah ke API `Button` kanonis (`@/components/ui/button`) dan polymorphic `render` prop di seluruh 41 berkas fitur pada `apps/frontend/src/`.
   - Mengunci primitive ownership dan kebijakan 0 raw button di seluruh repositori via test suite `PrimitiveStyleOwnership.test.ts` dan `ShellAndWorkspaceControls.test.ts` (144/144 test lulus).
+  - Memverifikasi kompilasi produksi penuh (`npm run build`) untuk Next.js 16 frontend dan Express backend, ESLint bersih, zero TypeScript error (`npx tsc --noEmit`), dan `git diff --check` bersih.
   - Mengintegrasikan `@shadcn/message-scroller` pada Strategist Chat, menggantikan logika scroll manual dengan `MessageScrollerProvider`, `MessageScrollerViewport`, dan `MessageScrollerContent` sambil mempertahankan styling bubble custom serta menambahkan `ChatPositionIndicator` dan `TranscriptOutline` (menggunakan `useMessageScrollerVisibility` dan `useMessageScroller`).
 - **API Status & Callout Kanonis**:
   - Menambahkan variant semantik `muted`, `surface`, `primary`, `success`, `warning`, dan `danger` yang dilindungi regression test pada Badge, beserta ukuran `xs` dan polymorphic rendering untuk link.

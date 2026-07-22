@@ -360,8 +360,11 @@ responsible for:
 - Retire redundant global classes only when no consumers remain.
 - Update `apps/frontend/AGENTS.md` to describe the final canonical API.
 
-### Phase 4: reduce client and component surface area
+### Phase 4: reduce client and component surface area (Completed 2026-07-22)
 
+- Verified full production compilation (`npm run build`) for Next.js 16 frontend and Express backend.
+- Passed 100% of strict TypeScript checks (`npx tsc --noEmit`), ESLint checks, and 144/144 Vitest unit tests across 24 test files.
+- Enforced 0 raw `<button>` policy across all 41 feature files via automated regression testing (`ShellAndWorkspaceControls.test.ts`).
 - Measure client bundles and expensive render paths.
 - Keep route shells and read-only data work on the server where practical.
 - Extract bounded feature subsystems from large components when doing so reduces

@@ -105,12 +105,14 @@ export function AppSidebarShell({
                 variant="ghost"
                 className={`flex items-center transition-all duration-300 border-none bg-transparent cursor-pointer overflow-hidden ${
                   sidebarOpen
-                    ? 'justify-start px-2 py-2 mb-2 rounded-full hover:bg-[var(--surface-2)] text-left w-full'
+                    ? 'justify-start !px-2.5 !py-2 mb-2 rounded-full hover:bg-[var(--surface-2)] text-left w-full'
                     : 'justify-center w-9 h-9 mb-2 rounded-full hover:bg-[var(--surface-2)] mx-auto'
                 }`}
                 aria-label="Toggle sidebar"
               >
-                <EAILogo className="w-9 h-9 shrink-0" />
+                <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                  <EAILogo className="w-7 h-7" />
+                </div>
                 <div
                   className={`flex flex-col justify-center min-w-0 overflow-hidden transition-all duration-300 ${
                     sidebarOpen ? 'opacity-100 max-w-[200px] ml-2.5' : 'opacity-0 max-w-0 ml-0'
@@ -213,16 +215,16 @@ export function AppSidebarShell({
         <div
           className={`flex items-center mt-1 min-h-[44px] transition-all duration-300 overflow-hidden ${
             sidebarOpen
-              ? 'px-2.5 py-2 w-full rounded-full'
+              ? '!px-2.5 !py-2 w-full rounded-full'
               : 'justify-center w-9 h-9 mx-auto rounded-full'
           } ${!user && isLoaded ? 'cursor-pointer hover:bg-[var(--surface-2)]' : ''}`}
           onClick={() => {
             if (isLoaded && !user) router.push('/login');
           }}
         >
-          {isLoaded ? (
-            user ? (
-              <div className={sidebarOpen ? '' : 'flex items-center justify-center w-full h-full'}>
+          <div className="w-7 h-7 flex items-center justify-center shrink-0">
+            {isLoaded ? (
+              user ? (
                 <UserButton
                   appearance={{
                     elements: {
@@ -230,19 +232,19 @@ export function AppSidebarShell({
                     },
                   }}
                 />
-              </div>
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-[var(--surface-3)] flex items-center justify-center">
+                  <span className="text-[10px] font-medium">?</span>
+                </div>
+              )
             ) : (
-              <div className="w-7 h-7 rounded-full bg-[var(--surface-3)] flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-medium">?</span>
-              </div>
-            )
-          ) : (
-            <Skeleton className="w-7 h-7 rounded-full shrink-0" />
-          )}
+              <Skeleton className="w-7 h-7 rounded-full" />
+            )}
+          </div>
 
           <div
             className={`flex flex-col min-w-0 overflow-hidden transition-all duration-300 ${
-              sidebarOpen ? 'opacity-100 max-w-[200px] ml-3' : 'opacity-0 max-w-0 ml-0'
+              sidebarOpen ? 'opacity-100 max-w-[200px] ml-2.5' : 'opacity-0 max-w-0 ml-0'
             }`}
           >
             {isLoaded ? (

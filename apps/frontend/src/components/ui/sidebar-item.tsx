@@ -28,7 +28,7 @@ export function SidebarItem({
 }: SidebarItemProps) {
   const baseClasses = `flex items-center transition-all duration-300 no-underline border-none cursor-pointer overflow-hidden ${
     sidebarOpen
-      ? 'justify-start px-2.5 py-2 rounded-full w-full'
+      ? 'justify-start !px-2.5 !py-2 rounded-full w-full'
       : 'justify-center w-9 h-9 rounded-full mx-auto'
   }`;
 
@@ -44,10 +44,12 @@ export function SidebarItem({
 
   const innerContent = (
     <>
-      <Icon className="w-[18px] h-[18px] shrink-0" />
+      <div className="w-7 h-7 flex items-center justify-center shrink-0">
+        <Icon className="size-[18px]" />
+      </div>
       <span
         className={`text-[13px] whitespace-nowrap overflow-hidden transition-all duration-300 ${
-          sidebarOpen ? 'opacity-100 max-w-[200px] ml-3' : 'opacity-0 max-w-0 ml-0'
+          sidebarOpen ? 'opacity-100 max-w-[200px] ml-2.5' : 'opacity-0 max-w-0 ml-0'
         }`}
       >
         {label}
@@ -60,9 +62,14 @@ export function SidebarItem({
   const renderTrigger = () => {
     if (href && !disabled && !onClick) {
       return (
-        <Link href={href} className={combinedClasses}>
+        <Button
+          render={<Link href={href} />}
+          variant="ghost"
+          disabled={disabled}
+          className={`${combinedClasses} bg-transparent`}
+        >
           {innerContent}
-        </Link>
+        </Button>
       );
     }
     return (

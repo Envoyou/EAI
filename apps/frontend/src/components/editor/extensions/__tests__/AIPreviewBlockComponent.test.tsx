@@ -41,7 +41,7 @@ function renderPreview() {
       },
     },
     editor: {},
-  } as NodeViewProps;
+  } as unknown as NodeViewProps;
 
   return renderToStaticMarkup(<AIPreviewBlockComponent {...props} />);
 }
@@ -61,8 +61,8 @@ describe('AI Preview editor style boundary', () => {
   it('uses semantic button classes without inline color overrides', () => {
     const html = renderPreview();
 
-    expect(html).toContain('ui-btn ui-btn-muted ui-btn-xs');
-    expect(html).toContain('ui-btn ui-btn-primary ui-btn-xs');
+    expect(html).toMatch(/class="[^"]*\bui-btn\b[^"]*\bui-btn-muted\b[^"]*\bui-btn-xs\b/);
+    expect(html).toMatch(/class="[^"]*\bui-btn\b[^"]*\bui-btn-primary\b[^"]*\bui-btn-xs\b/);
     expect(html).not.toMatch(/style="[^"]*color\s*:/);
   });
 

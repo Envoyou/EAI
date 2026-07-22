@@ -7,9 +7,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Changed
-- **Complete Raw Button Migration (Batches 1, 2 & 3 - 100% Codebase Coverage)**:
-  - Migrated 100% of raw `<button>` elements across all 41 feature files in shell & navigation (`AdminLayoutShell`, `AppSidebarShell`, `sidebar-item`, `DashboardLayoutShell`, `WorkspacePageShell`, `AuthPageShell`, `PanelTabBar`, `ThemeToggle`, `RoleToggle`), workspace & editor (`EditorialWorkspace`, `Editor`, `CommandList`, `FinalDraftPanel`, `DocumentHistoryPanel`, `AICopilotPanel`, `NotesTab`), and feature-specific cards, menus & pages (`BillingAdmin`, `PricingGrid`, `PaymentStatusBanner`, `UserDirectory`, `UserTable`, `OrganizationDetailDrawer`, `CreditAdjustmentModal`, `StrategistTab`, `ChatInputBar`, `ChatMessageList`, `FeedbackPanel`, `FeedbackItemCard`, `HistorySidebar`, `StatusBar`, `OnboardingWizard`, `ShortcutsModal`, `SettingsMenu`, `PublicationUI`, `admin/ai-config`, `admin/audit-logs`, `admin/feature-flags`, `checkout/simulate`, `dashboard/validation`, `global-error`, `settings/publication/standards`) to the canonical `Button` API (`@/components/ui/button`) and polymorphic `render` prop.
+- **Complete Raw Button Migration & Final System Validation (Phases 1-4 Complete)**:
+  - Achieved 100% codebase migration of raw `<button>` elements to the canonical `Button` API (`@/components/ui/button`) and polymorphic `render` prop across all 41 feature files in `apps/frontend/src/`.
   - Locked primitive ownership and 0 raw button policy across the entire repository via expanded `PrimitiveStyleOwnership.test.ts` and `ShellAndWorkspaceControls.test.ts` unit test suite (144/144 tests passing).
+  - Validated full production compilation (`npm run build`) for Next.js 16 frontend and Express backend, clean ESLint, zero TypeScript errors (`npx tsc --noEmit`), and clean `git diff --check`.
   - Integrated `@shadcn/message-scroller` into Strategist Chat, replacing manual scroll logic with `MessageScrollerProvider`, `MessageScrollerViewport`, and `MessageScrollerContent` while preserving custom bubble styling and adding `ChatPositionIndicator` and `TranscriptOutline` (using `useMessageScrollerVisibility` and `useMessageScroller`).
 - **Canonical Status & Callout APIs**:
   - Added regression-tested semantic `muted`, `surface`, `primary`, `success`, `warning`, and `danger` variants to Badge, plus `xs` sizing and polymorphic link rendering.

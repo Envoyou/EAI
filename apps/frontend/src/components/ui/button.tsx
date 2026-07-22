@@ -1,10 +1,11 @@
+import React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "ui-btn",
+  "ui-btn justify-center",
   {
     variants: {
       variant: {
@@ -43,11 +44,20 @@ function Button({
   className,
   variant = "primary",
   size = "default",
+  nativeButton,
+  render,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  const isNonButtonRender =
+    nativeButton === undefined &&
+    React.isValidElement(render) &&
+    render.type !== "button"
+
   return (
     <ButtonPrimitive
       data-slot="button"
+      nativeButton={isNonButtonRender ? false : nativeButton}
+      render={render}
       className={cn(
         buttonVariants({ variant, size }),
         "group/button shrink-0 whitespace-nowrap select-none aria-invalid:ring-2 aria-invalid:ring-[var(--error)]/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",

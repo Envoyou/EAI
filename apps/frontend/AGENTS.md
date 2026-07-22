@@ -58,7 +58,7 @@ npm run lint
 
 - **Language**: TypeScript 5 in strict mode. Avoid `any` — use proper types from `@eai/shared`.
 - **Components**: Use React Server Components by default; add `'use client'` only when browser APIs or hooks are required.
-- **Styling**: Tailwind CSS v4 utility classes are acceptable for layout. New or migrated buttons must use the canonical `<Button>` from `@/components/ui/button`; its variants own the project's `ui-btn` classes. Existing direct `ui-*` consumers are compatibility code to migrate incrementally.
+- **Styling**: Tailwind CSS v4 utility classes are acceptable for layout. **STRICT RULE**: All button elements across feature code must use the canonical `<Button>` primitive from `@/components/ui/button` or its polymorphic `render` prop. Raw `<button>` tags are strictly forbidden in feature code and enforced via automated regression tests (`ShellAndWorkspaceControls.test.ts` & `PrimitiveStyleOwnership.test.ts`).
 - **Imports**: Use `@/` path alias. Never use relative `../../../` chains.
 - **i18n**: All user-facing strings must go through `next-intl`; never hardcode English strings in components.
 
