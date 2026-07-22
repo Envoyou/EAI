@@ -44,7 +44,7 @@ describe('Workspace Panel Decoupling Contract', () => {
 
     // Bottom-Right Floating Trigger when rightPanelOpen is false
     expect(componentSource).toContain('!rightPanelOpen &&');
-    expect(componentSource).toContain('Open AI Copilot');
+    expect(componentSource).toContain('Open EAI Chat');
   });
 
   it('PanelTabBar keeps only document tabs and removes redundant toggle icons', () => {

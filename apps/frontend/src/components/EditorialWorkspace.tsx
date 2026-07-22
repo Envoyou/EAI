@@ -687,7 +687,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
 
           {/* Bottom-Right Floating Trigger Button (when AI Copilot Panel is hidden) */}
           {!rightPanelOpen && (
-            <div className="fixed right-6 bottom-6 z-40 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="fixed right-6 bottom-11 z-40 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -695,18 +695,44 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                       type="button"
                       onClick={() => setRightPanelOpen(true)}
                       variant="primary"
-                      className="group flex items-center justify-center rounded-full p-2.5 hover:px-4 h-10 shadow-2xl transition-all duration-300 opacity-40 hover:opacity-100 hover:scale-105 cursor-pointer bg-[var(--primary)] text-black border border-[var(--primary)]/40 overflow-hidden"
-                      aria-label="Open AI Copilot"
-                    >
-                      <Sparkles className="w-4.5 h-4.5 shrink-0 text-black dark:text-black" />
-                      <span className="max-w-0 group-hover:max-w-[100px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out whitespace-nowrap text-xs font-bold text-black dark:text-black ml-0 group-hover:ml-2">
-                        AI Copilot
+                      className="
+                        group
+                        flex items-center justify-center
+                        size-10 hover:w-[108px]
+                        shrink-0
+                        rounded-full
+                        p-0 hover:px-4
+                        gap-0 hover:gap-2
+                        overflow-hidden
+
+                        shadow-2xl
+                        opacity-30 hover:opacity-100
+                        hover:scale-105
+                        transition-all duration-300 ease-in-out
+                        cursor-pointer
+                      "
+                      aria-label="Open EAI Chat"
+>
+                      <Sparkles className="size-[18px] shrink-0" />
+
+                      <span
+                        className="
+                          w-0 opacity-0
+                          group-hover:w-[58px]
+                          group-hover:opacity-100
+                          overflow-hidden
+                          whitespace-nowrap
+                          text-xs font-bold
+                          transition-all duration-300 ease-in-out
+                        "
+                      >
+                        EAI Chat
                       </span>
                     </Button>
                   }
                 />
                 <TooltipContent side="top" className="text-xs font-medium">
-                  Open AI Copilot
+                  Open EAI Chat
                 </TooltipContent>
               </Tooltip>
             </div>

@@ -159,8 +159,12 @@ export default function AICopilotPanel({
           );
         }
         return (
-          <div className="p-4 text-center text-xs text-[var(--muted-foreground)]">
-            Run &quot;Refine Draft&quot; to view editorial analysis feedback.
+          <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
+            <MessageCircle className="w-10 h-10 text-[var(--primary)]/30 mb-3" />
+            <p className="text-xs text-[var(--muted-foreground)] font-medium mb-1">Feedback</p>
+            <p className="text-xs text-[var(--muted-foreground)]/70">
+              Run &quot;Refine Draft&quot; to view editorial analysis feedback.
+            </p>
           </div>
         );
       case 'notes':

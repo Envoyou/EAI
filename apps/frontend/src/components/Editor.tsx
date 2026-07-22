@@ -145,7 +145,7 @@ export default function Editor({
     editorProps: {
       attributes: {
         spellcheck: 'false',
-        class: 'editor-canvas flex-1 w-full min-w-0 max-w-full mx-auto resize-none border-0 outline-none px-4 py-6 md:px-4 md:py-6 leading-[1.85] font-inter text-[16px] bg-transparent text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-0 prose prose-sm dark:prose-invert focus:outline-none min-h-[500px] break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap',
+        class: 'editor-canvas flex-1 w-full min-w-0 max-w-full max-w-none mx-auto resize-none border-0 outline-none px-4 py-6 md:px-4 md:py-6 leading-[1.85] font-inter text-[16px] bg-transparent text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:ring-0 prose prose-sm max-w-none dark:prose-invert focus:outline-none min-h-[500px] break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap',
       },
       handleKeyDown: (view, event) => {
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
@@ -338,7 +338,7 @@ export default function Editor({
     <div className="flex-1 min-w-0 flex h-full w-full overflow-hidden gap-3 md:gap-4 max-md:flex-col">
       {/* Editor Panel (Left) */}
       <div 
-        className={`ui-panel flex flex-col editor-workspace min-w-0 h-full ${isFocused ? 'is-focused' : ''}`}
+        className={`ui-panel flex flex-col editor-workspace w-full min-w-0 h-full ${isFocused ? 'is-focused' : ''}`}
         style={{
           flex: 1,
           maxWidth: '56rem',
