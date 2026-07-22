@@ -105,7 +105,7 @@ export function AppSidebarShell({
                 variant="ghost"
                 className={`flex items-center transition-all duration-300 border-none bg-transparent cursor-pointer overflow-hidden ${
                   sidebarOpen
-                    ? 'px-2 py-2 mb-2 rounded-full hover:bg-[var(--surface-2)] text-left w-full'
+                    ? 'justify-start px-2 py-2 mb-2 rounded-full hover:bg-[var(--surface-2)] text-left w-full'
                     : 'justify-center w-9 h-9 mb-2 rounded-full hover:bg-[var(--surface-2)] mx-auto'
                 }`}
                 aria-label="Toggle sidebar"

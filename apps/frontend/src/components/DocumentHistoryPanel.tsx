@@ -287,8 +287,8 @@ export default function DocumentHistoryPanel({
 
       {/* Search */}
       <div className="pt-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted-foreground)]" />
+        <div className="relative flex items-center">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted-foreground)] pointer-events-none z-10" />
           <Input
             variant="surface"
             ref={searchInputRef}
@@ -299,7 +299,7 @@ export default function DocumentHistoryPanel({
             placeholder="Search drafts…"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="pl-8 pr-8 text-xs"
+            className="!pl-8 !pr-8 text-xs"
           />
           {searchQuery && (
             <Button

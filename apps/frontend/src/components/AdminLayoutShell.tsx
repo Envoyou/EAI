@@ -111,7 +111,7 @@ export function AdminLayoutShell({ children }: AdminLayoutShellProps) {
                     variant="ghost"
                     className={`flex items-center transition-all duration-300 border-none bg-transparent cursor-pointer overflow-hidden ${
                       sidebarOpen
-                        ? 'px-2 py-2 mb-2 rounded-full hover:bg-[var(--surface-2)] text-left w-full'
+                        ? 'justify-start px-2 py-2 mb-2 rounded-full hover:bg-[var(--surface-2)] text-left w-full'
                         : 'justify-center w-9 h-9 mb-2 rounded-full hover:bg-[var(--surface-2)] mx-auto'
                     }`}
                     aria-label="Toggle admin sidebar"
@@ -189,7 +189,7 @@ export function AdminLayoutShell({ children }: AdminLayoutShellProps) {
                     onClick={toggleTheme}
                     variant="ghost"
                     className={`flex items-center gap-3 w-full px-3 py-2 rounded-xl text-xs font-semibold text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] transition-colors border-none bg-transparent cursor-pointer ${
-                      !sidebarOpen ? 'justify-center px-0' : ''
+                      !sidebarOpen ? 'justify-center px-0' : 'justify-start'
                     }`}
                   >
                     {isDark ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}

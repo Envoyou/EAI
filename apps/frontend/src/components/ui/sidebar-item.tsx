@@ -28,7 +28,7 @@ export function SidebarItem({
 }: SidebarItemProps) {
   const baseClasses = `flex items-center transition-all duration-300 no-underline border-none cursor-pointer overflow-hidden ${
     sidebarOpen
-      ? 'px-2.5 py-2 rounded-full w-full'
+      ? 'justify-start px-2.5 py-2 rounded-full w-full'
       : 'justify-center w-9 h-9 rounded-full mx-auto'
   }`;
 

@@ -87,14 +87,14 @@ export function UserTable({
       <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-4 shadow-sm">
         <form onSubmit={onSearchSubmit} className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)] pointer-events-none z-10" />
             <Input
               variant="surface"
               type="text"
               placeholder="Search by Name, Email, User ID, or Org Slug..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 pr-4 text-sm"
+              className="!pl-9 pr-4 text-sm"
             />
           </div>
           <div className="flex flex-wrap gap-2 items-center">
