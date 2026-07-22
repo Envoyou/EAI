@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { Button as ButtonPrimitive } from '@base-ui/react/button';
 import { Button } from '@/components/ui/button';
 
 interface ShortcutsModalProps {
@@ -41,11 +42,10 @@ const shortcuts = [
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <Button
+      <ButtonPrimitive
         type="button"
         aria-label="Close keyboard shortcuts"
-        variant="ghost"
-        className="absolute inset-0 border-0 bg-black/50 backdrop-blur-sm p-0 w-full h-full rounded-none cursor-pointer"
+        className="absolute inset-0 border-0 bg-black/50 hover:bg-black/50 backdrop-blur-sm p-0 w-full h-full rounded-none cursor-pointer"
         onClick={onClose}
       />
       

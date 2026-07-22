@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Button as ButtonPrimitive } from '@base-ui/react/button';
 
 type AuditLog = {
   id: string;
@@ -276,11 +277,10 @@ export default function AuditLogsAdminPage() {
       {selectedLog && (
         <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
           {/* Backdrop */}
-          <Button
+          <ButtonPrimitive
             type="button"
             onClick={() => setSelectedLog(null)}
-            variant="ghost"
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity border-none rounded-none p-0 w-full h-full cursor-pointer"
+            className="absolute inset-0 bg-black/40 hover:bg-black/40 backdrop-blur-sm transition-opacity border-none p-0 w-full h-full cursor-pointer"
             aria-label="Close detail panel"
           />
           
