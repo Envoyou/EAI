@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.15.0] - 2026-07-24
+
 ### Added
 - **Revision-Safe Publication Workflow**:
   - Added standalone **Quality Check** and **Regenerate SEO** operations for the saved final draft, without invoking the rewrite pipeline.

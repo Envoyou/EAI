@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.15.0] - 2026-07-24
+
 ### Added
 - **Workflow Publikasi Aman terhadap Revisi**:
   - Menambahkan operasi mandiri **Quality Check** dan **Regenerate SEO** untuk draft final tersimpan tanpa menjalankan pipeline rewrite.
