@@ -33,7 +33,7 @@ The frontend must preserve these constraints:
 
 | Concern | Current implementation |
 | --- | --- |
-| Framework | Next.js 16.2.6 App Router |
+| Framework | Next.js 16.2.11 App Router |
 | Rendering | React 19.2.4 Server and Client Components |
 | Language | TypeScript 5 strict mode |
 | Styling | Tailwind CSS v4, CSS-first configuration, runtime CSS variables |

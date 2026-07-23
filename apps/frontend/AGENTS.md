@@ -10,7 +10,7 @@ This guide covers frontend development rules for the EAI Next.js 16 application 
 
 ## 1. Tech Stack Frontend
 
-* **Framework**: Next.js 16.2.6 (App Router)
+* **Framework**: Next.js 16.2.11 (App Router)
 * **React**: 19.2.4
 * **Language**: TypeScript 5 (Strict mode)
 * **Editor**: Tiptap Rich Text + `tiptap-markdown`
