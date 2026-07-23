@@ -85,6 +85,7 @@ export default function FeedbackPanel({
   isProcessing = false,
   processStage = 'reviewing',
   processStartedAt,
+  includeSeoStage = true,
   isRefining = false,
   onAcceptFeedback,
   onRemoveFeedbackAddition,
@@ -135,6 +136,7 @@ export default function FeedbackPanel({
           stage={processStage}
           startedAt={processStartedAt}
           refining={isRefining}
+          includeSeoStage={includeSeoStage}
         />
       </div>
     );

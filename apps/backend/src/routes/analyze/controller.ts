@@ -352,6 +352,7 @@ router.post('/', async (req: Request, res) => {
       await handleDevMock({
         sendEvent,
         state,
+        mode: effectiveMode,
         text,
         metadata,
         role,

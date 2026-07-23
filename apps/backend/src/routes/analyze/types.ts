@@ -130,6 +130,7 @@ export type AnalyzeContext = BaseHandlerContext & {
 };
 
 export type DevMockContext = BaseHandlerContext & {
+  mode: AnalyzeMode;
   role?: Role;
   isPolishMode: boolean;
 };

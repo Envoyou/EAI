@@ -31,13 +31,15 @@ describe('composite Button cascade contracts', () => {
     const notes = readSource('../NotesTab.tsx');
 
     expect(copilot).toContain('strategist-copilot-tab');
-    expect(copilot).toContain('hidden @[340px]:inline');
+    expect(copilot).toContain('strategist-copilot-tab-label');
     expect(copilot).toContain('aria-selected={activeTab === tab.key}');
     expect(notes).toContain('strategist-notes-clear-action');
     expect(notes).toContain('strategist-note-delete-action');
     expect(strategistStyles).toContain(
       '.strategist-copilot-tab.ui-btn-muted[aria-selected="true"]'
     );
+    expect(strategistStyles).toContain('@media (min-width: 769px)');
+    expect(strategistStyles).toContain('@container (min-width: 340px)');
     expect(strategistStyles).not.toContain('!important');
   });
 
@@ -87,11 +89,16 @@ describe('composite Button cascade contracts', () => {
     const input = readSource(
       '../strategist-tab/components/ChatInputBar.tsx'
     );
+    const strategist = readSource('../StrategistTab.tsx');
 
     expect(messages).toContain('strategist-transcript-item');
     expect(messages).toContain('strategist-sources-toggle');
     expect(messages).toContain('strategist-suggestion-action');
     expect(messages).not.toContain('!rounded-lg');
+    expect(messages).toContain('whitespace-normal break-words');
+    expect(messages).toContain('Source [{msg.payload.sources.length}]');
+    expect(messages).toContain('expandedSources[msg.id] &&');
+    expect(messages).not.toContain('.slice(');
     expect(input).toContain('strategist-mode-select');
     expect(input).not.toContain('!rounded-full');
     expect(strategistStyles).toContain(
@@ -100,6 +107,8 @@ describe('composite Button cascade contracts', () => {
     expect(strategistStyles).toContain(
       '[data-slot="select-trigger"].strategist-mode-select[data-size="sm"]'
     );
+    expect(strategist).toContain('strategist-toolbar-title');
+    expect(strategist).toContain('strategist-toolbar-label');
   });
 
   it('preserves public indicator, switch, and segmented-control shapes', () => {

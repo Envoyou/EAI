@@ -20,6 +20,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Kontrak Streaming Strategist & UI Responsif**:
   - Memisahkan pemilihan jalur Strategist chat ke `useStrategistChatPath.ts`, sehingga pemilihan rute mock dan produksi terisolasi dari hook konten utama.
   - Memperluas presentasi chat untuk membedakan status thinking, grounded source, suggestion, dan Deep Research dengan tetap mempertahankan layout Copilot responsif yang sama di desktop, tablet, dan mobile.
+  - Mengubah sitasi source menjadi disclosure tanpa border yang menampilkan semua link secara vertikal, mengizinkan suggested action panjang terbungkus ke beberapa baris, serta meringkas tab Copilot dan toolbar chat menjadi ikon saja di mobile dengan tetap mempertahankan label aksesibel dan teks desktop.
   - Menambahkan selector domain terbatas untuk kontrol komposit yang sengaja menggunakan bentuk kartu/persegi alih-alih bentuk pill milik primitive Button. Selector dimuat setelah style primitive dan tidak menggunakan `!important`.
 - **Penyelarasan Direct API Fetch & Stabilitas Referensi Content Strategist**:
   - Menyelaraskan status polling (`GET /api/strategist/chat/status/:id`) dan pembatalan (`POST /api/strategist/chat/status/:id/cancel`) Deep Research di `useContentStrategist.ts` dari `fetchWithTimeout` relatif (Next.js proxy) ke `directFetch` (Railway API).

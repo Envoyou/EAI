@@ -15,6 +15,7 @@ interface FeedbackTabProps {
   isProcessing?: boolean;
   processStage?: EditorialProcessStage;
   processStartedAt?: number | null;
+  includeSeoStage?: boolean;
   isRefining?: boolean;
   onAcceptFeedback?: (index: number) => Promise<void>;
   onRemoveFeedbackAddition?: (index: number) => Promise<void>;

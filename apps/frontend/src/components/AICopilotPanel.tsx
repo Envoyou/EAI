@@ -30,6 +30,7 @@ interface AICopilotPanelProps {
   isProcessing?: boolean;
   processStage?: EditorialProcessStage;
   processStartedAt?: number | null;
+  includeSeoStage?: boolean;
   isRefining?: boolean;
   onAcceptFeedback?: (index: number) => Promise<void>;
   onRemoveFeedbackAddition?: (index: number) => Promise<void>;
@@ -61,6 +62,7 @@ export default function AICopilotPanel({
   isProcessing,
   processStage,
   processStartedAt,
+  includeSeoStage = true,
   isRefining,
   onAcceptFeedback,
   onRemoveFeedbackAddition,
@@ -152,6 +154,7 @@ export default function AICopilotPanel({
               isProcessing={isProcessing}
               processStage={processStage}
               processStartedAt={processStartedAt}
+              includeSeoStage={includeSeoStage}
               isRefining={isRefining}
               onAcceptFeedback={onAcceptFeedback}
               onRemoveFeedbackAddition={onRemoveFeedbackAddition}
@@ -219,7 +222,7 @@ export default function AICopilotPanel({
                     aria-label={tab.label}
                   >
                     {tab.icon}
-                    <span className="hidden @[340px]:inline truncate max-w-[120px]">
+                    <span className="strategist-copilot-tab-label truncate max-w-[120px]">
                       {tab.label}
                     </span>
                   </Button>

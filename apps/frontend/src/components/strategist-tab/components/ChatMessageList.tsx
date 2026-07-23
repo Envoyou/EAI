@@ -18,7 +18,6 @@ import { shouldShowAssistantSpinner } from '@/lib/strategist-stream';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { extractDynamicSuggestions, normalizeStrategistMarkdown } from '@/lib/strategist-utils';
 import type { ChatMessage } from '@/lib/hooks/useContentStrategist';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -92,10 +91,11 @@ function TranscriptOutline({ messages }: { messages: ChatMessage[] }) {
             variant="outline"
             size="xs"
             className="text-[10px] gap-1 text-[var(--foreground)]"
+            aria-label={`Open transcript outline with ${userMessages.length} messages`}
           >
             <List className="w-3 h-3 text-[var(--primary)] shrink-0" />
-            <span>Outline</span>
-            <span className="px-1 py-0.2 rounded-full bg-[var(--surface-3)] text-[9px] font-mono text-[var(--muted-foreground)]">
+            <span className="strategist-toolbar-label">Outline</span>
+            <span className="strategist-toolbar-label px-1 py-0.2 rounded-full bg-[var(--surface-3)] text-[9px] font-mono text-[var(--muted-foreground)]">
               {userMessages.length}
             </span>
           </Button>
@@ -428,61 +428,35 @@ function ChatMessageRow({
                     {/* Search Sources/Citations */}
                     {msg.payload?.sources &&
                       msg.payload.sources.length > 0 && (
-                        <div className="mt-2.5 px-3 py-2 bg-[var(--surface-2)]/50 border border-[var(--border)]/60 rounded-xl text-[10px] animate-fade-in backdrop-blur-xs">
+                        <div className="mt-2.5 text-[10px] animate-fade-in">
                           <Button
                             type="button"
                             onClick={() => toggleSources(msg.id)}
                             variant="muted"
                             size="xs"
                             aria-expanded={expandedSources[msg.id]}
-                            className="strategist-sources-toggle mb-1 w-full justify-between text-[10px]"
+                            className="strategist-sources-toggle text-[10px]"
                           >
-                            <div className="flex items-center gap-1 select-none">
-                              <Globe className="w-3 h-3 text-[var(--primary)] shrink-0" />
-                              <span>
-                                Source ({msg.payload.sources.length})
-                              </span>
-                            </div>
-                            <span className="text-[9px] text-[var(--primary)] font-medium">
-                              {expandedSources[msg.id]
-                                ? 'Hide'
-                                : 'Show All'}
+                            <span className="font-medium text-[var(--muted-foreground)]">
+                              Source {msg.payload.sources.length}
                             </span>
                           </Button>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {msg.payload.sources
-                              .slice(
-                                0,
-                                expandedSources[msg.id] ? undefined : 3
-                              )
-                              .map((src, i) => (
-                                <Badge
+                          {expandedSources[msg.id] && (
+                            <div className="mt-1.5 flex flex-col items-start gap-1.5 pl-2">
+                              {msg.payload.sources.map((src, i) => (
+                                <a
                                   key={i}
-                                  variant="surface"
-                                  size="xs"
-                                  render={<a href={src.url} target="_blank" rel="noopener noreferrer" />}
-                                  className="strategist-source-link no-underline text-[10px]"
+                                  href={src.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="max-w-full break-words text-left text-[10px] leading-relaxed text-[var(--editor-link)] underline decoration-[var(--border)] underline-offset-2 hover:decoration-current"
                                   title={src.title || src.url}
                                 >
-                                  <span className="font-semibold max-w-[120px] truncate">
-                                    {src.title || src.domain || 'Link'}
-                                  </span>
-                                </Badge>
+                                  {src.title || src.domain || src.url}
+                                </a>
                               ))}
-
-                            {!expandedSources[msg.id] &&
-                              msg.payload.sources.length > 3 && (
-                                <Button
-                                  type="button"
-                                  onClick={() => toggleSources(msg.id)}
-                                  variant="primary"
-                                  size="xs"
-                                  className="rounded-full font-bold text-[10px]"
-                                >
-                                  +{msg.payload.sources.length - 3} more
-                                </Button>
-                              )}
-                          </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -595,7 +569,7 @@ function ChatMessageRow({
 
                     {/* Suggestions */}
                     {finalSuggestions.length > 0 && (
-                      <div className="flex flex-col items-start gap-1.5 mt-3 pt-2.5 border-t border-[var(--border)]/20 w-full max-w-xl">
+                      <div className="flex min-w-0 w-full max-w-xl flex-col items-start gap-1.5 mt-3 pt-2.5 border-t border-[var(--border)]/20">
                         <span className="text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-0.5 select-none">
                           {t('suggestedActions')}
                         </span>
@@ -609,7 +583,9 @@ function ChatMessageRow({
                             size="xs"
                             className="strategist-suggestion-action w-full justify-start px-3 py-1.5 text-left text-xs transition-colors sm:w-auto"
                           >
-                            <span className="truncate">{sug}</span>
+                            <span className="min-w-0 whitespace-normal break-words text-left leading-relaxed">
+                              {sug}
+                            </span>
                           </Button>
                         ))}
                       </div>

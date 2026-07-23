@@ -20,6 +20,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Strategist Streaming & Responsive UI Contracts**:
   - Split the Strategist chat path selection into `useStrategistChatPath.ts`, keeping mock and production route selection isolated from the main content hook.
   - Expanded the chat presentation for distinct thinking, grounded-source, suggestion, and Deep Research states while retaining the same responsive Copilot layout on desktop, tablet, and mobile.
+  - Changed source citations to a borderless disclosure that expands all links in a vertical list, allowed long suggested actions to wrap, and reduced the mobile Copilot tabs and chat toolbar to icon-only controls while retaining accessible labels and desktop text.
   - Added bounded domain selectors for composite controls whose rectangular/card visuals intentionally differ from the pill-shaped Button primitive. These selectors load after primitive styles and avoid `!important`.
 - **Content Strategist Direct API Fetch Alignment & Referential Stability**:
   - Aligned Deep Research status polling (`GET /api/strategist/chat/status/:id`) and cancellation (`POST /api/strategist/chat/status/:id/cancel`) in `useContentStrategist.ts` from relative `fetchWithTimeout` (Next.js proxy) to `directFetch` (Railway API).

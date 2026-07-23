@@ -72,6 +72,28 @@
   color: var(--foreground);
 }
 
+.strategist-copilot-tab-label,
+.strategist-toolbar-label,
+.strategist-toolbar-title {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .strategist-toolbar-label {
+    display: inline;
+  }
+
+  .strategist-toolbar-title {
+    display: block;
+  }
+
+  @container (min-width: 340px) {
+    .strategist-copilot-tab-label {
+      display: inline;
+    }
+  }
+}
+
 .strategist-panel-icon-action.ui-btn-muted:hover:not(:disabled),
 .strategist-note-delete-action.ui-btn-muted:hover:not(:disabled) {
   background: var(--surface-2);
@@ -157,16 +179,16 @@
 }
 
 .strategist-suggestion-action.ui-btn-surface {
+  max-width: 100%;
+  align-items: flex-start;
   border-radius: var(--radius-md);
+  white-space: normal;
+  overflow-wrap: anywhere;
   box-shadow: inset 0 0 0 1px transparent;
 }
 
 .strategist-suggestion-action.ui-btn-surface:hover:not(:disabled) {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 50%, transparent);
-}
-
-.strategist-source-link.ui-btn-surface {
-  border-radius: var(--radius-md);
 }
 
 .strategist-attachment-remove.ui-btn-muted,

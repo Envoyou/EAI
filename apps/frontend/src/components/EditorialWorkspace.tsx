@@ -475,6 +475,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     isRefining={isRefining}
                     processStage={processStage}
                     processStartedAt={processStartedAt}
+                    includeSeoStage={analysisSpeed !== 'fast'}
                     onAnalyze={handleAnalyze}
                     onRefineAgain={handleRefineAgain}
                     onReanalyze={handleReanalyze}
@@ -506,6 +507,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     isProcessing={isStreaming || isRefining}
                     processStage={processStage}
                     processStartedAt={processStartedAt}
+                    includeSeoStage={analysisSpeed !== 'fast'}
                     isRefining={isRefining}
                     onAcceptFeedback={handleAcceptFeedback}
                     onRemoveFeedbackAddition={idx => handleTargetedFix(idx, 'remove')}
@@ -624,6 +626,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     isRefining={isRefining}
                     processStage={processStage}
                     processStartedAt={processStartedAt}
+                    includeSeoStage={analysisSpeed !== 'fast'}
                     onAnalyze={handleAnalyze}
                     onRefineAgain={handleRefineAgain}
                     onReanalyze={handleReanalyze}
@@ -656,6 +659,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                   isProcessing={isStreaming || isRefining}
                   processStage={processStage}
                   processStartedAt={processStartedAt}
+                  includeSeoStage={analysisSpeed !== 'fast'}
                   isRefining={isRefining}
                   onAcceptFeedback={handleAcceptFeedback}
                   onRemoveFeedbackAddition={idx => handleTargetedFix(idx, 'remove')}

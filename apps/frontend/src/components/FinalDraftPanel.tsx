@@ -54,6 +54,7 @@ interface FinalDraftPanelProps {
   isRefining?: boolean;
   processStage?: EditorialProcessStage;
   processStartedAt?: number | null;
+  includeSeoStage?: boolean;
   isStale?: boolean;
   onRefineAgain?: (instruction: string) => void;
   onReanalyze?: () => void;
@@ -184,6 +185,7 @@ export default function FinalDraftPanel({
   isRefining,
   processStage = 'reviewing',
   processStartedAt,
+  includeSeoStage = true,
   isStale,
   onRefineAgain,
   onReanalyze,
@@ -629,6 +631,7 @@ export default function FinalDraftPanel({
         stage={processStage}
         startedAt={processStartedAt}
         refining={isRefining}
+        includeSeoStage={includeSeoStage}
       />
       <div className="flex-1 overflow-hidden px-8 py-8 md:px-12">
         <div className="mx-auto max-w-2xl space-y-7">
@@ -987,6 +990,7 @@ export default function FinalDraftPanel({
               stage={processStage}
               startedAt={processStartedAt}
               refining={isRefining}
+              includeSeoStage={includeSeoStage}
             />
           )}
           <div className="document-tabs flex shrink-0 border-t border-[var(--border)] bg-transparent">

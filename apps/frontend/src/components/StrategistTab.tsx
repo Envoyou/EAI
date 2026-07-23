@@ -113,9 +113,10 @@ export default function StrategistTab({
                       <Button
                         type="button"
                         onClick={() => setCurrentSessionId(null)}
-                        variant="ghost"
+                        variant="muted"
                         size="icon-xs"
-                        className="-ml-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)] rounded font-bold text-xs"
+                        className="strategist-panel-icon-action -ml-1 rounded font-bold text-xs"
+                        aria-label="Back to History"
                       >
                         ←
                       </Button>
@@ -126,7 +127,7 @@ export default function StrategistTab({
                   </TooltipContent>
                 </Tooltip>
               )}
-              <div className="font-semibold text-[var(--foreground)]">
+              <div className="strategist-toolbar-title font-semibold text-[var(--foreground)]">
                 AI Strategist
               </div>
             </div>
@@ -148,9 +149,10 @@ export default function StrategistTab({
                         variant="outline"
                         size="xs"
                         className="text-[10px]"
+                        aria-label="Download conversation"
                       >
                         <Download className="w-3 h-3 text-[var(--primary)] shrink-0" />
-                        <span>Download</span>
+                        <span className="strategist-toolbar-label">Download</span>
                       </Button>
                     }
                   />
@@ -169,9 +171,10 @@ export default function StrategistTab({
                       variant="outline"
                       size="xs"
                       className="text-[10px]"
+                      aria-label="Start new chat"
                     >
                       <Plus className="w-3 h-3 text-[var(--primary)] shrink-0" />
-                      <span>New Chat</span>
+                      <span className="strategist-toolbar-label">New Chat</span>
                     </Button>
                   }
                 />

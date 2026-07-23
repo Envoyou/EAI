@@ -43,6 +43,7 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
   const {
     sendEvent,
     state,
+    mode,
     text,
     role,
     isPolishMode,
@@ -59,15 +60,19 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
     `No API Key found for provider ${ctx.effectiveProvider}, using mock data stream.`
   );
 
-  sendEvent('status', 'evaluating');
-  await delay(800);
+  const producesDraft = isPolishMode || mode === 'refine';
+
+  if (mode !== 'refine') {
+    sendEvent('status', 'evaluating');
+    await delay(800);
+  }
 
   const mockScore = role === 'editor' ? 55 : 78;
   const mockVerdict = role === 'editor' ? 'reject' : 'revise';
   const mockSummary =
     '[DEV MODE] This article appears to use generic AI patterns and offers limited insight.';
 
-  if (!isPolishMode) {
+  if (!producesDraft) {
     sendEvent('score', mockScore);
     sendEvent('verdict', mockVerdict);
     sendEvent('summary', mockSummary);
@@ -92,9 +97,11 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
     },
   ];
 
-  for (let i = 0; i < mockFeedback.length; i++) {
-    await delay(600);
-    if (!isPolishMode) sendEvent('feedback_item', { item: mockFeedback[i], index: i });
+  if (!producesDraft) {
+    for (let i = 0; i < mockFeedback.length; i++) {
+      await delay(600);
+      sendEvent('feedback_item', { item: mockFeedback[i], index: i });
+    }
   }
 
   if (role === 'editor') {
@@ -103,7 +110,7 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
   }
 
   let mockPolishedDraft = '';
-  if (role === 'polish') {
+  if (producesDraft) {
     await delay(600);
     sendEvent('status', 'rewriting');
 
@@ -117,7 +124,27 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
       await delay(70);
     }
     sendEvent('draft_final', mockPolishedDraft);
+  }
+
+  const mockSeo = {
+    title: 'Mock Title',
+    metaDescription: 'Mock Description',
+    slug: 'mock-slug',
+    tags: ['mock', 'test', 'seo'],
+  };
+
+  if (analysisSpeed !== 'fast') {
+    sendEvent('status', 'generating_seo');
+    await delay(400);
+    sendEvent('seo_metadata', mockSeo);
+    sendEvent('publication_package_status', 'current');
+  } else if (producesDraft) {
+    sendEvent('publication_package_status', 'not_generated');
+  }
+
+  if (producesDraft) {
     sendEvent('status', 'quality_gate');
+    await delay(500);
     sendEvent('readiness', 'needs_review');
     sendEvent(
       'summary',
@@ -130,17 +157,6 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
     for (let i = 0; i < mockFeedback.length; i++) {
       sendEvent('feedback_item', { item: mockFeedback[i], index: i });
     }
-  }
-
-  const mockSeo = {
-    title: 'Mock Title',
-    metaDescription: 'Mock Description',
-    slug: 'mock-slug',
-    tags: ['mock', 'test', 'seo'],
-  };
-
-  if (analysisSpeed !== 'fast') {
-    sendEvent('seo_metadata', mockSeo);
   }
 
   let savedLogId: string | undefined;
@@ -158,7 +174,7 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
               'standard',
               mockPolishedDraft || undefined,
               undefined,
-              mockSeo,
+              analysisSpeed === 'fast' ? undefined : mockSeo,
               analysisSpeed,
               undefined,
               telemetry.snapshot(),
@@ -168,8 +184,8 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
         ),
         promptVersion: process.env.PROMPT_VERSION ?? 'unknown',
         modelName: 'dev-mock-model',
-        score: isPolishMode ? undefined : mockScore,
-        verdict: isPolishMode ? 'needs_review' : mockVerdict,
+        score: producesDraft ? undefined : mockScore,
+        verdict: producesDraft ? 'needs_review' : mockVerdict,
         summary: mockSummary,
         feedback: mockFeedback,
         flags:

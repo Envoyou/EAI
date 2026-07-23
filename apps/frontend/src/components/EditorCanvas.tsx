@@ -49,6 +49,7 @@ interface EditorCanvasProps {
   isRefining: boolean;
   processStage: EditorialProcessStage;
   processStartedAt: number | null;
+  includeSeoStage: boolean;
   onAnalyze: (overrideDraft?: string) => Promise<void>;
   onRefineAgain: (instruction: string) => Promise<void>;
   onReanalyze: () => void;
@@ -88,6 +89,7 @@ export default function EditorCanvas({
   isRefining,
   processStage,
   processStartedAt,
+  includeSeoStage,
   onAnalyze,
   onRefineAgain,
   onReanalyze,
@@ -224,6 +226,7 @@ export default function EditorCanvas({
                       isRefining={isRefining}
                       processStage={processStage}
                       processStartedAt={processStartedAt}
+                      includeSeoStage={includeSeoStage}
                       isStale={analysis.summary?.startsWith('Iterative refinement')}
                       onRefineAgain={onRefineAgain}
                       onReanalyze={onReanalyze}

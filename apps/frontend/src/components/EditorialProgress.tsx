@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Check, Clock3, LoaderCircle } from 'lucide-react';
 import { EditorialProcessStage } from '@eai/shared';
 
-const PROCESS_STEPS: Array<{
+export const PROCESS_STEPS: Array<{
   stage: EditorialProcessStage;
   label: string;
   description: string;
@@ -20,14 +20,14 @@ const PROCESS_STEPS: Array<{
     description: 'Building the Envoyou editorial version',
   },
   {
-    stage: 'quality_gate',
-    label: 'Quality and source checks',
-    description: 'Checking fidelity, structure, and publish readiness',
-  },
-  {
     stage: 'seo',
     label: 'SEO metadata',
     description: 'Preparing title, description, slug, and tags',
+  },
+  {
+    stage: 'quality_gate',
+    label: 'Quality and source checks',
+    description: 'Checking fidelity, structure, and publish readiness',
   },
   {
     stage: 'finalizing',
@@ -35,6 +35,11 @@ const PROCESS_STEPS: Array<{
     description: 'Saving the final editorial package',
   },
 ];
+
+export const getVisibleProcessSteps = (includeSeoStage: boolean) =>
+  includeSeoStage
+    ? PROCESS_STEPS
+    : PROCESS_STEPS.filter((step) => step.stage !== 'seo');
 
 const formatElapsed = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -49,6 +54,7 @@ interface EditorialProgressProps {
   startedAt?: number | null;
   compact?: boolean;
   refining?: boolean;
+  includeSeoStage?: boolean;
 }
 
 export default function EditorialProgress({
@@ -56,6 +62,7 @@ export default function EditorialProgress({
   startedAt,
   compact = false,
   refining = false,
+  includeSeoStage = true,
 }: EditorialProgressProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(() =>
     startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0
@@ -72,11 +79,12 @@ export default function EditorialProgress({
     return () => window.clearInterval(intervalId);
   }, [startedAt]);
 
+  const visibleSteps = getVisibleProcessSteps(includeSeoStage);
   const activeIndex = Math.max(
-    PROCESS_STEPS.findIndex((step) => step.stage === stage),
+    visibleSteps.findIndex((step) => step.stage === stage),
     0
   );
-  const activeStep = PROCESS_STEPS[activeIndex];
+  const activeStep = visibleSteps[activeIndex];
 
   if (compact) {
     return (
@@ -105,7 +113,7 @@ export default function EditorialProgress({
         </div>
 
         <div className="space-y-1">
-          {PROCESS_STEPS.map((step, index) => {
+          {visibleSteps.map((step, index) => {
             const complete = index < activeIndex;
             const active = index === activeIndex;
             return (
@@ -132,7 +140,7 @@ export default function EditorialProgress({
                     <span className="h-1.5 w-1.5 rounded-full bg-current opacity-40" />
                   )}
                 </div>
-                {index < PROCESS_STEPS.length - 1 && (
+                {index < visibleSteps.length - 1 && (
                   <span
                     className={`absolute left-[23px] top-[36px] h-6 w-px ${
                       complete ? 'bg-primary-500/60' : 'bg-[var(--border)]'
@@ -157,7 +165,7 @@ export default function EditorialProgress({
     );
   }
 
-  const progress = ((activeIndex + 0.45) / PROCESS_STEPS.length) * 100;
+  const progress = ((activeIndex + 0.45) / visibleSteps.length) * 100;
 
   return (
     <div
