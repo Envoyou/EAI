@@ -6,6 +6,10 @@ import { ResearchNotesArraySchema, SeoMetadataSchema } from '@eai/shared';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { preparePublicationDraft, resolvePublicationPackageStatus } from '@/routes/analyze/utils/text';
 import { redisRateLimiter } from '@/middleware/rate-limit';
+import {
+  mergeConfirmedInternalUrls,
+  readConfirmedInternalUrls,
+} from '@/lib/confirmed-internal-links';
 
 const router = Router();
 
@@ -462,6 +466,10 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         : systemMetadata.readiness === 'blocked' && unresolved.some((item) => item.status === 'fail')
           ? 'blocked'
           : 'needs_review';
+    const confirmedInternalUrls = mergeConfirmedInternalUrls(
+      readConfirmedInternalUrls(systemMetadata),
+      resolution.data.feedback
+    );
 
     await prisma.analysisLog.update({
       where: { id },
@@ -477,6 +485,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
             polishedDraft: nextPolishedDraft,
             readiness,
             publicationPackageStatus,
+            confirmedInternalUrls,
           },
         } as Prisma.InputJsonValue,
       },

@@ -16,6 +16,18 @@ describe('revision-safe publication workflow', () => {
     expect(panel).toContain('Prepare current draft for export');
   });
 
+  it('keeps secondary final-draft actions in a responsive portalled menu', () => {
+    const panel = readFrontendSource('components/FinalDraftPanel.tsx');
+    const menuStyles = readFrontendSource('app/styles/components/menus.css');
+
+    expect(panel).toContain('<Popover.Portal>');
+    expect(panel).toContain('final-draft-action-menu');
+    expect(panel).toContain("t('workflowActions')");
+    expect(panel).toContain("t('downloadActions')");
+    expect(menuStyles).toContain('.final-draft-action-menu.ui-menu');
+    expect(menuStyles).toContain('calc(100dvh - 2rem)');
+  });
+
   it('uses standalone backend modes instead of full Analyze', () => {
     const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
 

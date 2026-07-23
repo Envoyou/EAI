@@ -5,6 +5,10 @@ import { resolveModel } from '@/lib/ai/model-router';
 import { SeoPromptComposer } from '@/lib/ai/prompt-engine/composer/seo-composer';
 import { runFinalQualityGateSafely } from '@/lib/ai/quality-gate-stage';
 import { runSeoStage } from '@/lib/ai/seo-stage';
+import {
+  mergeConfirmedInternalUrls,
+  readConfirmedInternalUrls,
+} from '@/lib/confirmed-internal-links';
 import type { PublicationStageContext } from '../types';
 import {
   sanitizeFactualSummary,
@@ -65,6 +69,10 @@ export async function handleQualityGateOnly(
   const log = await loadOwnedLog(ctx);
   const { metadata, system } = readStoredState(log.metadata);
   const finalDraft = assertCurrentDraft(ctx.text, system);
+  const confirmedInternalUrls = mergeConfirmedInternalUrls(
+    readConfirmedInternalUrls(system),
+    log.feedback
+  );
   ctx.sendEvent('status', 'quality_gate');
 
   const telemetry = new AiTelemetryCollector();
@@ -87,6 +95,7 @@ export async function handleQualityGateOnly(
         finalDraft,
         metadata: ctx.metadata,
         analysisSpeed: ctx.analysisSpeed,
+        trustedInternalUrls: confirmedInternalUrls,
         trustedInternalDomains: ctx.editorialProfile.config.internalLinkDomains,
         telemetry,
         editorialProfile: ctx.editorialProfile,
@@ -117,6 +126,7 @@ export async function handleQualityGateOnly(
           readiness: result.readiness,
           refinementChanges: result.changes,
           qualityGateCheckedAt: new Date().toISOString(),
+          confirmedInternalUrls,
         },
       } as Prisma.InputJsonValue,
     },

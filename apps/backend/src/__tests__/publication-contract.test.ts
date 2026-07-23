@@ -156,6 +156,63 @@ describe('publication title contract', () => {
   });
 });
 
+describe('publication internal-link exceptions', () => {
+  const readyResult = (): FinalQualityGateOutput => ({
+    readiness: 'ready',
+    summary: 'The draft is ready.',
+    changes: [],
+    feedback: [],
+    flags: [],
+  });
+
+  test('does not flag an exact internal URL that the editor confirmed', () => {
+    const confirmedUrl = 'https://blog.envoyou.com/posts/confirmed-article';
+    const result = applyDeterministicQualityChecks(
+      readyResult(),
+      `Read [the confirmed article](${confirmedUrl}).`,
+      'Read the confirmed article.',
+      {
+        language: 'en',
+        publicationMode: 'fast',
+        trustedInternalDomains: ['blog.envoyou.com'],
+        trustedInternalUrls: [confirmedUrl],
+      }
+    );
+
+    expect(result.feedback).toHaveLength(0);
+    expect(result.flags).not.toContain('Internal Link Review');
+    expect(result.readiness).toBe('ready');
+  });
+
+  test('still flags a different unconfirmed URL on the same internal domain', () => {
+    const confirmedUrl = 'https://blog.envoyou.com/posts/confirmed-article';
+    const unconfirmedUrl = 'https://blog.envoyou.com/posts/unconfirmed-article';
+    const result = applyDeterministicQualityChecks(
+      readyResult(),
+      [
+        `[Confirmed](${confirmedUrl}).`,
+        `[Unconfirmed](${unconfirmedUrl}).`,
+      ].join('\n'),
+      'Read the related articles.',
+      {
+        language: 'en',
+        publicationMode: 'fast',
+        trustedInternalDomains: ['blog.envoyou.com'],
+        trustedInternalUrls: [confirmedUrl],
+      }
+    );
+
+    expect(result.feedback).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        category: 'Internal Linking',
+        message: expect.stringContaining(unconfirmedUrl),
+      }),
+    ]));
+    expect(result.flags).toContain('Internal Link Review');
+    expect(result.readiness).toBe('needs_review');
+  });
+});
+
 describe('visual and acronym policy', () => {
   test('defaults to prose and makes visual elements optional', () => {
     const prompt = new VisualFormatSelectionPolicyNode().render({ format: 'xml' });

@@ -73,6 +73,12 @@
   opacity: 0.45;
 }
 
+.final-draft-action-menu.ui-menu {
+  width: min(18rem, calc(100vw - 2rem));
+  max-height: min(32rem, calc(100dvh - 2rem));
+  overflow-y: auto;
+}
+
 .dark .ui-menu {
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.42),

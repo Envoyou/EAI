@@ -707,7 +707,7 @@ export default function FinalDraftPanel({
           {/* Actions */}
           {polishedDraft.trim() && (
             <div className="final-draft-actions flex flex-wrap sm:flex-nowrap items-center gap-1 shrink-0 w-full sm:w-auto">
-            {/* Copy Button */}
+            {/* Quick actions */}
             <Tooltip>
               <TooltipTrigger
                 render={
@@ -720,7 +720,6 @@ export default function FinalDraftPanel({
                     aria-label="Copy refined draft"
                   >
                     <Copy className="h-3.5 w-3.5" />
-                    <span className="hidden @[380px]:inline">Copy</span>
                   </Button>
                 }
               />
@@ -729,60 +728,13 @@ export default function FinalDraftPanel({
               </TooltipContent>
             </Tooltip>
 
-            {/* Export Button */}
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    type="button"
-                    onClick={handleExport}
-                    disabled={!canExport || isExporting}
-                    variant={canExport && !isExporting ? 'primary' : 'surface'}
-                    size="sm"
-                    aria-label={exportStatus?.blogEditUrl ? 'Update CMS Draft' : 'Export to CMS'}
-                  >
-                    {isExporting ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Send className="h-3.5 w-3.5" />
-                    )}
-                    <span className="hidden @[420px]:inline">
-                      {exportStatus?.blogEditUrl ? 'Update' : 'Export to CMS'}
-                    </span>
-                  </Button>
-                }
-              />
-              <TooltipContent side="bottom" className="text-xs">
-                {exportUnavailableReason ||
-                  (exportStatus?.blogEditUrl ? 'Update CMS Draft' : 'Export to CMS')}
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Re-analyze Button */}
-            {onReanalyze && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={<Button type="button" variant="muted" size="sm" />}
-                  onClick={onReanalyze}
-                  disabled={!ready || isStreaming || isRefining}
-                  aria-label="Run full analysis"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  <span className="hidden @[440px]:inline">Full Analyze</span>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  Run the complete rewrite, SEO, and quality workflow again
-                </TooltipContent>
-              </Tooltip>
-            )}
-
             {onSaveFinalDraft && (
               <Tooltip>
                 <TooltipTrigger
                   render={
                     <Button
                       type="button"
-                      variant={editingDraft ? 'primary' : 'muted'}
+                      variant={editingDraft ? 'surface' : 'muted'}
                       size="sm"
                       onClick={() => {
                         if (!editingDraft) setDraftEditValue(polishedDraft);
@@ -793,7 +745,7 @@ export default function FinalDraftPanel({
                       aria-label="Edit final draft"
                     >
                       <Pencil className="h-3.5 w-3.5" />
-                      <span className="hidden @[520px]:inline">Edit Draft</span>
+                      <span className="hidden @[460px]:inline">{t('editDraft')}</span>
                     </Button>
                   }
                 />
@@ -803,7 +755,7 @@ export default function FinalDraftPanel({
               </Tooltip>
             )}
 
-            {onPrepareForExport && (
+            {!canExport && onPrepareForExport ? (
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -816,7 +768,7 @@ export default function FinalDraftPanel({
                       aria-label="Prepare current draft for export"
                     >
                       <Sparkles className="h-3.5 w-3.5" />
-                      <span className="hidden @[540px]:inline">Prepare</span>
+                      <span className="hidden @[420px]:inline">{t('prepare')}</span>
                     </Button>
                   }
                 />
@@ -824,95 +776,43 @@ export default function FinalDraftPanel({
                   Run only the checks needed for this draft revision, then refresh SEO
                 </TooltipContent>
               </Tooltip>
-            )}
-
-            {onQualityCheck && (
+            ) : (
               <Tooltip>
                 <TooltipTrigger
                   render={
                     <Button
                       type="button"
-                      variant="muted"
+                      onClick={handleExport}
+                      disabled={!canExport || isExporting}
+                      variant={canExport && !isExporting ? 'primary' : 'surface'}
                       size="sm"
-                      onClick={onQualityCheck}
-                      disabled={isGeneratingDraft || isSavingFinalDraft}
-                      aria-label="Run quality check only"
+                      aria-label={exportStatus?.blogEditUrl ? 'Update CMS Draft' : 'Export to CMS'}
                     >
-                      {isCheckingQuality
+                      {isExporting
                         ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : <ShieldCheck className="h-3.5 w-3.5" />}
-                      <span className="hidden @[560px]:inline">Quality Check</span>
+                        : <Send className="h-3.5 w-3.5" />}
+                      <span className="hidden @[420px]:inline">
+                        {exportStatus?.blogEditUrl ? t('update') : t('exportToCms')}
+                      </span>
                     </Button>
                   }
                 />
                 <TooltipContent side="bottom" className="text-xs">
-                  Check the current draft without rewriting it
+                  {exportUnavailableReason ||
+                    (exportStatus?.blogEditUrl ? 'Update CMS Draft' : 'Export to CMS')}
                 </TooltipContent>
               </Tooltip>
             )}
 
-            {onRegenerateSeo && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      type="button"
-                      variant="muted"
-                      size="sm"
-                      onClick={onRegenerateSeo}
-                      disabled={!qualityReady || isGeneratingDraft}
-                      aria-label="Regenerate SEO metadata"
-                    >
-                      {isGeneratingSeo
-                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : <Wand2 className="h-3.5 w-3.5" />}
-                      <span className="hidden @[600px]:inline">SEO</span>
-                    </Button>
-                  }
-                />
-                <TooltipContent side="bottom" className="text-xs">
-                  {qualityReady
-                    ? 'Regenerate SEO for the current final draft'
-                    : 'Complete or approve quality findings first'}
-                </TooltipContent>
-              </Tooltip>
-            )}
-
-            {/* Toggle Stats Button */}
-            {ready && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={<Button type="button" variant={showStats ? 'surface' : 'muted'} size="icon" />}
-                  onClick={() => setShowStats(p => !p)}
-                  className="relative z-10"
-                  aria-pressed={showStats}
-                  aria-label={showStats ? 'Hide change summary' : 'Show change summary'}
-                >
-                  <FileDiff className="h-4 w-4" />
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  {showStats ? 'Hide Stats' : 'Show Stats'}
-                </TooltipContent>
-              </Tooltip>
-            )}
-
-            {/* 3-dots options menu */}
+            {/* Secondary actions */}
             <Popover.Root open={menuOpen} onOpenChange={setMenuOpen}>
               <Popover.Trigger
-                disabled={!canDownload}
-                title={
-                  isDemoMode
-                    ? 'Sign up to download'
-                    : canDownload
-                      ? 'Download refined draft'
-                      : 'A refined draft is required before downloading'
-                }
                 render={
                   <Button
                     type="button"
                     variant="muted"
                     size="icon"
-                    aria-label="More Options"
+                    aria-label={t('moreActions')}
                   >
                     <MoreVertical className="h-4 w-4" />
                   </Button>
@@ -928,23 +828,151 @@ export default function FinalDraftPanel({
                   className="isolate z-50"
                 >
                   <Popover.Popup
-                    className="ui-menu w-55 p-1"
+                    className="ui-menu final-draft-action-menu p-1"
                     initialFocus={false}
                   >
-                    <div className="ui-menu-label">
-                      Export / Download
-                    </div>
+                    {(onReanalyze || onQualityCheck || onRegenerateSeo || (canExport && onPrepareForExport)) && (
+                      <>
+                        <div className="ui-menu-label">{t('workflowActions')}</div>
+                        {canExport && onPrepareForExport && (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              setMenuOpen(false);
+                              void onPrepareForExport();
+                            }}
+                            disabled={isGeneratingDraft || isSavingFinalDraft}
+                            variant="muted"
+                            className="ui-menu-item justify-start w-full font-normal border-none"
+                          >
+                            <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                            <span>{t('prepareAgain')}</span>
+                          </Button>
+                        )}
+                        {onQualityCheck && (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              setMenuOpen(false);
+                              void onQualityCheck();
+                            }}
+                            disabled={isGeneratingDraft || isSavingFinalDraft}
+                            variant="muted"
+                            className="ui-menu-item justify-start w-full font-normal border-none"
+                            aria-label="Run Quality Check"
+                          >
+                            {isCheckingQuality
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <ShieldCheck className="h-3.5 w-3.5" />}
+                            <span>{t('qualityCheck')}</span>
+                          </Button>
+                        )}
+                        {onRegenerateSeo && (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              setMenuOpen(false);
+                              void onRegenerateSeo();
+                            }}
+                            disabled={!qualityReady || isGeneratingDraft}
+                            variant="muted"
+                            className="ui-menu-item justify-start w-full font-normal border-none"
+                            aria-label="Regenerate SEO metadata"
+                          >
+                            {isGeneratingSeo
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <Wand2 className="h-3.5 w-3.5" />}
+                            <span>{t('regenerateSeo')}</span>
+                          </Button>
+                        )}
+                        {onReanalyze && (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              setMenuOpen(false);
+                              onReanalyze();
+                            }}
+                            disabled={!ready || isStreaming || isRefining}
+                            variant="muted"
+                            className="ui-menu-item justify-start w-full font-normal border-none"
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            <span>{t('fullAnalyze')}</span>
+                          </Button>
+                        )}
+                        <div className="ui-menu-divider" />
+                      </>
+                    )}
+
+                    {(ready || onFocusToggle) && (
+                      <>
+                        <div className="ui-menu-label">{t('viewActions')}</div>
+                        {ready && (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              setShowStats((current) => !current);
+                              setMenuOpen(false);
+                            }}
+                            variant="muted"
+                            className="ui-menu-item justify-start w-full font-normal border-none"
+                            aria-pressed={showStats}
+                          >
+                            <FileDiff className="h-3.5 w-3.5" />
+                            <span>{showStats ? t('hideChangeSummary') : t('showChangeSummary')}</span>
+                          </Button>
+                        )}
+                        {onFocusToggle && (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              setMenuOpen(false);
+                              onFocusToggle();
+                            }}
+                            variant="muted"
+                            className="ui-menu-item justify-start w-full font-normal border-none"
+                          >
+                            {isFocused
+                              ? <Minimize2 className="h-3.5 w-3.5" />
+                              : <Maximize2 className="h-3.5 w-3.5" />}
+                            <span>{isFocused ? t('restoreSplitView') : t('focusPanel')}</span>
+                          </Button>
+                        )}
+                        <div className="ui-menu-divider" />
+                      </>
+                    )}
+
+                    {!canExport && (
+                      <>
+                        <div className="ui-menu-label">{t('publishActions')}</div>
+                        <Button
+                          type="button"
+                          onClick={handleExport}
+                          disabled
+                          title={exportUnavailableReason || undefined}
+                          variant="muted"
+                          className="ui-menu-item justify-start w-full font-normal border-none"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          <span>{exportStatus?.blogEditUrl ? t('updateCmsDraft') : t('exportToCms')}</span>
+                        </Button>
+                        <div className="ui-menu-divider" />
+                      </>
+                    )}
+
+                    <div className="ui-menu-label">{t('downloadActions')}</div>
                     <Button
                       type="button"
                       onClick={() => {
                         handleDownloadPDF();
                         setMenuOpen(false);
                       }}
+                      disabled={!canDownload}
                       variant="muted"
                       className="ui-menu-item justify-start w-full font-normal border-none"
                     >
-                      <Download className="h-3.5 w-3.5 text-[var(--primary)] shrink-0" />
-                      <span>Download PDF (.pdf)</span>
+                      <Download className="h-3.5 w-3.5 shrink-0" />
+                      <span>{t('downloadPdf')}</span>
                     </Button>
                     <Button
                       type="button"
@@ -952,11 +980,12 @@ export default function FinalDraftPanel({
                         handleDownloadWord();
                         setMenuOpen(false);
                       }}
+                      disabled={!canDownload}
                       variant="muted"
                       className="ui-menu-item justify-start w-full font-normal border-none"
                     >
-                      <FileText className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                      <span>Download Word (.doc)</span>
+                      <FileText className="h-3.5 w-3.5 shrink-0" />
+                      <span>{t('downloadWord')}</span>
                     </Button>
                     <Button
                       type="button"
@@ -964,37 +993,17 @@ export default function FinalDraftPanel({
                         handleDownloadMarkdown();
                         setMenuOpen(false);
                       }}
+                      disabled={!canDownload}
                       variant="muted"
                       className="ui-menu-item justify-start w-full font-normal border-none"
                     >
-                      <FileText className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                      <span>Download Markdown (.md)</span>
+                      <FileText className="h-3.5 w-3.5 shrink-0" />
+                      <span>{t('downloadMarkdown')}</span>
                     </Button>
                   </Popover.Popup>
                 </Popover.Positioner>
               </Popover.Portal>
             </Popover.Root>
-
-            {onFocusToggle && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      type="button"
-                      onClick={onFocusToggle}
-                      variant="muted"
-                      size="icon"
-                      aria-label={isFocused ? 'Restore split view' : 'Focus refined draft'}
-                    >
-                      {isFocused ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-                    </Button>
-                  }
-                />
-                <TooltipContent side="bottom" className="text-xs">
-                  {isFocused ? 'Restore Split View' : 'Focus Panel'}
-                </TooltipContent>
-              </Tooltip>
-            )}
             </div>
           )}
         </div>
