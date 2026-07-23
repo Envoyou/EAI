@@ -7,15 +7,17 @@ import { Popover } from '@base-ui/react/popover';
 import {
   Copy, FileDiff, CheckCircle2, PlusCircle, MinusCircle,
   Eye, Code, SplitSquareHorizontal, Send, Loader2, Maximize2, Minimize2,
-  MoreVertical, FileText, Download, Sparkles, ChevronDown, ChevronUp, AlertTriangle, RefreshCw
+  MoreVertical, FileText, Download, Sparkles, ChevronDown, ChevronUp, AlertTriangle, RefreshCw,
+  Pencil, ShieldCheck, Wand2, Save, X
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
 import { buildParagraphDiff } from '@eai/shared';
-import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackageStatus } from '@eai/shared';
+import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackage, PublicationPackageStatus } from '@eai/shared';
 import EditorialProgress from '@/components/EditorialProgress';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -25,6 +27,7 @@ interface FinalDraftPanelProps {
   originalDraft: string;
   polishedDraft: string;
   ready: boolean;
+  qualityReady?: boolean;
   exportBlocked?: boolean;
   cmsConnected?: boolean;
   analysisLogId?: string;
@@ -58,6 +61,14 @@ interface FinalDraftPanelProps {
   isStale?: boolean;
   onRefineAgain?: (instruction: string) => void;
   onReanalyze?: () => void;
+  onSaveFinalDraft?: (draft: string) => Promise<boolean>;
+  onQualityCheck?: () => Promise<unknown>;
+  onRegenerateSeo?: () => Promise<void>;
+  onSavePublicationMetadata?: (metadata: PublicationPackage) => Promise<boolean>;
+  onPrepareForExport?: () => Promise<void>;
+  isSavingFinalDraft?: boolean;
+  isCheckingQuality?: boolean;
+  isGeneratingSeo?: boolean;
   hoveredFeedbackIndex: number | null;
   activeFeedbackIndex: number | null;
   onActiveFeedbackChange: (index: number | null) => void;
@@ -166,10 +177,21 @@ const sectionStyles = {
 
 type TabType = 'preview' | 'raw' | 'diff';
 
+const toSeoEditValue = (metadata?: PublicationPackage) => ({
+  title: metadata?.title || '',
+  slug: metadata?.slug || '',
+  excerpt: metadata?.excerpt || '',
+  metaTitle: metadata?.metaTitle || '',
+  metaDescription: metadata?.metaDescription || '',
+  coverImageAltText: metadata?.coverImageAltText || '',
+  tags: metadata?.tags?.join(', ') || '',
+});
+
 export default function FinalDraftPanel({
   originalDraft,
   polishedDraft,
   ready,
+  qualityReady = false,
   exportBlocked = false,
   cmsConnected = false,
   analysisLogId,
@@ -189,6 +211,14 @@ export default function FinalDraftPanel({
   isStale,
   onRefineAgain,
   onReanalyze,
+  onSaveFinalDraft,
+  onQualityCheck,
+  onRegenerateSeo,
+  onSavePublicationMetadata,
+  onPrepareForExport,
+  isSavingFinalDraft = false,
+  isCheckingQuality = false,
+  isGeneratingSeo = false,
   hoveredFeedbackIndex,
   activeFeedbackIndex,
   feedback = [],
@@ -201,6 +231,12 @@ export default function FinalDraftPanel({
   const [refineInstruction, setRefineInstruction] = useState('');
   const [showRefineBox, setShowRefineBox] = useState(false);
   const [showStats, setShowStats] = useState(true);
+  const [editingDraft, setEditingDraft] = useState(false);
+  const [draftEditValue, setDraftEditValue] = useState(polishedDraft);
+  const [editingSeo, setEditingSeo] = useState(false);
+  const [seoEditValue, setSeoEditValue] = useState(() =>
+    toSeoEditValue(generatedMetadata)
+  );
   const isGeneratingDraft = Boolean(isStreaming || isRefining);
   const displayTab: TabType = isGeneratingDraft && !polishedDraft.trim() ? 'preview' : activeTab;
 
@@ -729,13 +765,115 @@ export default function FinalDraftPanel({
                   render={<Button type="button" variant="muted" size="sm" />}
                   onClick={onReanalyze}
                   disabled={!ready || isStreaming || isRefining}
-                  aria-label="Re-analyze Draft"
+                  aria-label="Run full analysis"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
-                  <span className="hidden @[440px]:inline">Re-analyze</span>
+                  <span className="hidden @[440px]:inline">Full Analyze</span>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
-                  Analyze this refined draft again
+                  Run the complete rewrite, SEO, and quality workflow again
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {onSaveFinalDraft && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant={editingDraft ? 'primary' : 'muted'}
+                      size="sm"
+                      onClick={() => {
+                        if (!editingDraft) setDraftEditValue(polishedDraft);
+                        setEditingDraft((current) => !current);
+                      }}
+                      disabled={isGeneratingDraft}
+                      aria-pressed={editingDraft}
+                      aria-label="Edit final draft"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      <span className="hidden @[520px]:inline">Edit Draft</span>
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom" className="text-xs">
+                  Edit the saved final draft without running Rewrite
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {onPrepareForExport && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant={canExport ? 'surface' : 'primary'}
+                      size="sm"
+                      onClick={onPrepareForExport}
+                      disabled={isGeneratingDraft || isSavingFinalDraft}
+                      aria-label="Prepare current draft for export"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span className="hidden @[540px]:inline">Prepare</span>
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom" className="text-xs">
+                  Run only the checks needed for this draft revision, then refresh SEO
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {onQualityCheck && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="muted"
+                      size="sm"
+                      onClick={onQualityCheck}
+                      disabled={isGeneratingDraft || isSavingFinalDraft}
+                      aria-label="Run quality check only"
+                    >
+                      {isCheckingQuality
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <ShieldCheck className="h-3.5 w-3.5" />}
+                      <span className="hidden @[560px]:inline">Quality Check</span>
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom" className="text-xs">
+                  Check the current draft without rewriting it
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {onRegenerateSeo && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="muted"
+                      size="sm"
+                      onClick={onRegenerateSeo}
+                      disabled={!qualityReady || isGeneratingDraft}
+                      aria-label="Regenerate SEO metadata"
+                    >
+                      {isGeneratingSeo
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Wand2 className="h-3.5 w-3.5" />}
+                      <span className="hidden @[600px]:inline">SEO</span>
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom" className="text-xs">
+                  {qualityReady
+                    ? 'Regenerate SEO for the current final draft'
+                    : 'Complete or approve quality findings first'}
                 </TooltipContent>
               </Tooltip>
             )}
@@ -861,6 +999,158 @@ export default function FinalDraftPanel({
           )}
         </div>
 
+        {editingDraft && onSaveFinalDraft && (
+          <div className="ui-card mb-3 space-y-3 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold ui-text">Edit Final Draft</p>
+                <p className="text-[11px] ui-muted">
+                  Saving changes invalidates the previous quality check and SEO metadata.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="muted"
+                size="icon-xs"
+                onClick={() => setEditingDraft(false)}
+                aria-label="Close final draft editor"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <Textarea
+              variant="surface"
+              value={draftEditValue}
+              onChange={(event) => setDraftEditValue(event.target.value)}
+              rows={16}
+              disabled={isSavingFinalDraft}
+              aria-label="Final draft content"
+              className="min-h-72 resize-y font-mono text-xs leading-relaxed"
+            />
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              disabled={!draftEditValue.trim() || isSavingFinalDraft}
+              onClick={async () => {
+                if (await onSaveFinalDraft(draftEditValue)) setEditingDraft(false);
+              }}
+            >
+              {isSavingFinalDraft
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Save className="h-3.5 w-3.5" />}
+              Save Draft Revision
+            </Button>
+          </div>
+        )}
+
+        {generatedMetadata && qualityReady && onSavePublicationMetadata && (
+          <div className="ui-card mb-3 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold ui-text">Publication Metadata</p>
+                <p className="text-[11px] ui-muted">
+                  Edit SEO fields without running Analyze again.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="muted"
+                size="xs"
+                onClick={() => {
+                  if (!editingSeo) setSeoEditValue(toSeoEditValue(generatedMetadata));
+                  setEditingSeo((current) => !current);
+                }}
+                aria-expanded={editingSeo}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                {editingSeo ? 'Close' : 'Edit SEO'}
+              </Button>
+            </div>
+            {editingSeo && (
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                {[
+                  ['title', 'Title'],
+                  ['slug', 'Slug'],
+                  ['metaTitle', 'Meta Title'],
+                  ['coverImageAltText', 'Cover Image Alt'],
+                ].map(([field, label]) => (
+                  <Input
+                    key={field}
+                    variant="surface"
+                    value={seoEditValue[field as keyof typeof seoEditValue]}
+                    onChange={(event) =>
+                      setSeoEditValue((current) => ({
+                        ...current,
+                        [field]: event.target.value,
+                      }))
+                    }
+                    aria-label={label}
+                    placeholder={label}
+                  />
+                ))}
+                <Textarea
+                  variant="surface"
+                  value={seoEditValue.excerpt}
+                  onChange={(event) =>
+                    setSeoEditValue((current) => ({ ...current, excerpt: event.target.value }))
+                  }
+                  rows={3}
+                  aria-label="Excerpt"
+                  placeholder="Excerpt"
+                />
+                <Textarea
+                  variant="surface"
+                  value={seoEditValue.metaDescription}
+                  onChange={(event) =>
+                    setSeoEditValue((current) => ({
+                      ...current,
+                      metaDescription: event.target.value,
+                    }))
+                  }
+                  rows={3}
+                  aria-label="Meta description"
+                  placeholder="Meta Description"
+                />
+                <Input
+                  variant="surface"
+                  value={seoEditValue.tags}
+                  onChange={(event) =>
+                    setSeoEditValue((current) => ({ ...current, tags: event.target.value }))
+                  }
+                  aria-label="Tags"
+                  placeholder="Tags separated by commas"
+                  className="md:col-span-2"
+                />
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  className="md:col-span-2"
+                  onClick={async () => {
+                    const saved = await onSavePublicationMetadata({
+                      title: seoEditValue.title,
+                      slug: seoEditValue.slug,
+                      excerpt: seoEditValue.excerpt,
+                      metaTitle: seoEditValue.metaTitle,
+                      metaDescription: seoEditValue.metaDescription,
+                      coverImageAltText: seoEditValue.coverImageAltText,
+                      tags: seoEditValue.tags
+                        .split(',')
+                        .map((tag) => tag.trim())
+                        .filter(Boolean),
+                    });
+                    if (saved) setEditingSeo(false);
+                  }}
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  Save Publication Metadata
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Export Warning */}
         {exportStatus?.blogEditUrl && (
           <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
@@ -964,7 +1254,7 @@ export default function FinalDraftPanel({
             <div>
               <p className="font-semibold mb-0.5">Draft has been refined</p>
               <p className="opacity-90">
-                The previous editorial feedback has been cleared. Click &quot;Re-analyze&quot; to evaluate this new version.
+                The previous editorial feedback has been cleared. Run Quality Check to evaluate this exact version without rewriting it.
               </p>
             </div>
           </Alert>

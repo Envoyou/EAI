@@ -13,10 +13,11 @@ const activationStep = onboardingSource.slice(
 );
 
 describe('remaining legacy feature form-control contract', () => {
-  it('uses a canonical revision-instruction textarea in Final Draft', () => {
+  it('uses canonical controls for revision and publication fields in Final Draft', () => {
     expect(finalDraftSource).not.toMatch(/<textarea\b/);
-    expect(finalDraftSource.match(/<Textarea\b/g)).toHaveLength(1);
-    expect(finalDraftSource.match(/variant="surface"/g)).toHaveLength(1);
+    expect(finalDraftSource.match(/<Textarea\b/g)).toHaveLength(4);
+    expect(finalDraftSource.match(/<Input\b/g)).toHaveLength(2);
+    expect(finalDraftSource.match(/variant="surface"/g)).toHaveLength(6);
     expect(finalDraftSource).not.toMatch(/ui-control|ui-input|ui-textarea|ui-select/);
   });
 

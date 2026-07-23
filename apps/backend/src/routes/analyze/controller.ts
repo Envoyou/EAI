@@ -24,6 +24,10 @@ import { isMockMode, handleDevMock } from './handlers/dev-mock';
 import { handleFixTargeted } from './handlers/fix-targeted';
 import { handleRefine } from './handlers/refine';
 import { handleAnalyze } from './handlers/analyze';
+import {
+  handleGenerateSeo,
+  handleQualityGateOnly,
+} from './handlers/publication';
 
 const router = Router();
 
@@ -32,7 +36,9 @@ const AnalyzeRequestSchema = z
     text: z.string().max(100_000).optional(),
     role: z.enum(['polish', 'author', 'editor', 'seo', 'fact-checker']).optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
-    mode: z.enum(['analyze', 'refine', 'fix_targeted']).optional(),
+    mode: z.enum(['analyze', 'refine', 'fix_targeted', 'quality_gate', 'generate_seo']).optional(),
+    analysisLogId: z.string().max(100).optional(),
+    originalDraft: z.string().max(100_000).optional(),
     userInstruction: z.string().max(5_000).optional(),
     previousFeedback: z.array(FeedbackItemSchema).max(20).optional(),
     analysisSpeed: z.enum(['fast', 'balanced', 'deep']).optional(),
@@ -60,6 +66,13 @@ const AnalyzeRequestSchema = z
         code: 'custom',
         path: ['targetText'],
         message: 'Target text is required',
+      });
+    }
+    if ((mode === 'quality_gate' || mode === 'generate_seo') && !value.analysisLogId?.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['analysisLogId'],
+        message: 'Analysis log ID is required',
       });
     }
   });
@@ -268,6 +281,8 @@ router.post('/', async (req: Request, res) => {
       targetText,
       feedbackMessage,
       instruction,
+      analysisLogId,
+      originalDraft,
     } = parsedRequest.data;
 
     const analysisSpeed = userId ? (requestedAnalysisSpeed ?? 'deep') : 'fast';
@@ -335,6 +350,33 @@ router.post('/', async (req: Request, res) => {
     const maxLength = workspace?.plan?.maxTextLength ?? 15000;
     if (text.length > maxLength) {
       sendEvent('error', `Draft is too long. Maximum ${maxLength} characters.`);
+      res.end();
+      return;
+    }
+
+    if (effectiveMode === 'quality_gate' || effectiveMode === 'generate_seo') {
+      const publicationContext = {
+        sendEvent,
+        state,
+        text,
+        metadata,
+        analysisLogId: analysisLogId ?? '',
+        originalDraft,
+        analysisSpeed,
+        effectiveProvider,
+        userId,
+        workspace,
+        editorialProfile,
+        editorialAudit,
+        editorialLogFields,
+        telemetry,
+        modelOverride,
+      };
+      if (effectiveMode === 'quality_gate') {
+        await handleQualityGateOnly(publicationContext);
+      } else {
+        await handleGenerateSeo(publicationContext);
+      }
       res.end();
       return;
     }

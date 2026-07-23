@@ -21,7 +21,6 @@ interface TargetedFixContext {
   ) => Promise<void>;
   setAnalysis: (updater: (prev: AnalysisResult) => AnalysisResult) => void;
   analyzeAbortControllerRef: React.MutableRefObject<AbortController | null>;
-  calculateReadiness: (feedback: FeedbackItem[], originalReadiness?: EditorialReadiness) => EditorialReadiness;
 }
 
 export async function executeTargetedFix(
@@ -38,7 +37,6 @@ export async function executeTargetedFix(
     persistEditorialResolution,
     setAnalysis,
     analyzeAbortControllerRef,
-    calculateReadiness,
   } = ctx;
 
   const item = analysis.feedback?.[index];
@@ -129,8 +127,8 @@ export async function executeTargetedFix(
       isVerified: actionType === 'fix',
       isAccepted: actionType === 'remove',
     };
-    const nextReadiness = calculateReadiness(nextFeedback, analysis.readiness);
-    const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
+    const nextReadiness: EditorialReadiness = 'needs_review';
+    const nextFlags = analysis.flags || [];
     await persistEditorialResolution(
       nextFeedback,
       nextReadiness,

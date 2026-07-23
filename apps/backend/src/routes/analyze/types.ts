@@ -3,7 +3,7 @@
  * Extracted from analyze.ts during the Sprint 1 refactor (zero logic change).
  */
 
-import type { FeedbackOutput, PolishDiagnosisOutput, ArticleMetadata, ResponseMode, Role, FeedbackItem } from '@eai/shared';
+import type { AnalyzeMode, FeedbackOutput, PolishDiagnosisOutput, ArticleMetadata, ResponseMode, Role, FeedbackItem } from '@eai/shared';
 import type { EditorialAuditContext, EditorialProfileSnapshot } from '@eai/shared/server';
 import type { AiTelemetryCollector } from '@/lib/ai-telemetry';
 import type { getWorkspaceState } from '@/lib/user-workspace';
@@ -120,6 +120,11 @@ export type FixTargetedContext = BaseHandlerContext & {
 export type RefineContext = BaseHandlerContext & {
   userInstruction: string;
   previousFeedback: FeedbackItem[];
+};
+
+export type PublicationStageContext = BaseHandlerContext & {
+  analysisLogId: string;
+  originalDraft?: string;
 };
 
 export type AnalyzeContext = BaseHandlerContext & {

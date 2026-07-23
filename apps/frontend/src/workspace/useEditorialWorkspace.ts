@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import type { FeedbackItem, EditorialReadiness, ResearchNote, Attachment, AnalysisResult, ArticleMetadata } from '@eai/shared';
+import type { FeedbackItem, EditorialReadiness, ResearchNote, Attachment, AnalysisResult, ArticleMetadata, PublicationPackage } from '@eai/shared';
 import {
   applyAllFeedbackOperations,
   applyFeedbackOperation,
@@ -11,6 +11,7 @@ import {
 } from '@eai/shared';
 import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
+import { readWithTimeout } from '@/lib/stream-utils';
 import { applyDefaultMetadata } from '@/lib/preferences';
 
 // Hooks
@@ -108,6 +109,9 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   const [isTargetedFixing, setIsTargetedFixing] = useState<number | null>(null);
   const [isSavingToCloud, setIsSavingToCloud] = useState(false);
   const [isGeneratingDraftFromNotes, setIsGeneratingDraftFromNotes] = useState(false);
+  const [isSavingFinalDraft, setIsSavingFinalDraft] = useState(false);
+  const [isCheckingQuality, setIsCheckingQuality] = useState(false);
+  const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
 
   // 3. Config Hook
   useWorkspaceConfig({
@@ -263,6 +267,222 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     }
   };
 
+  const handleSaveFinalDraft = async (polishedDraft: string): Promise<boolean> => {
+    const logId = analysis.analysisLogId || activeHistoryId;
+    if (!logId || !polishedDraft.trim()) return false;
+    setIsSavingFinalDraft(true);
+    try {
+      const response = await fetchWithTimeout(`/api/history/${logId}/resolve`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_final_draft',
+          polishedDraft,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to save final draft.');
+      setAnalysis(prev => ({
+        ...prev,
+        polishedDraft: result.polishedDraft,
+        readiness: 'needs_review',
+        verdict: 'needs_review',
+        feedback: [],
+        flags: [],
+        summary: 'The final draft was edited and needs a content quality check.',
+        publicationPackageStatus: result.publicationPackageStatus,
+      }));
+      toast.success('Final draft saved. Run Quality Check before export.');
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save final draft.');
+      return false;
+    } finally {
+      setIsSavingFinalDraft(false);
+    }
+  };
+
+  const consumePublicationStream = async (
+    response: Response,
+    onEvent: (event: { type: string; data: unknown }) => void,
+    controller: AbortController
+  ) => {
+    if (!response.ok) {
+      throw new Error((await response.json().catch(() => null))?.error || 'Publication operation failed.');
+    }
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('Response body reader not available.');
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let complete = false;
+    while (true) {
+      const { done, value } = await readWithTimeout(
+        reader,
+        45_000,
+        (reason) => controller.abort(reason)
+      );
+      if (done) break;
+      buffer += decoder.decode(value as Uint8Array, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const event = JSON.parse(line) as { type: string; data: unknown };
+        if (event.type === 'error') throw new Error(String(event.data));
+        if (event.type === 'complete') complete = true;
+        onEvent(event);
+      }
+    }
+    if (!complete) throw new Error('Publication operation ended before completion.');
+  };
+
+  const handleQualityCheck = async (): Promise<EditorialReadiness | null> => {
+    const logId = analysis.analysisLogId || activeHistoryId;
+    if (!logId || !analysis.polishedDraft) return null;
+    const controller = new AbortController();
+    analyzeAbortControllerRef.current = controller;
+    setIsCheckingQuality(true);
+    setIsStreaming(true);
+    setProcessStage('quality_gate');
+    setProcessStartedAt(Date.now());
+    setAnalysis(prev => ({ ...prev, feedback: [], flags: [] }));
+    let checkedReadiness: EditorialReadiness | null = null;
+    try {
+      const response = await directFetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          mode: 'quality_gate',
+          text: analysis.polishedDraft,
+          originalDraft: sourceDraft,
+          analysisLogId: logId,
+          metadata,
+          analysisSpeed: 'deep',
+        }),
+      });
+      await consumePublicationStream(response, event => {
+        if (event.type === 'readiness') {
+          checkedReadiness = event.data as EditorialReadiness;
+          setAnalysis(prev => ({
+            ...prev,
+            readiness: event.data as EditorialReadiness,
+            verdict: event.data as EditorialReadiness,
+          }));
+        } else if (event.type === 'summary') {
+          setAnalysis(prev => ({ ...prev, summary: event.data as string }));
+        } else if (event.type === 'changes') {
+          setAnalysis(prev => ({ ...prev, changes: event.data as string[] }));
+        } else if (event.type === 'feedback_item') {
+          const { item, index } = event.data as { item: FeedbackItem; index: number };
+          setAnalysis(prev => {
+            const feedback = [...(prev.feedback || [])];
+            feedback[index] = item;
+            return { ...prev, feedback };
+          });
+        } else if (event.type === 'flags') {
+          setAnalysis(prev => ({ ...prev, flags: event.data as string[] }));
+        }
+      }, controller);
+      toast.success('Quality check completed without rewriting the draft.');
+      return checkedReadiness;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Quality check failed.');
+      return null;
+    } finally {
+      setIsCheckingQuality(false);
+      setIsStreaming(false);
+      setProcessStartedAt(null);
+      analyzeAbortControllerRef.current = null;
+    }
+  };
+
+  const handleRegenerateSeo = async () => {
+    const logId = analysis.analysisLogId || activeHistoryId;
+    if (!logId || !analysis.polishedDraft) return;
+    const controller = new AbortController();
+    analyzeAbortControllerRef.current = controller;
+    setIsGeneratingSeo(true);
+    setIsStreaming(true);
+    setProcessStage('seo');
+    setProcessStartedAt(Date.now());
+    try {
+      const response = await directFetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          mode: 'generate_seo',
+          text: analysis.polishedDraft,
+          analysisLogId: logId,
+          metadata,
+          analysisSpeed: 'deep',
+        }),
+      });
+      await consumePublicationStream(response, event => {
+        if (event.type === 'seo_metadata') {
+          setAnalysis(prev => ({
+            ...prev,
+            generatedMetadata: event.data as PublicationPackage,
+          }));
+        } else if (event.type === 'publication_package_status') {
+          setAnalysis(prev => ({
+            ...prev,
+            publicationPackageStatus: event.data as AnalysisResult['publicationPackageStatus'],
+          }));
+        }
+      }, controller);
+      toast.success('SEO metadata regenerated for the current final draft.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'SEO generation failed.');
+    } finally {
+      setIsGeneratingSeo(false);
+      setIsStreaming(false);
+      setProcessStartedAt(null);
+      analyzeAbortControllerRef.current = null;
+    }
+  };
+
+  const handleSavePublicationMetadata = async (
+    publicationPackage: PublicationPackage
+  ): Promise<boolean> => {
+    const logId = analysis.analysisLogId || activeHistoryId;
+    if (!logId) return false;
+    try {
+      const response = await fetchWithTimeout(`/api/history/${logId}/resolve`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_publication_package',
+          publicationPackage,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to save SEO metadata.');
+      setAnalysis(prev => ({
+        ...prev,
+        generatedMetadata: result.generatedMetadata,
+        publicationPackageStatus: 'current',
+      }));
+      toast.success('SEO metadata saved for the current final draft.');
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save SEO metadata.');
+      return false;
+    }
+  };
+
+  const handlePrepareForExport = async () => {
+    const readiness = analysis.readiness === 'ready'
+      ? 'ready'
+      : await handleQualityCheck();
+    if (readiness !== 'ready') {
+      toast.info('Resolve or approve the current quality findings before generating SEO.');
+      return;
+    }
+    await handleRegenerateSeo();
+  };
+
   const handleRefineAgain = async (instruction: string, overrideText?: string, forceSkipCheck = false) => {
     setHoveredFeedbackIndex(null);
     setActiveFeedbackIndex(null);
@@ -325,8 +545,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     }
     const nextFeedback = [...(analysis.feedback || [])];
     nextFeedback[index] = { ...item, isApplied: true };
-    const nextReadiness = calculateReadiness(nextFeedback, analysis.readiness);
-    const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
+    const nextReadiness: EditorialReadiness = 'needs_review';
+    const nextFlags = analysis.flags || [];
     try {
       await persistEditorialResolution(nextFeedback, nextReadiness, result.nextText, nextFlags);
       setAnalysis(prev => ({
@@ -362,8 +582,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     const nextFeedback = feedback.map((item, index) =>
       appliedIndexSet.has(index) ? { ...item, isApplied: true } : item
     );
-    const nextReadiness = calculateReadiness(nextFeedback, analysis.readiness);
-    const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
+    const nextReadiness: EditorialReadiness = 'needs_review';
+    const nextFlags = analysis.flags || [];
     try {
       await persistEditorialResolution(nextFeedback, nextReadiness, result.nextText, nextFlags);
       setAnalysis(prev => ({
@@ -624,7 +844,9 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       isVerified: true,
       verifiedSource: normalizedUrl,
     };
-    const nextReadiness = calculateReadiness(nextFeedback, analysis.readiness);
+    const nextReadiness = linked
+      ? 'needs_review'
+      : calculateReadiness(nextFeedback, analysis.readiness);
     const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
     try {
       await persistEditorialResolution(nextFeedback, nextReadiness, nextDraft, nextFlags);
@@ -657,7 +879,6 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       persistEditorialResolution,
       setAnalysis,
       analyzeAbortControllerRef,
-      calculateReadiness,
     };
     await executeTargetedFix(ctx, index, actionType);
   };
@@ -752,6 +973,9 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     isTargetedFixing,
     isSavingToCloud,
     isGeneratingDraftFromNotes,
+    isSavingFinalDraft,
+    isCheckingQuality,
+    isGeneratingSeo,
 
     // Derived states
     wordCount,
@@ -767,6 +991,11 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     handleNotesChange,
     handleAnalyze,
     handleReanalyze,
+    handleSaveFinalDraft,
+    handleQualityCheck,
+    handleRegenerateSeo,
+    handleSavePublicationMetadata,
+    handlePrepareForExport,
     handleRefineAgain,
     handleApplyFix,
     handleApplyAllFixes,

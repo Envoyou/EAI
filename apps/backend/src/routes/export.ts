@@ -40,7 +40,6 @@ router.post('/', requireAuth, async (req, res) => {
       analysisLogId, 
       sourceRef, 
       title, 
-      slug, 
       excerpt, 
       content, 
       metaTitle, 
@@ -84,6 +83,32 @@ router.post('/', requireAuth, async (req, res) => {
       storedStatus: storedMetadata.publicationPackageStatus,
       hasPackage: Boolean(storedMetadata.generatedMetadata),
     });
+    const storedPublicationPackage =
+      storedMetadata.generatedMetadata &&
+      typeof storedMetadata.generatedMetadata === 'object' &&
+      !Array.isArray(storedMetadata.generatedMetadata)
+        ? (storedMetadata.generatedMetadata as Record<string, unknown>)
+        : {};
+    const storedTitle =
+      typeof storedPublicationPackage.title === 'string'
+        ? storedPublicationPackage.title
+        : '';
+    const storedSlug =
+      typeof storedPublicationPackage.slug === 'string'
+        ? storedPublicationPackage.slug
+        : '';
+    const storedExcerpt =
+      typeof storedPublicationPackage.excerpt === 'string'
+        ? storedPublicationPackage.excerpt
+        : '';
+    const storedMetaTitle =
+      typeof storedPublicationPackage.metaTitle === 'string'
+        ? storedPublicationPackage.metaTitle
+        : '';
+    const storedMetaDescription =
+      typeof storedPublicationPackage.metaDescription === 'string'
+        ? storedPublicationPackage.metaDescription
+        : '';
     const storedPolishedDraft = typeof systemMetadata.polishedDraft === 'string'
       ? preparePublicationDraft(systemMetadata.polishedDraft)
       : '';
@@ -95,30 +120,52 @@ router.post('/', requireAuth, async (req, res) => {
     ) {
       return res.status(409).json({
         error: publicationPackageStatus === 'stale'
-          ? 'Publication metadata is stale. Regenerate Publish Ready metadata before export.'
+          ? 'Publication metadata is stale. Run Quality Check, then regenerate or edit SEO metadata before export.'
           : 'Only a Publish Ready article that passed the quality gate can be exported.',
       });
     }
     if (!storedPolishedDraft || storedPolishedDraft !== preparePublicationDraft(content)) {
       return res.status(409).json({
-        error: 'The article body changed after its publication package was generated. Run Publish Ready again before export.',
+        error: 'The article body changed after its publication package was generated. Run Quality Check, then regenerate or edit SEO metadata before export.',
+      });
+    }
+    if (
+      !storedTitle ||
+      !storedExcerpt ||
+      !storedMetaTitle ||
+      !storedMetaDescription ||
+      title !== storedTitle ||
+      excerpt !== storedExcerpt ||
+      metaTitle !== storedMetaTitle ||
+      metaDescription !== storedMetaDescription
+    ) {
+      return res.status(409).json({
+        error: 'The export payload does not match the saved publication metadata. Save the SEO fields before export.',
       });
     }
 
     const payload = {
       sourceRef,
-      title,
-      slug,
-      excerpt,
+      title: storedTitle,
+      slug: storedSlug,
+      excerpt: storedExcerpt,
       content: preparePublicationDraft(content),
-      metaTitle,
-      metaDescription,
+      metaTitle: storedMetaTitle,
+      metaDescription: storedMetaDescription,
       focusKeyword,
       canonicalUrl,
       category,
-      tags,
-      coverImageAltText,
-      coverImagePrompt,
+      tags: Array.isArray(storedPublicationPackage.tags)
+        ? storedPublicationPackage.tags
+        : tags,
+      coverImageAltText:
+        typeof storedPublicationPackage.coverImageAltText === 'string'
+          ? storedPublicationPackage.coverImageAltText
+          : coverImageAltText,
+      coverImagePrompt:
+        typeof storedPublicationPackage.coverImageAltText === 'string'
+          ? storedPublicationPackage.coverImageAltText
+          : coverImagePrompt,
     };
 
     let exportResult: CmsExportResult | null = null;

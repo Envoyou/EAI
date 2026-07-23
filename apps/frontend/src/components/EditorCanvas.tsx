@@ -8,7 +8,7 @@ import PanelTabBar from '@/components/PanelTabBar';
 import StatusBar from '@/components/StatusBar';
 import { Button } from '@/components/ui/button';
 import type { PanelTab } from '@/components/PanelTabBar';
-import type { AnalysisResult, ArticleMetadata, EditorialProcessStage } from '@eai/shared';
+import type { AnalysisResult, ArticleMetadata, EditorialProcessStage, PublicationPackage } from '@eai/shared';
 
 export interface EditorialOptions {
   brandName: string;
@@ -53,6 +53,14 @@ interface EditorCanvasProps {
   onAnalyze: (overrideDraft?: string) => Promise<void>;
   onRefineAgain: (instruction: string) => Promise<void>;
   onReanalyze: () => void;
+  onSaveFinalDraft: (draft: string) => Promise<boolean>;
+  onQualityCheck: () => Promise<unknown>;
+  onRegenerateSeo: () => Promise<void>;
+  onSavePublicationMetadata: (metadata: PublicationPackage) => Promise<boolean>;
+  onPrepareForExport: () => Promise<void>;
+  isSavingFinalDraft: boolean;
+  isCheckingQuality: boolean;
+  isGeneratingSeo: boolean;
   onAddNewMetadataOption: (type: 'category' | 'articleType', value: string) => void;
   onOpenShortcuts: () => void;
   layoutReversed?: boolean;
@@ -93,6 +101,14 @@ export default function EditorCanvas({
   onAnalyze,
   onRefineAgain,
   onReanalyze,
+  onSaveFinalDraft,
+  onQualityCheck,
+  onRegenerateSeo,
+  onSavePublicationMetadata,
+  onPrepareForExport,
+  isSavingFinalDraft,
+  isCheckingQuality,
+  isGeneratingSeo,
   onAddNewMetadataOption,
   onOpenShortcuts,
   layoutReversed,
@@ -213,6 +229,7 @@ export default function EditorCanvas({
                       originalDraft={sourceDraft}
                       polishedDraft={analysis.polishedDraft ?? ''}
                       ready={analysis.status === 'success'}
+                      qualityReady={analysis.readiness === 'ready'}
                       exportBlocked={isDemoMode || analysis.readiness !== 'ready'}
                       cmsConnected={editorialOptions.cmsExportEnabled}
                       analysisLogId={analysis.analysisLogId || undefined}
@@ -230,6 +247,14 @@ export default function EditorCanvas({
                       isStale={analysis.summary?.startsWith('Iterative refinement')}
                       onRefineAgain={onRefineAgain}
                       onReanalyze={onReanalyze}
+                      onSaveFinalDraft={onSaveFinalDraft}
+                      onQualityCheck={onQualityCheck}
+                      onRegenerateSeo={onRegenerateSeo}
+                      onSavePublicationMetadata={onSavePublicationMetadata}
+                      onPrepareForExport={onPrepareForExport}
+                      isSavingFinalDraft={isSavingFinalDraft}
+                      isCheckingQuality={isCheckingQuality}
+                      isGeneratingSeo={isGeneratingSeo}
                       hoveredFeedbackIndex={hoveredFeedbackIndex}
                       activeFeedbackIndex={activeFeedbackIndex}
                       onActiveFeedbackChange={onActiveFeedbackChange}

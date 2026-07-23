@@ -91,9 +91,9 @@
     "privacyLink": "Privacy Notice"
   },
   "FinalDraftPanel": {
-    "refreshPublicationMetadata": "Run Publish Ready again to refresh publication metadata",
+    "refreshPublicationMetadata": "Regenerate or edit SEO metadata for the current final draft",
     "staleMetadataTitle": "Publication metadata is outdated.",
-    "staleMetadataDescription": "The article body changed after metadata generation. Run Publish Ready again before exporting."
+    "staleMetadataDescription": "The article body changed after metadata generation. Run Quality Check, then regenerate or edit SEO before exporting."
   },
   "ChatMessageList": {
     "suggestedActions": "Suggested Actions",

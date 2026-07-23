@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma, Prisma } from '@/lib/db';
 import { requireAuth } from '@/middleware/auth';
-import { ResearchNotesArraySchema } from '@eai/shared';
+import { ResearchNotesArraySchema, SeoMetadataSchema } from '@eai/shared';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { preparePublicationDraft, resolvePublicationPackageStatus } from '@/routes/analyze/utils/text';
 import { redisRateLimiter } from '@/middleware/rate-limit';
@@ -30,12 +30,25 @@ const EditorialFeedbackSchema = z.object({
   verifiedSource: HttpSourceUrlSchema.nullable().optional(),
 }).passthrough();
 
-const EditorialResolutionSchema = z.object({
-  action: z.literal('resolve_editorial_feedback'),
-  feedback: z.array(EditorialFeedbackSchema),
-  polishedDraft: z.string().max(100000),
-  flags: z.array(z.string()).optional(),
-});
+const EditorialResolutionSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('resolve_editorial_feedback'),
+    feedback: z.array(EditorialFeedbackSchema),
+    polishedDraft: z.string().max(100000),
+    flags: z.array(z.string()).optional(),
+  }),
+  z.object({
+    action: z.literal('update_final_draft'),
+    polishedDraft: z.string().min(1).max(100000),
+  }),
+  z.object({
+    action: z.literal('update_publication_package'),
+    publicationPackage: SeoMetadataSchema.extend({
+      excerpt: z.string().min(1).max(300),
+      metaTitle: z.string().min(1).max(80),
+    }),
+  }),
+]);
 
 const canAccessLog = (
   log: { organizationId: string | null; userId: string | null },
@@ -361,13 +374,77 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         ? (log.metadata as Record<string, unknown>)
         : {};
 
-    const unresolved = resolution.data.feedback.filter(
-      (item) => item.status !== 'pass' && !item.isApplied && !item.isAccepted && !item.isVerified
-    );
     const systemMetadata =
       metadata._system && typeof metadata._system === 'object' && !Array.isArray(metadata._system)
         ? (metadata._system as Record<string, unknown>)
         : {};
+
+    if (resolution.data.action === 'update_final_draft') {
+      const nextPolishedDraft = preparePublicationDraft(resolution.data.polishedDraft);
+      const publicationPackageStatus = resolvePublicationPackageStatus({
+        storedStatus: metadata.publicationPackageStatus,
+        hasPackage: Boolean(metadata.generatedMetadata),
+        bodyChanged: true,
+      });
+      await prisma.analysisLog.update({
+        where: { id },
+        data: {
+          feedback: [] as Prisma.InputJsonValue,
+          flags: [] as Prisma.InputJsonValue,
+          verdict: 'needs_review',
+          summary: 'The final draft was edited and needs a content quality check.',
+          metadata: {
+            ...metadata,
+            publicationPackageStatus,
+            _system: {
+              ...systemMetadata,
+              polishedDraft: nextPolishedDraft,
+              readiness: 'needs_review',
+              publicationPackageStatus,
+              qualityGateCheckedAt: null,
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return res.json({
+        success: true,
+        polishedDraft: nextPolishedDraft,
+        readiness: 'needs_review',
+        publicationPackageStatus,
+      });
+    }
+
+    if (resolution.data.action === 'update_publication_package') {
+      if (systemMetadata.readiness !== 'ready') {
+        return res.status(409).json({
+          error: 'Complete or approve the current quality findings before saving publication metadata.',
+        });
+      }
+      await prisma.analysisLog.update({
+        where: { id },
+        data: {
+          metadata: {
+            ...metadata,
+            generatedMetadata: resolution.data.publicationPackage,
+            publicationPackageStatus: 'current',
+            _system: {
+              ...systemMetadata,
+              publicationPackageStatus: 'current',
+              seoEditedAt: new Date().toISOString(),
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return res.json({
+        success: true,
+        generatedMetadata: resolution.data.publicationPackage,
+        publicationPackageStatus: 'current',
+      });
+    }
+
+    const unresolved = resolution.data.feedback.filter(
+      (item) => item.status !== 'pass' && !item.isApplied && !item.isAccepted && !item.isVerified
+    );
     const previousPolishedDraft = typeof systemMetadata.polishedDraft === 'string'
       ? preparePublicationDraft(systemMetadata.polishedDraft)
       : '';
@@ -378,11 +455,13 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       hasPackage: Boolean(metadata.generatedMetadata),
       bodyChanged,
     });
-    const readiness = unresolved.length === 0
-      ? 'ready'
-      : systemMetadata.readiness === 'blocked' && unresolved.some((item) => item.status === 'fail')
-        ? 'blocked'
-        : 'needs_review';
+    const readiness = bodyChanged
+      ? 'needs_review'
+      : unresolved.length === 0
+        ? 'ready'
+        : systemMetadata.readiness === 'blocked' && unresolved.some((item) => item.status === 'fail')
+          ? 'blocked'
+          : 'needs_review';
 
     await prisma.analysisLog.update({
       where: { id },

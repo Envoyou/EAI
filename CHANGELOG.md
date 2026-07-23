@@ -7,6 +7,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Revision-Safe Publication Workflow**:
+  - Added standalone **Quality Check** and **Regenerate SEO** operations for the saved final draft, without invoking the rewrite pipeline.
+  - Added editable final-draft and publication-metadata controls. Saving a body revision invalidates the previous quality decision and SEO package; saving metadata binds it to the quality-approved current draft.
+  - Added server-side export guards and persisted workflow states so body-changing feedback fixes require a content recheck, while accepted non-body warnings do not force another full Analyze cycle.
 - **Production-Parity Strategist Chat Mock Protocol**:
   - Added a shared Strategist chat event protocol for production and mock streams, including thinking, grounding-source, suggestion, completion, error, and Deep Research lifecycle events.
   - Added opt-in backend mock chat configuration (`ENABLE_MOCK_CHAT`, `MOCK_CHAT_SPEED`) and the matching frontend route switch (`NEXT_PUBLIC_MOCK_CHAT`) without changing the production endpoint contract.

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const readHandler = (filename: string) =>
-  readFileSync(new URL(`../handlers/${filename}`, import.meta.url), 'utf8');
+  readFileSync(resolve(process.cwd(), 'src/routes/analyze/handlers', filename), 'utf8');
 
 const expectSeoBeforeQualityGate = (source: string) => {
   const seoStatus = source.indexOf("sendEvent('status', 'generating_seo')");
@@ -26,5 +27,15 @@ describe('analyze pipeline stage order', () => {
 
     expect(source).toContain("const producesDraft = isPolishMode || mode === 'refine'");
     expectSeoBeforeQualityGate(source);
+  });
+
+  it('exposes standalone publication stages without invoking rewrite', () => {
+    const source = readHandler('publication.ts');
+
+    expect(source).toContain('handleQualityGateOnly');
+    expect(source).toContain('handleGenerateSeo');
+    expect(source).toContain("ctx.sendEvent('status', 'quality_gate')");
+    expect(source).toContain("ctx.sendEvent('status', 'generating_seo')");
+    expect(source).not.toContain("ctx.sendEvent('status', 'rewriting')");
   });
 });

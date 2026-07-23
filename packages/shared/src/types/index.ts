@@ -1,5 +1,10 @@
 export type Role = 'polish' | 'author' | 'editor' | 'seo' | 'fact-checker';
-export type AnalyzeMode = 'analyze' | 'refine' | 'fix_targeted';
+export type AnalyzeMode =
+  | 'analyze'
+  | 'refine'
+  | 'fix_targeted'
+  | 'quality_gate'
+  | 'generate_seo';
 export type ResponseMode = 'standard' | 'compact' | 'manual_fallback';
 export type VerificationStatus = 'source_backed' | 'needs_citation' | 'high_risk_factual_claim';
 export type EditorialReadiness = 'ready' | 'needs_review' | 'blocked';

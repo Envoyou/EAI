@@ -159,7 +159,7 @@ apps/backend/
 │       │   ├── index.ts      # Router export (backward-compatible entry)
 │       │   ├── controller.ts # Orchestrator (auth, workspace, SSE init, keep-alive)
 │       │   ├── types.ts      # Shared types and constants
-│       │   ├── handlers/     # Stage/mode execution paths (analyze, refine, fix-targeted, dev-mock)
+│       │   ├── handlers/     # Stage/mode execution paths (analyze, refine, fix-targeted, standalone publication checks/SEO, dev-mock)
 │       │   └── utils/        # Decomposed utility helpers (signals, factual, verification, text, markdown)
 │       ├── prompt-inspector.ts # POST /api/prompt-inspector & /diff — dev console AST audit
 │       ├── workspace.ts      # GET/PATCH /api/workspace — workspace management

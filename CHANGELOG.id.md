@@ -7,6 +7,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Workflow Publikasi Aman terhadap Revisi**:
+  - Menambahkan operasi mandiri **Quality Check** dan **Regenerate SEO** untuk draft final tersimpan tanpa menjalankan pipeline rewrite.
+  - Menambahkan kontrol edit draft final dan metadata publikasi. Penyimpanan revisi body membatalkan keputusan kualitas serta paket SEO sebelumnya; penyimpanan metadata mengikatnya ke draft aktif yang sudah lolos pemeriksaan.
+  - Menambahkan guard ekspor dan state workflow persisten agar perbaikan feedback yang mengubah body wajib diperiksa ulang, sedangkan warning tanpa perubahan body yang sudah diterima tidak memicu siklus Analyze penuh.
 - **Protokol Mock Strategist Chat Setara Produksi**:
   - Menambahkan protokol event Strategist chat bersama untuk stream produksi dan mock, meliputi event thinking, grounding source, suggestion, completion, error, serta lifecycle Deep Research.
   - Menambahkan konfigurasi mock chat backend yang bersifat opt-in (`ENABLE_MOCK_CHAT`, `MOCK_CHAT_SPEED`) dan pemilih rute frontend yang sesuai (`NEXT_PUBLIC_MOCK_CHAT`) tanpa mengubah kontrak endpoint produksi.

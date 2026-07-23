@@ -86,6 +86,9 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
     isTargetedFixing,
     isSavingToCloud,
     isGeneratingDraftFromNotes,
+    isSavingFinalDraft,
+    isCheckingQuality,
+    isGeneratingSeo,
     wordCount,
     charCount,
     MAX_TEXT_LENGTH,
@@ -97,6 +100,11 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
     handleNotesChange,
     handleAnalyze,
     handleReanalyze,
+    handleSaveFinalDraft,
+    handleQualityCheck,
+    handleRegenerateSeo,
+    handleSavePublicationMetadata,
+    handlePrepareForExport,
     handleRefineAgain,
     handleApplyFix,
     handleApplyAllFixes,
@@ -479,6 +487,14 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     onAnalyze={handleAnalyze}
                     onRefineAgain={handleRefineAgain}
                     onReanalyze={handleReanalyze}
+                    onSaveFinalDraft={handleSaveFinalDraft}
+                    onQualityCheck={handleQualityCheck}
+                    onRegenerateSeo={handleRegenerateSeo}
+                    onSavePublicationMetadata={handleSavePublicationMetadata}
+                    onPrepareForExport={handlePrepareForExport}
+                    isSavingFinalDraft={isSavingFinalDraft}
+                    isCheckingQuality={isCheckingQuality}
+                    isGeneratingSeo={isGeneratingSeo}
                     onAddNewMetadataOption={handleAddNewCategoryOrType}
                     onOpenShortcuts={() => setIsShortcutModalOpen(true)}
                     layoutReversed={layoutReversed}
@@ -630,6 +646,14 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     onAnalyze={handleAnalyze}
                     onRefineAgain={handleRefineAgain}
                     onReanalyze={handleReanalyze}
+                    onSaveFinalDraft={handleSaveFinalDraft}
+                    onQualityCheck={handleQualityCheck}
+                    onRegenerateSeo={handleRegenerateSeo}
+                    onSavePublicationMetadata={handleSavePublicationMetadata}
+                    onPrepareForExport={handlePrepareForExport}
+                    isSavingFinalDraft={isSavingFinalDraft}
+                    isCheckingQuality={isCheckingQuality}
+                    isGeneratingSeo={isGeneratingSeo}
                     onAddNewMetadataOption={handleAddNewCategoryOrType}
                     onOpenShortcuts={() => setIsShortcutModalOpen(true)}
                     layoutReversed={layoutReversed}

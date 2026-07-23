@@ -438,7 +438,7 @@ function ChatMessageRow({
                             className="strategist-sources-toggle text-[10px]"
                           >
                             <span className="font-medium text-[var(--muted-foreground)]">
-                              Source {msg.payload.sources.length}
+                              Source [{msg.payload.sources.length}]
                             </span>
                           </Button>
                           {expandedSources[msg.id] && (
