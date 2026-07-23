@@ -68,3 +68,5 @@ apps/backend/src/lib/text-utils.test.ts
 apps/backend/src/check_eblog_transactions.ts
 apps/backend/src/check_all_orgs.ts
 hasilTest_2.md
+ai-helper.md
+pricing-gemini.md

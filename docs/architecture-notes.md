@@ -65,7 +65,7 @@ Rute `/api/analyze` di *backend* didekomposisi ke dalam subfolder modular `src/r
 *   `targeted-fix-stage.ts`: Perbaikan teks tertarget dengan *prompt tenant-aware*.
 
 *   **Pilihan Model (Unified API)**:
-    1. Gemini (Primer): via SDK `@google/genai` (model produksi: `gemini-3.5-flash`). Konfigurasi native menggunakan helper `getNativeGeminiConfig(thinkingLevel)` dari `provider-runtime.ts` — **tidak menggunakan** `temperature` karena diabaikan oleh SDK saat `thinkingConfig` aktif.
+    1. Gemini (Primer): via SDK `@google/genai` (model produksi: `gemini-3.6-flash`; SEO & lightweight roles: `gemini-3.5-flash-lite`). Konfigurasi native menggunakan helper `getNativeGeminiConfig(thinkingLevel)` dari `provider-runtime.ts` — **tidak menggunakan** `temperature` karena diabaikan oleh SDK saat `thinkingConfig` aktif.
     2. OpenRouter (Universal): Untuk integrasi multi-model (Anthropic, OpenAI, Llama) yang dikonfigurasi lewat `OPENROUTER_MODEL`. Konfigurasi sampling menggunakan `getOpenRouterSamplingConfig()`.
 *   **Thinking Configuration**: Review, Final Quality Gate, dan Quick Draft menggunakan thinking level rendah untuk menekan konsumsi token pada output terstruktur. Targeted Fix menggunakan level `MEDIUM` karena harus mempertahankan konteks kalimat sambil menghasilkan replacement yang presisi. Stage rewrite plain-text tidak mengaktifkan thinking config native.
 *   **Orkestrasi Prompt**: Prompt dibangun secara dinamis dengan bantuan *utility* dari `@eai/shared/server`.

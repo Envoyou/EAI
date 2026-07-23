@@ -1,14 +1,12 @@
 import { Router } from 'express';
-import { ThinkingLevel } from '@google/genai';
+
 import { PROMPT_VERSION } from '@/lib/prompts';
 import { StrategistPromptComposer } from '@/lib/ai/prompt-engine/composer/strategist-composer';
 import { prisma } from '@/lib/db';
 import { verifyToken } from '@clerk/backend';
 import {
-  extractGeminiText,
   extractOpenRouterText,
   gemini,
-  getNativeGeminiConfig,
   getOpenRouterModelForRole,
   GROQ_MODEL,
   groq,
@@ -21,7 +19,11 @@ import { getAllFeatureFlags } from '@eai/shared/server';
 import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
 import { redisRateLimiter } from '@/middleware/rate-limit';
 import { QuickDraftSchema } from './types';
-import { withGeminiFlexRetry } from '@/lib/ai/gemini-request-policy';
+import {
+  getGeminiInteractionConfig,
+  getGeminiInteractionRequestOptions,
+  withGeminiFlexRetry,
+} from '@/lib/ai/gemini-request-policy';
 import { bindResponseAbort } from '@/lib/request-abort';
 
 const router = Router();
@@ -311,27 +313,33 @@ router.post(
     let modelName = 'unknown-model';
 
     if (provider === 'gemini') {
-      modelName = 'gemini-3.5-flash';
+      // Use Interactions API (consistent with chat.ts and plan.ts)
+      modelName = 'gemini-3.6-flash';
       const draftStream = await withGeminiFlexRetry(() =>
-        gemini.models.generateContentStream({
+        gemini.interactions.create({
           model: modelName,
-          contents: userPrompt,
-          config: {
-            abortSignal: requestAbort.signal,
-            systemInstruction: systemPrompt,
-            ...getNativeGeminiConfig(),
-            candidateCount: 1,
-            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-          }
-        }),
+          input: userPrompt,
+          system_instruction: systemPrompt,
+          // thinking_level is not yet in SDK types; model defaults to 'medium'
+          stream: true,
+          ...getGeminiInteractionConfig(),
+        }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
         { signal: requestAbort.signal }
       );
 
-      for await (const chunk of draftStream) {
+      for await (const rawEvent of draftStream) {
         if (requestAbort.isDisconnected()) break;
-        const partText = extractGeminiText(chunk);
-        draftText += partText;
-        sendEvent('draft_chunk', partText);
+        const event = rawEvent as unknown as {
+          event_type?: string;
+          delta?: { type?: string; text?: string };
+        };
+        if (
+          (event.event_type === 'step.delta' || event.event_type === 'content.delta') &&
+          event.delta?.text
+        ) {
+          draftText += event.delta.text;
+          sendEvent('draft_chunk', event.delta.text);
+        }
       }
     } else if (provider === 'openrouter') {
       modelName = getOpenRouterModelForRole('author', 'balanced');

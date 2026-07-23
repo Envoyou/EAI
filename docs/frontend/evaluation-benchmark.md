@@ -21,7 +21,7 @@ Evaluasi model didasarkan pada empat dimensi utama yang krusial untuk alur kerja
 
 EAI menggunakan **Gemini sebagai provider primer** dan **OpenRouter sebagai universal adapter** untuk akses ke model pihak ketiga (Anthropic, OpenAI, Meta, dll.). Provider dipilih melalui variabel lingkungan `ACTIVE_AI_PROVIDER`.
 
-| Dimensi Pengujian | Gemini 3.5 Flash *(Provider Primer)* | Claude 5 Sonnet via OpenRouter | GPT-5.6 via OpenRouter |
+| Dimensi Pengujian | Gemini 3.6 Flash *(Provider Primer)* | Claude 5 Sonnet via OpenRouter | GPT-5.6 via OpenRouter |
 | :--- | :--- | :--- | :--- |
 | **Pemahaman Nada (Indonesian)** | 🥇 **Sangat Tinggi (9.5/10)**<br>Sangat peka terhadap nuansa bahasa Indonesia, gaya bercerita (*storytelling*), dan dialek lokal. Dioptimalkan via Composable PCA. | 🥈 **Tinggi (9.0/10)**<br>Generasi terbaru Claude secara signifikan lebih baik dalam nuansa Bahasa Indonesia dibanding versi 3.5. | **Tinggi (8.5/10)**<br>GPT-5 generasi lebih baik dalam tata bahasa namun kadang menghasilkan tone formal yang kurang alami untuk konten editorial Indonesia. |
 | **Kepatuhan Format JSON** | **Sangat Tinggi (9.5/10)**<br>Native structured output via Gemini SDK; `responseMimeType: 'application/json'` menjamin output valid tanpa pembungkus. | **Tinggi (9.2/10)**<br>Dukungan JSON mode bawaan via OpenRouter. Sesekali terjadi penyertaan penjelasan di luar JSON pada prompt kompleks. | **Sangat Tinggi (9.8/10)**<br>Strict JSON Mode bawaan menjamin output selalu valid tanpa pembungkus. |

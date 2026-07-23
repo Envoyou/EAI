@@ -101,7 +101,7 @@ export const getGeminiModelForRole = (
   analysisSpeed: AnalysisSpeed = 'balanced'
 ): string => {
   if (role === 'seo') {
-    return process.env.GEMINI_SEO_MODEL || 'gemini-3.1-flash-lite';
+    return process.env.GEMINI_SEO_MODEL || 'gemini-3.5-flash-lite';
   }
 
   const customGeminiModel = process.env.GEMINI_MODEL;
@@ -112,23 +112,23 @@ export const getGeminiModelForRole = (
   if (analysisSpeed === 'fast') {
     switch (role) {
       case 'fact-checker':
-        return 'gemini-3.5-flash';
+        return 'gemini-3.6-flash';
       case 'polish':
       case 'author':
       case 'editor':
       default:
-        return 'gemini-3.1-flash-lite';
+        return 'gemini-3.5-flash-lite';
     }
   }
 
   switch (role) {
     case 'author':
-      return 'gemini-3.1-flash-lite';
+      return 'gemini-3.5-flash-lite';
     case 'polish':
     case 'editor':
     case 'fact-checker':
     default:
-      return 'gemini-3.5-flash';
+      return 'gemini-3.6-flash';
   }
 };
 

@@ -39,7 +39,7 @@ const GEMINI_REVIEW_OUTPUT_TOKENS = {
 
 function resolveGeminiModel(role: Role, speed: AnalysisSpeed): string {
   if (role === 'seo') {
-    return process.env.GEMINI_SEO_MODEL || 'gemini-3.1-flash-lite';
+    return process.env.GEMINI_SEO_MODEL || 'gemini-3.5-flash-lite';
   }
 
   const customModel = process.env.GEMINI_MODEL;
@@ -48,23 +48,23 @@ function resolveGeminiModel(role: Role, speed: AnalysisSpeed): string {
   if (speed === 'fast') {
     switch (role) {
       case 'fact-checker':
-        return 'gemini-3.5-flash';
+        return 'gemini-3.6-flash';
       case 'polish':
       case 'author':
       case 'editor':
       default:
-        return 'gemini-3.1-flash-lite';
+        return 'gemini-3.5-flash-lite';
     }
   }
 
   switch (role) {
     case 'author':
-      return 'gemini-3.1-flash-lite';
+      return 'gemini-3.5-flash-lite';
     case 'polish':
     case 'editor':
     case 'fact-checker':
     default:
-      return 'gemini-3.5-flash';
+      return 'gemini-3.6-flash';
   }
 }
 

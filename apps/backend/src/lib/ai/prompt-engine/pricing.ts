@@ -7,8 +7,10 @@ export interface ModelPricing {
 export type PricingServiceTier = 'standard' | 'flex' | 'batch';
 
 export const PRICING_CATALOG: Record<string, ModelPricing> = {
-  // Gemini 3.5 & 3.1 pricing
+  // Gemini 3.6, 3.5 & 3.1 pricing (from pricing-gemini.md)
+  'gemini-3.6-flash': { inputCostPer1M: 1.50, inputCachedCostPer1M: 0.15, outputCostPer1M: 7.50 },
   'gemini-3.5-flash': { inputCostPer1M: 1.50, inputCachedCostPer1M: 0.15, outputCostPer1M: 9.00 },
+  'gemini-3.5-flash-lite': { inputCostPer1M: 0.30, inputCachedCostPer1M: 0.03, outputCostPer1M: 2.50 },
   'gemini-3.1-flash-lite': { inputCostPer1M: 0.25, inputCachedCostPer1M: 0.025, outputCostPer1M: 1.50 },
   // OpenRouter GPT-4o-mini
   'openai/gpt-4o-mini': { inputCostPer1M: 0.150, outputCostPer1M: 0.60 },

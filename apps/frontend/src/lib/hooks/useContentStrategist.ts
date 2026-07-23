@@ -11,6 +11,7 @@ import {
   fetchWithTimeout,
   getResponseErrorMessage,
   REQUEST_TIMEOUT_MS,
+  RequestTimeoutError,
 } from '@/lib/fetch-utils';
 import {
   getStrategistStreamError,
@@ -430,8 +431,9 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         return;
       }
       try {
-        const res = await fetchWithTimeout(
-          `/api/strategist/chat/status/${activeDeepResearchId}`,
+        const encodedId = encodeURIComponent(activeDeepResearchId);
+        const res = await directFetch(
+          `/api/strategist/chat/status/${encodedId}`,
           {
             signal: pollController.signal,
             timeoutMs: REQUEST_TIMEOUT_MS.polling,
@@ -467,7 +469,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       pollController.abort();
       if (nextPollTimer) clearTimeout(nextPollTimer);
     };
-  }, [activeDeepResearchId, documentId]);
+  }, [activeDeepResearchId, directFetch, documentId]);
 
   const appendMessage = useCallback((msg: Omit<ChatMessage, 'id'>) => {
     setMessages(prev => [...prev, { ...msg, id: generateId() }]);
@@ -1057,12 +1059,14 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     if (!interactionId || !cancelToken) return;
 
     try {
-      const response = await fetchWithTimeout(
-        `/api/strategist/chat/status/${interactionId}/cancel`,
+      const encodedId = encodeURIComponent(interactionId);
+      const response = await directFetch(
+        `/api/strategist/chat/status/${encodedId}/cancel`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cancelToken }),
+          timeoutMs: 8_000,
         }
       );
       if (!response.ok) {
@@ -1082,9 +1086,13 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       deepResearchCancelTokenRef.current = null;
       toast.info('Deep Research cancelled');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to cancel Deep Research.');
+      if (error instanceof RequestTimeoutError) {
+        toast.error('Cancellation could not be confirmed. The research may still be stopping.');
+      } else {
+        toast.error(error instanceof Error ? error.message : 'Failed to cancel Deep Research.');
+      }
     }
-  }, [activeDeepResearchId, setActiveDeepResearchId, setMessages]);
+  }, [activeDeepResearchId, directFetch, setActiveDeepResearchId, setMessages]);
 
   const cancelChat = useCallback(() => {
     if (activeDeepResearchId) {

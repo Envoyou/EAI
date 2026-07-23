@@ -6,6 +6,22 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Changed
+- **Penyelarasan Direct API Fetch & Stabilitas Referensi Content Strategist**:
+  - Menyelaraskan status polling (`GET /api/strategist/chat/status/:id`) dan pembatalan (`POST /api/strategist/chat/status/:id/cancel`) Deep Research di `useContentStrategist.ts` dari `fetchWithTimeout` relatif (Next.js proxy) ke `directFetch` (Railway API).
+  - Membungkus `directFetch` dengan `useCallback` pada `useDirectFetch.ts` untuk menjamin stabilitas referensi fungsi antar re-render, mencegah restart effect polling dan reset timer yang tidak perlu.
+  - Menambahkan URL encoding (`encodeURIComponent`) pada ID interaksi, mempertahankan perlindungan timeout per-request (`REQUEST_TIMEOUT_MS.polling` = 20s untuk status polling, `8_000ms` untuk cancel), serta menambahkan feedback error UX yang nuansial saat request cancel mengalami timeout.
+- **Upgrade Model Gemini & Migrasi Interactions API**:
+  - Mengupgrade model Gemini primer dari `gemini-3.5-flash` → `gemini-3.6-flash` untuk semua role editorial (`polish`, `editor`, `fact-checker`, `author`, `generate-plan`, `draft-from-notes`, dan Deep Research) di `model-router.ts`, `helpers.ts`, dan `provider-runtime.ts`.
+  - Mengupgrade model ringan/copilot dari `gemini-3.1-flash-lite` → `gemini-3.5-flash-lite` untuk role `seo`, `author`, fast-mode, dan Strategist Copilot Chat (`MODEL` di `helpers.ts`).
+  - Memperbarui pemetaan fallback legacy di `helpers.ts` (`resolveModel`) agar mengarahkan model deprecated ke `gemini-3.6-flash`.
+  - Mendaftarkan estimasi harga dan harga telemetri default untuk `gemini-3.6-flash` dan `gemini-3.5-flash-lite` di `pricing.ts` dan `ai-telemetry.ts`.
+  - Migrasi path Gemini di Strategist Quick Draft (`quick-draft.ts`) dari API `generateContent` lama ke Interactions API (`gemini.interactions.create()` dengan `stream: true`), menyamakannya dengan `chat.ts` dan `plan.ts`.
+  - Memperbarui loop event streaming di `quick-draft.ts` untuk menggunakan penanganan event `step.delta` / `content.delta` sebagai ganti iterasi chunk mentah.
+
+### Fixed
+- **Tampilan Thinking Strategist Chat Tidak Muncul**: Delta `thought_summary` dari Interactions API menggunakan field bertingkat `delta.content.text`, bukan field datar `delta.text` yang dipakai delta teks biasa. Loop streaming di `chat.ts` kini mendeteksi `deltaType === 'thought_summary'` dengan benar dan memancarkan SSE event `{ type: 'thinking', chunk }`, yang sudah ditunggu frontend (`useContentStrategist.ts` + `ChatMessageList.tsx`) — membuat tampilan thinking real-time berfungsi untuk pertama kalinya.
+
 ## [3.14.0] - 2026-07-23
 
 ### Changed

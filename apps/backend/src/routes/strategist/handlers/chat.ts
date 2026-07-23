@@ -541,6 +541,8 @@ router.post(
           delta?: {
             type?: string;
             text?: string;
+            // thought_summary delta carries nested content, not delta.text
+            content?: { type?: string; text?: string };
             annotations?: GroundingAnnotation[];
           };
         };
@@ -549,9 +551,19 @@ router.post(
           (event.event_type === 'step.delta' || event.event_type === 'content.delta') &&
           event.delta
         ) {
-          if (event.delta.text) {
+          const deltaType = event.delta.type;
+
+          if (deltaType === 'thought_summary') {
+            // Stream model reasoning to frontend in real-time so the
+            // ThinkingProcess UI in ChatMessageList can render it.
+            const thinkChunk = event.delta.content?.text ?? '';
+            if (thinkChunk && !res.writableEnded) {
+              res.write(`data: ${JSON.stringify({ type: 'thinking', chunk: thinkChunk })}\n\n`);
+            }
+          } else if (event.delta.text) {
             finalOutputText += event.delta.text;
           }
+
           if (
             event.delta.annotations &&
             Array.isArray(event.delta.annotations)

@@ -167,16 +167,17 @@ const resolveModel = (modelName: string): string => {
   if (
     modelName.startsWith('gemini-2.') ||
     modelName.startsWith('gemini-1.5') ||
-    modelName.startsWith('gemini-2.0')
+    modelName.startsWith('gemini-2.0') ||
+    modelName.startsWith('gemini-3.1')
   ) {
-    return 'gemini-3.5-flash';
+    return 'gemini-3.6-flash';
   }
   return modelName;
 };
 
-export const MODEL = resolveModel(process.env.GEMINI_COPILOT_MODEL || 'gemini-3.1-flash-lite');
+export const MODEL = resolveModel(process.env.GEMINI_COPILOT_MODEL || 'gemini-3.5-flash-lite');
 export const RESEARCH_MODEL = resolveModel(
-  process.env.GEMINI_RESEARCH_MODEL || 'gemini-3.5-flash'
+  process.env.GEMINI_RESEARCH_MODEL || 'gemini-3.6-flash'
 );
 export const FAST_MODE_MAX_OUTPUT_TOKENS =
   Number(process.env.GEMINI_COPILOT_FAST_MAX_TOKENS) || 2048;

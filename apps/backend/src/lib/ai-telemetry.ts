@@ -67,10 +67,20 @@ const PRICING_VERSION = '2026-07-19';
 // Token prices are estimates based on published provider list prices. They can
 // be overridden without a deploy through AI_MODEL_PRICING_JSON.
 const DEFAULT_MODEL_PRICES: Record<string, ModelPrice> = {
+  'gemini-3.6-flash': {
+    inputUsdPerMillion: 1.50,
+    outputUsdPerMillion: 7.50,
+    cachedInputUsdPerMillion: 0.15,
+  },
   'gemini-3.5-flash': {
     inputUsdPerMillion: 1.50,
     outputUsdPerMillion: 9.00,
     cachedInputUsdPerMillion: 0.15,
+  },
+  'gemini-3.5-flash-lite': {
+    inputUsdPerMillion: 0.30,
+    outputUsdPerMillion: 2.50,
+    cachedInputUsdPerMillion: 0.03,
   },
   'gemini-3.1-flash-lite': {
     inputUsdPerMillion: 0.25,

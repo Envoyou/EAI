@@ -6,6 +6,22 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Changed
+- **Content Strategist Direct API Fetch Alignment & Referential Stability**:
+  - Aligned Deep Research status polling (`GET /api/strategist/chat/status/:id`) and cancellation (`POST /api/strategist/chat/status/:id/cancel`) in `useContentStrategist.ts` from relative `fetchWithTimeout` (Next.js proxy) to `directFetch` (Railway API).
+  - Wrapped `directFetch` in `useCallback` in `useDirectFetch.ts` to ensure function reference stability across re-renders, preventing infinite effect re-triggers and timer resets.
+  - Added URL encoding (`encodeURIComponent`) to interaction IDs, preserved per-request timeout protection (`REQUEST_TIMEOUT_MS.polling` = 20s for status polling, `8_000ms` for cancel), and added nuanced UX error feedback on cancellation timeout.
+- **Gemini Model Upgrade & Interactions API Migration**:
+  - Upgraded primary Gemini model from `gemini-3.5-flash` → `gemini-3.6-flash` across all editorial roles (`polish`, `editor`, `fact-checker`, `author`, `generate-plan`, `draft-from-notes`, and Deep Research) in `model-router.ts`, `helpers.ts`, and `provider-runtime.ts`.
+  - Upgraded lightweight/copilot model from `gemini-3.1-flash-lite` → `gemini-3.5-flash-lite` for `seo`, `author`, fast-mode roles, and Strategist Copilot Chat (`MODEL` in `helpers.ts`).
+  - Updated legacy fallback mapping in `helpers.ts` (`resolveModel`) to route deprecated models to `gemini-3.6-flash`.
+  - Registered pricing and telemetry entries for `gemini-3.6-flash` and `gemini-3.5-flash-lite` in `pricing.ts` and `ai-telemetry.ts`.
+  - Migrated Strategist Quick Draft Gemini path (`quick-draft.ts`) from the legacy `generateContent` API to the Interactions API (`gemini.interactions.create()` with `stream: true`), bringing it in line with `chat.ts` and `plan.ts`.
+  - Updated streaming event loop in `quick-draft.ts` to use `step.delta` / `content.delta` event handling instead of raw chunk iteration.
+
+### Fixed
+- **Strategist Chat Thinking Display Not Rendering**: The `thought_summary` delta from the Interactions API uses a nested `delta.content.text` field instead of the flat `delta.text` field used by text deltas. The streaming loop in `chat.ts` now correctly detects `deltaType === 'thought_summary'` and emits a `{ type: 'thinking', chunk }` SSE event, which the frontend (`useContentStrategist.ts` + `ChatMessageList.tsx`) already expects — making the real-time thinking display functional for the first time.
+
 ## [3.14.0] - 2026-07-23
 
 ### Changed
