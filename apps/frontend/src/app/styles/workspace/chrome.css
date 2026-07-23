@@ -81,7 +81,7 @@
   gap: 2px;
 }
 
-.ide-tab {
+.ide-tab.ui-btn-muted {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -102,17 +102,17 @@
   margin: 4px 0;
 }
 
-.ide-tab:hover:not(:disabled) {
+.ide-tab.ui-btn-muted:hover:not(:disabled) {
   color: var(--foreground);
   background: var(--surface-2);
 }
 
-.ide-tab.active {
+.ide-tab.ui-btn-muted.active {
   color: var(--foreground);
   background: transparent;
 }
 
-.ide-tab.active::after {
+.ide-tab.ui-btn-muted.active::after {
   content: '';
   position: absolute;
   bottom: -4px;
@@ -123,7 +123,7 @@
   border-radius: 2px 2px 0 0;
 }
 
-.ide-tab:disabled {
+.ide-tab.ui-btn-muted:disabled {
   opacity: 0.35;
   cursor: not-allowed;
   pointer-events: none;
@@ -161,6 +161,57 @@
 .ide-statusbar-item:hover {
   background: var(--surface-2);
   color: var(--foreground);
+}
+
+.ide-statusbar-item.ui-btn-muted {
+  border-radius: var(--radius-sm);
+  background: transparent;
+}
+
+.ide-statusbar-item.ui-btn-muted:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--foreground);
+}
+
+.workspace-mobile-nav-action.ui-btn-muted {
+  height: auto;
+  padding: 0.25rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--muted-foreground);
+  box-shadow: none;
+}
+
+.workspace-mobile-nav-action.ui-btn-muted:hover:not(:disabled) {
+  background: transparent;
+  color: var(--foreground);
+  box-shadow: none;
+}
+
+.workspace-mobile-nav-action.ui-btn-muted[aria-pressed="true"],
+.workspace-mobile-nav-action.ui-btn-muted[aria-pressed="true"]:hover:not(:disabled) {
+  color: var(--primary);
+}
+
+.workspace-analysis-mode-option.ui-btn-muted {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: transparent;
+  color: var(--foreground);
+  box-shadow: none;
+}
+
+.workspace-analysis-mode-option.ui-btn-muted:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--foreground);
+  box-shadow: none;
+}
+
+.workspace-analysis-mode-option.ui-btn-muted[aria-pressed="true"],
+.workspace-analysis-mode-option.ui-btn-muted[aria-pressed="true"]:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--surface-2);
 }
 
 .ide-statusbar-item.clickable {

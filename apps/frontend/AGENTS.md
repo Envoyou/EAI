@@ -69,6 +69,7 @@ npm run lint
 
 ```
 apps/frontend/
+├── messages/             # next-intl locale dictionaries (en.json, id.json)
 ├── next.config.ts        # Next.js config — Sentry + next-intl plugin, remotePatterns for avatars
 ├── src/
 │   ├── proxy.ts          # Clerk middleware + next-intl + feature flags (replaces middleware.ts)
@@ -84,7 +85,8 @@ apps/frontend/
 │   │   │   │   ├── cards.css    # ui-card, surface-card, pressroom-card
 │   │   │   │   ├── badges.css   # ui-badge & ui-alert
 │   │   │   │   ├── menus.css    # ui-menu, ui-segmented, mode-segmented
-│   │   │   │   └── feedback.css # feedback-check & verdict colors
+│   │   │   │   ├── feedback.css # feedback-check, accordion actions & verdict colors
+│   │   │   │   └── composite-controls.css # Bounded non-workspace composite Button shapes
 │   │   │   └── workspace/       # Workspace domain modules
 │   │   │       ├── shell.css      # workspace shell & multi-island containers
 │   │   │       ├── sidebar.css    # sidebar nav, filter pills & header glow
@@ -154,7 +156,7 @@ apps/frontend/
 │   │   ├── strategist-tab/       # StrategistTab modular sub-system
 │   │   │   ├── types.ts          # Props & chat session types
 │   │   │   ├── hooks/            # Custom hooks (useStrategistChat)
-│   │   │   └── components/       # Sub-components (SessionSidebar, ChatMessageList, ChatInputBar)
+│   │   │   └── components/       # SessionSidebar, ChatMessageList, ChatInputBar, DeepResearchReportTab
 │   │   ├── FinalDraftPanel.tsx   # Final draft view
 │   │   ├── ShortcutsModal.tsx    # Keyboard shortcuts reference modal
 │   │   ├── UserDirectory.tsx     # User management console (66KB)
@@ -176,8 +178,9 @@ apps/frontend/
 │   ├── lib/                      # Frontend utilities, hooks, API client
 │   │   ├── fetch-utils.ts       # Shared request deadlines, abort propagation, and API error parsing
 │   │   ├── stream-utils.ts      # Idle-timeout reader with underlying stream cancellation
-│   │   └── strategist-stream.ts # Strategist SSE event/error normalization
-│   └── messages/                 # i18n translation files (en / id)
+│   │   ├── strategist-stream.ts # Strategist SSE event/error normalization
+│   │   ├── hooks/useContentStrategist.ts # Chat, sessions, notes & saved Deep Report orchestration
+│   │   └── hooks/useStrategistChatPath.ts # Mock/production Strategist route selection
 ```
 
 ---
@@ -191,6 +194,7 @@ Do not create new raw `<button>` controls with manual Tailwind styling or direct
 * **Solution**: Use `<Button>` from `@/components/ui/button`. Canonical variants are `primary`, `outline`, `surface`, `muted`, `accent`, `danger`, and `link`; canonical sizes are `default`, `xs`, `sm`, `lg`, and the `icon*` sizes. Toggle controls must expose their active state with `aria-pressed`.
 * **Compatibility**: `default`, `secondary`, `ghost`, and `destructive` remain supported aliases for existing consumers. Do not use those aliases in new code.
 * **Migration boundary**: Existing raw buttons and direct `ui-btn` consumers may be migrated feature-by-feature. Do not perform unrelated global rewrites.
+* **Composite control boundary**: Primitive CSS is imported after Tailwind utilities and therefore owns visual properties such as background, border, radius, color, shadow, and padding. If a composite intentionally needs a different shape (for example a rectangular tab, card-wide accordion trigger, switch track, or carousel indicator), add a named domain class and a narrowly scoped selector loaded after the primitive stylesheet. Do not rely on consumer Tailwind utilities or `!important` to defeat the primitive. Preserve layout utilities in the component and verify the domain selector at desktop, tablet, and mobile breakpoints.
 
 ### 🚫 RULE 2: Do Not Use Standard HTML `<select>` Tags
 Standard browser `<select>` tags have poor aesthetics on mobile devices and lack consistency.
@@ -266,6 +270,7 @@ Before submitting a PR for frontend changes:
 - [ ] `npm run build -- --filter=frontend` compiles without TypeScript errors
 - [ ] No raw `<select>` tags — use `<Select>` from `@/components/ui/select`
 - [ ] New or migrated buttons use `<Button>` with canonical semantic variants; no new direct `ui-btn` composition
+- [ ] Composite controls use a named domain selector after primitive CSS; no consumer utility or `!important` fights primitive-owned visuals
 - [ ] No `asChild` prop on `<TooltipTrigger>` — use `render` prop
 - [ ] External avatar images use `<Image />` from `next/image`
 - [ ] Tiptap NodeView controls use a `not-prose` control boundary and no inline color workaround
@@ -305,4 +310,4 @@ Before submitting a PR for frontend changes:
 - **Styling issues**: Check `globals.css` for the full list of `ui-btn`, `ui-badge`, and `ui-alert` classes.
 - **Clerk auth issues**: Verify `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` are set in `.env.local`.
 - **i18n missing key**: Add the key to the relevant locale JSON file under `messages/`.
-- **Architecture questions**: See [UI Architecture v3.13.0](../../docs/frontend/ui-architecture-v3.13.md) for frontend boundaries and [docs/architecture-notes.md](../../docs/architecture-notes.md) for the wider system.
+- **Architecture questions**: See [UI Architecture v3.14.0](../../docs/frontend/ui-architecture.md) for frontend boundaries and [docs/architecture-notes.md](../../docs/architecture-notes.md) for the wider system.

@@ -142,7 +142,7 @@ export default function StatusBar({
                 <Button
                   type="button"
                   onClick={onToggleLayoutReversed}
-                  variant="ghost"
+                  variant="muted"
                   size="icon-xs"
                   className={`ide-statusbar-item hover:bg-[var(--surface-2)] transition-colors rounded-sm ml-1 ${layoutReversed ? 'text-[var(--primary)]' : ''}`}
                   aria-label="Swap panel positions"
@@ -167,7 +167,7 @@ export default function StatusBar({
                 <Button
                   type="button"
                   onClick={onOpenShortcuts}
-                  variant="ghost"
+                  variant="muted"
                   size="icon-xs"
                   className="status-shortcuts-button ide-statusbar-item hover:bg-[var(--surface-2)] transition-colors rounded-sm ml-1"
                   aria-label="View Keyboard Shortcuts"

@@ -530,12 +530,9 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                   <Button
                     type="button"
                     onClick={() => setMobileViewTab('history')}
-                    variant="ghost"
-                    className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer h-auto p-1 border-none ${
-                      mobileViewTab === 'history'
-                        ? 'text-[var(--primary)] font-semibold'
-                        : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                    }`}
+                    variant="muted"
+                    className="workspace-mobile-nav-action flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer"
+                    aria-pressed={mobileViewTab === 'history'}
                   >
                     <History className="w-5 h-5" />
                     <span>History</span>
@@ -544,12 +541,9 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                 <Button
                   type="button"
                   onClick={() => setMobileViewTab('editor')}
-                  variant="ghost"
-                  className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer h-auto p-1 border-none ${
-                    mobileViewTab === 'editor'
-                      ? 'text-[var(--primary)] font-semibold'
-                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                  }`}
+                  variant="muted"
+                  className="workspace-mobile-nav-action flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer"
+                  aria-pressed={mobileViewTab === 'editor'}
                 >
                   <FileEdit className="w-5 h-5" />
                   <span>Editor</span>
@@ -557,12 +551,9 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                 <Button
                   type="button"
                   onClick={() => setMobileViewTab('copilot')}
-                  variant="ghost"
-                  className={`flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer h-auto p-1 border-none ${
-                    mobileViewTab === 'copilot'
-                      ? 'text-[var(--primary)] font-semibold'
-                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                  }`}
+                  variant="muted"
+                  className="workspace-mobile-nav-action flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer"
+                  aria-pressed={mobileViewTab === 'copilot'}
                 >
                   <Sparkles className="w-5 h-5" />
                   <span>EAI Chat</span>
@@ -768,12 +759,9 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     setAnalysisSpeed('fast');
                     setIsMobileModeSheetOpen(false);
                   }}
-                  variant="ghost"
-                  className={`w-full flex items-start justify-start gap-3 p-3 h-auto rounded-xl border text-left transition-colors cursor-pointer ${
-                    analysisSpeed === 'fast'
-                      ? 'border-[var(--primary)] bg-[var(--surface-2)]'
-                      : 'border-[var(--border)] bg-transparent'
-                  }`}
+                  variant="muted"
+                  className="workspace-analysis-mode-option h-auto w-full cursor-pointer items-start justify-start gap-3 p-3 text-left transition-colors"
+                  aria-pressed={analysisSpeed === 'fast'}
                 >
                   <Zap className="w-5 h-5 text-[var(--warning)] shrink-0 mt-0.5" />
                   <div className="flex flex-col text-left">
@@ -793,12 +781,9 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     setAnalysisSpeed('publish');
                     setIsMobileModeSheetOpen(false);
                   }}
-                  variant="ghost"
-                  className={`w-full flex items-start justify-start gap-3 p-3 h-auto rounded-xl border text-left transition-colors cursor-pointer ${
-                    analysisSpeed === 'publish'
-                      ? 'border-[var(--primary)] bg-[var(--surface-2)]'
-                      : 'border-[var(--border)] bg-transparent'
-                  }`}
+                  variant="muted"
+                  className="workspace-analysis-mode-option h-auto w-full cursor-pointer items-start justify-start gap-3 p-3 text-left transition-colors"
+                  aria-pressed={analysisSpeed === 'publish'}
                 >
                   {isDemoMode ? <Lock className="w-5 h-5 text-[var(--muted-foreground)] shrink-0 mt-0.5" /> : <Rocket className="w-5 h-5 text-[var(--primary)] shrink-0 mt-0.5" />}
                   <div className="flex flex-col text-left">

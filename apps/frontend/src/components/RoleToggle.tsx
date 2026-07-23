@@ -13,12 +13,10 @@ export default function RoleToggle({ role, onChange }: RoleToggleProps) {
       <Button
         type="button"
         onClick={() => onChange('author')}
-        variant={role === 'author' ? 'surface' : 'ghost'}
-        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-          role === 'author'
-            ? 'bg-white dark:bg-brand-900 text-brand-900 dark:text-white shadow-sm'
-            : 'text-brand-500 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-200'
-        }`}
+        variant={role === 'author' ? 'surface' : 'muted'}
+        className="role-toggle-option flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all"
+        data-active={role === 'author'}
+        aria-pressed={role === 'author'}
       >
         <PenTool className="w-4 h-4" />
         Author Mode
@@ -26,12 +24,10 @@ export default function RoleToggle({ role, onChange }: RoleToggleProps) {
       <Button
         type="button"
         onClick={() => onChange('editor')}
-        variant={role === 'editor' ? 'surface' : 'ghost'}
-        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-          role === 'editor'
-            ? 'bg-white dark:bg-brand-900 text-brand-900 dark:text-white shadow-sm'
-            : 'text-brand-500 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-200'
-        }`}
+        variant={role === 'editor' ? 'surface' : 'muted'}
+        className="role-toggle-option flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all"
+        data-active={role === 'editor'}
+        aria-pressed={role === 'editor'}
       >
         <ShieldCheck className="w-4 h-4" />
         Editor Mode
@@ -39,12 +35,10 @@ export default function RoleToggle({ role, onChange }: RoleToggleProps) {
       <Button
         type="button"
         onClick={() => onChange('seo')}
-        variant={role === 'seo' ? 'surface' : 'ghost'}
-        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-          role === 'seo'
-            ? 'bg-white dark:bg-brand-900 text-brand-900 dark:text-white shadow-sm'
-            : 'text-brand-500 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-200'
-        }`}
+        variant={role === 'seo' ? 'surface' : 'muted'}
+        className="role-toggle-option flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all"
+        data-active={role === 'seo'}
+        aria-pressed={role === 'seo'}
       >
         <Search className="w-4 h-4" />
         SEO Mode
@@ -52,12 +46,10 @@ export default function RoleToggle({ role, onChange }: RoleToggleProps) {
       <Button
         type="button"
         onClick={() => onChange('fact-checker')}
-        variant={role === 'fact-checker' ? 'surface' : 'ghost'}
-        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-          role === 'fact-checker'
-            ? 'bg-white dark:bg-brand-900 text-brand-900 dark:text-white shadow-sm'
-            : 'text-brand-500 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-200'
-        }`}
+        variant={role === 'fact-checker' ? 'surface' : 'muted'}
+        className="role-toggle-option flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all"
+        data-active={role === 'fact-checker'}
+        aria-pressed={role === 'fact-checker'}
       >
         <Scale className="w-4 h-4" />
         Fact-Checker

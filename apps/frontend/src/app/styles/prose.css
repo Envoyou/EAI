@@ -190,4 +190,56 @@
   .strategist-prose :where(tr:hover):not(:where([class~="not-prose"] *)) {
     background-color: var(--surface-2);
   }
+
+  /* Long-form Deep Research reading surface */
+  .deep-report-prose {
+    font-size: 0.875rem;
+    line-height: 1.75;
+    overflow-wrap: anywhere;
+  }
+
+  .deep-report-prose :where(h1):not(:where([class~="not-prose"] *)) {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 1.35rem;
+    line-height: 1.3;
+  }
+
+  .deep-report-prose :where(h2):not(:where([class~="not-prose"] *)) {
+    margin-top: 1.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.05rem;
+    line-height: 1.4;
+  }
+
+  .deep-report-prose :where(h3, h4):not(:where([class~="not-prose"] *)) {
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+
+  .deep-report-prose :where(p):not(:where([class~="not-prose"] *)) {
+    margin-block: 0.75rem;
+  }
+
+  .deep-report-prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+    margin-block: 1rem;
+    padding: 0.75rem 1rem;
+    border-left: 3px solid var(--primary);
+    background: var(--surface-2);
+    color: var(--muted-foreground);
+  }
+
+  .deep-report-prose :where(table):not(:where([class~="not-prose"] *)) {
+    display: table;
+    width: max-content;
+    min-width: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+  }
 }

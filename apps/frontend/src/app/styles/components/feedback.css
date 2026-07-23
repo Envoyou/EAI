@@ -21,6 +21,33 @@
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent);
 }
 
+.feedback-accordion-trigger.ui-btn-muted,
+.feedback-seo-trigger.ui-btn-muted {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.feedback-accordion-trigger.ui-btn-muted {
+  border-radius: 0;
+}
+
+.feedback-seo-trigger.ui-btn-muted {
+  border-radius: var(--radius-md);
+  color: var(--foreground);
+}
+
+.feedback-accordion-trigger.ui-btn-muted:hover:not(:disabled),
+.feedback-seo-trigger.ui-btn-muted:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--foreground);
+  box-shadow: none;
+}
+
+.feedback-icon-action.ui-btn-muted {
+  border-radius: var(--radius-md);
+}
+
 /* Verdict Colors */
 .verdict-approve { color: var(--success); }
 .verdict-revise  { color: var(--warning); }

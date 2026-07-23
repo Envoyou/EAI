@@ -137,6 +137,7 @@ globals.css (Import Manifest)
   ├── styles/prose.css              (Layer 5: Article prose & strategist-prose via @layer components + :where())
   ├── styles/components/
   │   ├── buttons.css, forms.css, cards.css, badges.css, menus.css, feedback.css
+  │   └── composite-controls.css (bounded non-workspace composite Button shapes)
   └── styles/workspace/
       ├── shell.css, sidebar.css, editor.css, strategist.css, chrome.css, responsive.css
 ```
@@ -178,6 +179,14 @@ New and migrated controls must use the corresponding `components/ui` primitive.
 Direct `ui-btn` composition remains compatibility code and should be migrated
 feature-by-feature without broad visual rewrites. Direct `ui-control`,
 `ui-badge`, and `ui-alert` composition has been removed from feature code.
+
+Primitive styles are unlayered and imported after Tailwind, so feature
+utilities cannot be assumed to override primitive-owned background, border,
+radius, color, shadow, or padding. Composite controls that intentionally differ
+from the primitive shape use named, narrowly scoped domain selectors loaded
+after the primitive styles. Workspace selectors live in their workspace module;
+bounded public controls live in `composite-controls.css`. This keeps responsive
+layout utilities feature-owned while preventing `!important` cascade wars.
 
 ### Layer 5: zero-specificity typography overrides (`prose.css`)
 

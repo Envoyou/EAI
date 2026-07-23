@@ -322,7 +322,7 @@ export default function DocumentHistoryPanel({
             type="button"
             key={f.key}
             onClick={() => setActiveFilter(f.key)}
-            variant="ghost"
+            variant="muted"
             className={`sidebar-filter-pill min-w-0 flex-1 px-1.5 py-1 text-[10px] rounded-full border-none h-auto${
               activeFilter === f.key ? ' active' : ''
             }`}

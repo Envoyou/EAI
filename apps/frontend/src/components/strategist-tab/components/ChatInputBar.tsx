@@ -86,9 +86,9 @@ export function ChatInputBar({
                 <Button
                   type="button"
                   onClick={() => setUploadedAttachment(null)}
-                  variant="ghost"
+                  variant="muted"
                   size="icon-xs"
-                  className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-none p-0 ml-1"
+                  className="strategist-attachment-remove ml-1"
                 >
                   <X className="w-2.5 h-2.5" />
                 </Button>
@@ -127,9 +127,9 @@ export function ChatInputBar({
                   <Button
                     type="button"
                     onClick={triggerFileSelect}
-                    variant="surface"
+                    variant="muted"
                     size="icon"
-                    className="rounded-full text-[var(--muted-foreground)] bg-transparent shrink-0"
+                    className="strategist-composer-icon shrink-0"
                   >
                     <Paperclip className="w-3.5 h-3.5" />
                   </Button>
@@ -172,7 +172,7 @@ export function ChatInputBar({
             >
               <SelectTrigger
                 size="sm"
-                className="h-7 border border-[var(--border)] bg-transparent hover:bg-[var(--surface-3)] text-[var(--foreground)] hover:text-[var(--foreground)] text-[10px] font-semibold !rounded-full px-3 flex items-center gap-1 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[var(--border)] [&_svg]:max-md:hidden"
+                className="strategist-mode-select h-7 border border-[var(--border)] bg-transparent hover:bg-[var(--surface-3)] text-[var(--foreground)] hover:text-[var(--foreground)] text-[10px] font-semibold px-3 flex items-center gap-1 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[var(--border)] [&_svg]:max-md:hidden"
               >
                 <SelectValue placeholder="Mode" />
               </SelectTrigger>

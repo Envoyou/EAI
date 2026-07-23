@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { generateId, extractDynamicSuggestions } from '@/lib/strategist-utils';
 import { useUser } from '@clerk/nextjs';
+import { useTranslations } from 'next-intl';
 import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
 import { readWithTimeout, StreamIdleTimeoutError } from '@/lib/stream-utils';
 import {
@@ -17,6 +18,11 @@ import {
   getStrategistStreamError,
   parseStrategistSseLine,
 } from '@/lib/strategist-stream';
+import {
+  getStrategistChatPath,
+  getStrategistStatusPath,
+  getStrategistCancelPath,
+} from '@/lib/hooks/useStrategistChatPath';
 
 export type SignalData = {
   topic: string;
@@ -57,8 +63,27 @@ export type Attachment = {
   uploadedAt: string;
 };
 
+export const MAX_DEEP_RESEARCH_REPORTS = 5;
+
+export type DeepResearchReport = {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+};
+
+const getDeepResearchReportTitle = (content: string): string => {
+  const firstMeaningfulLine = content
+    .split('\n')
+    .map(line => line.replace(/^#+\s*/, '').replace(/\*\*/g, '').trim())
+    .find(Boolean);
+
+  return (firstMeaningfulLine || 'Deep Research Report').slice(0, 120);
+};
+
 export type ChatMessageType = 'text' | 'welcome' | 'recommendations' | 'plan';
 export type AssistantLifecycle = 'pending' | 'success' | 'error' | 'cancelled';
+export type StrategistThinkingKind = 'reasoning' | 'grounding';
 
 export type ChatMessage = {
   id: string;
@@ -68,6 +93,10 @@ export type ChatMessage = {
   payload?: {
     status?: string;
     lifecycle?: AssistantLifecycle;
+    thinking?: {
+      kind: StrategistThinkingKind;
+      content: string;
+    };
     suggestions?: string[];
     sources?: { url: string; domain: string; title?: string; description?: string }[];
   };
@@ -94,6 +123,7 @@ const SESSION_KEY = 'eai_research_notes';
 
 export function useContentStrategist({ onComplete, notes, onNotesChange, documentId = 'new' }: UseContentStrategistOptions) {
   const { user } = useUser();
+  const tReport = useTranslations('DeepResearchReport');
   const directFetch = useDirectFetch();
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
@@ -101,6 +131,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
   const quickDraftAbortControllerRef = useRef<AbortController | null>(null);
   const deepResearchMessageIdRef = useRef<string | null>(null);
   const deepResearchCancelTokenRef = useRef<string | null>(null);
+  const deepResearchFollowUpContentRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -138,11 +169,29 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       return stored ? JSON.parse(stored) : [];
     } catch { return []; }
   });
-  const [deepResearchReport, setDeepResearchReport] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
+  const [deepResearchReports, setDeepResearchReports] = useState<DeepResearchReport[]>(() => {
+    if (typeof window === 'undefined') return [];
     try {
-      return sessionStorage.getItem(`eai_strategist_deep_research_${documentId}`);
-    } catch { return null; }
+      const storedCollection = sessionStorage.getItem(
+        `eai_strategist_deep_research_reports_${documentId}`
+      );
+      if (storedCollection) {
+        const parsed = JSON.parse(storedCollection);
+        if (Array.isArray(parsed)) return parsed;
+      }
+
+      const legacyReport = sessionStorage.getItem(
+        `eai_strategist_deep_research_${documentId}`
+      );
+      return legacyReport
+        ? [{
+            id: `legacy-${generateId()}`,
+            title: getDeepResearchReportTitle(legacyReport),
+            content: legacyReport,
+            createdAt: new Date().toISOString(),
+          }]
+        : [];
+    } catch { return []; }
   });
   const [uploadedAttachment, setUploadedAttachment] = useState<Attachment | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -295,16 +344,14 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     setCurrentSessionId('new');
     setMessages([]);
     setCurrentPlan(null);
-    setDeepResearchReport(null);
     setUploadedAttachment(null);
     setChatInput('');
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem(`eai_strategist_messages_${documentId}`);
       sessionStorage.removeItem(`eai_strategist_current_plan_${documentId}`);
       sessionStorage.removeItem(`eai_strategist_sources_${documentId}`);
-      sessionStorage.removeItem(`eai_strategist_deep_research_${documentId}`);
     }
-  }, [documentId, setCurrentSessionId, setMessages, setCurrentPlan, setDeepResearchReport, setUploadedAttachment, setChatInput]);
+  }, [documentId, setCurrentSessionId, setMessages, setCurrentPlan, setUploadedAttachment, setChatInput]);
 
 
 
@@ -328,6 +375,19 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       sessionStorage.setItem(`eai_strategist_sources_${documentId}`, JSON.stringify(collectedSources));
     }
   }, [collectedSources, documentId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      sessionStorage.setItem(
+        `eai_strategist_deep_research_reports_${documentId}`,
+        JSON.stringify(deepResearchReports)
+      );
+      sessionStorage.removeItem(`eai_strategist_deep_research_${documentId}`);
+    } catch {
+      toast.error(tReport('storageError'));
+    }
+  }, [deepResearchReports, documentId, tReport]);
 
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashMenuIndex, setSlashMenuIndex] = useState(0);
@@ -354,7 +414,6 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
   const [isShowingAllSources, setIsShowingAllSources] = useState(false);
 
   const [activeDeepResearchId, setActiveDeepResearchId] = useState<string | null>(null);
-  const [isReportOpen, setIsReportOpen] = useState(false);
 
   const [localNotes, setLocalNotes] = useState<ResearchNote[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -431,9 +490,8 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         return;
       }
       try {
-        const encodedId = encodeURIComponent(activeDeepResearchId);
         const res = await directFetch(
-          `/api/strategist/chat/status/${encodedId}`,
+          getStrategistStatusPath(activeDeepResearchId),
           {
             signal: pollController.signal,
             timeoutMs: REQUEST_TIMEOUT_MS.polling,
@@ -442,8 +500,21 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         if (res.ok) {
           const data = await res.json();
           if (data.state === 'COMPLETED' && data.output) {
-            setDeepResearchReport(data.output);
-            sessionStorage.setItem(`eai_strategist_deep_research_${documentId}`, data.output);
+            const completedReport: DeepResearchReport = {
+              id: `deep-report-${generateId()}`,
+              title: getDeepResearchReportTitle(data.output),
+              content: data.output,
+              createdAt: new Date().toISOString(),
+            };
+            setDeepResearchReports(previousReports => {
+              if (previousReports.length >= MAX_DEEP_RESEARCH_REPORTS) {
+                toast.warning(tReport('limitReached', {
+                  max: MAX_DEEP_RESEARCH_REPORTS,
+                }));
+                return previousReports;
+              }
+              return [completedReport, ...previousReports];
+            });
             setActiveDeepResearchId(null);
             finishDeepResearchMessage('Deep Research complete. Open the report from the right panel.', 'success');
             return;
@@ -469,11 +540,25 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       pollController.abort();
       if (nextPollTimer) clearTimeout(nextPollTimer);
     };
-  }, [activeDeepResearchId, directFetch, documentId]);
+  }, [activeDeepResearchId, directFetch, tReport]);
 
   const appendMessage = useCallback((msg: Omit<ChatMessage, 'id'>) => {
     setMessages(prev => [...prev, { ...msg, id: generateId() }]);
   }, []);
+
+  const prepareDeepResearchFollowUp = useCallback((reportId: string, prompt: string) => {
+    const report = deepResearchReports.find(item => item.id === reportId);
+    if (!report) return;
+    deepResearchFollowUpContentRef.current = report.content;
+    setChatInput(prompt);
+  }, [deepResearchReports]);
+
+  const deleteDeepResearchReport = useCallback((reportId: string) => {
+    setDeepResearchReports(previousReports =>
+      previousReports.filter(report => report.id !== reportId)
+    );
+    toast.success(tReport('deleted'));
+  }, [tReport]);
 
   const openQuickDraft = useCallback((mode: 'topic' | 'outline' | 'reference' | 'press_release') => {
     setQuickDraftMode(mode);
@@ -730,7 +815,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     chatAbortControllerRef.current = controller;
 
     try {
-      const res = await directFetch('/api/strategist/chat', {
+      const res = await directFetch(getStrategistChatPath(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
@@ -802,8 +887,18 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                     : m));
                 } else if (data.type === 'thinking' && data.chunk) {
                   currentThinkingContent += data.chunk;
+                  const thinkingKind: StrategistThinkingKind =
+                    data.kind === 'grounding' ? 'grounding' : 'reasoning';
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
-                    ...m, payload: { ...m.payload, status: `Thinking: ${currentThinkingContent}` }
+                    ...m,
+                    payload: {
+                      ...m.payload,
+                      status: 'Thinking...',
+                      thinking: {
+                        kind: thinkingKind,
+                        content: currentThinkingContent,
+                      },
+                    },
                   } : m));
                 } else if (data.type === 'chunk' || data.type === 'text') {
                   currentContent += data.chunk;
@@ -1059,9 +1154,8 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     if (!interactionId || !cancelToken) return;
 
     try {
-      const encodedId = encodeURIComponent(interactionId);
       const response = await directFetch(
-        `/api/strategist/chat/status/${encodedId}/cancel`,
+        getStrategistCancelPath(interactionId),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1109,6 +1203,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
   const handleSend = useCallback(async (forcedText?: string) => {
     const textToSend = forcedText ?? chatInput;
     if (!textToSend.trim()) return;
+    const deepResearchFollowUpContent = deepResearchFollowUpContentRef.current;
 
     if (textToSend === 'Proceed to Editor' && currentPlan) {
       handleProceedToEditor();
@@ -1117,6 +1212,24 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
     if (textToSend === 'Save to Notes' && currentPlan) {
       handleSaveToNotesOnly();
+      return;
+    }
+
+    const DRAFT_INTENT_PATTERN = /\b(buat(kan)?|tulis(kan)?|generate|write|create|bikin)\b.{0,30}\b(draft|blueprint|plan|roadmap)\b|\b(draft|blueprint|plan|roadmap)\b.{0,25}\bartikel\b/i;
+    const isDraftIntent =
+      DRAFT_INTENT_PATTERN.test(textToSend) ||
+      textToSend.toLowerCase().startsWith('draft') ||
+      textToSend.toLowerCase().startsWith('blueprint');
+
+    if (
+      !deepResearchFollowUpContent &&
+      !isDraftIntent &&
+      researchMode === 'deep' &&
+      deepResearchReports.length >= MAX_DEEP_RESEARCH_REPORTS
+    ) {
+      toast.warning(tReport('limitReached', {
+        max: MAX_DEEP_RESEARCH_REPORTS,
+      }));
       return;
     }
 
@@ -1134,8 +1247,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     const updatedMessages = [...messages, newMsg];
     setMessages(updatedMessages);
 
-    const DRAFT_INTENT_PATTERN = /\b(buat(kan)?|tulis(kan)?|generate|write|create|bikin)\b.{0,30}\b(draft|blueprint|plan|roadmap)\b|\b(draft|blueprint|plan|roadmap)\b.{0,25}\bartikel\b/i;
-    if (DRAFT_INTENT_PATTERN.test(messageText) || messageText.toLowerCase().startsWith('draft') || messageText.toLowerCase().startsWith('blueprint')) {
+    if (!deepResearchFollowUpContent && isDraftIntent) {
       generatePlan(messageText, updatedMessages);
       return;
     }
@@ -1167,7 +1279,22 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     chatAbortControllerRef.current = controller;
 
     try {
-      const res = await directFetch('/api/strategist/chat', {
+      deepResearchFollowUpContentRef.current = null;
+      const requestAttachments: Attachment[] = [
+        ...(deepResearchFollowUpContent
+          ? [{
+              id: `deep-report-${documentId}`,
+              filename: 'deep-research-report.md',
+              r2Key: '',
+              publicUrl: '',
+              contentType: 'text/markdown',
+              extractedText: deepResearchFollowUpContent.slice(0, 250_000),
+              uploadedAt: new Date().toISOString(),
+            }]
+          : []),
+        ...(uploadedAttachment ? [uploadedAttachment] : []),
+      ];
+      const res = await directFetch(getStrategistChatPath(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
@@ -1175,7 +1302,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           messages: updatedMessages,
           mode: researchMode,
           notesSummary,
-          attachments: uploadedAttachment ? [uploadedAttachment] : [],
+          attachments: requestAttachments,
           enableSearch,
           sessionId: currentSessionId,
         }),
@@ -1244,8 +1371,18 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, status: data.message } } : m));
                 } else if (data.type === 'thinking' && data.chunk) {
                   currentThinkingContent += data.chunk;
+                  const thinkingKind: StrategistThinkingKind =
+                    data.kind === 'grounding' ? 'grounding' : 'reasoning';
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
-                    ...m, payload: { ...m.payload, status: `Thinking: ${currentThinkingContent}` }
+                    ...m,
+                    payload: {
+                      ...m.payload,
+                      status: 'Thinking...',
+                      thinking: {
+                        kind: thinkingKind,
+                        content: currentThinkingContent,
+                      },
+                    },
                   } : m));
                 } else if (data.type === 'text') {
                   currentContent += data.chunk;
@@ -1329,7 +1466,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       setIsTyping(false);
       chatAbortControllerRef.current = null;
     }
-  }, [chatInput, messages, currentPlan, savedNotes, researchMode, uploadedAttachment, enableSearch, handleProceedToEditor, handleSaveToNotesOnly, generatePlan, fetchCredits, currentSessionId, loadSessions, setMessages, setCurrentSessionId, setActiveDeepResearchId, setResearchMode]);
+  }, [chatInput, messages, currentPlan, savedNotes, researchMode, uploadedAttachment, enableSearch, deepResearchReports, documentId, tReport, handleProceedToEditor, handleSaveToNotesOnly, generatePlan, fetchCredits, currentSessionId, loadSessions, setMessages, setCurrentSessionId, setActiveDeepResearchId, setResearchMode]);
 
   return {
     messages,
@@ -1362,9 +1499,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     collectedSources,
     isShowingAllSources,
     setIsShowingAllSources,
-    deepResearchReport,
-    isReportOpen,
-    setIsReportOpen,
+    deepResearchReports,
+    maxDeepResearchReports: MAX_DEEP_RESEARCH_REPORTS,
+    prepareDeepResearchFollowUp,
+    deleteDeepResearchReport,
     researchMode,
     setResearchMode,
     enableSearch,

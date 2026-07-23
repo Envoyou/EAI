@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import PricingCheckoutButton from './PricingCheckoutButton';
@@ -23,6 +24,7 @@ interface PricingGridProps {
 }
 
 export default function PricingGrid({ workspace, disclosures, billingEnabled }: PricingGridProps) {
+  const t = useTranslations('PricingGrid');
   const searchParams = useSearchParams();
   const planParam = searchParams.get('plan');
 
@@ -98,9 +100,11 @@ export default function PricingGrid({ workspace, disclosures, billingEnabled }: 
         <Button
           type="button"
           onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
-          variant="ghost"
+          variant="muted"
           size="icon-xs"
-          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 p-0 transition-colors duration-200 ease-in-out dark:bg-slate-800 focus:outline-none"
+          className="pricing-cycle-toggle relative inline-flex shrink-0 cursor-pointer transition-colors duration-200 ease-in-out"
+          aria-label={t('billingCycleToggle')}
+          aria-pressed={billingCycle === 'yearly'}
         >
           <span
             className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${

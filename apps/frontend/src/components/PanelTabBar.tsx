@@ -62,7 +62,7 @@ export default function PanelTabBar({
             aria-controls={`panel-${tab.key}`}
             onClick={() => !isDisabled && !isLoading && onTabChange(tab.key)}
             disabled={isDisabled}
-            variant="ghost"
+            variant="muted"
             className={`ide-tab flex items-center gap-1.5 shrink-0 ${isActive ? ' active' : ''}`}
           >
             {isLoadingTab ? (

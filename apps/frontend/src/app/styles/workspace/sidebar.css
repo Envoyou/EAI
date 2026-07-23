@@ -57,29 +57,29 @@
 }
 
 /* Sidebar filter pills (All / Ready / Review / Blocked) */
-.sidebar-filter-pill {
+.sidebar-filter-pill.ui-btn-muted {
   background: transparent;
   color: var(--muted-foreground);
   transition: background 120ms ease, color 120ms ease;
 }
 
-.sidebar-filter-pill:hover {
+.sidebar-filter-pill.ui-btn-muted:hover:not(:disabled) {
   background: rgba(15, 23, 42, 0.10);
   color: var(--foreground);
 }
 
-.sidebar-filter-pill.active {
+.sidebar-filter-pill.ui-btn-muted.active {
   background: rgba(15, 23, 42, 0.12);
   color: var(--foreground);
   font-weight: 600;
 }
 
-.dark .sidebar-filter-pill:hover {
+.dark .sidebar-filter-pill.ui-btn-muted:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.10);
   color: var(--foreground);
 }
 
-.dark .sidebar-filter-pill.active {
+.dark .sidebar-filter-pill.ui-btn-muted.active {
   background: rgba(255, 255, 255, 0.12);
   color: var(--foreground);
   font-weight: 600;
@@ -275,4 +275,3 @@
   color: var(--muted-foreground);
   font-size: 11px;
 }
-

@@ -1,17 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { MessageCircle, Notebook, MessagesSquare, PanelRight } from 'lucide-react';
+import { FileSearch, MessageCircle, Notebook, MessagesSquare, PanelRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import StrategistTab from '@/components/StrategistTab';
 import FeedbackTab from '@/components/FeedbackTab';
 import NotesTab from '@/components/NotesTab';
+import { DeepResearchReportTab } from '@/components/strategist-tab/components/DeepResearchReportTab';
 import { useContentStrategist, type Attachment } from '@/lib/hooks/useContentStrategist';
 import type { ResearchNote } from '@/lib/hooks/useContentStrategist';
 import type { AnalysisResult, EditorialProcessStage } from '@eai/shared';
 
-type RightTab = 'strategist' | 'feedback' | 'notes';
+type RightTab = 'strategist' | 'feedback' | 'notes' | 'deep_report';
 
 interface AICopilotPanelProps {
   activeTab?: RightTab;
@@ -44,12 +46,6 @@ interface AICopilotPanelProps {
   onToggleSidebar?: () => void;
 }
 
-const TABS: { key: RightTab; label: string; icon: React.ReactNode }[] = [
-  { key: 'strategist', label: 'Chat with EAI', icon: <MessagesSquare className="w-3.5 h-3.5" /> },
-  { key: 'feedback', label: 'Feedback', icon: <MessageCircle className="w-3.5 h-3.5" /> },
-  { key: 'notes', label: 'Notes', icon: <Notebook className="w-3.5 h-3.5" /> },
-];
-
 export default function AICopilotPanel({
   activeTab: controlledTab,
   onTabChange,
@@ -80,8 +76,16 @@ export default function AICopilotPanel({
   activeHistoryId,
   onToggleSidebar,
 }: AICopilotPanelProps) {
+  const t = useTranslations('AICopilotPanel');
+  const reportT = useTranslations('DeepResearchReport');
   const [internalTab, setInternalTab] = useState<RightTab>('strategist');
   const activeTab = controlledTab ?? internalTab;
+  const tabs: { key: RightTab; label: string; icon: React.ReactNode }[] = [
+    { key: 'strategist', label: t('chat'), icon: <MessagesSquare className="w-3.5 h-3.5" /> },
+    { key: 'feedback', label: t('feedback'), icon: <MessageCircle className="w-3.5 h-3.5" /> },
+    { key: 'notes', label: t('notes'), icon: <Notebook className="w-3.5 h-3.5" /> },
+    { key: 'deep_report', label: t('deepReport'), icon: <FileSearch className="w-3.5 h-3.5" /> },
+  ];
 
   const handleTabChange = (tab: RightTab) => {
     if (onTabChange) {
@@ -121,7 +125,6 @@ export default function AICopilotPanel({
             setEnableSearch={strategist.setEnableSearch}
             researchMode={strategist.researchMode}
             setResearchMode={strategist.setResearchMode}
-            deepResearchReport={strategist.deepResearchReport}
             currentSessionId={strategist.currentSessionId}
             setCurrentSessionId={strategist.setCurrentSessionId}
             sessions={strategist.sessions}
@@ -178,26 +181,41 @@ export default function AICopilotPanel({
             onInsertToDraft={onInsertToDraft}
           />
         );
+      case 'deep_report':
+        return (
+          <DeepResearchReportTab
+            reports={strategist.deepResearchReports}
+            maxReports={strategist.maxDeepResearchReports}
+            onDeleteReport={strategist.deleteDeepResearchReport}
+            onDiscussReport={(reportId, suggestion) => {
+              strategist.prepareDeepResearchFollowUp(
+                reportId,
+                suggestion
+                  ? reportT('followUpActionPrompt', { action: suggestion })
+                  : reportT('followUpPrompt')
+              );
+              handleTabChange('strategist');
+            }}
+          />
+        );
     }
   };
 
   return (
     <div className="flex flex-col h-full min-w-0 w-full overflow-hidden [container-type:inline-size]">
       <div className="flex items-center justify-between border-b border-[var(--border)] px-1">
-        <div className="flex items-center min-w-0">
-          {TABS.map((tab) => (
+        <div className="flex items-center min-w-0" role="tablist">
+          {tabs.map((tab) => (
             <Tooltip key={tab.key}>
               <TooltipTrigger
                 render={
                   <Button
                     type="button"
                     onClick={() => handleTabChange(tab.key)}
-                    variant="ghost"
-                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2.5 text-xs font-medium transition-colors border-b-2 rounded-none h-auto -mb-px shrink-0 ${
-                      activeTab === tab.key
-                        ? 'text-[var(--foreground)] border-[var(--primary)]'
-                        : 'text-[var(--muted-foreground)] border-transparent hover:text-[var(--foreground)]'
-                    }`}
+                    variant="muted"
+                    className="strategist-copilot-tab -mb-px h-auto shrink-0 gap-1.5 px-2.5 py-2.5 text-xs font-medium transition-colors sm:px-3"
+                    role="tab"
+                    aria-selected={activeTab === tab.key}
                     aria-label={tab.label}
                   >
                     {tab.icon}
@@ -221,9 +239,9 @@ export default function AICopilotPanel({
                 <Button
                   type="button"
                   onClick={onToggleSidebar}
-                  variant="ghost"
+                  variant="muted"
                   size="icon-xs"
-                  className="mr-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)] shrink-0"
+                  className="strategist-panel-icon-action mr-2 shrink-0"
                   aria-label="Hide Assistant Panel"
                 >
                   <PanelRight className="w-4 h-4" />

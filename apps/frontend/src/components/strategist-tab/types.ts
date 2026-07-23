@@ -21,8 +21,6 @@ export interface StrategistTabProps {
   setEnableSearch: (v: boolean) => void;
   researchMode: 'fast' | 'deep';
   setResearchMode: (v: 'fast' | 'deep') => void;
-  deepResearchReport: string | null;
-
   currentSessionId: string | null;
   setCurrentSessionId: (v: string | null) => void;
   sessions: ChatSession[];

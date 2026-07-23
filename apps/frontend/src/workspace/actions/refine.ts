@@ -24,7 +24,7 @@ interface RefineContext {
   setProcessStage: (s: EditorialProcessStage) => void;
   setProcessStartedAt: (t: number | null) => void;
   setRightPanelOpen: (o: boolean) => void;
-  setRightPanelTab: (t: 'strategist' | 'feedback' | 'notes') => void;
+  setRightPanelTab: (t: 'strategist' | 'feedback' | 'notes' | 'deep_report') => void;
   setMobileViewTab: (t: 'history' | 'editor' | 'copilot') => void;
   setDemoRefineCount: (c: number) => void;
   setRefreshTrigger: (updater: (prev: number) => number) => void;

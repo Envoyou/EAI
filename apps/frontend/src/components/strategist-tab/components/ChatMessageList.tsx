@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -125,12 +126,9 @@ function TranscriptOutline({ messages }: { messages: ChatMessage[] }) {
                   scrollToMessage(msg.id, { align: 'start', behavior: 'smooth' });
                   setOpen(false);
                 }}
-                variant="ghost"
-                className={`w-full text-left justify-start p-2 rounded-lg text-xs transition-colors flex items-start gap-2 h-auto ${
-                  isCurrent
-                    ? 'bg-[var(--primary)]/10 text-[var(--primary)] font-medium border border-[var(--primary)]/20'
-                    : 'hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                }`}
+                variant="muted"
+                className="strategist-transcript-item h-auto w-full items-start justify-start gap-2 p-2 text-left text-xs transition-colors"
+                aria-current={isCurrent}
               >
                 <span className="text-[10px] font-mono text-[var(--muted-foreground)] opacity-60 shrink-0 mt-0.5">
                   #{index + 1}
@@ -236,6 +234,7 @@ function ChatMessageRow({
   handleCopy: (text: string, msgId: string) => void;
   saveNote: (msg: ChatMessage) => void;
 }) {
+  const t = useTranslations('ChatMessageList');
   const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({});
 
   const toggleSources = (msgId: string) => {
@@ -271,28 +270,72 @@ function ChatMessageRow({
                 {shouldShowAssistantSpinner(msg.payload?.lifecycle, msg.payload?.status) ? (
                   (() => {
                     const statusText = msg.payload?.status ?? '';
-                    const isThinkingStatus =
+                    const structuredThinking = msg.payload?.thinking;
+                    const isLegacyThinkingStatus =
                       statusText.startsWith('Thinking:');
-                    const thinkingText = isThinkingStatus
-                      ? statusText.replace(/^Thinking:\s*/, '')
-                      : '';
+                    const isThinkingStatus = Boolean(structuredThinking) ||
+                      isLegacyThinkingStatus;
+                    const thinkingText = structuredThinking?.content ||
+                      (isLegacyThinkingStatus
+                        ? statusText.replace(/^Thinking:\s*/, '')
+                        : '');
+                    const thinkingKind = structuredThinking?.kind ?? 'reasoning';
+                    const isGrounding = thinkingKind === 'grounding';
 
                     return (
                       <div className="flex flex-col gap-2 px-1 py-1">
                         <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--primary)]" />
+                          {isGrounding ? (
+                            <Globe className="w-3.5 h-3.5 animate-pulse text-[var(--success)]" />
+                          ) : (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--primary)]" />
+                          )}
                           <span className="font-medium">
-                            {isThinkingStatus ? 'Thinking...' : statusText}
+                            {isThinkingStatus
+                              ? t(isGrounding ? 'groundingSources' : 'thinking')
+                              : statusText}
                           </span>
                         </div>
-                        {isThinkingStatus && thinkingText && (
-                          <div className="mt-1.5 p-2.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[10px] text-[var(--muted-foreground)] font-mono whitespace-pre-wrap leading-relaxed max-h-[140px] overflow-y-auto animate-fade-in shadow-inner">
-                            <div className="text-[9px] uppercase tracking-wider font-bold text-[var(--primary)] opacity-90 mb-1 select-none">
-                              Thinking Process
+                        {isThinkingStatus && thinkingText && (() => {
+                          const lines = thinkingText
+                            .split('\n')
+                            .map((l) => l.trim())
+                            .filter(Boolean);
+
+                          return (
+                            <div className={`mt-2.5 ml-2 pl-3 border-l flex flex-col gap-2.5 max-h-[220px] overflow-y-auto animate-fade-in text-[11px] py-1 ${
+                              isGrounding
+                                ? 'border-[var(--success)]/35'
+                                : 'border-[var(--primary)]/35'
+                            }`}>
+                              {lines.map((line, idx) => {
+                                const isLatest = idx === lines.length - 1;
+                                return (
+                                  <div key={idx} className="relative flex items-start gap-2">
+                                    <span
+                                      className={`absolute -left-[15.5px] top-1.5 w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                                        isLatest
+                                          ? isGrounding
+                                            ? 'bg-[var(--success)] ring-4 ring-[var(--success)]/25 animate-pulse scale-110'
+                                            : 'bg-[var(--primary)] ring-4 ring-[var(--primary)]/25 animate-pulse scale-110'
+                                          : 'bg-[var(--muted-foreground)]/40'
+                                      }`}
+                                    />
+                                    <span
+                                      className={`leading-relaxed transition-colors duration-200 ${
+                                        isLatest
+                                          ? 'text-[var(--foreground)] font-medium'
+                                          : 'text-[var(--muted-foreground)]/75'
+                                      }`}
+                                    >
+                                      {line}
+                                    </span>
+                                  </div>
+                                );
+                              })}
                             </div>
-                            {thinkingText}
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     );
                   })()
@@ -385,14 +428,14 @@ function ChatMessageRow({
                     {/* Search Sources/Citations */}
                     {msg.payload?.sources &&
                       msg.payload.sources.length > 0 && (
-                        <div className="mt-2 p-1.5 bg-[var(--surface-2)] rounded-lg border border-[var(--border)] text-[10px] animate-fade-in">
+                        <div className="mt-2.5 px-3 py-2 bg-[var(--surface-2)]/50 border border-[var(--border)]/60 rounded-xl text-[10px] animate-fade-in backdrop-blur-xs">
                           <Button
                             type="button"
                             onClick={() => toggleSources(msg.id)}
                             variant="muted"
                             size="xs"
                             aria-expanded={expandedSources[msg.id]}
-                            className="w-full justify-between text-[var(--muted-foreground)] mb-1 border-none bg-transparent p-0 text-[10px]"
+                            className="strategist-sources-toggle mb-1 w-full justify-between text-[10px]"
                           >
                             <div className="flex items-center gap-1 select-none">
                               <Globe className="w-3 h-3 text-[var(--primary)] shrink-0" />
@@ -418,7 +461,7 @@ function ChatMessageRow({
                                   variant="surface"
                                   size="xs"
                                   render={<a href={src.url} target="_blank" rel="noopener noreferrer" />}
-                                  className="hover:bg-[var(--surface-4)] hover:text-[var(--primary)] no-underline text-[10px]"
+                                  className="strategist-source-link no-underline text-[10px]"
                                   title={src.title || src.url}
                                 >
                                   <span className="font-semibold max-w-[120px] truncate">
@@ -453,7 +496,7 @@ function ChatMessageRow({
                               onClick={() =>
                                 handleCopy(normalizedContent, msg.id)
                               }
-                              variant="ghost"
+                              variant="muted"
                               size="icon-xs"
                               className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                             >
@@ -482,7 +525,7 @@ function ChatMessageRow({
                                   content: normalizedContent,
                                 })
                               }
-                              variant="ghost"
+                              variant="muted"
                               size="icon-xs"
                               className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                             >
@@ -517,7 +560,7 @@ function ChatMessageRow({
                                 a.click();
                                 URL.revokeObjectURL(url);
                               }}
-                              variant="ghost"
+                              variant="muted"
                               size="icon-xs"
                               className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                             >
@@ -536,7 +579,7 @@ function ChatMessageRow({
                             <Button
                               type="button"
                               onClick={() => handleRewrite(msg.id)}
-                              variant="ghost"
+                              variant="muted"
                               size="icon-xs"
                               className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                             >
@@ -552,7 +595,10 @@ function ChatMessageRow({
 
                     {/* Suggestions */}
                     {finalSuggestions.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
+                      <div className="flex flex-col items-start gap-1.5 mt-3 pt-2.5 border-t border-[var(--border)]/20 w-full max-w-xl">
+                        <span className="text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-0.5 select-none">
+                          {t('suggestedActions')}
+                        </span>
                         {finalSuggestions.map((sug, i) => (
                           <Button
                             key={i}
@@ -561,9 +607,9 @@ function ChatMessageRow({
                             disabled={isTyping}
                             variant="surface"
                             size="xs"
-                            className="!rounded-full text-[10px]"
+                            className="strategist-suggestion-action w-full justify-start px-3 py-1.5 text-left text-xs transition-colors sm:w-auto"
                           >
-                            {sug}
+                            <span className="truncate">{sug}</span>
                           </Button>
                         ))}
                       </div>

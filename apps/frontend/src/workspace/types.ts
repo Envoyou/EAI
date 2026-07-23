@@ -58,7 +58,7 @@ export interface WorkspaceState {
   hoveredFeedbackIndex: number | null;
   activeFeedbackIndex: number | null;
   rightPanelOpen: boolean;
-  rightPanelTab: 'strategist' | 'feedback' | 'notes';
+  rightPanelTab: 'strategist' | 'feedback' | 'notes' | 'deep_report';
   layoutReversed: boolean;
   showMissingSourcesModal: boolean;
   missingSources: { url: string; domain: string }[];

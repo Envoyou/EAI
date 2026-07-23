@@ -6,7 +6,21 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Production-Parity Strategist Chat Mock Protocol**:
+  - Added a shared Strategist chat event protocol for production and mock streams, including thinking, grounding-source, suggestion, completion, error, and Deep Research lifecycle events.
+  - Added opt-in backend mock chat configuration (`ENABLE_MOCK_CHAT`, `MOCK_CHAT_SPEED`) and the matching frontend route switch (`NEXT_PUBLIC_MOCK_CHAT`) without changing the production endpoint contract.
+  - Added integration coverage ensuring mock streams remain compatible with the same protocol consumed by the production chat UI.
+- **Persistent Deep Research Report Library**:
+  - Added a dedicated **Deep Report** tab to the Strategist Copilot, replacing the transient report modal with a persistent per-document report library.
+  - Reports are saved automatically, support copy/download/delete/discuss actions, and retain up to five reports. When full, the UI prompts users to remove an older report before another report can be stored.
+  - Added report-aware follow-up context so saved research can be reopened and continued in Chat with EAI.
+
 ### Changed
+- **Strategist Streaming & Responsive UI Contracts**:
+  - Split the Strategist chat path selection into `useStrategistChatPath.ts`, keeping mock and production route selection isolated from the main content hook.
+  - Expanded the chat presentation for distinct thinking, grounded-source, suggestion, and Deep Research states while retaining the same responsive Copilot layout on desktop, tablet, and mobile.
+  - Added bounded domain selectors for composite controls whose rectangular/card visuals intentionally differ from the pill-shaped Button primitive. These selectors load after primitive styles and avoid `!important`.
 - **Content Strategist Direct API Fetch Alignment & Referential Stability**:
   - Aligned Deep Research status polling (`GET /api/strategist/chat/status/:id`) and cancellation (`POST /api/strategist/chat/status/:id/cancel`) in `useContentStrategist.ts` from relative `fetchWithTimeout` (Next.js proxy) to `directFetch` (Railway API).
   - Wrapped `directFetch` in `useCallback` in `useDirectFetch.ts` to ensure function reference stability across re-renders, preventing infinite effect re-triggers and timer resets.
@@ -20,6 +34,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Updated streaming event loop in `quick-draft.ts` to use `step.delta` / `content.delta` event handling instead of raw chunk iteration.
 
 ### Fixed
+- **Strategist Dark Theme & Composite Hover Cascade**:
+  - Corrected saved-note Markdown typography tokens so headings, emphasis, lists, tables, and links remain readable in dark mode.
+  - Fixed Deep Report list hover styling so the entire report card, including its delete action, changes as one surface instead of showing a nested pill hover.
+  - Audited post-v3.14 primitive cascade conflicts and began a bounded migration of Copilot tabs, Notes actions, Feedback accordions, and public toggle controls without reintroducing nuclear `!important` overrides.
 - **Strategist Chat Thinking Display Not Rendering**: The `thought_summary` delta from the Interactions API uses a nested `delta.content.text` field instead of the flat `delta.text` field used by text deltas. The streaming loop in `chat.ts` now correctly detects `deltaType === 'thought_summary'` and emits a `{ type: 'thinking', chunk }` SSE event, which the frontend (`useContentStrategist.ts` + `ChatMessageList.tsx`) already expects — making the real-time thinking display functional for the first time.
 
 ## [3.14.0] - 2026-07-23

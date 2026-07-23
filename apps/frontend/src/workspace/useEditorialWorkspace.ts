@@ -94,7 +94,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
   const [hoveredFeedbackIndex, setHoveredFeedbackIndex] = useState<number | null>(null);
   const [activeFeedbackIndex, setActiveFeedbackIndex] = useState<number | null>(null);
-  const [rightPanelTab, setRightPanelTab] = useState<'strategist' | 'feedback' | 'notes'>('strategist');
+  const [rightPanelTab, setRightPanelTab] = useState<'strategist' | 'feedback' | 'notes' | 'deep_report'>('strategist');
 
   // Refresh trigger for DocumentHistoryPanel
   const [refreshTrigger, setRefreshTrigger] = useState(0);

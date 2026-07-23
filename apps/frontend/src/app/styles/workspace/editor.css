@@ -59,7 +59,7 @@
   border-bottom: none;
 }
 
-.document-tab {
+.document-tab.ui-btn-muted {
   position: relative;
   min-height: 30px;
   margin: 4px 0;
@@ -74,16 +74,16 @@
   transition: color var(--transition-fast), background var(--transition-fast);
 }
 
-.document-tab:hover {
+.document-tab.ui-btn-muted:hover:not(:disabled) {
   background: var(--surface-2);
   color: var(--foreground);
 }
 
-.document-tab.is-active {
+.document-tab.ui-btn-muted.is-active {
   color: var(--foreground);
 }
 
-.document-tab.is-active::after {
+.document-tab.ui-btn-muted.is-active::after {
   content: '';
   position: absolute;
   bottom: -4px;

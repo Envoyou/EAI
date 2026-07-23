@@ -283,7 +283,7 @@ export default function HistorySidebar({
                 key={f}
                 type="button"
                 onClick={() => setActiveFilter(f)}
-                variant="ghost"
+                variant="muted"
                 className={`sidebar-filter-pill min-w-0 flex-1 px-2 py-1.5 text-[10px] capitalize rounded-full border-none cursor-pointer h-auto${
                   active ? ' active' : ''
                 }`}

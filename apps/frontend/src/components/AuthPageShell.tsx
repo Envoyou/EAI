@@ -148,10 +148,9 @@ export function AuthPageShell({
                 key={i}
                 type="button"
                 onClick={() => setCurrentSlide(i)}
-                variant="ghost"
-                className={`h-1.5 p-0 rounded-full transition-all duration-500 min-w-0 ${
-                  i === currentSlide ? 'w-8 bg-primary-400' : 'w-2 bg-white/20 hover:bg-white/40'
-                }`}
+                variant="muted"
+                className="auth-slide-indicator transition-all duration-500"
+                data-active={i === currentSlide}
                 aria-label={`Go to slide ${i + 1}`}
               />
             ))}

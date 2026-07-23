@@ -176,13 +176,16 @@ apps/backend/
 │       ├── editor.ts         # /api/editor — editor state management
 │       ├── storage.ts        # /api/storage — R2 file storage
 │       ├── health.ts         # GET /health, /api/health — shallow & deep health checks
-│       ├── strategist/       # /api/strategist — modular AI strategist folder (index, handlers, types, utils, quick-draft)
-│       │   ├── index.ts      # Router export (re-exporting chat, plan, draft-from-notes, sessions)
+│       ├── strategist/       # /api/strategist — modular AI strategist folder
+│       │   ├── index.ts      # Router export, including optional development mock routing
+│       │   ├── chat-protocol.ts # Shared production/mock SSE event contract and writer
 │       │   ├── types.ts      # Zod validation schemas & derived types
+│       │   ├── mock-chat-types.ts # Mock scenario and speed configuration types
+│       │   ├── mock-chat.ts  # Opt-in protocol-compatible mock chat scenarios
 │       │   ├── utils/        # Grounding URL resolution, leak sanitizer & workspace helpers
 │       │   ├── handlers/     # Domain HTTP handlers (chat, plan, draft-from-notes, sessions)
 │       │   ├── quick-draft.ts # /api/strategist/quick-draft — quick draft generation
-│       │   └── test-fallback.ts # Dev-only fallback route for provider resilience testing
+│       │   └── __tests__/    # Production/mock protocol integration coverage
 │       └── webhooks/
 │           ├── clerk.ts      # /api/webhooks/clerk — Clerk user sync events
 │           └── payment.ts    # /api/webhooks/payment — Midtrans payment events

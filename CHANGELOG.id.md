@@ -6,7 +6,21 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Protokol Mock Strategist Chat Setara Produksi**:
+  - Menambahkan protokol event Strategist chat bersama untuk stream produksi dan mock, meliputi event thinking, grounding source, suggestion, completion, error, serta lifecycle Deep Research.
+  - Menambahkan konfigurasi mock chat backend yang bersifat opt-in (`ENABLE_MOCK_CHAT`, `MOCK_CHAT_SPEED`) dan pemilih rute frontend yang sesuai (`NEXT_PUBLIC_MOCK_CHAT`) tanpa mengubah kontrak endpoint produksi.
+  - Menambahkan cakupan integrasi untuk memastikan stream mock tetap kompatibel dengan protokol yang sama yang dikonsumsi UI chat produksi.
+- **Pustaka Laporan Deep Research Persisten**:
+  - Menambahkan tab khusus **Deep Report** pada Strategist Copilot, menggantikan modal laporan sementara dengan pustaka laporan persisten per dokumen.
+  - Laporan tersimpan otomatis, mendukung aksi salin/unduh/hapus/diskusikan, dan menampung maksimal lima laporan. Saat penuh, UI meminta pengguna menghapus laporan lama sebelum laporan baru dapat disimpan.
+  - Menambahkan konteks follow-up berbasis laporan agar hasil riset tersimpan dapat dibuka kembali dan dilanjutkan melalui Chat with EAI.
+
 ### Changed
+- **Kontrak Streaming Strategist & UI Responsif**:
+  - Memisahkan pemilihan jalur Strategist chat ke `useStrategistChatPath.ts`, sehingga pemilihan rute mock dan produksi terisolasi dari hook konten utama.
+  - Memperluas presentasi chat untuk membedakan status thinking, grounded source, suggestion, dan Deep Research dengan tetap mempertahankan layout Copilot responsif yang sama di desktop, tablet, dan mobile.
+  - Menambahkan selector domain terbatas untuk kontrol komposit yang sengaja menggunakan bentuk kartu/persegi alih-alih bentuk pill milik primitive Button. Selector dimuat setelah style primitive dan tidak menggunakan `!important`.
 - **Penyelarasan Direct API Fetch & Stabilitas Referensi Content Strategist**:
   - Menyelaraskan status polling (`GET /api/strategist/chat/status/:id`) dan pembatalan (`POST /api/strategist/chat/status/:id/cancel`) Deep Research di `useContentStrategist.ts` dari `fetchWithTimeout` relatif (Next.js proxy) ke `directFetch` (Railway API).
   - Membungkus `directFetch` dengan `useCallback` pada `useDirectFetch.ts` untuk menjamin stabilitas referensi fungsi antar re-render, mencegah restart effect polling dan reset timer yang tidak perlu.
@@ -20,6 +34,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Memperbarui loop event streaming di `quick-draft.ts` untuk menggunakan penanganan event `step.delta` / `content.delta` sebagai ganti iterasi chunk mentah.
 
 ### Fixed
+- **Tema Gelap Strategist & Cascade Hover Kontrol Komposit**:
+  - Memperbaiki token tipografi Markdown pada note tersimpan agar heading, emphasis, list, tabel, dan link tetap terbaca di mode gelap.
+  - Memperbaiki hover daftar Deep Report agar seluruh kartu laporan, termasuk aksi hapus, berubah sebagai satu permukaan tanpa hover pill bertumpuk.
+  - Mengaudit konflik cascade primitive pasca-v3.14 dan memulai migrasi terbatas untuk tab Copilot, aksi Notes, accordion Feedback, serta kontrol toggle publik tanpa mengembalikan `!important` nuklir.
 - **Tampilan Thinking Strategist Chat Tidak Muncul**: Delta `thought_summary` dari Interactions API menggunakan field bertingkat `delta.content.text`, bukan field datar `delta.text` yang dipakai delta teks biasa. Loop streaming di `chat.ts` kini mendeteksi `deltaType === 'thought_summary'` dengan benar dan memancarkan SSE event `{ type: 'thinking', chunk }`, yang sudah ditunggu frontend (`useContentStrategist.ts` + `ChatMessageList.tsx`) — membuat tampilan thinking real-time berfungsi untuk pertama kalinya.
 
 ## [3.14.0] - 2026-07-23

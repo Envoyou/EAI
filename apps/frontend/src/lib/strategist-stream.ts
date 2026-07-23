@@ -1,5 +1,6 @@
 export type StrategistStreamEvent = {
   type?: string;
+  kind?: 'reasoning' | 'grounding';
   chunk?: string;
   text?: string;
   message?: string;

@@ -799,7 +799,7 @@ export default function FinalDraftPanel({
                         handleDownloadPDF();
                         setMenuOpen(false);
                       }}
-                      variant="ghost"
+                      variant="muted"
                       className="ui-menu-item justify-start w-full font-normal border-none"
                     >
                       <Download className="h-3.5 w-3.5 text-[var(--primary)] shrink-0" />
@@ -811,7 +811,7 @@ export default function FinalDraftPanel({
                         handleDownloadWord();
                         setMenuOpen(false);
                       }}
-                      variant="ghost"
+                      variant="muted"
                       className="ui-menu-item justify-start w-full font-normal border-none"
                     >
                       <FileText className="h-3.5 w-3.5 text-blue-400 shrink-0" />
@@ -823,7 +823,7 @@ export default function FinalDraftPanel({
                         handleDownloadMarkdown();
                         setMenuOpen(false);
                       }}
-                      variant="ghost"
+                      variant="muted"
                       className="ui-menu-item justify-start w-full font-normal border-none"
                     >
                       <FileText className="h-3.5 w-3.5 text-amber-500 shrink-0" />
@@ -997,7 +997,7 @@ export default function FinalDraftPanel({
                   type="button"
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  variant="ghost"
+                  variant="muted"
                   className={`document-tab flex items-center justify-center gap-1.5 h-auto rounded-none border-none ${
                     active
                       ? 'is-active'

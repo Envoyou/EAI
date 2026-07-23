@@ -194,9 +194,8 @@ export function FeedbackItemCard({
             onActiveFeedbackChange(isActiveCard ? null : index);
           }
         }}
-        variant="ghost"
-        className="flex w-full items-center justify-between border-0 bg-transparent px-3 py-2.5 text-left cursor-pointer select-none transition-colors hover:bg-[var(--surface-2)] h-auto rounded-none"
-        style={{ borderRadius: isExpanded ? '0' : undefined }}
+        variant="muted"
+        className="feedback-accordion-trigger h-auto w-full cursor-pointer select-none items-center justify-between px-3 py-2.5 text-left transition-colors"
         aria-expanded={isExpanded}
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">

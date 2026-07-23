@@ -21,7 +21,15 @@ import {
 } from '../utils/helpers';
 import { redisRateLimiter } from '@/middleware/rate-limit';
 import { resolveGroundingUrl } from '../utils/grounding';
-import { ChatInputSchema, type GroundingAnnotation, type UniqueSource } from '../types';
+import type { GroundingAnnotation, UniqueSource } from '../types';
+import {
+  ChatInputSchema,
+  StrategistCancelRequestSchema,
+  StrategistCancelResponseSchema,
+  StrategistStatusResponseSchema,
+  setStrategistSseHeaders,
+  writeStrategistSseEvent,
+} from '../chat-protocol';
 import {
   getGeminiInteractionConfig,
   getGeminiInteractionRequestOptions,
@@ -145,10 +153,10 @@ router.get('/chat/status/:id', async (req: Request, res: Response) => {
       getGeminiInteractionRequestOptions(undefined, requestAbort.signal)
     );
 
-    res.json({
+    res.json(StrategistStatusResponseSchema.parse({
       state: interaction.status ? interaction.status.toUpperCase() : 'UNKNOWN',
       output: (interaction as { output_text?: string }).output_text || '',
-    });
+    }));
   } catch (error) {
     if (requestAbort.signal.aborted) return;
     console.error('Error getting interaction status:', error);
@@ -163,7 +171,15 @@ router.post('/chat/status/:id/cancel', softAuth, async (req: Request, res: Respo
     return res.status(401).json({ error: 'Authentication required' });
   }
   const interactionId = req.params.id;
-  if (!isValidDeepResearchCancelToken(req.auth.userId, interactionId, req.body?.cancelToken)) {
+  const parsedCancelRequest = StrategistCancelRequestSchema.safeParse(req.body);
+  if (
+    !parsedCancelRequest.success ||
+    !isValidDeepResearchCancelToken(
+      req.auth.userId,
+      interactionId,
+      parsedCancelRequest.data.cancelToken
+    )
+  ) {
     return res.status(403).json({ error: 'Invalid cancellation token' });
   }
 
@@ -174,7 +190,7 @@ router.post('/chat/status/:id/cancel', softAuth, async (req: Request, res: Respo
       undefined,
       getGeminiInteractionRequestOptions(undefined, requestAbort.signal)
     );
-    return res.json({ success: true });
+    return res.json(StrategistCancelResponseSchema.parse({ success: true }));
   } catch (error) {
     if (requestAbort.signal.aborted) return;
     console.error('Error cancelling Deep Research:', error);
@@ -352,24 +368,19 @@ router.post(
         }
       }
 
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.setHeader('X-Accel-Buffering', 'no');
+      setStrategistSseHeaders(res);
 
       heartbeatInterval = setInterval(() => {
         if (!res.writableEnded) {
-          res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
+          writeStrategistSseEvent(res, { type: 'heartbeat' });
         }
       }, 5000);
 
       if (dbSessionId) {
-        res.write(
-          `data: ${JSON.stringify({
-            type: 'session_init',
-            sessionId: dbSessionId,
-          })}\n\n`
-        );
+        writeStrategistSseEvent(res, {
+          type: 'session_init',
+          sessionId: dbSessionId,
+        });
       }
 
       const URL_REGEX = /https?:\/\/[^\s"'<>]+/i;
@@ -447,10 +458,10 @@ router.post(
 
       if (mode === 'deep') {
         if (isGeminiGroundingDisabledForTests()) {
-          res.write(`data: ${JSON.stringify({
+          writeStrategistSseEvent(res, {
             type: 'error',
             error: 'Deep Research is disabled by the staging cost guard.',
-          })}\n\n`);
+          });
           res.end();
           return;
         }
@@ -485,14 +496,12 @@ router.post(
           `[BILLING] Deep Research started. Interaction ID: ${interaction.id}. Token usage will be billed upon completion.`
         );
 
-        res.write(
-          `data: ${JSON.stringify({
-            type: 'deep_research_started',
-            interaction_id: interaction.id,
-            cancel_token: getDeepResearchCancelToken(req.auth!.userId, interaction.id),
-          })}\n\n`
-        );
-        res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+        writeStrategistSseEvent(res, {
+          type: 'deep_research_started',
+          interaction_id: interaction.id,
+          cancel_token: getDeepResearchCancelToken(req.auth!.userId, interaction.id),
+        });
+        writeStrategistSseEvent(res, { type: 'done' });
         res.end();
         return;
       }
@@ -558,7 +567,11 @@ router.post(
             // ThinkingProcess UI in ChatMessageList can render it.
             const thinkChunk = event.delta.content?.text ?? '';
             if (thinkChunk && !res.writableEnded) {
-              res.write(`data: ${JSON.stringify({ type: 'thinking', chunk: thinkChunk })}\n\n`);
+              writeStrategistSseEvent(res, {
+                type: 'thinking',
+                kind: isSearchEnabled ? 'grounding' : 'reasoning',
+                chunk: thinkChunk,
+              });
             }
           } else if (event.delta.text) {
             finalOutputText += event.delta.text;
@@ -664,22 +677,18 @@ router.post(
           .trim();
 
         if (outputToSend) {
-          res.write(
-            `data: ${JSON.stringify({
-              type: 'replace_text',
-              text: outputToSend,
-            })}\n\n`
-          );
+          writeStrategistSseEvent(res, {
+            type: 'replace_text',
+            text: outputToSend,
+          });
         }
         if (uniqueSourcesData.length > 0) {
-          res.write(
-            `data: ${JSON.stringify({
-              type: 'sources',
-              sources: uniqueSourcesData,
-            })}\n\n`
-          );
+          writeStrategistSseEvent(res, {
+            type: 'sources',
+            sources: uniqueSourcesData,
+          });
         }
-        res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+        writeStrategistSseEvent(res, { type: 'done' });
 
         if (dbSessionId && outputToSend) {
           try {
@@ -711,12 +720,10 @@ router.post(
       if (!res.headersSent) {
         res.status(500).json({ error: 'Failed to chat' });
       } else {
-        res.write(
-          `data: ${JSON.stringify({
-            type: 'error',
-            message: 'Stream failed',
-          })}\n\n`
-        );
+        writeStrategistSseEvent(res, {
+          type: 'error',
+          message: 'Stream failed',
+        });
         res.end();
       }
     } finally {

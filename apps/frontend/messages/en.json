@@ -94,5 +94,45 @@
     "refreshPublicationMetadata": "Run Publish Ready again to refresh publication metadata",
     "staleMetadataTitle": "Publication metadata is outdated.",
     "staleMetadataDescription": "The article body changed after metadata generation. Run Publish Ready again before exporting."
+  },
+  "ChatMessageList": {
+    "suggestedActions": "Suggested Actions",
+    "thinking": "Thinking...",
+    "groundingSources": "Grounding sources..."
+  },
+  "AICopilotPanel": {
+    "chat": "Chat with EAI",
+    "feedback": "Feedback",
+    "notes": "Notes",
+    "deepReport": "Deep Report"
+  },
+  "PricingGrid": {
+    "billingCycleToggle": "Toggle annual billing"
+  },
+  "DeepResearchReport": {
+    "title": "Deep Research Report",
+    "libraryTitle": "Deep Research Reports",
+    "libraryDescription": "Reports are saved automatically for the current document.",
+    "saved": "Saved",
+    "savedDescription": "Automatically saved for this document. You can leave this tab and return at any time.",
+    "latest": "Latest",
+    "emptyTitle": "No Deep Research report yet",
+    "emptyDescription": "Run Deep Research from Chat with EAI. The completed report will be saved here automatically for review and follow-up.",
+    "copy": "Copy report",
+    "download": "Download Markdown",
+    "copied": "Report copied to clipboard",
+    "downloaded": "Report downloaded",
+    "delete": "Delete report",
+    "deleted": "Report deleted",
+    "confirmDelete": "Delete “{title}”? This cannot be undone.",
+    "backToReports": "Back to reports",
+    "discuss": "Discuss report in Chat with EAI",
+    "nextSteps": "Continue from this report",
+    "swipeTable": "Swipe horizontally to view all columns",
+    "limitAlert": "You have reached the {max}-report limit. Delete an older report before starting another Deep Research.",
+    "limitReached": "You can save up to {max} Deep Research reports per document. Delete an older report first.",
+    "storageError": "The report library could not be saved because browser storage is full.",
+    "followUpPrompt": "Review my saved Deep Research Report and help me turn its findings into a strong article direction. Start with the best angle, audience, and recommended next steps.",
+    "followUpActionPrompt": "Review my saved Deep Research Report and help me with this next action: {action}"
   }
 }

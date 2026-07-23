@@ -70,9 +70,9 @@ export default function NotesTab({
             onNotesChange([]);
             toast.success('All notes cleared');
           }}
-          variant="ghost"
+          variant="muted"
           size="xs"
-          className="text-[10px] font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] h-auto p-0 border-none bg-transparent"
+          className="strategist-notes-clear-action text-[10px] font-medium"
         >
           Clear all
         </Button>
@@ -132,9 +132,9 @@ export default function NotesTab({
                         if (expandedNoteId === note.id) setExpandedNoteId(null);
                         toast.success('Note deleted');
                       }}
-                      variant="ghost"
+                      variant="muted"
                       size="icon-xs"
-                      className="absolute top-2 right-2 md:opacity-0 md:group-hover:opacity-100 opacity-80 p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all"
+                      className="strategist-note-delete-action absolute right-2 top-2 p-1 opacity-80 transition-all md:opacity-0 md:group-hover:opacity-100"
                     >
                       <X className="w-3 h-3" />
                     </Button>
@@ -183,7 +183,7 @@ export default function NotesTab({
                     className="overflow-hidden"
                   >
                     <div className="pt-2 pb-1">
-                      <div className="prose strategist-prose max-w-none text-[var(--foreground)] mb-2">
+                      <div className="prose dark:prose-invert strategist-prose max-w-none text-[var(--foreground)] mb-2">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {note.content}
                         </ReactMarkdown>

@@ -29,7 +29,7 @@ interface AnalyzeContext {
   setProcessStartedAt: (t: number | null) => void;
   setActiveTab: (t: PanelTab) => void;
   setRightPanelOpen: (o: boolean) => void;
-  setRightPanelTab: (t: 'strategist' | 'feedback' | 'notes') => void;
+  setRightPanelTab: (t: 'strategist' | 'feedback' | 'notes' | 'deep_report') => void;
   setMobileViewTab: (t: 'history' | 'editor' | 'copilot') => void;
   setDemoRefineCount: (c: number) => void;
   setShowDemoSignupModal: (o: boolean) => void;

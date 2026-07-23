@@ -16,6 +16,7 @@
 @import "./styles/components/badges.css";
 @import "./styles/components/menus.css";
 @import "./styles/components/feedback.css";
+@import "./styles/components/composite-controls.css";
 
 /* Workspace Domain & IDE Chrome */
 @import "./styles/workspace/shell.css";
