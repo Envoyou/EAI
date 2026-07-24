@@ -241,7 +241,24 @@ export default function DocumentHistoryPanel({
   const handleUnsavedDraftClick = () => {
     if (hasUnsavedDraft) {
       onNew();
+      closeAfterMobileSelection();
     }
+  };
+
+  const closeAfterMobileSelection = () => {
+    if (
+      sidebarOpen &&
+      onToggle &&
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 860px)').matches
+    ) {
+      onToggle();
+    }
+  };
+
+  const handleHistoryItemSelect = (id: string) => {
+    onSelect(id);
+    closeAfterMobileSelection();
   };
 
   const renderItemStatus = (item: HistoryItem) => {
@@ -317,7 +334,10 @@ export default function DocumentHistoryPanel({
       <div className="pt-1">
         <Button
           type="button"
-          onClick={onNew}
+          onClick={() => {
+            onNew();
+            closeAfterMobileSelection();
+          }}
           variant="primary"
           size="sm"
           className="w-full justify-center gap-1.5 text-xs font-medium bg-[var(--primary)]/5 border border-[var(--primary)]/15 text-[var(--primary)] hover:bg-[var(--primary)]/10"
@@ -435,7 +455,7 @@ export default function DocumentHistoryPanel({
                       <div key={item.id} className="relative group">
                         <Button
                           type="button"
-                          onClick={() => onSelect(item.id)}
+                          onClick={() => handleHistoryItemSelect(item.id)}
                           variant="ghost"
                           className={`w-full text-left justify-start px-3 py-2 h-auto rounded-md transition-colors border-none ${
                             isActive

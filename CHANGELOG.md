@@ -56,6 +56,9 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Updated streaming event loop in `quick-draft.ts` to use `step.delta` / `content.delta` event handling instead of raw chunk iteration.
 
 ### Fixed
+- **Mobile Sidebar Auto-Close**:
+  - Closed the global workspace and admin navigation drawers immediately after a mobile navigation link is selected.
+  - Closed Draft History on mobile after selecting an existing draft, resuming an unsaved draft, or creating a new article, while leaving desktop sidebars and non-navigation actions unchanged.
 - **Strategist Session Actions Menu**:
   - Raised the portalled Pin/Rename/Delete menu positioner above the workspace panel stacking layer so the three-dot menu remains visible and interactive.
   - Migrated the session menu trigger to the canonical Button primitive with a larger consistent hit target and a session-specific accessible label.

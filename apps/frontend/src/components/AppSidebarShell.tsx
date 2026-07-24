@@ -85,6 +85,16 @@ export function AppSidebarShell({
     });
   };
 
+  const closeAfterMobileNavigation = () => {
+    if (
+      sidebarOpen &&
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 860px)').matches
+    ) {
+      onToggleSidebar();
+    }
+  };
+
   return (
     <aside
       className={`workspace-page-sidebar-panel flex flex-col h-full border-none shadow-none ${className}`}
@@ -171,6 +181,7 @@ export function AppSidebarShell({
           label="Editor"
           sidebarOpen={sidebarOpen}
           href="/"
+          onClick={closeAfterMobileNavigation}
           isActive={currentPage === 'editor'}
         />
 
@@ -179,7 +190,11 @@ export function AppSidebarShell({
           label="Dashboard"
           sidebarOpen={sidebarOpen}
           href={isDemoMode ? undefined : "/dashboard"}
-          onClick={isDemoMode ? () => handleDemoLock('Dashboard') : undefined}
+          onClick={
+            isDemoMode
+              ? () => handleDemoLock('Dashboard')
+              : closeAfterMobileNavigation
+          }
           isActive={currentPage === 'dashboard'}
           disabled={isDemoMode}
         />
@@ -197,7 +212,11 @@ export function AppSidebarShell({
           label="Settings"
           sidebarOpen={sidebarOpen}
           href={isDemoMode ? undefined : "/settings"}
-          onClick={isDemoMode ? () => handleDemoLock('Settings') : undefined}
+          onClick={
+            isDemoMode
+              ? () => handleDemoLock('Settings')
+              : closeAfterMobileNavigation
+          }
           isActive={currentPage === 'settings'}
           disabled={isDemoMode}
         />

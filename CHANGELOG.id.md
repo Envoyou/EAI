@@ -56,6 +56,9 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Memperbarui loop event streaming di `quick-draft.ts` untuk menggunakan penanganan event `step.delta` / `content.delta` sebagai ganti iterasi chunk mentah.
 
 ### Fixed
+- **Sidebar Mobile Menutup Otomatis**:
+  - Menutup drawer navigasi workspace global dan admin segera setelah tautan navigasi dipilih pada mobile.
+  - Menutup Draft History di mobile setelah memilih draft tersimpan, melanjutkan draft belum tersimpan, atau membuat artikel baru, tanpa mengubah sidebar desktop maupun aksi non-navigasi.
 - **Menu Aksi Sesi Strategist**:
   - Menempatkan positioner menu Pin/Rename/Delete yang dirender melalui portal di atas stacking layer panel workspace, sehingga menu titik tiga tetap terlihat dan dapat digunakan.
   - Memigrasikan trigger menu sesi ke primitive Button kanonis dengan area klik yang konsisten dan label aksesibel spesifik sesi.

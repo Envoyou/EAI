@@ -69,6 +69,16 @@ export function AdminLayoutShell({ children }: AdminLayoutShellProps) {
     setTheme(nextTheme);
   };
 
+  const closeAfterMobileNavigation = () => {
+    if (
+      sidebarOpen &&
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 860px)').matches
+    ) {
+      setSidebarOpen(false);
+    }
+  };
+
   if (!isLoaded) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -159,6 +169,7 @@ export function AdminLayoutShell({ children }: AdminLayoutShellProps) {
                       render={
                         <Link
                           href={section.href}
+                          onClick={closeAfterMobileNavigation}
                           data-active={isActive}
                           aria-current={isActive ? 'page' : undefined}
                           prefetch={false}
@@ -214,6 +225,7 @@ export function AdminLayoutShell({ children }: AdminLayoutShellProps) {
                 render={
                   <Link
                     href="/"
+                    onClick={closeAfterMobileNavigation}
                     prefetch={false}
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] transition-colors ${
                       !sidebarOpen ? 'justify-center px-0' : ''

@@ -60,10 +60,11 @@ export function SidebarItem({
   const combinedClasses = `${baseClasses} ${colorClasses} ${className}`;
 
   const renderTrigger = () => {
-    if (href && !disabled && !onClick) {
+    if (href && !disabled) {
       return (
         <Button
           render={<Link href={href} />}
+          onClick={onClick}
           variant="ghost"
           disabled={disabled}
           className={`${combinedClasses} bg-transparent`}
