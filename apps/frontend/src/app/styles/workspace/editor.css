@@ -18,6 +18,18 @@
   background: color-mix(in srgb, var(--surface-2) 48%, var(--surface-1));
 }
 
+.final-draft-editor-card {
+  margin-top: 12px;
+}
+
+.final-draft-editor-textarea.ui-textarea {
+  field-sizing: fixed;
+  height: clamp(12rem, 42dvh, 28rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
 .editor-canvas {
   caret-color: var(--primary);
   white-space: pre-wrap;

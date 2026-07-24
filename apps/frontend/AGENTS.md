@@ -128,6 +128,7 @@ apps/frontend/
 │   ├── components/
 │   │   ├── ui/                   # Reusable UI primitives
 │   │   │   ├── select.tsx        # Custom Select (Mobile Bottom Sheet via Base UI)
+│   │   │   ├── adaptive-action-menu.tsx # Shared desktop dropdown / mobile action sheet
 │   │   │   ├── tooltip.tsx       # Custom Tooltip (Base UI — use render prop, not asChild)
 │   │   │   ├── badge.tsx         # Custom Badge
 │   │   │   ├── button.tsx        # Canonical semantic Button API backed by ui-btn classes

@@ -26,7 +26,7 @@ interface FeedbackTabProps {
 
 export default function FeedbackTab(props: FeedbackTabProps) {
   return (
-    <div className="h-full border overflow-hidden min-w-0 w-full">
+    <div className="h-full min-w-0 w-full overflow-hidden">
       <FeedbackPanel
         key={`${props.result.analysisLogId ?? props.result.sourceRef ?? 'analysis'}:${props.result.status}`}
         {...props}

@@ -6,12 +6,16 @@ import {
   Loader2,
   MessageSquare,
   Pin,
-  MoreVertical,
-  Pencil,
-  Trash2,
 } from 'lucide-react';
-import { Menu } from '@base-ui/react/menu';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/ui/action-button';
+import { AdaptiveActionMenu } from '@/components/ui/adaptive-action-menu';
+import {
+  DeleteActionIcon,
+  EditActionIcon,
+  MoreActionsIcon,
+  PinActionIcon,
+} from '@/components/ui/icons/actions';
 
 interface SessionSidebarProps {
   sessions: ChatSession[];
@@ -49,7 +53,7 @@ export function SessionSidebar({
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto p-3 space-y-1">
         {isSessionsLoading ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--muted-foreground)]">
             <Loader2 className="w-5 h-5 animate-spin text-[var(--primary)] mb-2" />
@@ -75,11 +79,11 @@ export function SessionSidebar({
             </Button>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {sessions.map((s) => (
               <div
                 key={s.id}
-                className="group relative flex items-center gap-2 py-1.5 px-2.5 rounded-lg border border-transparent hover:border-[var(--border)] hover:bg-[var(--surface-3)]/60 transition-all cursor-pointer"
+                className="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg border border-transparent hover:border-[var(--border)] hover:bg-[var(--surface-3)]/60 transition-all cursor-pointer"
                 onClick={() => selectSession(s.id)}
               >
                 <div className="flex-1 min-w-0 flex items-center gap-1.5 justify-between">
@@ -104,52 +108,48 @@ export function SessionSidebar({
                   className="shrink-0 flex items-center"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Menu.Root>
-                    <Menu.Trigger className="opacity-100 md:opacity-0 md:group-hover:opacity-100 data-[state=open]:opacity-100 p-1 rounded hover:bg-[var(--surface-3)] transition-all inline-flex text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer border-none bg-transparent">
-                      <MoreVertical className="h-3.5 w-3.5" />
-                    </Menu.Trigger>
-                    <Menu.Portal>
-                      <Menu.Positioner side="bottom" align="end" sideOffset={4}>
-                        <Menu.Popup className="w-36 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] shadow-lg z-[200] py-1 text-left outline-none animate-in fade-in-50 zoom-in-95 duration-100">
-                          <Menu.Item
-                            onClick={() => togglePinSession(s.id)}
-                            className="w-full px-3 py-1.5 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-2)] flex items-center gap-2 cursor-pointer outline-none border-none bg-transparent"
-                          >
-                            <Pin
-                              className={`h-3.5 w-3.5 text-[var(--muted-foreground)] ${
-                                s.isPinned
-                                  ? 'fill-current text-[var(--primary)]'
-                                  : ''
-                              }`}
-                            />
-                            <span>{s.isPinned ? 'Unpin' : 'Pin'}</span>
-                          </Menu.Item>
-
-                          <Menu.Item
-                            onClick={() => onStartRename(s.id, s.title)}
-                            className="w-full px-3 py-1.5 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-2)] flex items-center gap-2 cursor-pointer outline-none border-none bg-transparent"
-                          >
-                            <Pencil className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
-                            <span>Rename</span>
-                          </Menu.Item>
-
-                          <Menu.Item
-                            onClick={() => {
-                              if (
-                                confirm('Permanently delete this chat session?')
-                              ) {
-                                deleteSession(s.id);
-                              }
-                            }}
-                            className="w-full px-3 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer outline-none border-none bg-transparent"
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-rose-500" />
-                            <span>Delete</span>
-                          </Menu.Item>
-                        </Menu.Popup>
-                      </Menu.Positioner>
-                    </Menu.Portal>
-                  </Menu.Root>
+                  <AdaptiveActionMenu
+                    title={`Actions for ${s.title}`}
+                    trigger={
+                      <ActionButton
+                        type="button"
+                        variant="muted"
+                        size="icon-xs"
+                        className="strategist-session-menu-trigger opacity-100 md:opacity-0 md:group-hover:opacity-100 data-[popup-open]:opacity-100"
+                        aria-label={`Actions for ${s.title}`}
+                        icon={MoreActionsIcon}
+                        label={`Actions for ${s.title}`}
+                        labelClassName="sr-only"
+                      />
+                    }
+                    items={[
+                      {
+                        key: 'pin',
+                        label: s.isPinned ? 'Unpin' : 'Pin',
+                        icon: PinActionIcon,
+                        onSelect: () => togglePinSession(s.id),
+                      },
+                      {
+                        key: 'rename',
+                        label: 'Rename',
+                        icon: EditActionIcon,
+                        onSelect: () => onStartRename(s.id, s.title),
+                      },
+                      {
+                        key: 'delete',
+                        label: 'Delete',
+                        icon: DeleteActionIcon,
+                        danger: true,
+                        separatorBefore: true,
+                        onSelect: () => {
+                          if (confirm('Permanently delete this chat session?')) {
+                            return deleteSession(s.id);
+                          }
+                        },
+                      },
+                    ]}
+                    contentClassName="w-40"
+                  />
                 </div>
               </div>
             ))}

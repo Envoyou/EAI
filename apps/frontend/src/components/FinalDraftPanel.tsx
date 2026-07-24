@@ -1018,7 +1018,7 @@ export default function FinalDraftPanel({
         </div>
 
         {editingDraft && onSaveFinalDraft && (
-          <div className="ui-card mb-3 space-y-3 p-3">
+          <div className="final-draft-editor-card ui-card mb-3 space-y-3 p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold ui-text">Edit Final Draft</p>
@@ -1043,7 +1043,7 @@ export default function FinalDraftPanel({
               rows={16}
               disabled={isSavingFinalDraft}
               aria-label="Final draft content"
-              className="min-h-72 resize-y font-mono text-xs leading-relaxed"
+              className="final-draft-editor-textarea font-mono text-xs leading-relaxed"
             />
             <Button
               type="button"

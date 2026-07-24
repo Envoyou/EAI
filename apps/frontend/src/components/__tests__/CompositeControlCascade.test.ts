@@ -29,15 +29,29 @@ describe('composite Button cascade contracts', () => {
   it('keeps Copilot tabs and Notes actions responsive without important overrides', () => {
     const copilot = readSource('../AICopilotPanel.tsx');
     const notes = readSource('../NotesTab.tsx');
+    const sessions = readSource(
+      '../strategist-tab/components/SessionSidebar.tsx'
+    );
 
     expect(copilot).toContain('strategist-copilot-tab');
     expect(copilot).toContain('strategist-copilot-tab-label');
     expect(copilot).toContain('aria-selected={activeTab === tab.key}');
     expect(notes).toContain('strategist-notes-clear-action');
     expect(notes).toContain('strategist-note-delete-action');
+    expect(sessions).toContain('strategist-session-menu-trigger');
+    expect(sessions).toContain('<AdaptiveActionMenu');
+    expect(sessions).toContain('aria-label={`Actions for ${s.title}`}');
+    expect(strategistStyles).toContain(
+      '.strategist-session-menu-trigger.ui-btn-muted'
+    );
     expect(strategistStyles).toContain(
       '.strategist-copilot-tab.ui-btn-muted[aria-selected="true"]'
     );
+    expect(strategistStyles).toContain(
+      '.strategist-copilot-tab.ui-btn-muted[aria-selected="true"]::after'
+    );
+    expect(strategistStyles).toContain('height: 1px');
+    expect(copilot).not.toContain('strategist-copilot-tab -mb-px');
     expect(strategistStyles).toContain('@media (min-width: 769px)');
     expect(strategistStyles).toContain('@container (min-width: 340px)');
     expect(strategistStyles).not.toContain('!important');
@@ -45,10 +59,12 @@ describe('composite Button cascade contracts', () => {
 
   it('keeps Feedback accordion triggers rectangular across viewport sizes', () => {
     const feedbackPanel = readSource('../FeedbackPanel.tsx');
+    const feedbackTab = readSource('../FeedbackTab.tsx');
     const feedbackItem = readSource(
       '../feedback-panel/components/FeedbackItemCard.tsx'
     );
 
+    expect(feedbackTab).not.toMatch(/className="[^"]*\bborder\b/);
     expect(feedbackPanel).toContain('feedback-seo-trigger');
     expect(feedbackItem).toContain('feedback-accordion-trigger');
     expect(feedbackStyles).toContain(

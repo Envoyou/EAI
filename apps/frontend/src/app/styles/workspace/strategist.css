@@ -51,8 +51,8 @@
  * and responsive spacing remain feature-owned in AICopilotPanel.
  */
 .strategist-copilot-tab.ui-btn-muted {
-  border: 1px solid transparent;
-  border-bottom: 1px solid transparent;
+  position: relative;
+  border: 0;
   border-radius: 0;
   background: transparent;
   color: var(--muted-foreground);
@@ -67,9 +67,18 @@
 
 .strategist-copilot-tab.ui-btn-muted[aria-selected="true"],
 .strategist-copilot-tab.ui-btn-muted[aria-selected="true"]:hover:not(:disabled) {
-  border-bottom-color: var(--primary);
   background: transparent;
   color: var(--foreground);
+}
+
+.strategist-copilot-tab.ui-btn-muted[aria-selected="true"]::after {
+  position: absolute;
+  right: 10px;
+  bottom: -1px;
+  left: 10px;
+  height: 1px;
+  background: var(--primary);
+  content: '';
 }
 
 .strategist-copilot-tab-label,
@@ -98,6 +107,10 @@
 .strategist-note-delete-action.ui-btn-muted:hover:not(:disabled) {
   background: var(--surface-2);
   color: var(--foreground);
+}
+
+.strategist-session-menu-trigger.ui-btn-muted {
+  border-radius: var(--radius-xs);
 }
 
 .strategist-note-delete-action.ui-btn-muted {

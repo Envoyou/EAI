@@ -51,6 +51,7 @@ model AnalysisLog {
 
   status        AnalysisStatus @default(success)
   editorStatus  String         @default("draft")
+  isPinned      Boolean        @default(false)
   errorMessage  String?        @db.Text
 
   createdAt     DateTime @default(now())
@@ -73,6 +74,7 @@ model AnalysisLog {
   @@index([status])
   @@index([userId])
   @@index([organizationId])
+  @@index([organizationId, isPinned, createdAt])
   @@index([editorialProfileVersionId])
 }
 

@@ -3,13 +3,21 @@
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Plus, FileText, Loader2, Search, Trash2, X } from 'lucide-react';
+import { Plus, FileText, Loader2, Search, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { AppSidebarShell } from '@/components/AppSidebarShell';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/ui/action-button';
+import { AdaptiveActionMenu } from '@/components/ui/adaptive-action-menu';
+import {
+  DeleteActionIcon,
+  EditActionIcon,
+  MoreActionsIcon,
+  PinActionIcon,
+} from '@/components/ui/icons/actions';
 
 export interface HistoryItem {
   id: string;
@@ -17,6 +25,7 @@ export interface HistoryItem {
   role: string;
   verdict?: string;
   summary?: string;
+  isPinned: boolean;
   metadata?: {
     title?: string;
     type?: string;
@@ -57,6 +66,12 @@ const FILTERS = [
 ] as const;
 
 const PAGE_SIZE = 20;
+
+const sortHistoryItems = (items: HistoryItem[]) =>
+  [...items].sort((a, b) => {
+    if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 
 export default function DocumentHistoryPanel({
   onSelect,
@@ -114,8 +129,8 @@ export default function DocumentHistoryPanel({
         const result = await res.json();
         const data = Array.isArray(result) ? result : result.data || [];
         const newNextCursor = result.nextCursor || null;
-        if (append) setHistory(prev => [...prev, ...data]);
-        else setHistory(data);
+        if (append) setHistory(prev => sortHistoryItems([...prev, ...data]));
+        else setHistory(sortHistoryItems(data));
         setNextCursor(newNextCursor);
       } else {
         setError('Failed to fetch history');
@@ -193,6 +208,33 @@ export default function DocumentHistoryPanel({
     } catch {
       toast.error('Network error while updating title');
       fetchHistory();
+    }
+  };
+
+  const handleTogglePin = async (item: HistoryItem) => {
+    const nextPinned = !item.isPinned;
+    setHistory(prev => sortHistoryItems(prev.map(historyItem =>
+      historyItem.id === item.id
+        ? { ...historyItem, isPinned: nextPinned }
+        : historyItem
+    )));
+
+    try {
+      const res = await fetchWithTimeout(`/api/history/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPinned: nextPinned }),
+      });
+
+      if (!res.ok) throw new Error('Failed to update pin state');
+      toast.success(nextPinned ? 'Draft pinned.' : 'Draft unpinned.');
+    } catch {
+      setHistory(prev => sortHistoryItems(prev.map(historyItem =>
+        historyItem.id === item.id
+          ? { ...historyItem, isPinned: item.isPinned }
+          : historyItem
+      )));
+      toast.error('Failed to update draft pin.');
     }
   };
 
@@ -421,6 +463,9 @@ export default function DocumentHistoryPanel({
                                 />
                               ) : (
                                 <div className="flex items-center gap-2">
+                                  {item.isPinned && (
+                                    <PinActionIcon className="h-3 w-3 shrink-0 fill-current text-[var(--primary)]" />
+                                  )}
                                   <Tooltip>
                                     <TooltipTrigger
                                       render={
@@ -452,16 +497,51 @@ export default function DocumentHistoryPanel({
                           </div>
                         </Button>
 
-                        <Button
-                          type="button"
-                          onClick={(e) => handleDelete(item.id, e)}
-                          variant="ghost"
-                          size="icon-xs"
-                          className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity border-none hover:bg-[var(--surface-3)] text-[var(--muted-foreground)] hover:text-red-500"
-                          aria-label="Delete draft"
+                        <div
+                          className="absolute right-2 top-2 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                          onClick={(event) => event.stopPropagation()}
                         >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                          <AdaptiveActionMenu
+                            title={`Actions for ${displayTitle}`}
+                            trigger={
+                              <ActionButton
+                                type="button"
+                                variant="muted"
+                                size="icon-xs"
+                                aria-label={`Actions for ${displayTitle}`}
+                                icon={MoreActionsIcon}
+                                label={`Actions for ${displayTitle}`}
+                                labelClassName="sr-only"
+                              />
+                            }
+                            items={[
+                              {
+                                key: 'pin',
+                                label: item.isPinned ? 'Unpin' : 'Pin',
+                                icon: PinActionIcon,
+                                onSelect: () => handleTogglePin(item),
+                              },
+                              {
+                                key: 'rename',
+                                label: 'Rename',
+                                icon: EditActionIcon,
+                                onSelect: () => {
+                                  setEditingId(item.id);
+                                  setEditTitleValue(displayTitle);
+                                },
+                              },
+                              {
+                                key: 'delete',
+                                label: 'Delete',
+                                icon: DeleteActionIcon,
+                                danger: true,
+                                separatorBefore: true,
+                                onSelect: () => handleDelete(item.id),
+                              },
+                            ]}
+                            contentClassName="w-40"
+                          />
+                        </div>
                       </div>
                     );
                   })}

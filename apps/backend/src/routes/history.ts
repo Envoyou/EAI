@@ -54,6 +54,14 @@ const EditorialResolutionSchema = z.discriminatedUnion('action', [
   }),
 ]);
 
+const HistoryItemPatchSchema = z.object({
+  title: z.string().trim().min(1).max(200).optional(),
+  isPinned: z.boolean().optional(),
+}).refine(
+  ({ title, isPinned }) => title !== undefined || isPinned !== undefined,
+  'A title or pin state is required'
+);
+
 const canAccessLog = (
   log: { organizationId: string | null; userId: string | null },
   workspaceOrganizationId: string | null | undefined,
@@ -143,10 +151,12 @@ router.get('/', requireAuth, async (req, res) => {
         score: true,
         verdict: true,
         summary: true,
+        isPinned: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { isPinned: 'desc' },
+        { createdAt: 'desc' },
+      ],
       take: limit + 1,
     };
 
@@ -529,28 +539,35 @@ router.patch('/:id', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    // This base PATCH route is now only used for updating the title
-    const title = req.body?.title;
-    if (!title || typeof title !== 'string') {
-      return res.status(400).json({ error: 'A valid title is required' });
+    const validation = HistoryItemPatchSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: validation.error.issues[0]?.message || 'Invalid history update',
+      });
     }
 
+    const { title, isPinned } = validation.data;
     const metadata =
       log.metadata && typeof log.metadata === 'object' && !Array.isArray(log.metadata)
         ? (log.metadata as Record<string, unknown>)
         : {};
-    
+
     await prisma.analysisLog.update({
       where: { id },
       data: {
-        metadata: {
-          ...metadata,
-          title,
-        } as Prisma.InputJsonValue,
+        ...(title !== undefined
+          ? {
+              metadata: {
+                ...metadata,
+                title,
+              } as Prisma.InputJsonValue,
+            }
+          : {}),
+        ...(isPinned !== undefined ? { isPinned } : {}),
       },
     });
 
-    return res.json({ success: true });
+    return res.json({ success: true, isPinned });
   } catch (error) {
     console.error('[HISTORY_ID_PATCH]', error);
     return res.status(500).json({ error: 'Failed to update history item' });

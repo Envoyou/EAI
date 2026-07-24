@@ -9,6 +9,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [3.15.0] - 2026-07-24
 
 ### Added
+- **Menu Aksi Adaptif & Pin Draft**:
+  - Menambahkan primitive `AdaptiveActionMenu` bersama yang merender dropdown melalui portal di desktop dan aksi yang sama sebagai bottom sheet di mobile.
+  - Menambahkan pin persisten untuk Draft History, termasuk pengurutan pinned-first pada API, optimistic update pada UI, dan field database `AnalysisLog.isPinned` yang terindeks.
+  - Menambahkan aksi Pin, Rename, dan Delete pada setiap baris Draft History tersimpan.
 - **Token Ikon Semantik & Kontrol Aksi**:
   - Menambahkan katalog ikon semantik yang tetap mendukung tree-shaking dan dikelompokkan berdasarkan domain intent (`ai`, `actions`, `navigation`, `status`, `content`, `entities`, dan `editor`), sehingga feature code merujuk fungsi ikon alih-alih nama bentuk geometrinya.
   - Menambahkan wrapper `ActionButton` kanonis yang menyusun primitive Button global dengan ikon semantik, label aksesibel, dan perilaku loading yang konsisten.
@@ -27,6 +31,9 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan konteks follow-up berbasis laporan agar hasil riset tersimpan dapat dibuka kembali dan dilanjutkan melalui Chat with EAI.
 
 ### Changed
+- **Menu Titik Tiga yang Konsisten**:
+  - Memigrasikan aksi sesi Strategist dan aksi admin User Directory ke perilaku menu adaptif bersama.
+  - Merapatkan jarak vertikal antarbaris sesi chat Strategist dengan tetap mempertahankan judul, tanggal, dan status pin.
 - **Kontrol Workspace & Final Draft Adaptif**:
   - Mengonsolidasikan selector mode analisis ke primitive Select adaptif global, menggunakan popover di desktop dan bottom sheet di mobile tanpa state atau markup lokal yang terduplikasi.
   - Memperluas primitive konten Popover global dengan mobile menu sheet opsional, lalu memigrasikan menu More Actions berkategori pada Final Draft agar menggunakannya.
@@ -49,6 +56,15 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Memperbarui loop event streaming di `quick-draft.ts` untuk menggunakan penanganan event `step.delta` / `content.delta` sebagai ganti iterasi chunk mentah.
 
 ### Fixed
+- **Menu Aksi Sesi Strategist**:
+  - Menempatkan positioner menu Pin/Rename/Delete yang dirender melalui portal di atas stacking layer panel workspace, sehingga menu titik tiga tetap terlihat dan dapat digunakan.
+  - Memigrasikan trigger menu sesi ke primitive Button kanonis dengan area klik yang konsisten dan label aksesibel spesifik sesi.
+- **Separator Tab Strategist Copilot**:
+  - Menghapus border bertumpuk dari setiap tombol tab Copilot dan wrapper tab Feedback, sehingga hanya tersisa satu separator milik container serta satu outline panel luar.
+  - Merender indikator aktif Chat, Feedback, Notes, atau Deep Report sebagai satu garis 1px di atas separator agar ketebalan visual konsisten.
+- **Scroll Editor Final Draft**:
+  - Membatasi tinggi textarea Edit Final Draft berdasarkan viewport dan menambahkan scroll internal, sehingga artikel panjang tidak lagi memperbesar editor ke area overflow panel yang terpotong.
+  - Menambahkan jarak yang jelas antara baris aksi Final Draft dan card editor.
 - **Tema Gelap Strategist & Cascade Hover Kontrol Komposit**:
   - Memperbaiki token tipografi Markdown pada note tersimpan agar heading, emphasis, list, tabel, dan link tetap terbaca di mode gelap.
   - Memperbaiki hover daftar Deep Report agar seluruh kartu laporan, termasuk aksi hapus, berubah sebagai satu permukaan tanpa hover pill bertumpuk.

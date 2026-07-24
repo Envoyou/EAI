@@ -216,7 +216,7 @@ export default function AICopilotPanel({
                     type="button"
                     onClick={() => handleTabChange(tab.key)}
                     variant="muted"
-                    className="strategist-copilot-tab -mb-px h-auto shrink-0 gap-1.5 px-2.5 py-2.5 text-xs font-medium transition-colors sm:px-3"
+                    className="strategist-copilot-tab h-auto shrink-0 gap-1.5 px-2.5 py-2.5 text-xs font-medium transition-colors sm:px-3"
                     role="tab"
                     aria-selected={activeTab === tab.key}
                     aria-label={tab.label}

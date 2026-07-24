@@ -9,6 +9,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [3.15.0] - 2026-07-24
 
 ### Added
+- **Adaptive Action Menus & Draft Pinning**:
+  - Added a shared `AdaptiveActionMenu` primitive that renders a portalled dropdown on desktop and the same actions in a bottom sheet on mobile.
+  - Added persistent pinning for Draft History, including pinned-first API ordering, optimistic UI updates, and an indexed `AnalysisLog.isPinned` database field.
+  - Added Pin, Rename, and Delete actions to each saved Draft History row.
 - **Semantic Icon Tokens & Action Controls**:
   - Added tree-shakeable semantic icon catalogs grouped by intent domains (`ai`, `actions`, `navigation`, `status`, `content`, `entities`, and `editor`) so feature code can reference purpose-oriented tokens instead of icon geometry names.
   - Added a canonical `ActionButton` wrapper that composes the global Button primitive with semantic icons, accessible labels, and consistent loading behavior.
@@ -27,6 +31,9 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added report-aware follow-up context so saved research can be reopened and continued in Chat with EAI.
 
 ### Changed
+- **Consistent Three-Dot Menus**:
+  - Migrated Strategist session actions and User Directory admin actions to the shared adaptive menu behavior.
+  - Tightened vertical spacing between Strategist chat-session rows while retaining their title, date, and pinned state.
 - **Adaptive Workspace & Final Draft Controls**:
   - Consolidated the analysis mode selector into the global adaptive Select primitive, using a desktop popover and mobile bottom sheet without duplicate local state or markup.
   - Extended the global Popover content primitive with an opt-in mobile menu sheet, then migrated Final Draft's categorized More Actions menu to use it.
@@ -49,6 +56,15 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Updated streaming event loop in `quick-draft.ts` to use `step.delta` / `content.delta` event handling instead of raw chunk iteration.
 
 ### Fixed
+- **Strategist Session Actions Menu**:
+  - Raised the portalled Pin/Rename/Delete menu positioner above the workspace panel stacking layer so the three-dot menu remains visible and interactive.
+  - Migrated the session menu trigger to the canonical Button primitive with a larger consistent hit target and a session-specific accessible label.
+- **Strategist Copilot Tab Separator**:
+  - Removed overlapping borders from individual Copilot tab buttons and the Feedback tab wrapper, retaining one container-owned separator and one outer panel outline.
+  - Rendered the active Chat, Feedback, Notes, or Deep Report indicator as a single 1px line over that separator for consistent visual weight.
+- **Final Draft Editor Scrolling**:
+  - Constrained the Edit Final Draft textarea to a viewport-aware height with internal scrolling, preventing long articles from expanding into the panel's clipped overflow area.
+  - Added clear spacing between the Final Draft action row and the editor card.
 - **Strategist Dark Theme & Composite Hover Cascade**:
   - Corrected saved-note Markdown typography tokens so headings, emphasis, lists, tables, and links remain readable in dark mode.
   - Fixed Deep Report list hover styling so the entire report card, including its delete action, changes as one surface instead of showing a nested pill hover.

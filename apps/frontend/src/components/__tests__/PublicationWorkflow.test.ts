@@ -8,8 +8,16 @@ const readFrontendSource = (path: string) =>
 describe('revision-safe publication workflow', () => {
   it('offers draft editing, quality-only checks, and independent SEO regeneration', () => {
     const panel = readFrontendSource('components/FinalDraftPanel.tsx');
+    const editorStyles = readFrontendSource('app/styles/workspace/editor.css');
 
     expect(panel).toContain('Edit Final Draft');
+    expect(panel).toContain('final-draft-editor-card');
+    expect(panel).toContain('final-draft-editor-textarea');
+    expect(editorStyles).toContain('.final-draft-editor-card');
+    expect(editorStyles).toContain('margin-top: 12px');
+    expect(editorStyles).toContain('.final-draft-editor-textarea.ui-textarea');
+    expect(editorStyles).toContain('field-sizing: fixed');
+    expect(editorStyles).toContain('overflow-y: auto');
     expect(panel).toContain('Run Quality Check');
     expect(panel).toContain('Regenerate SEO metadata');
     expect(panel).toContain('Save Publication Metadata');
