@@ -5,7 +5,6 @@ import {
   FileSearch,
   CheckCircle2,
   ListChecks,
-  Wand2,
   Copy,
   ChevronDown,
   ChevronUp,
@@ -229,7 +228,6 @@ export default function FeedbackPanel({
                   variant="muted"
                   className="feedback-seo-trigger -ml-2 h-auto min-w-0 flex-1 cursor-pointer justify-start gap-2 px-2 py-1.5 text-left text-xs font-semibold transition-colors"
                 >
-                  <Wand2 className="w-3.5 h-3.5 shrink-0" />
                   <span className="flex-1 min-w-0 break-words whitespace-normal text-left">
                     SEO Metadata
                   </span>

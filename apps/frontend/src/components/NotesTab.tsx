@@ -57,7 +57,7 @@ export default function NotesTab({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-3 py-2.5 flex items-center justify-between border-b border-[var(--border)] shrink-0 bg-[var(--surface-2)]">
+      <div className="px-3 py-2.5 flex items-center justify-between border shrink-0 bg-card">
         <span className="text-xs font-semibold text-[var(--foreground)] flex items-center gap-2">
           Research Notes
           <Badge variant="primary" size="xs" className="font-bold">
@@ -80,7 +80,7 @@ export default function NotesTab({
 
       {/* Generate Draft Button */}
       {onGenerateDraft && (
-        <div className="px-3 py-2 border-b border-[var(--border)] bg-[var(--surface-2)] shrink-0">
+        <div className="px-3 py-2 border bg-card shrink-0">
           <Button
             type="button"
             onClick={isGeneratingDraft ? onCancelGenerateDraft : handleGenerateDraftFromNotes}
@@ -108,7 +108,7 @@ export default function NotesTab({
       )}
 
       {/* Note List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-[var(--surface-1)]">
+      <div className="flex-1 overflow-y-auto p-2 space-y-2 border bg-[var(--surface-1)]">
         {researchNotes.map((note, idx) => {
           const isExpanded = expandedNoteId === note.id;
           const relativeTime = (() => {
@@ -119,7 +119,7 @@ export default function NotesTab({
           })();
 
           return (
-            <div key={note.id} className="relative bg-[var(--background)] border border-[var(--border)] rounded-lg p-2.5 group shadow-sm hover:shadow-md hover:bg-[var(--surface-2)]/60 transition-all">
+            <div key={note.id} className="relative bg-background border rounded-lg p-2.5 group shadow-sm hover:shadow-md hover:bg-[var(--surface-2)]/60 transition-all">
               {/* Delete button */}
               <Tooltip>
                 <TooltipTrigger

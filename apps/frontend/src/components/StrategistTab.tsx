@@ -91,7 +91,7 @@ export default function StrategistTab({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[var(--surface-1)]">
+    <div className="flex flex-col h-full border border bg-[var(--surface-1)]">
       {currentSessionId === null ? (
         <SessionSidebar
           sessions={sessions}

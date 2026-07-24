@@ -1,5 +1,5 @@
 <!-- Managed by agent: workflow-architect -->
-<!-- Last updated: 2026-07-23 -->
+<!-- Last updated: 2026-07-24 -->
 
 # EAI (Envoyou AI) — Monorepo Agent Guide
 
@@ -61,7 +61,7 @@ Refer to these resources for detailed architectural overviews, third-party integ
 * 📄 [Zoho Desk Integration](./docs/frontend/ZOHO_DESK.md) — Operational configuration for support forms.
 * 📄 [Editorial Philosophy](./docs/frontend/editorial-philosophy.md) — Core concepts driving the Envoyou smart editorial workspace.
 * 📄 [Evaluation Benchmark](./docs/frontend/evaluation-benchmark.md) — Content quality benchmark and evaluation strategies for the AI system.
-* 📄 [UI Architecture v3.14.0](./docs/frontend/ui-architecture.md) — Canonical frontend rendering, workspace, design-system, editor, and overlay boundaries.
+* 📄 [UI Architecture v3.15.0](./docs/frontend/ui-architecture.md) — Canonical frontend rendering, workspace, design-system, editor, and overlay boundaries.
 * 📄 [Historical Editor CSS Incident Analysis](./docs/frontend/historical-editor-css-incident-analysis.md) — Revalidated record of pre-v3.4 editor styling issues and their current status.
 
 ---

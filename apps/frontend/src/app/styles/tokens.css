@@ -168,10 +168,10 @@
   --surface-1:    #0b0b0a; /* Surface Panel Internal — Deep Black */
   --surface-2:    #181817; /* elevated sub-card surface for settings & dashboard */
   --surface-3:    #222220; /* hover / active / pressed */
-  --border:       rgba(255, 255, 255, 0.12); /* Clean subtle border for dividers, buttons & inputs */
+  --border:       rgba(255, 255, 255, 0.062); /* Clean subtle border for dividers, buttons & inputs */
   --border-subtle: rgba(255, 255, 255, 0.06);
   --border-gold:  rgba(255, 255, 255, 0.2);
-  --card-border:  rgba(255, 255, 255, 0.12);
+  --card-border:  rgba(255, 255, 255, 0.062);
 
   --card:             #0b0b0a;
   --card-foreground:  #EDEDED;

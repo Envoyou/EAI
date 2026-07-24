@@ -40,6 +40,8 @@ const buttonVariants = cva(
   }
 )
 
+type ButtonProps = ButtonPrimitive.Props & VariantProps<typeof buttonVariants>
+
 function Button({
   className,
   variant = "primary",
@@ -47,7 +49,7 @@ function Button({
   nativeButton,
   render,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonProps) {
   const isNonButtonRender =
     nativeButton === undefined &&
     React.isValidElement(render) &&
@@ -68,4 +70,4 @@ function Button({
   )
 }
 
-export { Button, buttonVariants }
+export { Button, buttonVariants, type ButtonProps }

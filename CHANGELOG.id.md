@@ -9,6 +9,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [3.15.0] - 2026-07-24
 
 ### Added
+- **Token Ikon Semantik & Kontrol Aksi**:
+  - Menambahkan katalog ikon semantik yang tetap mendukung tree-shaking dan dikelompokkan berdasarkan domain intent (`ai`, `actions`, `navigation`, `status`, `content`, `entities`, dan `editor`), sehingga feature code merujuk fungsi ikon alih-alih nama bentuk geometrinya.
+  - Menambahkan wrapper `ActionButton` kanonis yang menyusun primitive Button global dengan ikon semantik, label aksesibel, dan perilaku loading yang konsisten.
+  - Menambahkan architecture decision record dan regression ratchet agar inventaris import Lucide langsung yang masih legacy tidak bertambah selama migrasi terukur.
 - **Workflow Publikasi Aman terhadap Revisi**:
   - Menambahkan operasi mandiri **Quality Check** dan **Regenerate SEO** untuk draft final tersimpan tanpa menjalankan pipeline rewrite.
   - Menambahkan kontrol edit draft final dan metadata publikasi. Penyimpanan revisi body membatalkan keputusan kualitas serta paket SEO sebelumnya; penyimpanan metadata mengikatnya ke draft aktif yang sudah lolos pemeriksaan.
@@ -23,6 +27,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan konteks follow-up berbasis laporan agar hasil riset tersimpan dapat dibuka kembali dan dilanjutkan melalui Chat with EAI.
 
 ### Changed
+- **Kontrol Workspace & Final Draft Adaptif**:
+  - Mengonsolidasikan selector mode analisis ke primitive Select adaptif global, menggunakan popover di desktop dan bottom sheet di mobile tanpa state atau markup lokal yang terduplikasi.
+  - Memperluas primitive konten Popover global dengan mobile menu sheet opsional, lalu memigrasikan menu More Actions berkategori pada Final Draft agar menggunakannya.
+  - Menstandarkan intent semantik kontrol Refine Draft, Prepare, EAI Chat, Copy, Edit, Export, dan More Actions; Prepare kini tetap menampilkan ikon di mobile dan label teks di desktop.
 - **Kontrak Streaming Strategist & UI Responsif**:
   - Memisahkan pemilihan jalur Strategist chat ke `useStrategistChatPath.ts`, sehingga pemilihan rute mock dan produksi terisolasi dari hook konten utama.
   - Memperluas presentasi chat untuk membedakan status thinking, grounded source, suggestion, dan Deep Research dengan tetap mempertahankan layout Copilot responsif yang sama di desktop, tablet, dan mobile.

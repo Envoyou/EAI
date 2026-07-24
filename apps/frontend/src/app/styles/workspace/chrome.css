@@ -194,26 +194,6 @@
   color: var(--primary);
 }
 
-.workspace-analysis-mode-option.ui-btn-muted {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: transparent;
-  color: var(--foreground);
-  box-shadow: none;
-}
-
-.workspace-analysis-mode-option.ui-btn-muted:hover:not(:disabled) {
-  background: var(--surface-2);
-  color: var(--foreground);
-  box-shadow: none;
-}
-
-.workspace-analysis-mode-option.ui-btn-muted[aria-pressed="true"],
-.workspace-analysis-mode-option.ui-btn-muted[aria-pressed="true"]:hover:not(:disabled) {
-  border-color: var(--primary);
-  background: var(--surface-2);
-}
-
 .ide-statusbar-item.clickable {
   cursor: pointer;
 }

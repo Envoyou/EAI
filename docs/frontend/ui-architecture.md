@@ -1,7 +1,7 @@
-# EAI Frontend UI Architecture — v3.14.0
+# EAI Frontend UI Architecture — v3.15.0
 
 > Status: canonical architecture snapshot
-> Snapshot date: 2026-07-23
+> Snapshot date: 2026-07-24
 > Scope: `apps/frontend`
 > Historical editor CSS investigation: [Historical Editor CSS Incident Analysis](./historical-editor-css-incident-analysis.md)
 
@@ -187,6 +187,16 @@ from the primitive shape use named, narrowly scoped domain selectors loaded
 after the primitive styles. Workspace selectors live in their workspace module;
 bounded public controls live in `composite-controls.css`. This keeps responsive
 layout utilities feature-owned while preventing `!important` cascade wars.
+
+Semantic icon tokens are exposed as tree-shakeable named exports under
+`components/ui/icons/<domain>.ts`. Feature components import intent names such
+as `RefineDraftIcon`, `PreparePublicationIcon`, or `AssistantChatIcon` rather
+than choosing Lucide shapes directly. A runtime string-to-icon registry is
+deliberately avoided because it would retain the whole registry in client
+chunks. Standard icon-and-label actions render through `ActionButton`; tabs,
+toggles, and composite controls retain the lower-level `Button` primitive.
+Existing direct Lucide consumers are migration inventory and move to domain
+tokens in bounded, behavior-preserving batches.
 
 ### Layer 5: zero-specificity typography overrides (`prose.css`)
 

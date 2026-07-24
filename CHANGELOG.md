@@ -9,6 +9,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [3.15.0] - 2026-07-24
 
 ### Added
+- **Semantic Icon Tokens & Action Controls**:
+  - Added tree-shakeable semantic icon catalogs grouped by intent domains (`ai`, `actions`, `navigation`, `status`, `content`, `entities`, and `editor`) so feature code can reference purpose-oriented tokens instead of icon geometry names.
+  - Added a canonical `ActionButton` wrapper that composes the global Button primitive with semantic icons, accessible labels, and consistent loading behavior.
+  - Added an architecture decision record and regression ratchets that prevent the legacy direct Lucide import inventory from growing during the bounded migration.
 - **Revision-Safe Publication Workflow**:
   - Added standalone **Quality Check** and **Regenerate SEO** operations for the saved final draft, without invoking the rewrite pipeline.
   - Added editable final-draft and publication-metadata controls. Saving a body revision invalidates the previous quality decision and SEO package; saving metadata binds it to the quality-approved current draft.
@@ -23,6 +27,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added report-aware follow-up context so saved research can be reopened and continued in Chat with EAI.
 
 ### Changed
+- **Adaptive Workspace & Final Draft Controls**:
+  - Consolidated the analysis mode selector into the global adaptive Select primitive, using a desktop popover and mobile bottom sheet without duplicate local state or markup.
+  - Extended the global Popover content primitive with an opt-in mobile menu sheet, then migrated Final Draft's categorized More Actions menu to use it.
+  - Standardized the semantic intent of Refine Draft, Prepare, EAI Chat, Copy, Edit, Export, and More Actions controls; Prepare now remains icon-visible on mobile and shows its text label on desktop.
 - **Strategist Streaming & Responsive UI Contracts**:
   - Split the Strategist chat path selection into `useStrategistChatPath.ts`, keeping mock and production route selection isolated from the main content hook.
   - Expanded the chat presentation for distinct thinking, grounded-source, suggestion, and Deep Research states while retaining the same responsive Copilot layout on desktop, tablet, and mobile.

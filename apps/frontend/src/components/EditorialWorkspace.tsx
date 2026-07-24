@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MotionConfig } from 'framer-motion';
 import {
@@ -16,8 +15,6 @@ import {
   CloudUpload,
   History,
   FileEdit,
-  X,
-  ChevronDown,
 } from 'lucide-react';
 
 import DocumentHistoryPanel from '@/components/DocumentHistoryPanel';
@@ -28,14 +25,16 @@ import ShortcutsModal from '@/components/ShortcutsModal';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/ui/action-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AssistantChatIcon, RefineDraftIcon } from '@/components/ui/icons/ai';
+import { CancelActionIcon } from '@/components/ui/icons/actions';
 
 import { useEditorialWorkspace } from '@/workspace/useEditorialWorkspace';
 import { editorStatusBadgeVariant } from '@/workspace/utils';
 
 export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) {
   const router = useRouter();
-  const [isMobileModeSheetOpen, setIsMobileModeSheetOpen] = useState(false);
   const workspace = useEditorialWorkspace({ mode });
 
   const {
@@ -275,8 +274,8 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
               </Tooltip>
             )}
 
-            {/* Mode Selector Dropdown (Web: Select Dropdown, Mobile: Bottom Sheet Trigger) */}
-            <div className="hidden sm:block">
+            {/* Adaptive Mode Selector (desktop popover, mobile bottom sheet) */}
+            <div>
               <Select
                 value={analysisSpeed}
                 onValueChange={(val) => {
@@ -290,12 +289,15 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                 <Tooltip>
                   <TooltipTrigger
                     render={
-                      <SelectTrigger className="h-8 px-3 py-1 text-xs font-semibold rounded-full border border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)] text-[var(--foreground)] gap-1.5 shadow-xs cursor-pointer">
+                      <SelectTrigger
+                        aria-label="Select analysis mode"
+                        className="h-8 w-auto gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-1 text-xs font-semibold text-[var(--foreground)] shadow-xs cursor-pointer hover:bg-[var(--surface-2)] md:px-3"
+                      >
                         <SelectValue>
                           {analysisSpeed === 'fast' ? (
                             <span className="flex items-center gap-1.5 font-bold">
-                              <Zap className="w-3.5 h-3.5 text-[var(--warning)] shrink-0" />
-                              <span className="hidden @[680px]:inline">Fast Review</span>
+                              <Zap className="w-3.5 h-3.5 text-[var(--foreground)] md:text-[var(--warning)] shrink-0" />
+                              <span className="hidden md:inline">Fast Review</span>
                             </span>
                           ) : (
                             <span className="flex items-center gap-1.5 font-bold">
@@ -304,7 +306,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                               ) : (
                                 <Rocket className="w-3.5 h-3.5 text-[var(--primary)] shrink-0" />
                               )}
-                              <span className="hidden @[680px]:inline">Publish Ready</span>
+                              <span className="hidden md:inline">Publish Ready</span>
                             </span>
                           )}
                         </SelectValue>
@@ -317,7 +319,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                 </Tooltip>
                 <SelectContent className="z-50 bg-[var(--popover)] border border-[var(--border)] shadow-xl rounded-xl p-1 min-w-[220px]">
                   <SelectItem value="fast" className="flex items-start gap-2.5 px-3 py-2 text-xs rounded-lg cursor-pointer hover:bg-[var(--surface-2)]">
-                    <Zap className="w-4 h-4 text-[var(--warning)] shrink-0 mt-0.5" />
+                    <Zap className="w-4 h-4 text-[var(--foreground)] shrink-0 mt-0.5" />
                     <div className="flex flex-col">
                       <span className="font-bold text-[var(--foreground)]">Fast Review</span>
                       <span className="text-[11px] text-[var(--muted-foreground)]">Quick & cost-efficient analysis.</span>
@@ -341,32 +343,11 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
               </Select>
             </div>
 
-            {/* Mobile Mode Selector Button (triggers Bottom Sheet) */}
-            <div className="sm:hidden">
-              <Button
-                type="button"
-                onClick={() => setIsMobileModeSheetOpen(true)}
-                variant="muted"
-                size="sm"
-                className="gap-1 px-2.5"
-                aria-label="Select Mode"
-              >
-                {analysisSpeed === 'fast' ? (
-                  <Zap className="w-3.5 h-3.5 text-[var(--warning)]" />
-                ) : isDemoMode ? (
-                  <Lock className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
-                ) : (
-                  <Rocket className="w-3.5 h-3.5 text-[var(--primary)]" />
-                )}
-                <ChevronDown className="w-3 h-3 text-[var(--muted-foreground)]" />
-              </Button>
-            </div>
-
             {/* Refine Draft CTA */}
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <Button
+                  <ActionButton
                     type="button"
                     id="titlebar-refine"
                     onClick={() => {
@@ -380,16 +361,18 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     variant="primary"
                     size="sm"
                     className={activeTab !== 'draft' && analysis.status !== 'loading' && isTargetedFixing === null ? 'max-sm:hidden' : ''}
-                  >
-                    {analysis.status === 'loading' || isTargetedFixing !== null ? (
-                      <X className="w-4 h-4" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
-                    )}
-                    <span className="hidden @[560px]:inline">
-                      {analysis.status === 'loading' || isTargetedFixing !== null ? 'Cancel' : 'Refine Draft'}
-                    </span>
-                  </Button>
+                    icon={
+                      analysis.status === 'loading' || isTargetedFixing !== null
+                        ? CancelActionIcon
+                        : RefineDraftIcon
+                    }
+                    label={
+                      analysis.status === 'loading' || isTargetedFixing !== null
+                        ? 'Cancel'
+                        : 'Refine Draft'
+                    }
+                    labelClassName="hidden @[560px]:inline"
+                  />
                 }
               />
               <TooltipContent side="bottom" className="text-xs">
@@ -566,16 +549,16 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                   <FileEdit className="w-5 h-5" />
                   <span>Editor</span>
                 </Button>
-                <Button
+                <ActionButton
                   type="button"
                   onClick={() => setMobileViewTab('copilot')}
                   variant="muted"
                   className="workspace-mobile-nav-action flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer"
                   aria-pressed={mobileViewTab === 'copilot'}
-                >
-                  <Sparkles className="w-5 h-5" />
-                  <span>EAI Chat</span>
-                </Button>
+                  icon={AssistantChatIcon}
+                  iconClassName="w-5 h-5"
+                  label="EAI Chat"
+                />
               </div>
             </div>
           ) : (
@@ -710,7 +693,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <Button
+                    <ActionButton
                       type="button"
                       onClick={() => setRightPanelOpen(true)}
                       variant="primary"
@@ -731,11 +714,10 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                         cursor-pointer
                       "
                       aria-label="Open EAI Chat"
->
-                      <Sparkles className="size-[18px] shrink-0" />
-
-                      <span
-                        className="
+                      icon={AssistantChatIcon}
+                      iconClassName="size-[18px] shrink-0"
+                      label="EAI Chat"
+                      labelClassName="
                           w-0 opacity-0
                           group-hover:w-[58px]
                           group-hover:opacity-100
@@ -744,10 +726,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                           text-xs font-bold
                           transition-all duration-300 ease-in-out
                         "
-                      >
-                        EAI Chat
-                      </span>
-                    </Button>
+                    />
                   }
                 />
                 <TooltipContent side="top" className="text-xs font-medium">
@@ -757,75 +736,6 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
             </div>
           )}
         </div>
-
-        {/* Mobile Analysis Speed Bottom Sheet Modal */}
-        {isMobileModeSheetOpen && (
-          <div
-            className="fixed inset-0 z-[100] flex items-end sm:hidden bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
-            onClick={() => setIsMobileModeSheetOpen(false)}
-          >
-            <div
-              className="w-full bg-[var(--surface-1)] border-t border-[var(--border)] rounded-t-2xl p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-200"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-                <h3 className="text-sm font-bold text-[var(--foreground)]">Select Analysis Mode</h3>
-                <Button
-                  type="button"
-                  onClick={() => setIsMobileModeSheetOpen(false)}
-                  variant="ghost"
-                  size="icon-xs"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setAnalysisSpeed('fast');
-                    setIsMobileModeSheetOpen(false);
-                  }}
-                  variant="muted"
-                  className="workspace-analysis-mode-option h-auto w-full cursor-pointer items-start justify-start gap-3 p-3 text-left transition-colors"
-                  aria-pressed={analysisSpeed === 'fast'}
-                >
-                  <Zap className="w-5 h-5 text-[var(--warning)] shrink-0 mt-0.5" />
-                  <div className="flex flex-col text-left">
-                    <div className="text-xs font-bold text-[var(--foreground)]">Fast Review</div>
-                    <div className="text-[11px] text-[var(--muted-foreground)]">Quick and cost-efficient analysis.</div>
-                  </div>
-                </Button>
-
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (isDemoMode) {
-                      setIsMobileModeSheetOpen(false);
-                      setShowDemoSignupModal(true);
-                      return;
-                    }
-                    setAnalysisSpeed('publish');
-                    setIsMobileModeSheetOpen(false);
-                  }}
-                  variant="muted"
-                  className="workspace-analysis-mode-option h-auto w-full cursor-pointer items-start justify-start gap-3 p-3 text-left transition-colors"
-                  aria-pressed={analysisSpeed === 'publish'}
-                >
-                  {isDemoMode ? <Lock className="w-5 h-5 text-[var(--muted-foreground)] shrink-0 mt-0.5" /> : <Rocket className="w-5 h-5 text-[var(--primary)] shrink-0 mt-0.5" />}
-                  <div className="flex flex-col text-left">
-                    <div className="text-xs font-bold text-[var(--foreground)] flex items-center gap-1.5">
-                      Publish Ready
-                      {isDemoMode && <Badge variant="surface" size="xs">Pro</Badge>}
-                    </div>
-                    <div className="text-[11px] text-[var(--muted-foreground)]">Full SEO metadata and internal links.</div>
-                  </div>
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
 
         <ShortcutsModal isOpen={isShortcutModalOpen} onClose={() => setIsShortcutModalOpen(false)} />
 

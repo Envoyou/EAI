@@ -14,16 +14,28 @@ describe('revision-safe publication workflow', () => {
     expect(panel).toContain('Regenerate SEO metadata');
     expect(panel).toContain('Save Publication Metadata');
     expect(panel).toContain('Prepare current draft for export');
+    expect(panel).toContain(
+      'icon={PreparePublicationIcon}'
+    );
+    expect(panel).toContain(
+      'labelClassName="hidden md:inline"'
+    );
   });
 
-  it('keeps secondary final-draft actions in a responsive portalled menu', () => {
+  it('keeps secondary final-draft actions in an adaptive portalled menu', () => {
     const panel = readFrontendSource('components/FinalDraftPanel.tsx');
     const menuStyles = readFrontendSource('app/styles/components/menus.css');
+    const popover = readFrontendSource('components/ui/popover.tsx');
 
-    expect(panel).toContain('<Popover.Portal>');
+    expect(panel).toContain('<PopoverContent');
+    expect(panel).toContain('variant="menu"');
+    expect(panel).toContain('mobileSheet');
     expect(panel).toContain('final-draft-action-menu');
     expect(panel).toContain("t('workflowActions')");
     expect(panel).toContain("t('downloadActions')");
+    expect(popover).toContain('<PopoverPrimitive.Portal>');
+    expect(popover).toContain('<PopoverPrimitive.Backdrop');
+    expect(popover).toContain('max-md:!bottom-0');
     expect(menuStyles).toContain('.final-draft-action-menu.ui-menu');
     expect(menuStyles).toContain('calc(100dvh - 2rem)');
   });

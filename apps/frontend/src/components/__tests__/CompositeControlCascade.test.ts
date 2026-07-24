@@ -57,7 +57,7 @@ describe('composite Button cascade contracts', () => {
     expect(feedbackStyles).not.toContain('!important');
   });
 
-  it('protects workspace chrome, sidebar, and mobile navigation shapes', () => {
+  it('protects workspace chrome, sidebar, and adaptive mode controls', () => {
     const chromeStyles = readSource('../../app/styles/workspace/chrome.css');
     const editorStyles = readSource('../../app/styles/workspace/editor.css');
     const sidebarStyles = readSource('../../app/styles/workspace/sidebar.css');
@@ -68,9 +68,6 @@ describe('composite Button cascade contracts', () => {
     expect(chromeStyles).toContain(
       '.workspace-mobile-nav-action.ui-btn-muted[aria-pressed="true"]'
     );
-    expect(chromeStyles).toContain(
-      '.workspace-analysis-mode-option.ui-btn-muted[aria-pressed="true"]'
-    );
     expect(editorStyles).toContain(
       '.document-tab.ui-btn-muted:hover:not(:disabled)'
     );
@@ -79,7 +76,12 @@ describe('composite Button cascade contracts', () => {
     );
     expect(menus).toContain('.ui-menu-item.ui-btn-muted:hover:not(:disabled)');
     expect(workspace).toContain('aria-pressed={mobileViewTab ===');
-    expect(workspace).toContain('aria-pressed={analysisSpeed ===');
+    expect(workspace.match(/<Select\b/g)).toHaveLength(1);
+    expect(workspace).toContain(
+      'Adaptive Mode Selector (desktop popover, mobile bottom sheet)'
+    );
+    expect(workspace).not.toContain('isMobileModeSheetOpen');
+    expect(workspace).not.toContain('workspace-analysis-mode-option');
   });
 
   it('removes Strategist important modifiers while preserving compact responsive actions', () => {

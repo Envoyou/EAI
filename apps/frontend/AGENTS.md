@@ -1,5 +1,5 @@
 <!-- Managed by agent: workflow-architect -->
-<!-- Last updated: 2026-07-23 -->
+<!-- Last updated: 2026-07-24 -->
 # Envoyou AI (EAI) — Frontend Agent Guide
 
 ## Overview
@@ -131,6 +131,8 @@ apps/frontend/
 │   │   │   ├── tooltip.tsx       # Custom Tooltip (Base UI — use render prop, not asChild)
 │   │   │   ├── badge.tsx         # Custom Badge
 │   │   │   ├── button.tsx        # Canonical semantic Button API backed by ui-btn classes
+│   │   │   ├── action-button.tsx # Standard semantic icon + label Button composition
+│   │   │   ├── icons/            # Tree-shakeable semantic icon tokens grouped by domain
 │   │   │   ├── message-scroller.tsx # MessageScroller primitive for auto-scrolling & turn tracking
 │   │   │   ├── popover.tsx       # Popover primitive (Base UI)
 │   │   │   ├── alert.tsx         # Alert wrapper
@@ -249,6 +251,12 @@ New or migrated text-like fields must not combine raw `<input>`/`<textarea>` ele
 * **Specialized controls**: Use canonical `<Checkbox>`, `<Switch>`, and `<FileInput>` primitives. Native date pickers use `<Input type="date">`; auto-resizing behavior may remain feature-owned while rendering through `<Textarea>`.
 * **Documented exemption**: The raw Markdown canvas in `Editor.tsx` remains a native `<textarea>` because it is an editor surface rather than a form field. Keep its regression contract intact; do not treat it as a general-purpose textarea precedent.
 
+### 🚫 RULE 13: Do Not Choose Icon Shapes Directly in Migrated Feature Controls
+New or migrated feature controls must import intent-named icon tokens from `@/components/ui/icons/<domain>` instead of choosing a Lucide shape directly.
+* **Solution**: Add or reuse a tree-shakeable named alias such as `PreparePublicationIcon`; do not create a runtime string registry or import a global icon object.
+* **Action buttons**: Use `<ActionButton icon={Token} label={...} />` for standard icon-and-label actions. Keep `<Button>` for tabs, toggles, polymorphic triggers, or composite controls whose children are structurally richer than an icon plus label.
+* **Migration boundary**: Existing direct `lucide-react` imports are legacy inventory. Migrate them in bounded feature batches; do not perform shape-based global replacement because the same shape can represent different intents.
+
 ---
 
 ## Security
@@ -270,6 +278,7 @@ Before submitting a PR for frontend changes:
 - [ ] `npm run build -- --filter=frontend` compiles without TypeScript errors
 - [ ] No raw `<select>` tags — use `<Select>` from `@/components/ui/select`
 - [ ] New or migrated buttons use `<Button>` with canonical semantic variants; no new direct `ui-btn` composition
+- [ ] New or migrated icon actions use domain semantic tokens and `<ActionButton>` where the structure is icon plus label
 - [ ] Composite controls use a named domain selector after primitive CSS; no consumer utility or `!important` fights primitive-owned visuals
 - [ ] No `asChild` prop on `<TooltipTrigger>` — use `render` prop
 - [ ] External avatar images use `<Image />` from `next/image`
@@ -310,4 +319,4 @@ Before submitting a PR for frontend changes:
 - **Styling issues**: Check `globals.css` for the full list of `ui-btn`, `ui-badge`, and `ui-alert` classes.
 - **Clerk auth issues**: Verify `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` are set in `.env.local`.
 - **i18n missing key**: Add the key to the relevant locale JSON file under `messages/`.
-- **Architecture questions**: See [UI Architecture v3.14.0](../../docs/frontend/ui-architecture.md) for frontend boundaries and [docs/architecture-notes.md](../../docs/architecture-notes.md) for the wider system.
+- **Architecture questions**: See [UI Architecture v3.15.0](../../docs/frontend/ui-architecture.md) for frontend boundaries and [docs/architecture-notes.md](../../docs/architecture-notes.md) for the wider system.

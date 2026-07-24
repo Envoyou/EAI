@@ -3,11 +3,10 @@
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Popover } from '@base-ui/react/popover';
 import {
-  Copy, FileDiff, CheckCircle2, PlusCircle, MinusCircle,
+  FileDiff, CheckCircle2, PlusCircle, MinusCircle,
   Eye, Code, SplitSquareHorizontal, Send, Loader2, Maximize2, Minimize2,
-  MoreVertical, FileText, Download, Sparkles, ChevronDown, ChevronUp, AlertTriangle, RefreshCw,
+  FileText, Download, ChevronDown, ChevronUp, AlertTriangle, RefreshCw,
   Pencil, ShieldCheck, Wand2, Save, X
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -21,6 +20,15 @@ import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackag
 import EditorialProgress from '@/components/EditorialProgress';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/ui/action-button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  CopyActionIcon,
+  EditActionIcon,
+  MoreActionsIcon,
+  PreparePublicationIcon,
+  PublishActionIcon,
+} from '@/components/ui/icons/actions';
 import { useTranslations } from 'next-intl';
 
 interface FinalDraftPanelProps {
@@ -711,16 +719,18 @@ export default function FinalDraftPanel({
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <Button
+                  <ActionButton
                     type="button"
                     onClick={handleCopy}
                     disabled={!polishedDraft.trim() || isDemoMode}
                     variant="muted"
                     size="sm"
                     aria-label="Copy refined draft"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
+                    icon={CopyActionIcon}
+                    iconClassName="h-3.5 w-3.5"
+                    label="Copy refined draft"
+                    labelClassName="sr-only"
+                  />
                 }
               />
               <TooltipContent side="bottom" className="text-xs">
@@ -732,7 +742,7 @@ export default function FinalDraftPanel({
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <Button
+                    <ActionButton
                       type="button"
                       variant={editingDraft ? 'surface' : 'muted'}
                       size="sm"
@@ -743,10 +753,11 @@ export default function FinalDraftPanel({
                       disabled={isGeneratingDraft}
                       aria-pressed={editingDraft}
                       aria-label="Edit final draft"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      <span className="hidden @[460px]:inline">{t('editDraft')}</span>
-                    </Button>
+                      icon={EditActionIcon}
+                      iconClassName="h-3.5 w-3.5"
+                      label={t('editDraft')}
+                      labelClassName="hidden @[460px]:inline"
+                    />
                   }
                 />
                 <TooltipContent side="bottom" className="text-xs">
@@ -759,17 +770,18 @@ export default function FinalDraftPanel({
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <Button
+                    <ActionButton
                       type="button"
                       variant={canExport ? 'surface' : 'primary'}
                       size="sm"
                       onClick={onPrepareForExport}
                       disabled={isGeneratingDraft || isSavingFinalDraft}
                       aria-label="Prepare current draft for export"
-                    >
-                      <Sparkles className="h-3.5 w-3.5" />
-                      <span className="hidden @[420px]:inline">{t('prepare')}</span>
-                    </Button>
+                      icon={PreparePublicationIcon}
+                      iconClassName="h-3.5 w-3.5 md:hidden"
+                      label={t('prepare')}
+                      labelClassName="hidden md:inline"
+                    />
                   }
                 />
                 <TooltipContent side="bottom" className="text-xs">
@@ -780,21 +792,19 @@ export default function FinalDraftPanel({
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <Button
+                    <ActionButton
                       type="button"
                       onClick={handleExport}
                       disabled={!canExport || isExporting}
                       variant={canExport && !isExporting ? 'primary' : 'surface'}
                       size="sm"
                       aria-label={exportStatus?.blogEditUrl ? 'Update CMS Draft' : 'Export to CMS'}
-                    >
-                      {isExporting
-                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : <Send className="h-3.5 w-3.5" />}
-                      <span className="hidden @[420px]:inline">
-                        {exportStatus?.blogEditUrl ? t('update') : t('exportToCms')}
-                      </span>
-                    </Button>
+                      icon={PublishActionIcon}
+                      iconClassName="h-3.5 w-3.5"
+                      label={exportStatus?.blogEditUrl ? t('update') : t('exportToCms')}
+                      labelClassName="hidden @[420px]:inline"
+                      loading={isExporting}
+                    />
                   }
                 />
                 <TooltipContent side="bottom" className="text-xs">
@@ -805,37 +815,38 @@ export default function FinalDraftPanel({
             )}
 
             {/* Secondary actions */}
-            <Popover.Root open={menuOpen} onOpenChange={setMenuOpen}>
-              <Popover.Trigger
+            <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+              <PopoverTrigger
                 render={
-                  <Button
+                  <ActionButton
                     type="button"
                     variant="muted"
                     size="icon"
                     aria-label={t('moreActions')}
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
+                    icon={MoreActionsIcon}
+                    iconClassName="h-4 w-4"
+                    label={t('moreActions')}
+                    labelClassName="sr-only"
+                  />
                 }
               />
 
-              <Popover.Portal>
-                <Popover.Positioner
-                  side="bottom"
-                  align="end"
-                  sideOffset={6}
-                  positionMethod="fixed"
-                  className="isolate z-50"
-                >
-                  <Popover.Popup
-                    className="ui-menu final-draft-action-menu p-1"
-                    initialFocus={false}
-                  >
+              <PopoverContent
+                side="bottom"
+                align="end"
+                sideOffset={6}
+                positionMethod="fixed"
+                variant="menu"
+                mobileSheet
+                className="ui-menu final-draft-action-menu p-1"
+                initialFocus={false}
+                aria-label={t('moreActions')}
+              >
                     {(onReanalyze || onQualityCheck || onRegenerateSeo || (canExport && onPrepareForExport)) && (
                       <>
                         <div className="ui-menu-label">{t('workflowActions')}</div>
                         {canExport && onPrepareForExport && (
-                          <Button
+                          <ActionButton
                             type="button"
                             onClick={() => {
                               setMenuOpen(false);
@@ -844,10 +855,10 @@ export default function FinalDraftPanel({
                             disabled={isGeneratingDraft || isSavingFinalDraft}
                             variant="muted"
                             className="ui-menu-item justify-start w-full font-normal border-none"
-                          >
-                            <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                            <span>{t('prepareAgain')}</span>
-                          </Button>
+                            icon={PreparePublicationIcon}
+                            iconClassName="h-3.5 w-3.5 shrink-0"
+                            label={t('prepareAgain')}
+                          />
                         )}
                         {onQualityCheck && (
                           <Button
@@ -1000,10 +1011,8 @@ export default function FinalDraftPanel({
                       <FileText className="h-3.5 w-3.5 shrink-0" />
                       <span>{t('downloadMarkdown')}</span>
                     </Button>
-                  </Popover.Popup>
-                </Popover.Positioner>
-              </Popover.Portal>
-            </Popover.Root>
+              </PopoverContent>
+            </Popover>
             </div>
           )}
         </div>
@@ -1054,7 +1063,7 @@ export default function FinalDraftPanel({
         )}
 
         {generatedMetadata && qualityReady && onSavePublicationMetadata && (
-          <div className="ui-card mb-3 p-3">
+          <div className="ui-card mt-3 mb-3 p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold ui-text">Publication Metadata</p>
@@ -1210,7 +1219,6 @@ export default function FinalDraftPanel({
                 aria-expanded={showRefineBox}
                 style={{ color: showRefineBox ? 'var(--primary)' : 'var(--muted-foreground)' }}
               >
-                <Sparkles className="h-3.5 w-3.5" />
                 Revise Draft
                 {showRefineBox
                   ? <ChevronUp className="h-3.5 w-3.5 ml-1" />
@@ -1249,7 +1257,7 @@ export default function FinalDraftPanel({
                 >
                   {isRefining
                     ? <><Loader2 className="h-3 w-3 animate-spin" /> Refining…</>
-                    : <><Sparkles className="h-3 w-3" /> Apply Instruction</>}
+                    : <>Apply</>}
                 </Button>
               </div>
             )}
@@ -1315,7 +1323,7 @@ export default function FinalDraftPanel({
             })}
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-6 md:px-4 md:py-6 bg-[var(--card)]">
+          <div className="flex-1 overflow-y-auto px-4 py-6 md:px-4 md:py-6">
             {/* Preview Tab */}
             {displayTab === 'preview' && (
               <article className="max-w-[95%] mx-auto font-sans py-4 md:py-6">
