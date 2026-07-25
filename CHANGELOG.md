@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.16.0] - 2026-07-25
+
 ### Added
 - **Convergent Final Draft Quality Workflow**:
   - Added a persistent quality-resolution ledger in analysis metadata so accepted, applied, or verified warnings can be reconciled on later Quality Check runs without suppressing newly introduced issues.

@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.16.0] - 2026-07-25
+
 ### Added
 - **Workflow Kualitas Final Draft yang Konvergen**:
   - Menambahkan ledger resolusi kualitas persisten pada metadata analisis agar warning yang telah diterima, diterapkan, atau diverifikasi dapat direkonsiliasi pada Quality Check berikutnya tanpa menyembunyikan masalah baru.
