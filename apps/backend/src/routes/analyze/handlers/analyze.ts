@@ -31,6 +31,7 @@ import {
 } from '../utils/verification';
 import { removeDisallowedRefineTargets } from '../utils/verification';
 import {
+  buildCanonicalInternalPostUrl,
   buildStoredMetadata,
   ensureTitleAndOpening,
   getRewriteOutputTokens,
@@ -255,6 +256,12 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
 
     sendEvent('status', 'quality_gate');
 
+    const internalLinkBaseUrl = editorialProfile.config.internalLinkBaseUrl;
+    const trustedInternalUrls =
+      publishedPosts.length > 0 && internalLinkBaseUrl
+        ? publishedPosts.map((post) => buildCanonicalInternalPostUrl(internalLinkBaseUrl, post.slug))
+        : [];
+
     const qualityGateResponse = await runFinalQualityGateSafely({
       signal: state.signal,
       provider: effectiveProvider,
@@ -262,6 +269,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
       finalDraft: finalBody,
       metadata,
       analysisSpeed,
+      trustedInternalUrls,
       trustedInternalDomains: editorialProfile.config.internalLinkDomains,
       telemetry,
       editorialProfile,

@@ -134,7 +134,7 @@ describe('Prompt Engine unit tests', () => {
     const composedQuality = qualityComposer.compose('xml');
 
     expect(composedQuality.includes('<quality_gate_role_instructions brand="TestBrand">')).toBe(true);
-    expect(composedQuality.includes('You are the final TestBrand editorial quality gate.')).toBe(true);
+    expect(composedQuality.includes('You are the editorial quality gate for TestBrand')).toBe(true);
     expect(composedQuality.includes('<output_format_contract>')).toBe(true);
     expect(composedQuality.includes('<temporal_context_rules>')).toBe(true);
   });

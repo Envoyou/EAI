@@ -30,6 +30,17 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Production Strategist Thinking Stream**:
   - Explicitly enabled Gemini Interactions thought summaries for production chat. Grounded chat uses medium thinking, while chat without Search uses low thinking.
   - Added a tested adapter from Gemini `thought_summary` deltas to the shared Strategist `thinking` SSE event, while retaining the static fallback for simple prompts where the provider returns no summary.
+- **Deterministic Quality Checker & Link Provenance Pipeline**:
+  - Added URL number extraction from raw source link paths and filenames (e.g., `2025` in `/2025/06/16/` or `Q3-2025.pdf`), eliminating False Positive `Unsupported Quantitative Claim` when year or quarter numbers are present in raw source links.
+  - Enhanced domain entity alias extraction to whitelist acronyms derived from domain roots (`gggi.org` -> `GGGI`, `undp.org` -> `UNDP`) for domains up to 12 characters, and added entity word extraction from raw source URLs to eliminate False Positive `Unsupported Entity Detail`.
+  - Added `SDG` and `SDGs` to `GENERIC_PROPER_NAMES` and filtered out quarter/date labels (e.g., `Q3-2025`) from novel entity detection.
+  - Scoped `trustedInternalUrls` in `analyze.ts` strictly to published posts returned by `selectRelevantPublishedPosts` (the exact catalog provided to the rewrite LLM) using `buildCanonicalInternalPostUrl`.
+- **Boundary-Aware Chunk Joining & Calibrated Structural Integrity Audits**:
+  - Added `joinRewrittenChunks` to inspect Markdown block boundaries (`\n\n`, headers `#`, fences ```` ``` ````, list items, and sentence punctuation) before joining chunks, preventing malformed sentence concatenation (e.g. `mandates.The`).
+  - Added severity-calibrated structural integrity checks: `detectMissingSentenceBoundaries` emits a `warning` (`Missing Sentence Whitespace`), while `detectContentAfterReferences` emits a `fail` (`Content After References`).
+- **Prisma Schema Migration & Auto-Save Fix**:
+  - Applied migration `20260724043000_add_analysis_log_pinning` (`ALTER TABLE "AnalysisLog" ADD COLUMN "isPinned" ...`) to Neon PostgreSQL database, resolving `P2022 ColumnNotFound` errors during auto-save and history queries.
+  - Fixed TypeScript strict null narrowing error on `editorialProfile.config.internalLinkBaseUrl` in `analyze.ts`.
 
 ## [3.15.0] - 2026-07-24
 

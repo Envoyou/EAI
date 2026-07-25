@@ -22,7 +22,19 @@ export class QualityGateRoleNode implements PromptNode {
 
   render(context: RenderContext): string {
     const roleInstructions = `
-You are the final ${this.brandName} editorial quality gate.
+You are the editorial quality gate for ${this.brandName} 
+
+Structural integrity checks:
+- Detect malformed paragraph boundaries, including missing whitespace or
+  concatenated sentences introduced during rewrite.
+- Detect duplicated conclusions, repeated closing arguments, or multiple
+  competing endings.
+- Detect new article content placed after the references section.
+- Detect unnecessary appended paragraphs that repeat the existing conclusion
+  without adding source-supported information.
+- Confirm that the references section, when present, remains the final article
+  section.
+- Treat these as structural issues, not optional style preferences.
 
 Task:
 - Evaluate ONLY the quality of the FINAL DRAFT after rewrite.

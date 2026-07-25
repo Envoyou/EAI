@@ -30,6 +30,17 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Stream Thinking Strategist Produksi**:
   - Mengaktifkan Gemini Interactions thought summaries secara eksplisit untuk chat produksi. Chat dengan grounding menggunakan thinking level medium, sedangkan chat tanpa Search menggunakan level low.
   - Menambahkan adapter teruji dari delta Gemini `thought_summary` ke event SSE Strategist `thinking`, dengan tetap mempertahankan fallback statis untuk prompt sederhana ketika provider tidak mengirim summary.
+- **Checker Kualitas Deterministik & Alur Provenance Tautan**:
+  - Menambahkan ekstraksi angka URL dari path dan nama berkas link sumber mentah (seperti `2025` pada `/2025/06/16/` atau `Q3-2025.pdf`), mengeliminasi False Positive `Unsupported Quantitative Claim` saat angka tahun/kuartal terdapat dalam link sumber mentah.
+  - Meningkatkan ekstraksi alias entitas domain untuk meloloskan akronim dari root domain (`gggi.org` -> `GGGI`, `undp.org` -> `UNDP`) hingga 12 karakter, serta menambahkan ekstraksi kata entitas dari URL sumber mentah untuk mengeliminasi False Positive `Unsupported Entity Detail`.
+  - Menambahkan `SDG` dan `SDGs` ke `GENERIC_PROPER_NAMES` serta menyaring label kuartal/tanggal (seperti `Q3-2025`) dari deteksi entitas baru.
+  - Membatasi `trustedInternalUrls` di `analyze.ts` secara khusus hanya pada artikel terpublikasi dari `selectRelevantPublishedPosts` (katalog tepat yang dikirim ke LLM rewrite) menggunakan `buildCanonicalInternalPostUrl`.
+- **Penggabung Chunk Berbasis Batas & Audit Integritas Struktural Terkalibrasi**:
+  - Menambahkan `joinRewrittenChunks` untuk menginpeksi batas blok Markdown (`\n\n`, header `#`, fence ```` ``` ````, daftar, dan tanda baca kalimat) sebelum menggabungkan chunk, mencegah penggabungan kalimat cacat (seperti `mandates.The`).
+  - Menambahkan pemeriksaan integritas struktural terkalibrasi: `detectMissingSentenceBoundaries` menghasilkan `warning` (`Missing Sentence Whitespace`), sedangkan `detectContentAfterReferences` menghasilkan `fail` (`Content After References`).
+- **Migrasi Schema Prisma & Perbaikan Auto-Save**:
+  - Menerapkan migrasi `20260724043000_add_analysis_log_pinning` (`ALTER TABLE "AnalysisLog" ADD COLUMN "isPinned" ...`) ke database Neon PostgreSQL, menyelesaikan error `P2022 ColumnNotFound` saat autosave dan query riwayat.
+  - Memperbaiki error TypeScript strict null narrowing pada `editorialProfile.config.internalLinkBaseUrl` di `analyze.ts`.
 
 ## [3.15.0] - 2026-07-24
 

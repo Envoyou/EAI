@@ -1,5 +1,6 @@
 import type { FinalQualityGateOutput } from '@eai/shared';
 import type { AllowedEditorialTerm, PublicationPackage } from '@eai/shared';
+import { normalizeUrl } from '@/routes/analyze/utils/text';
 
 type QualityFeedbackItem = FinalQualityGateOutput['feedback'][number];
 
@@ -7,6 +8,83 @@ const ASCII_TABLE_FENCE_PATTERN = /```[^\n]*\n([\s\S]*?)```/g;
 const ASCII_BORDER_PATTERN = /^\s*\+(?:[-=]+\+){1,}\s*$/;
 const VERIFICATION_ANNOTATION_PATTERN = /\[(?:Source verification recommended|Citation recommended|Externally sourced claim)[^\]]*\]/i;
 const URL_PATTERN = /\bhttps?:\/\/[^\s)\]}]+/gi;
+
+const GENERIC_DOMAIN_LABELS = new Set([
+  'news',
+  'blog',
+  'data',
+  'info',
+  'media',
+  'global',
+  'world',
+  'finance',
+  'research',
+  'business',
+  'official',
+  'com',
+  'org',
+  'net',
+  'gov',
+  'edu',
+  'co',
+  'id',
+]);
+
+export const collectDomainEntityAliases = (urls: string[]): Set<string> => {
+  const aliases = new Set<string>();
+  for (const rawUrl of urls) {
+    try {
+      const urlObj = new URL(rawUrl);
+      const hostname = urlObj.hostname.replace(/^www\./, '').toLowerCase();
+      const rootLabel = hostname.split('.')[0];
+      if (
+        rootLabel &&
+        rootLabel.length <= 12 &&
+        /^[a-z0-9-]+$/.test(rootLabel) &&
+        !GENERIC_DOMAIN_LABELS.has(rootLabel)
+      ) {
+        aliases.add(rootLabel);
+        aliases.add(rootLabel.toUpperCase());
+        const match3 = rootLabel.match(/^([a-z]{3})/);
+        if (match3 && match3[1] && !GENERIC_DOMAIN_LABELS.has(match3[1])) {
+          aliases.add(match3[1].toUpperCase());
+        }
+      }
+    } catch {
+      // ignore malformed URLs
+    }
+  }
+  return aliases;
+};
+
+export const detectMissingSentenceBoundaries = (text: string): string[] => {
+  const matches: string[] = [];
+  const pattern = /([a-z0-9)"'\]])([.!?])([A-Z][a-z])/g;
+  for (const match of text.matchAll(pattern)) {
+    if (match[0] && !/https?:\/\//i.test(match[0])) {
+      matches.push(match[0]);
+    }
+  }
+  return matches;
+};
+
+export const detectContentAfterReferences = (text: string): { hasNarrativeProse: boolean; text: string } | null => {
+  const refIndex = text.search(/^##\s+References/m);
+  if (refIndex === -1) return null;
+  const afterRef = text.slice(refIndex);
+  const lines = afterRef.split('\n').map((l) => l.trim()).filter(Boolean);
+  const nonReferenceLines = lines.filter((line) =>
+    !/^##\s+References/i.test(line) &&
+    !/^[-*+]\s+/.test(line) &&
+    !/^\[\^[^\]]+\]:/.test(line) &&
+    !/^<!--.*-->$/.test(line)
+  );
+  if (nonReferenceLines.length === 0) return null;
+  const combined = nonReferenceLines.join(' ');
+  const hasNarrativeProse = combined.length > 60 || nonReferenceLines.length >= 2;
+  return { hasNarrativeProse, text: nonReferenceLines[0] || combined };
+};
+
 const NUMBER_WITH_CONTEXT_PATTERN =
   /(?:\b24\s*\/\s*7\b|\b\d{1,2}\s*:\s*\d{1,2}\b|\b\d{2,}\s*\/\s*\d{2,}\b|(?:[$€£¥]|Rp|IDR|USD|EUR|GBP)\s?\d[\d.,]*|\b\d[\d.,]*(?:\s*-\s*|\s*)(?:%|persen|percent|juta|miliar|triliun|million|billion|trillion|ribu|thousand|tahun|years?|bulan|months?|hari|days?|jam|hours?|menit|minutes?|detik|seconds?|pengguna|users?|penduduk|residents?|warga|orang|people|unit|kali|times?|gw|mw|tb|pb|km|kg)(?=\s|[*_`]|[.,;:!?)\-–—]|$)|\b(?:puluhan|ratusan|ribuan|jutaan|miliaran|triliunan|dozens|hundreds|thousands|millions|billions|trillions)\s+(?:rupiah|dolar|dollars?|pengguna|users?|penduduk|residents?|warga|orang|people|unit)\b|\b\d{2,}(?:[.,]\d+)?\b)/gi;
 const ACRONYM_PATTERN = /\b[A-Z][A-Z0-9-]{2,}\b/g;
@@ -44,6 +122,8 @@ const GENERIC_PROPER_NAMES = new Set([
   'LLM',
   'Markdown GFM',
   'PDB',
+  'SDG',
+  'SDGs',
   'UI',
   'UX',
 ]);
@@ -499,8 +579,9 @@ export const detectSourceFidelitySignals = (
   finalDraft: string,
   options: SourceFidelityOptions = {}
 ): SourceFidelitySignals => {
-  const sourceUrls = collectMatches(originalDraft, URL_PATTERN).map((url) => url.replace(/[.,;:!?]+$/, ''));
-  const finalUrls = collectMatches(finalDraft, URL_PATTERN).map((url) => url.replace(/[.,;:!?]+$/, ''));
+  const rawSourceUrls = collectMatches(originalDraft, URL_PATTERN);
+  const sourceUrls = rawSourceUrls.map(normalizeUrl);
+  const finalUrls = collectMatches(finalDraft, URL_PATTERN).map(normalizeUrl);
 
   const stripCodeBlocks = (text: string) =>
     text
@@ -510,20 +591,42 @@ export const detectSourceFidelitySignals = (
   const originalWithoutUrlsOrCode = stripCodeBlocks(originalDraft.replace(URL_PATTERN, ''));
   const finalWithoutUrlsOrCode = stripCodeBlocks(finalDraft.replace(URL_PATTERN, ''));
 
-  const sourceNumbers = collectNumericSignals(originalWithoutUrlsOrCode);
+  // Collect numbers inside raw source URL strings (e.g. 2025 in /2025/06/16/ or Q3-2025.pdf)
+  // so numbers embedded in source URLs are recognized as known source numbers.
+  const sourceUrlNumbers = rawSourceUrls.flatMap((url) => collectNumericSignals(url));
+
+  const sourceNumbers = [
+    ...collectNumericSignals(originalWithoutUrlsOrCode),
+    ...sourceUrlNumbers,
+  ];
   const finalNumbers = collectNumericSignals(finalWithoutUrlsOrCode, {
     permitCurrentTemporalOrientation: true,
   });
-  const sourceEntities = collectEntityCandidates(originalWithoutUrlsOrCode);
+
+  const domainAliases = collectDomainEntityAliases(rawSourceUrls);
+  const sourceUrlEntities = rawSourceUrls.flatMap((url) => collectEntityCandidates(url));
+  const sourceUrlWords = rawSourceUrls
+    .flatMap((url) => url.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [])
+    .filter((w) => w.length >= 2)
+    .flatMap((w) => [w, w.toUpperCase()]);
+
+  const sourceEntities = [
+    ...collectEntityCandidates(originalWithoutUrlsOrCode),
+    ...sourceUrlEntities,
+    ...sourceUrlWords,
+    ...Array.from(domainAliases),
+  ];
   const finalEntities = collectEntityCandidates(finalWithoutUrlsOrCode);
+
   const trustedUrls = new Set(
     [
       ...(options.trustedInternalUrls ?? []),
       ...(options.trustedSourceUrls ?? []),
-    ].map((url) => url.replace(/[.,;:!?]+$/, ''))
+    ].map(normalizeUrl)
   );
   const trustedEntities = new Set([
     ...GENERIC_PROPER_NAMES,
+    ...Array.from(domainAliases),
     ...(options.trustedEntities ?? []),
   ]);
 
@@ -537,6 +640,8 @@ export const detectSourceFidelitySignals = (
     normalizeComparableText
   );
 
+  const isQuarterOrDateLabel = (entity: string) => /^Q[1-4][-_\s]?\d{4}$/i.test(entity.trim());
+
   const rawNovelNumbers = uniqueNovelValues(
     finalNumbers,
     sourceNumbers,
@@ -544,11 +649,12 @@ export const detectSourceFidelitySignals = (
     normalizeNumericSignal
   ).filter((value) => !isStandardAspectRatio(value, finalDraft));
   const rawNovelEntities = uniqueNovelValues(finalEntities, sourceEntities, trustedEntities)
-    .filter((entity) => !isAcronymExplainedBySource(entity, originalDraft));
+    .filter((entity) => !isAcronymExplainedBySource(entity, originalDraft))
+    .filter((entity) => !isQuarterOrDateLabel(entity));
 
   return {
     novelNumbers: filterByAllowlist(rawNovelNumbers, numericAllowlistSet, finalDraft, normalizeNumericSignal),
-    novelUrls: uniqueNovelValues(finalUrls, sourceUrls, trustedUrls),
+    novelUrls: uniqueNovelValues(finalUrls, sourceUrls, trustedUrls, normalizeUrl),
     novelEntities: filterByAllowlist(rawNovelEntities, entityAllowlistSet, finalDraft, normalizeComparableText),
   };
 };
@@ -765,6 +871,40 @@ export const applyDeterministicQualityChecks = (
       operation: 'manual',
     });
     flags.push('Temporal Phase Mismatch');
+  }
+
+  const missingBoundaries = detectMissingSentenceBoundaries(finalDraft);
+  if (missingBoundaries.length > 0) {
+    feedback.unshift({
+      category: 'CMS Formatting',
+      status: 'warning',
+      message: isEn
+        ? `The final draft contains text with missing whitespace after punctuation: "${missingBoundaries[0]}".`
+        : `Draft final memuat teks yang kehilangan spasi setelah tanda baca: "${missingBoundaries[0]}".`,
+      suggestion: isEn
+        ? 'Insert whitespace between the adjacent sentences.'
+        : 'Tambahkan spasi di antara dua kalimat yang tersambung.',
+      operation: 'manual',
+      targetText: missingBoundaries[0],
+    });
+    flags.push('Missing Sentence Whitespace');
+  }
+
+  const contentAfterRefs = detectContentAfterReferences(finalDraft);
+  if (contentAfterRefs) {
+    feedback.unshift({
+      category: 'Structure',
+      status: contentAfterRefs.hasNarrativeProse ? 'fail' : 'warning',
+      message: isEn
+        ? `The final draft contains narrative prose after the references section: "${contentAfterRefs.text}".`
+        : `Draft final memuat teks narasi setelah bagian referensi: "${contentAfterRefs.text}".`,
+      suggestion: isEn
+        ? 'Move narrative prose above the References section or remove unexpected text after references.'
+        : 'Pindahkan teks narasi ke atas bagian Referensi atau hapus teks tak terduga setelah referensi.',
+      operation: 'manual',
+      targetText: contentAfterRefs.text,
+    });
+    flags.push('Content After References');
   }
 
   if (VERIFICATION_ANNOTATION_PATTERN.test(finalDraft)) {

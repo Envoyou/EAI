@@ -1,5 +1,5 @@
 <!-- Managed by agent: workflow-architect -->
-<!-- Last updated: 2026-07-23 -->
+<!-- Last updated: 2026-07-25 -->
 # Envoyou AI (EAI) — Backend Agent Guide
 
 ## Overview
@@ -82,8 +82,8 @@ apps/backend/
 │   │   ├── queue.ts          # BullMQ + Redis connection
 │   │   ├── redis.ts          # Shared BullMQ and fail-fast request Redis clients
 │   │   ├── prompts.ts        # Timezone, date, and prompt version helpers (no prompt bodies)
-│   │   ├── text-utils.ts     # Text utilities (e.g., stripLeadingH1 — removes rogue H1 before rewrite stage)
-│   │   ├── final-quality.ts  # Final quality gate pipeline — deterministic source-fidelity checks
+│   │   ├── text-utils.ts     # Text utilities (stripLeadingH1, joinRewrittenChunks — boundary-aware chunk joiner)
+│   │   ├── final-quality.ts  # Final quality gate pipeline — deterministic source-fidelity checks & structural integrity audits (detectMissingSentenceBoundaries, detectContentAfterReferences)
 │   │   ├── admin-billing.ts  # Subscription + credit ledger admin helpers
 │   │   ├── admin-billing-core.ts  # Core billing primitives
 │   │   ├── ai-provider-resolver.ts  # AI provider selection logic (resolveModel, provider overrides)

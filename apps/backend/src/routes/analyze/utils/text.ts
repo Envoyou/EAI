@@ -260,3 +260,69 @@ export const parseCookies = (cookieHeader?: string): Record<string, string> => {
   });
   return list;
 };
+
+// ── Canonical URL & Chunk Joining Helpers ─────────────────────────────────────
+
+export function buildCanonicalInternalPostUrl(baseUrl: string, slug: string): string {
+  const normalizedSlug = slug.trim().replace(/^\/+|\/+$/g, '');
+  if (!normalizedSlug) {
+    throw new Error('Cannot build internal post URL from an empty slug.');
+  }
+  const normalizedBase = baseUrl.trim().replace(/\/+$/, '');
+  const url = new URL(`${normalizedBase}/${normalizedSlug}`);
+  url.hash = '';
+  url.search = '';
+  if (url.pathname !== '/') {
+    url.pathname = url.pathname.replace(/\/+$/, '');
+  }
+  return url.toString().replace(/\/$/, '');
+}
+
+export function normalizeUrl(value: string): string {
+  try {
+    const url = new URL(value.trim());
+    url.hash = '';
+    if (
+      (url.protocol === 'https:' && url.port === '443') ||
+      (url.protocol === 'http:' && url.port === '80')
+    ) {
+      url.port = '';
+    }
+    url.hostname = url.hostname.toLowerCase();
+    if (url.pathname !== '/') {
+      url.pathname = url.pathname.replace(/\/+$/, '');
+    }
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    return value.trim().replace(/\/+$/, '');
+  }
+}
+
+export function joinRewrittenChunks(chunks: string[]): string {
+  return chunks.reduce((result, rawChunk) => {
+    const chunk = rawChunk.trim();
+    if (!chunk) return result;
+    if (!result) return chunk;
+
+    const resultEndsWithBlockBoundary =
+      /\n\s*$/.test(result) ||
+      /(?:```|<\/table>|<\/div>)\s*$/.test(result);
+
+    const chunkStartsWithBlockBoundary =
+      /^(?:#{1,6}\s|[-*+]\s|\d+\.\s|```|>|\|)/.test(chunk);
+
+    if (resultEndsWithBlockBoundary || chunkStartsWithBlockBoundary) {
+      return `${result}\n\n${chunk}`;
+    }
+
+    const resultEndsWithSentence = /[.!?]["')\]]?$/.test(result.trimEnd());
+    const chunkStartsWithSentence = /^[A-Z0-9"'([]/.test(chunk);
+
+    if (resultEndsWithSentence && chunkStartsWithSentence) {
+      return `${result}\n\n${chunk}`;
+    }
+
+    return `${result} ${chunk}`;
+  }, '');
+}
+
