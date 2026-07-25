@@ -130,6 +130,20 @@
     "notes": "Catatan",
     "deepReport": "Deep Report"
   },
+  "FeedbackPanel": {
+    "checks": "Pemeriksaan",
+    "remainingCount": "{count} tersisa",
+    "resolvedCount": "{count} selesai",
+    "pendingQualityCheck": "Menunggu Quality Check",
+    "pendingQualityCheckDescription": "Draft berubah setelah temuan ini ditangani. Jalankan Quality Check untuk memvalidasi body yang telah direvisi.",
+    "appliedPendingQualityCheck": "Diterapkan — jalankan Quality Check",
+    "acceptedPendingQualityCheck": "Diterima — jalankan Quality Check"
+  },
+  "FeedbackWorkflow": {
+    "appliedPendingQualityCheck": "Saran diterapkan. Jalankan Quality Check untuk memverifikasi draft yang telah direvisi.",
+    "removedPendingQualityCheck": "Tambahan dihapus. Jalankan Quality Check untuk memverifikasi draft yang telah direvisi.",
+    "fixedPendingQualityCheck": "Kalimat diperbaiki. Jalankan Quality Check untuk memverifikasi draft yang telah direvisi."
+  },
   "PricingGrid": {
     "billingCycleToggle": "Ubah siklus tagihan tahunan"
   },

@@ -25,6 +25,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Prevented previously resolved warnings from reappearing indefinitely when their category and target remain unchanged, while preserving all failure-level findings and materially changed warnings.
   - Prevented editor-verified source links from being repeatedly flagged solely because a later standalone Quality Check did not receive the earlier verification context.
   - Allowed editors to resolve the stale-publication-metadata warning through explicit confirmation instead of being forced to regenerate still-relevant SEO metadata.
+  - Distinguished acceptance without a body change from applied rewrite/remove actions: accepted decisions can become ready immediately, while body changes are labeled as pending Quality Check and use the backend readiness/package status as authoritative state.
+  - Corrected the Feedback panel counter to report unresolved and resolved checks separately, and relabeled retained flags as pending recheck after a handled finding changes the draft.
 - **Production Strategist Thinking Stream**:
   - Explicitly enabled Gemini Interactions thought summaries for production chat. Grounded chat uses medium thinking, while chat without Search uses low thinking.
   - Added a tested adapter from Gemini `thought_summary` deltas to the shared Strategist `thinking` SSE event, while retaining the static fallback for simple prompts where the provider returns no summary.

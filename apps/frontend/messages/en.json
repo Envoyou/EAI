@@ -130,6 +130,20 @@
     "notes": "Notes",
     "deepReport": "Deep Report"
   },
+  "FeedbackPanel": {
+    "checks": "Checks",
+    "remainingCount": "{count} remaining",
+    "resolvedCount": "{count} resolved",
+    "pendingQualityCheck": "Pending Quality Check",
+    "pendingQualityCheckDescription": "The draft changed after this finding was handled. Run Quality Check to validate the revised body.",
+    "appliedPendingQualityCheck": "Applied — run Quality Check",
+    "acceptedPendingQualityCheck": "Accepted — run Quality Check"
+  },
+  "FeedbackWorkflow": {
+    "appliedPendingQualityCheck": "Suggestion applied. Run Quality Check to verify the revised draft.",
+    "removedPendingQualityCheck": "Addition removed. Run Quality Check to verify the revised draft.",
+    "fixedPendingQualityCheck": "Sentence fixed. Run Quality Check to verify the revised draft."
+  },
   "PricingGrid": {
     "billingCycleToggle": "Toggle annual billing"
   },

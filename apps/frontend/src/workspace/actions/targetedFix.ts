@@ -6,12 +6,19 @@ import type {
   ArticleMetadata,
   FeedbackItem,
   EditorialReadiness,
+  PublicationPackageStatus,
   ResearchNote,
 } from '@eai/shared';
 import type { AnalysisSpeed, DirectFetchType } from '../types';
 import { replaceFirstTargetMatch } from '@eai/shared';
 import { readWithTimeout } from '@/lib/stream-utils';
 import { getResponseErrorMessage } from '@/lib/fetch-utils';
+import { markFeedbackApplied } from '../utils';
+
+type EditorialResolutionResult = {
+  readiness: EditorialReadiness;
+  publicationPackageStatus?: PublicationPackageStatus;
+};
 
 interface TargetedFixContext {
   analysis: AnalysisResult;
@@ -27,7 +34,8 @@ interface TargetedFixContext {
     readiness: EditorialReadiness,
     polishedDraft: string,
     flags: string[]
-  ) => Promise<void>;
+  ) => Promise<EditorialResolutionResult>;
+  bodyChangeSuccessMessage: string;
   setAnalysis: (updater: (prev: AnalysisResult) => AnalysisResult) => void;
   analyzeAbortControllerRef: React.MutableRefObject<AbortController | null>;
 }
@@ -47,6 +55,7 @@ export async function executeTargetedFix(
     originalDraft,
     researchNotes,
     persistEditorialResolution,
+    bodyChangeSuccessMessage,
     setAnalysis,
     analyzeAbortControllerRef,
   } = ctx;
@@ -138,31 +147,31 @@ export async function executeTargetedFix(
       return;
     }
 
-    const nextFeedback = [...(analysis.feedback || [])];
-    nextFeedback[index] = {
-      ...nextFeedback[index],
-      isVerified: actionType === 'fix',
-      isAccepted: actionType === 'remove',
-    };
+    const nextFeedback = markFeedbackApplied(analysis.feedback || [], index);
     const nextReadiness: EditorialReadiness = 'needs_review';
     const nextFlags = analysis.flags || [];
-    await persistEditorialResolution(
+    const persisted = await persistEditorialResolution(
       nextFeedback,
       nextReadiness,
       nextDraft,
       nextFlags
     );
+    const persistedFlags = persisted.readiness === 'ready' ? [] : nextFlags;
     setAnalysis(prev => ({
       ...prev,
       polishedDraft: nextDraft,
       feedback: nextFeedback,
-      readiness: nextReadiness,
-      verdict: nextReadiness,
-      flags: nextFlags,
-      publicationPackageStatus: prev.publicationPackageStatus === 'current' ? 'stale' : prev.publicationPackageStatus,
+      readiness: persisted.readiness,
+      verdict: persisted.readiness,
+      flags: persistedFlags,
+      publicationPackageStatus:
+        persisted.publicationPackageStatus
+        ?? (prev.publicationPackageStatus === 'current'
+          ? 'stale'
+          : prev.publicationPackageStatus),
     }));
 
-    toast.success(actionType === 'remove' ? 'Addition removed successfully!' : 'Sentence fixed successfully!');
+    toast.success(bodyChangeSuccessMessage);
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Targeted fix failed';
     toast.error('Fix Failed', { description: msg });

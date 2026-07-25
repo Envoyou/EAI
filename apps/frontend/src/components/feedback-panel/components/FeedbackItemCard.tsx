@@ -19,6 +19,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { motion, Variants, AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
@@ -91,6 +92,7 @@ interface FeedbackItemCardProps {
   isActiveCard: boolean;
   isApplied: boolean;
   isApplying: boolean;
+  isPendingQualityCheck: boolean;
   isSubmittingSource: boolean;
   autoApplyDisabled: boolean;
   activeSourceInput: string | null;
@@ -123,6 +125,7 @@ export function FeedbackItemCard({
   isActiveCard,
   isApplied,
   isApplying,
+  isPendingQualityCheck,
   isSubmittingSource,
   autoApplyDisabled,
   activeSourceInput,
@@ -140,6 +143,7 @@ export function FeedbackItemCard({
   setActiveSourceInput,
   setSourceText,
 }: FeedbackItemCardProps) {
+  const t = useTranslations('FeedbackPanel');
   const targetText = item.targetText;
   const replacementText = item.replacementText;
   const operation = item.operation;
@@ -591,14 +595,22 @@ export function FeedbackItemCard({
               {isAccepted && (
                 <Badge variant="success" className="mt-2 w-max">
                   <Check className="w-3.5 h-3.5" />
-                  <span>Accepted as Editorial Choice</span>
+                  <span>
+                    {isPendingQualityCheck
+                      ? t('acceptedPendingQualityCheck')
+                      : 'Accepted as Editorial Choice'}
+                  </span>
                 </Badge>
               )}
 
               {isApplied && (
                 <Badge variant="success" className="mt-2 w-max">
                   <Check className="w-3.5 h-3.5" />
-                  <span>Applied to draft</span>
+                  <span>
+                    {isPendingQualityCheck
+                      ? t('appliedPendingQualityCheck')
+                      : 'Applied to draft'}
+                  </span>
                 </Badge>
               )}
 

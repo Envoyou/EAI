@@ -63,4 +63,22 @@ describe('revision-safe publication workflow', () => {
     expect(targetedFix).toContain('originalDraft,');
     expect(targetedFix).toContain('researchNotes,');
   });
+
+  it('distinguishes accepted decisions from body changes awaiting quality recheck', () => {
+    const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
+    const targetedFix = readFrontendSource('workspace/actions/targetedFix.ts');
+    const feedbackPanel = readFrontendSource('components/FeedbackPanel.tsx');
+    const feedbackCard = readFrontendSource(
+      'components/feedback-panel/components/FeedbackItemCard.tsx'
+    );
+
+    expect(targetedFix).toContain('markFeedbackApplied');
+    expect(targetedFix).not.toContain("isAccepted: actionType === 'remove'");
+    expect(workspace).toContain('persisted.readiness');
+    expect(workspace).toContain('persisted.publicationPackageStatus');
+    expect(feedbackPanel).toContain('unresolvedFeedbackCount');
+    expect(feedbackPanel).toContain("t('pendingQualityCheck')");
+    expect(feedbackCard).toContain("t('appliedPendingQualityCheck')");
+    expect(feedbackCard).toContain("t('acceptedPendingQualityCheck')");
+  });
 });

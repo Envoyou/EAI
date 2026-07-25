@@ -106,13 +106,29 @@ export const getApiErrorMessage = async (response: Response, fallback: string) =
   return typeof result?.error === 'string' ? result.error : fallback;
 };
 
+export const isFeedbackResolved = (item: FeedbackItem): boolean =>
+  item.status === 'pass'
+  || Boolean(item.isApplied)
+  || Boolean(item.isAccepted)
+  || Boolean(item.isVerified);
+
+export const markFeedbackApplied = (
+  feedback: FeedbackItem[],
+  index: number
+): FeedbackItem[] => feedback.map((item, itemIndex) =>
+  itemIndex === index
+    ? {
+        ...item,
+        isApplied: true,
+        isAccepted: false,
+        isVerified: false,
+      }
+    : item
+);
+
 export const calculateReadiness = (feedback: FeedbackItem[], originalReadiness?: EditorialReadiness): EditorialReadiness => {
   const unresolved = (feedback || []).filter(
-    (item) =>
-      item.status !== 'pass'
-      && !item.isApplied
-      && !item.isAccepted
-      && !item.isVerified
+    (item) => !isFeedbackResolved(item)
   );
 
   if (unresolved.length === 0) {

@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
-import type { FeedbackItem, EditorialReadiness, ResearchNote, Attachment, AnalysisResult, ArticleMetadata, PublicationPackage } from '@eai/shared';
+import type { FeedbackItem, EditorialReadiness, ResearchNote, Attachment, AnalysisResult, ArticleMetadata, PublicationPackage, PublicationPackageStatus } from '@eai/shared';
 import {
   applyAllFeedbackOperations,
   applyFeedbackOperation,
@@ -39,12 +40,14 @@ import {
   checkMissingSources,
   normalizeHttpSourceUrl,
   addSourceLinkToDraft,
+  markFeedbackApplied,
 } from './utils';
 
 import type { PendingRefineAction } from './types';
 
 export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) {
   const router = useRouter();
+  const tFeedbackWorkflow = useTranslations('FeedbackWorkflow');
   const directFetch = useDirectFetch();
 
   // 1. Storage State Management
@@ -565,22 +568,31 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       toast.error('Failed to apply fix', { description: 'Target text not found in draft. Please apply manually.' });
       return false;
     }
-    const nextFeedback = [...(analysis.feedback || [])];
-    nextFeedback[index] = { ...item, isApplied: true };
+    const nextFeedback = markFeedbackApplied(analysis.feedback || [], index);
     const nextReadiness: EditorialReadiness = 'needs_review';
     const nextFlags = analysis.flags || [];
     try {
-      await persistEditorialResolution(nextFeedback, nextReadiness, result.nextText, nextFlags);
+      const persisted = await persistEditorialResolution(
+        nextFeedback,
+        nextReadiness,
+        result.nextText,
+        nextFlags
+      );
+      const persistedFlags = persisted.readiness === 'ready' ? [] : nextFlags;
       setAnalysis(prev => ({
         ...prev,
         polishedDraft: result.nextText,
         feedback: nextFeedback,
-        readiness: nextReadiness,
-        verdict: nextReadiness,
-        flags: nextFlags,
-        publicationPackageStatus: prev.publicationPackageStatus === 'current' ? 'stale' : prev.publicationPackageStatus,
+        readiness: persisted.readiness,
+        verdict: persisted.readiness,
+        flags: persistedFlags,
+        publicationPackageStatus:
+          persisted.publicationPackageStatus
+          ?? (prev.publicationPackageStatus === 'current'
+            ? 'stale'
+            : prev.publicationPackageStatus),
       }));
-      toast.success('Suggestion applied and saved.');
+      toast.success(tFeedbackWorkflow('appliedPendingQualityCheck'));
       return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save the applied suggestion.');
@@ -602,20 +614,37 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     }
     const appliedIndexSet = new Set(result.appliedIndexes);
     const nextFeedback = feedback.map((item, index) =>
-      appliedIndexSet.has(index) ? { ...item, isApplied: true } : item
+      appliedIndexSet.has(index)
+        ? {
+            ...item,
+            isApplied: true,
+            isAccepted: false,
+            isVerified: false,
+          }
+        : item
     );
     const nextReadiness: EditorialReadiness = 'needs_review';
     const nextFlags = analysis.flags || [];
     try {
-      await persistEditorialResolution(nextFeedback, nextReadiness, result.nextText, nextFlags);
+      const persisted = await persistEditorialResolution(
+        nextFeedback,
+        nextReadiness,
+        result.nextText,
+        nextFlags
+      );
+      const persistedFlags = persisted.readiness === 'ready' ? [] : nextFlags;
       setAnalysis(prev => ({
         ...prev,
         polishedDraft: result.nextText,
         feedback: nextFeedback,
-        readiness: nextReadiness,
-        verdict: nextReadiness,
-        flags: nextFlags,
-        publicationPackageStatus: prev.publicationPackageStatus === 'current' ? 'stale' : prev.publicationPackageStatus,
+        readiness: persisted.readiness,
+        verdict: persisted.readiness,
+        flags: persistedFlags,
+        publicationPackageStatus:
+          persisted.publicationPackageStatus
+          ?? (prev.publicationPackageStatus === 'current'
+            ? 'stale'
+            : prev.publicationPackageStatus),
       }));
       if (result.failedIndexes.length > 0) {
         toast.warning(`${result.appliedIndexes.length} applied, ${result.failedIndexes.length} need manual review.`);
@@ -793,7 +822,10 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     readiness: EditorialReadiness,
     polishedDraft: string,
     flags: string[]
-  ) => {
+  ): Promise<{
+    readiness: EditorialReadiness;
+    publicationPackageStatus?: PublicationPackageStatus;
+  }> => {
     const logId = analysis.analysisLogId || activeHistoryId;
     if (!logId) {
       throw new Error('The refinement history is not ready yet. Please try again.');
@@ -813,6 +845,22 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     if (!response.ok) {
       throw new Error(result.error || 'Failed to save the editorial decision.');
     }
+    const persistedReadiness: EditorialReadiness =
+      result.readiness === 'ready'
+      || result.readiness === 'needs_review'
+      || result.readiness === 'blocked'
+        ? result.readiness
+        : readiness;
+    const persistedPublicationPackageStatus: PublicationPackageStatus | undefined =
+      result.publicationPackageStatus === 'current'
+      || result.publicationPackageStatus === 'stale'
+      || result.publicationPackageStatus === 'not_generated'
+        ? result.publicationPackageStatus
+        : undefined;
+    return {
+      readiness: persistedReadiness,
+      publicationPackageStatus: persistedPublicationPackageStatus,
+    };
   };
 
   const handleAcceptFeedback = async (index: number) => {
@@ -825,18 +873,21 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     const nextReadiness = calculateReadiness(nextFeedback, analysis.readiness);
     const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
     try {
-      await persistEditorialResolution(
+      const persisted = await persistEditorialResolution(
         nextFeedback,
         nextReadiness,
         analysis.polishedDraft || '',
         nextFlags
       );
+      const persistedFlags = persisted.readiness === 'ready' ? [] : nextFlags;
       setAnalysis(prev => ({
         ...prev,
         feedback: nextFeedback,
-        readiness: nextReadiness,
-        verdict: nextReadiness,
-        flags: nextFlags,
+        readiness: persisted.readiness,
+        verdict: persisted.readiness,
+        flags: persistedFlags,
+        publicationPackageStatus:
+          persisted.publicationPackageStatus ?? prev.publicationPackageStatus,
       }));
       toast.success('Editorial decision saved.');
     } catch (error) {
@@ -871,17 +922,25 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       : calculateReadiness(nextFeedback, analysis.readiness);
     const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
     try {
-      await persistEditorialResolution(nextFeedback, nextReadiness, nextDraft, nextFlags);
+      const persisted = await persistEditorialResolution(
+        nextFeedback,
+        nextReadiness,
+        nextDraft,
+        nextFlags
+      );
+      const persistedFlags = persisted.readiness === 'ready' ? [] : nextFlags;
       setAnalysis(prev => ({
         ...prev,
         polishedDraft: nextDraft,
         feedback: nextFeedback,
-        readiness: nextReadiness,
-        verdict: nextReadiness,
-        flags: nextFlags,
-        publicationPackageStatus: nextDraft !== currentDraft && prev.publicationPackageStatus === 'current'
-          ? 'stale'
-          : prev.publicationPackageStatus,
+        readiness: persisted.readiness,
+        verdict: persisted.readiness,
+        flags: persistedFlags,
+        publicationPackageStatus:
+          persisted.publicationPackageStatus
+          ?? (nextDraft !== currentDraft && prev.publicationPackageStatus === 'current'
+            ? 'stale'
+            : prev.publicationPackageStatus),
       }));
       toast.success(linked ? 'Source added and verified.' : 'Source saved; target text was not changed.');
       return true;
@@ -902,6 +961,9 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       originalDraft: sourceDraft,
       researchNotes,
       persistEditorialResolution,
+      bodyChangeSuccessMessage: actionType === 'remove'
+        ? tFeedbackWorkflow('removedPendingQualityCheck')
+        : tFeedbackWorkflow('fixedPendingQualityCheck'),
       setAnalysis,
       analyzeAbortControllerRef,
     };

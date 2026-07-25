@@ -25,6 +25,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Mencegah warning yang telah diselesaikan muncul tanpa henti selama kategori dan targetnya tetap sama, dengan tetap mempertahankan seluruh temuan berlevel failure serta warning yang berubah secara material.
   - Mencegah link sumber yang telah diverifikasi editor ditandai berulang hanya karena Quality Check mandiri berikutnya tidak menerima konteks verifikasi sebelumnya.
   - Memungkinkan editor menyelesaikan warning metadata publikasi stale melalui konfirmasi eksplisit tanpa dipaksa membuat ulang metadata SEO yang masih relevan.
+  - Membedakan acceptance tanpa perubahan body dari aksi rewrite/remove yang diterapkan: keputusan yang hanya diterima dapat langsung menjadi ready, sedangkan perubahan body dilabeli menunggu Quality Check dan menggunakan readiness/status package backend sebagai state otoritatif.
+  - Memperbaiki counter panel Feedback agar melaporkan pemeriksaan unresolved dan resolved secara terpisah, serta mengubah label flag lama menjadi menunggu pemeriksaan ulang setelah temuan yang ditangani mengubah draft.
 - **Stream Thinking Strategist Produksi**:
   - Mengaktifkan Gemini Interactions thought summaries secara eksplisit untuk chat produksi. Chat dengan grounding menggunakan thinking level medium, sedangkan chat tanpa Search menggunakan level low.
   - Menambahkan adapter teruji dari delta Gemini `thought_summary` ke event SSE Strategist `thinking`, dengan tetap mempertahankan fallback statis untuk prompt sederhana ketika provider tidak mengirim summary.

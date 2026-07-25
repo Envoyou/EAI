@@ -11,6 +11,7 @@ import {
   Flag,
 } from 'lucide-react';
 import { motion, Variants, AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ import {
   countAutoApplicableFeedback,
   getFeedbackIdentity,
 } from './feedback-panel/utils';
+import { isFeedbackResolved } from '@/workspace/utils';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -92,6 +94,7 @@ export default function FeedbackPanel({
   onFixFeedbackWithEAI,
   isTargetedFixing = null,
 }: FeedbackPanelProps) {
+  const t = useTranslations('FeedbackPanel');
   const {
     expandedFeedback,
     isSEOExpanded,
@@ -169,6 +172,17 @@ export default function FeedbackPanel({
     (flag) => !BENIGN_DISPLAY_FLAG_PATTERN.test(flag.trim())
   );
   const hasCriticalFlags = readiness === 'blocked';
+  const feedbackItems = result.feedback ?? [];
+  const unresolvedFeedbackCount = feedbackItems.filter(
+    (item) => !isFeedbackResolved(item)
+  ).length;
+  const resolvedFeedbackCount = feedbackItems.length - unresolvedFeedbackCount;
+  const flagsAwaitingQualityCheck =
+    readiness === 'needs_review'
+    && unresolvedFeedbackCount === 0
+    && feedbackItems.some(
+      (item) => item.status !== 'pass' && isFeedbackResolved(item)
+    );
 
   return (
     <div className="ui-panel h-full min-w-0 w-full overflow-hidden">
@@ -360,8 +374,17 @@ export default function FeedbackPanel({
                 }}
               >
                 <Flag className="w-3.5 h-3.5" />
-                {hasCriticalFlags ? 'Critical Flags' : 'Review Flags'}
+                {hasCriticalFlags
+                  ? 'Critical Flags'
+                  : flagsAwaitingQualityCheck
+                    ? t('pendingQualityCheck')
+                    : 'Review Flags'}
               </h4>
+              {flagsAwaitingQualityCheck && (
+                <p className="mb-2 text-xs leading-relaxed ui-muted">
+                  {t('pendingQualityCheckDescription')}
+                </p>
+              )}
               <ul className="list-disc pl-4 space-y-1">
                 {visibleFlags.map((flag, i) => (
                   <li
@@ -375,21 +398,24 @@ export default function FeedbackPanel({
             </Alert>
           )}
 
-          {result.feedback && result.feedback.length > 0 && (
+          {feedbackItems.length > 0 && (
             <motion.div
               variants={itemVariants}
               className="flex items-center justify-between px-1 pt-1"
             >
               <h3 className="text-[11px] font-semibold ui-muted">
-                Remaining Checks
+                {t('checks')}
               </h3>
               <span className="text-[11px] ui-muted">
-                {result.feedback.length}
+                {t('remainingCount', { count: unresolvedFeedbackCount })}
+                {resolvedFeedbackCount > 0
+                  ? ` · ${t('resolvedCount', { count: resolvedFeedbackCount })}`
+                  : ''}
               </span>
             </motion.div>
           )}
 
-          {result.feedback?.map((item, index) => {
+          {feedbackItems.map((item, index) => {
             const feedbackKey = getFeedbackIdentity(item, index);
             return (
               <FeedbackItemCard
@@ -401,6 +427,11 @@ export default function FeedbackPanel({
                 isActiveCard={activeFeedbackIndex === index}
                 isApplied={Boolean(item.isApplied)}
                 isApplying={applyingFeedback === feedbackKey}
+                isPendingQualityCheck={
+                  readiness === 'needs_review'
+                  && item.status !== 'pass'
+                  && isFeedbackResolved(item)
+                }
                 isSubmittingSource={submittingSource === feedbackKey}
                 autoApplyDisabled={isManualFallback}
                 activeSourceInput={activeSourceInput}

@@ -5,6 +5,8 @@ import {
   calculateReadiness,
   extractArticleMetadata,
   extractQualityGate,
+  isFeedbackResolved,
+  markFeedbackApplied,
   normalizeHttpSourceUrl,
 } from '../utils';
 import type { FeedbackItem, ResearchNote } from '@eai/shared';
@@ -64,6 +66,38 @@ describe('calculateReadiness', () => {
       { status: 'fail', message: 'Issue', category: 'style', isApplied: true }
     ];
     expect(calculateReadiness(feedback)).toBe('ready');
+  });
+
+  it('marks body-changing resolutions as applied instead of accepted', () => {
+    const feedback: FeedbackItem[] = [{
+      status: 'warning',
+      message: 'Unsupported entity detail',
+      category: 'Source Fidelity',
+      isAccepted: true,
+      isVerified: true,
+    }];
+
+    const result = markFeedbackApplied(feedback, 0);
+
+    expect(result[0]).toMatchObject({
+      isApplied: true,
+      isAccepted: false,
+      isVerified: false,
+    });
+    expect(isFeedbackResolved(result[0])).toBe(true);
+  });
+
+  it('keeps an accepted decision resolved without marking the draft as changed', () => {
+    const accepted: FeedbackItem = {
+      status: 'warning',
+      message: 'Intentional editorial wording',
+      category: 'Editorial Review',
+      isAccepted: true,
+    };
+
+    expect(isFeedbackResolved(accepted)).toBe(true);
+    expect(calculateReadiness([accepted])).toBe('ready');
+    expect(accepted.isApplied).toBeUndefined();
   });
 });
 
