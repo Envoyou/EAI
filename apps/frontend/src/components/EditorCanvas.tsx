@@ -57,6 +57,7 @@ interface EditorCanvasProps {
   onQualityCheck: () => Promise<unknown>;
   onRegenerateSeo: () => Promise<void>;
   onSavePublicationMetadata: (metadata: PublicationPackage) => Promise<boolean>;
+  onConfirmPublicationMetadata: () => Promise<void>;
   onPrepareForExport: () => Promise<void>;
   isSavingFinalDraft: boolean;
   isCheckingQuality: boolean;
@@ -105,6 +106,7 @@ export default function EditorCanvas({
   onQualityCheck,
   onRegenerateSeo,
   onSavePublicationMetadata,
+  onConfirmPublicationMetadata,
   onPrepareForExport,
   isSavingFinalDraft,
   isCheckingQuality,
@@ -251,6 +253,7 @@ export default function EditorCanvas({
                       onQualityCheck={onQualityCheck}
                       onRegenerateSeo={onRegenerateSeo}
                       onSavePublicationMetadata={onSavePublicationMetadata}
+                      onConfirmPublicationMetadata={onConfirmPublicationMetadata}
                       onPrepareForExport={onPrepareForExport}
                       isSavingFinalDraft={isSavingFinalDraft}
                       isCheckingQuality={isCheckingQuality}

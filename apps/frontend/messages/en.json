@@ -93,7 +93,10 @@
   "FinalDraftPanel": {
     "refreshPublicationMetadata": "Regenerate or edit SEO metadata for the current final draft",
     "staleMetadataTitle": "Publication metadata is outdated.",
-    "staleMetadataDescription": "The article body changed after metadata generation. Run Quality Check, then regenerate or edit SEO before exporting.",
+    "staleMetadataDescription": "The article body changed after metadata generation. Regenerate or edit SEO, or confirm that the current metadata is still relevant.",
+    "confirmMetadataCurrent": "Keep current metadata",
+    "confirmMetadataSuccess": "Current publication metadata confirmed.",
+    "confirmMetadataFailed": "Publication metadata could not be confirmed.",
     "editDraft": "Edit Draft",
     "prepare": "Prepare",
     "prepareAgain": "Prepare again",

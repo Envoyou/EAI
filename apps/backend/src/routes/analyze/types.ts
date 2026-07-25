@@ -115,6 +115,7 @@ export type FixTargetedContext = BaseHandlerContext & {
   targetText: string;
   feedbackMessage?: string;
   instruction?: string;
+  originalDraft?: string;
 };
 
 export type RefineContext = BaseHandlerContext & {

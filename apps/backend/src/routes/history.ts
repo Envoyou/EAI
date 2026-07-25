@@ -10,6 +10,10 @@ import {
   mergeConfirmedInternalUrls,
   readConfirmedInternalUrls,
 } from '@/lib/confirmed-internal-links';
+import {
+  mergeQualityResolutions,
+  readQualityResolutions,
+} from '@/lib/quality-resolution-ledger';
 
 const router = Router();
 
@@ -51,6 +55,9 @@ const EditorialResolutionSchema = z.discriminatedUnion('action', [
       excerpt: z.string().min(1).max(300),
       metaTitle: z.string().min(1).max(80),
     }),
+  }),
+  z.object({
+    action: z.literal('confirm_publication_package'),
   }),
 ]);
 
@@ -456,6 +463,42 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       });
     }
 
+    if (resolution.data.action === 'confirm_publication_package') {
+      const publicationPackageStatus = resolvePublicationPackageStatus({
+        storedStatus: metadata.publicationPackageStatus,
+        hasPackage: Boolean(metadata.generatedMetadata),
+      });
+      const savedDraft = typeof systemMetadata.polishedDraft === 'string'
+        ? preparePublicationDraft(systemMetadata.polishedDraft)
+        : '';
+      if (publicationPackageStatus === 'not_generated' || !savedDraft) {
+        return res.status(409).json({
+          error: 'Generate and save publication metadata before confirming it.',
+        });
+      }
+
+      const confirmedAt = new Date().toISOString();
+      await prisma.analysisLog.update({
+        where: { id },
+        data: {
+          metadata: {
+            ...metadata,
+            publicationPackageStatus: 'current',
+            _system: {
+              ...systemMetadata,
+              publicationPackageStatus: 'current',
+              seoConfirmedAt: confirmedAt,
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return res.json({
+        success: true,
+        publicationPackageStatus: 'current',
+        confirmedAt,
+      });
+    }
+
     const unresolved = resolution.data.feedback.filter(
       (item) => item.status !== 'pass' && !item.isApplied && !item.isAccepted && !item.isVerified
     );
@@ -480,6 +523,10 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       readConfirmedInternalUrls(systemMetadata),
       resolution.data.feedback
     );
+    const resolvedQualityFindings = mergeQualityResolutions(
+      readQualityResolutions(systemMetadata),
+      resolution.data.feedback
+    );
 
     await prisma.analysisLog.update({
       where: { id },
@@ -496,6 +543,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
             readiness,
             publicationPackageStatus,
             confirmedInternalUrls,
+            resolvedQualityFindings,
           },
         } as Prisma.InputJsonValue,
       },

@@ -6,6 +6,27 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Convergent Final Draft Quality Workflow**:
+  - Added a persistent quality-resolution ledger in analysis metadata so accepted, applied, or verified warnings can be reconciled on later Quality Check runs without suppressing newly introduced issues.
+  - Added exact trusted-source URL reuse for editor-verified external links and stored research-note reuse during standalone Quality Check.
+  - Added an explicit **Keep current metadata** action when publication metadata is stale, allowing an editor to confirm that the existing SEO package still applies to the current saved draft.
+
+### Changed
+- **Source-Safe Targeted Fixes & Quality Decisions**:
+  - Targeted Fix now receives the original draft and stored research notes, validates the candidate replacement for newly introduced numbers, entities, and URLs, and retries once with corrective guidance before rejecting an unsafe change.
+  - Final Quality processing now prioritizes combined model and deterministic findings, retains up to 12 actionable items, and derives readiness consistently: any failure is `blocked`, warnings require `needs_review`, and a clean result is `ready`.
+  - Publication metadata confirmation records the editor decision for the active saved body without changing metadata values or bypassing Quality Check. Any later body mutation makes the package stale again.
+
+### Fixed
+- **Repeated Quality Gate Feedback Loop**:
+  - Prevented previously resolved warnings from reappearing indefinitely when their category and target remain unchanged, while preserving all failure-level findings and materially changed warnings.
+  - Prevented editor-verified source links from being repeatedly flagged solely because a later standalone Quality Check did not receive the earlier verification context.
+  - Allowed editors to resolve the stale-publication-metadata warning through explicit confirmation instead of being forced to regenerate still-relevant SEO metadata.
+- **Production Strategist Thinking Stream**:
+  - Explicitly enabled Gemini Interactions thought summaries for production chat. Grounded chat uses medium thinking, while chat without Search uses low thinking.
+  - Added a tested adapter from Gemini `thought_summary` deltas to the shared Strategist `thinking` SSE event, while retaining the static fallback for simple prompts where the provider returns no summary.
+
 ## [3.15.0] - 2026-07-24
 
 ### Added

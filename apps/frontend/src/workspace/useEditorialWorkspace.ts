@@ -472,6 +472,28 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     }
   };
 
+  const handleConfirmPublicationMetadata = async (): Promise<void> => {
+    const logId = analysis.analysisLogId || activeHistoryId;
+    if (!logId) {
+      throw new Error('The publication history is not ready yet.');
+    }
+    const response = await fetchWithTimeout(`/api/history/${logId}/resolve`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'confirm_publication_package',
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to confirm publication metadata.');
+    }
+    setAnalysis(prev => ({
+      ...prev,
+      publicationPackageStatus: 'current',
+    }));
+  };
+
   const handlePrepareForExport = async () => {
     const readiness = analysis.readiness === 'ready'
       ? 'ready'
@@ -876,6 +898,9 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       setIsTargetedFixing,
       directFetch,
       analysisSpeed,
+      metadata,
+      originalDraft: sourceDraft,
+      researchNotes,
       persistEditorialResolution,
       setAnalysis,
       analyzeAbortControllerRef,
@@ -995,6 +1020,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     handleQualityCheck,
     handleRegenerateSeo,
     handleSavePublicationMetadata,
+    handleConfirmPublicationMetadata,
     handlePrepareForExport,
     handleRefineAgain,
     handleApplyFix,

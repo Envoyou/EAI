@@ -73,6 +73,7 @@ interface FinalDraftPanelProps {
   onQualityCheck?: () => Promise<unknown>;
   onRegenerateSeo?: () => Promise<void>;
   onSavePublicationMetadata?: (metadata: PublicationPackage) => Promise<boolean>;
+  onConfirmPublicationMetadata?: () => Promise<void>;
   onPrepareForExport?: () => Promise<void>;
   isSavingFinalDraft?: boolean;
   isCheckingQuality?: boolean;
@@ -223,6 +224,7 @@ export default function FinalDraftPanel({
   onQualityCheck,
   onRegenerateSeo,
   onSavePublicationMetadata,
+  onConfirmPublicationMetadata,
   onPrepareForExport,
   isSavingFinalDraft = false,
   isCheckingQuality = false,
@@ -242,6 +244,7 @@ export default function FinalDraftPanel({
   const [editingDraft, setEditingDraft] = useState(false);
   const [draftEditValue, setDraftEditValue] = useState(polishedDraft);
   const [editingSeo, setEditingSeo] = useState(false);
+  const [isConfirmingMetadata, setIsConfirmingMetadata] = useState(false);
   const [seoEditValue, setSeoEditValue] = useState(() =>
     toSeoEditValue(generatedMetadata)
   );
@@ -1178,9 +1181,36 @@ export default function FinalDraftPanel({
         {publicationPackageStatus === 'stale' && (
           <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            <div>
-              <strong>{t('staleMetadataTitle')}</strong>{' '}
-              {t('staleMetadataDescription')}
+            <div className="min-w-0 flex-1">
+              <div>
+                <strong>{t('staleMetadataTitle')}</strong>{' '}
+                {t('staleMetadataDescription')}
+              </div>
+              {onConfirmPublicationMetadata && generatedMetadata && (
+                <Button
+                  type="button"
+                  variant="muted"
+                  size="xs"
+                  className="mt-2"
+                  disabled={isConfirmingMetadata}
+                  onClick={async () => {
+                    setIsConfirmingMetadata(true);
+                    try {
+                      await onConfirmPublicationMetadata();
+                      toast.success(t('confirmMetadataSuccess'));
+                    } catch {
+                      toast.error(t('confirmMetadataFailed'));
+                    } finally {
+                      setIsConfirmingMetadata(false);
+                    }
+                  }}
+                >
+                  {isConfirmingMetadata
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <ShieldCheck className="h-3.5 w-3.5" />}
+                  {t('confirmMetadataCurrent')}
+                </Button>
+              )}
             </div>
           </Alert>
         )}

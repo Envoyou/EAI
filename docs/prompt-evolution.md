@@ -25,7 +25,7 @@ Semua jalur prompt kini telah dimigrasikan untuk menggunakan skema perakitan kon
 ### Optimasi Gemini 3.x Native Thinking & Caching
 Sejak transisi ke model Gemini 3.x, sistem prompt dan penanganan obrolan diperbarui secara radikal:
 1.  **Penghapusan CoT Manual**: Petunjuk menulis pemikiran di dalam `<thinking>` tag dihapus karena bertabrakan dengan Gemini 3.x native thinking. Mode native thinking menghasilkan penalaran model dalam event delta `thought_summary` secara terpisah (bukan inline text), sehingga manual `<thinking>` tag dibuang demi efisiensi cache dan latensi.
-2.  **Streaming Teks Penalaran**: Teks penalaran model (`thought_summary` delta) diteruskan secara real-time dari backend ke client dengan SSE event type `thinking` sehingga frontend dapat merender "Thought Process" model secara transparan.
+2.  **Streaming Ringkasan Penalaran**: Request chat produksi mengaktifkan `generation_config.thinking_summaries = "auto"` secara eksplisit. Ringkasan penalaran model (`thought_summary` delta)—bukan raw chain-of-thought—diteruskan secara real-time dari backend ke client dengan SSE event type `thinking`. Grounded chat memakai thinking level medium dan chat tanpa Search memakai level low; UI tetap menyediakan fallback statis ketika provider tidak menghasilkan summary.
 3.  **Pemisahan Instruksi Fast Mode & Overrides**: Mengubah instansiasi Fast Mode menjadi node statis (`StrategistFastModeInstructionNode`) agar dapat di-cache secara efisien oleh Gemini, sementara override untuk URL scraper dan dokumen lampiran dipisahkan sebagai data payload dinamis.
 4.  **Dynamic Date Injection**: Tanggal hari ini menggunakan `RenderContext.today` dinamis yang disuntikkan saat rendering node, bukan lagi tanggal hardcoded yang merusak grounding spasial waktu model.
 
@@ -95,6 +95,15 @@ Dalam masa pengembangan awal, ditemukan beberapa kendala pada respon model AI. B
     *   Kontrak mode-aware: Fast mengaudit body saja, sedangkan Publish Ready mengaudit body tanpa H1 bersama Publication Package yang sudah dibuat sebelumnya.
     *   Status package `not_generated/current/stale` membatalkan export jika body berubah setelah metadata dibuat.
     *   Rekonsiliasi daftar perubahan mencegah visual unsupported dipuji sekaligus ditandai sebagai risiko.
+
+#### Evolusi Konvergensi Final Draft (2026-07-25)
+*   **Kendala**: Quality Check mandiri sebelumnya dapat mengevaluasi ulang draft tanpa membawa keputusan editor, research notes, atau verifikasi sumber dari iterasi sebelumnya. Warning yang sudah ditangani dapat muncul kembali, sementara batas daftar feedback membuat temuan lain baru terlihat pada iterasi berikutnya. Akibatnya, pengguna berisiko terjebak dalam loop `needs_review` hingga temuan `blocked` muncul belakangan.
+*   **Solusi pipeline**:
+    *   Menyimpan keputusan warning yang diterima, diterapkan, atau diverifikasi dalam `metadata._system.resolvedQualityFindings`, lalu merekonsiliasikannya hanya jika kategori dan target temuan tetap cocok. Temuan `fail` tidak pernah diredam oleh ledger.
+    *   Mengirim research notes tersimpan dan URL sumber eksternal persis yang telah diverifikasi ke Quality Gate berikutnya. Kepercayaan URL tidak diperluas menjadi kepercayaan otomatis terhadap klaim lain.
+    *   Memvalidasi hasil Targeted Fix terhadap draft awal dan research notes. Jika kandidat memperkenalkan angka, entitas, atau URL baru, model menerima satu retry korektif; hasil yang tetap tidak aman ditolak.
+    *   Memprioritaskan gabungan temuan model dan deterministik hingga 12 item agar masalah penting terlihat dalam satu siklus, lalu menurunkan readiness secara konsisten (`fail` → `blocked`, warning/flag → `needs_review`, tanpa temuan → `ready`).
+    *   Menyediakan konfirmasi eksplisit untuk mempertahankan metadata publikasi stale yang masih relevan. Konfirmasi berlaku pada body aktif, tidak mengubah metadata, tidak melewati Quality Gate, dan dibatalkan oleh perubahan body berikutnya.
  
 ### G. Caching & Stabilitas Rekayasa Prompt Riset & Draf (EAI Chat & Draft)
 *   **Kendala**: Struktur instruksi asisten riset dan draft kasar cenderung panjang dan dinamis (misalnya menyertakan target bahasa dinamis, sitasi, dan draft mentah), yang menyebabkan caching model (Gemini Context Caching) tidak optimal karena parameter `system_instruction` berubah per permintaan. Selain itu, instruksi sitasi dan batasan menulis sering tersebar di antara input dan system instruction, membagi perhatian model.

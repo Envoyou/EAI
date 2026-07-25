@@ -150,7 +150,7 @@ export const FinalQualityGateSchema = z.object({
   readiness: z.enum(['ready', 'needs_review', 'blocked']).describe('Final publication readiness after evaluating the polished draft.'),
   summary: z.string().max(280).describe('One to two sentence readiness summary focused on the final draft.'),
   changes: z.array(z.string().min(1).max(180)).min(1).max(5).describe('Important improvements made from source draft to final draft.'),
-  feedback: z.array(FeedbackItemSchema).max(5).describe('Remaining actionable warning/fail checks on the final draft only.'),
+  feedback: z.array(FeedbackItemSchema).max(12).describe('Remaining actionable warning/fail checks on the final draft only.'),
   flags: z.array(z.string()).max(3).describe('Short remaining risk flags for the final draft.').optional().default([]),
 });
 

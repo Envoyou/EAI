@@ -93,7 +93,10 @@
   "FinalDraftPanel": {
     "refreshPublicationMetadata": "Buat ulang atau edit metadata SEO untuk draft final saat ini",
     "staleMetadataTitle": "Metadata publikasi sudah tidak mutakhir.",
-    "staleMetadataDescription": "Body artikel berubah setelah metadata dibuat. Jalankan Quality Check, lalu buat ulang atau edit SEO sebelum mengekspor.",
+    "staleMetadataDescription": "Body artikel berubah setelah metadata dibuat. Buat ulang atau edit SEO, atau konfirmasi bahwa metadata saat ini masih relevan.",
+    "confirmMetadataCurrent": "Pertahankan metadata saat ini",
+    "confirmMetadataSuccess": "Metadata publikasi saat ini berhasil dikonfirmasi.",
+    "confirmMetadataFailed": "Metadata publikasi tidak dapat dikonfirmasi.",
     "editDraft": "Edit Draft",
     "prepare": "Siapkan",
     "prepareAgain": "Siapkan ulang",

@@ -37,6 +37,11 @@ import {
   withGeminiFlexRetry,
 } from '@/lib/ai/gemini-request-policy';
 import { bindResponseAbort } from '@/lib/request-abort';
+import {
+  buildStrategistChatGenerationConfig,
+  readStrategistThinkingEvent,
+  type GeminiInteractionStreamEvent,
+} from '../gemini-chat-stream';
 
 const router = Router();
 
@@ -531,9 +536,10 @@ router.post(
           tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()
             ? [{ type: 'google_search' }]
             : undefined,
-          generation_config: {
-            max_output_tokens: FAST_MODE_MAX_OUTPUT_TOKENS,
-          },
+          generation_config: buildStrategistChatGenerationConfig(
+            FAST_MODE_MAX_OUTPUT_TOKENS,
+            isSearchEnabled
+          ),
           stream: true,
           ...getGeminiInteractionConfig(),
         }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
@@ -545,35 +551,19 @@ router.post(
 
       for await (const rawEvent of stream) {
         if (requestAbort.isDisconnected()) break;
-        const event = rawEvent as unknown as {
-          event_type?: string;
-          delta?: {
-            type?: string;
-            text?: string;
-            // thought_summary delta carries nested content, not delta.text
-            content?: { type?: string; text?: string };
-            annotations?: GroundingAnnotation[];
-          };
-        };
+        const event = rawEvent as unknown as GeminiInteractionStreamEvent;
 
         if (
           (event.event_type === 'step.delta' || event.event_type === 'content.delta') &&
           event.delta
         ) {
-          const deltaType = event.delta.type;
-
-          if (deltaType === 'thought_summary') {
-            // Stream model reasoning to frontend in real-time so the
-            // ThinkingProcess UI in ChatMessageList can render it.
-            const thinkChunk = event.delta.content?.text ?? '';
-            if (thinkChunk && !res.writableEnded) {
-              writeStrategistSseEvent(res, {
-                type: 'thinking',
-                kind: isSearchEnabled ? 'grounding' : 'reasoning',
-                chunk: thinkChunk,
-              });
-            }
-          } else if (event.delta.text) {
+          const thinkingEvent = readStrategistThinkingEvent(
+            event,
+            isSearchEnabled ? 'grounding' : 'reasoning'
+          );
+          if (thinkingEvent) {
+            writeStrategistSseEvent(res, thinkingEvent);
+          } else if (event.delta.type !== 'thought_summary' && event.delta.text) {
             finalOutputText += event.delta.text;
           }
 

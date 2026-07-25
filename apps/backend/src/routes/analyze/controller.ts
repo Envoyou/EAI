@@ -322,6 +322,7 @@ router.post('/', async (req: Request, res) => {
         targetText: targetText ?? '',
         feedbackMessage,
         instruction,
+        originalDraft,
         analysisSpeed,
         effectiveProvider,
         userId,

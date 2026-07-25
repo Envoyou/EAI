@@ -7,6 +7,8 @@ import { RewritePromptComposer } from '@/lib/ai/prompt-engine/composer/rewrite-c
 import { ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { preparePublicationDraft, resolvePublicationPackageStatus } from '@/routes/analyze/utils/text';
 import { sanitizeSuppressiveFeedbackItem } from '@/routes/analyze/utils/factual';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 const missingH1Result = (): FinalQualityGateOutput => ({
   readiness: 'needs_review',
@@ -103,7 +105,7 @@ describe('publication title contract', () => {
       }
     );
 
-    expect(result.readiness).toBe('needs_review');
+    expect(result.readiness).toBe('blocked');
     expect(result.feedback[0]?.targetField).toBe('publication.metaDescription');
   });
 
@@ -153,6 +155,67 @@ describe('publication title contract', () => {
     );
 
     expect(result.changes).toEqual(['Improved the opening hook.']);
+  });
+});
+
+describe('publication readiness reconciliation', () => {
+  test('supports an explicit persisted confirmation for a stale publication package', () => {
+    const historyRoute = readFileSync(
+      resolve(process.cwd(), 'src/routes/history.ts'),
+      'utf8'
+    );
+
+    expect(historyRoute).toContain("action: z.literal('confirm_publication_package')");
+    expect(historyRoute).toContain("publicationPackageStatus: 'current'");
+    expect(historyRoute).toContain('seoConfirmedAt: confirmedAt');
+    expect(historyRoute).toContain(
+      'Generate and save publication metadata before confirming it.'
+    );
+  });
+
+  test('a fail always produces blocked readiness', () => {
+    const result = applyDeterministicQualityChecks(
+      {
+        readiness: 'needs_review',
+        summary: 'A serious issue remains.',
+        changes: ['Reviewed the draft.'],
+        feedback: [{
+          category: 'Source Fidelity',
+          status: 'fail',
+          message: 'The draft contains an unsupported factual claim.',
+          operation: 'manual',
+        }],
+        flags: [],
+      },
+      'Opening paragraph.',
+      'Opening paragraph.',
+      { publicationMode: 'fast', language: 'en' }
+    );
+
+    expect(result.readiness).toBe('blocked');
+  });
+
+  test('post-processing can retain more than the provider batch of five findings', () => {
+    const feedback = Array.from({ length: 8 }, (_, index) => ({
+      category: `Editorial check ${index + 1}`,
+      status: 'warning' as const,
+      message: `Resolve editorial issue ${index + 1}.`,
+      operation: 'manual' as const,
+    }));
+    const result = applyDeterministicQualityChecks(
+      {
+        readiness: 'needs_review',
+        summary: 'Several issues remain.',
+        changes: ['Reviewed the draft.'],
+        feedback,
+        flags: [],
+      },
+      'Opening paragraph.',
+      'Opening paragraph.',
+      { publicationMode: 'fast', language: 'en' }
+    );
+
+    expect(result.feedback).toHaveLength(8);
   });
 });
 

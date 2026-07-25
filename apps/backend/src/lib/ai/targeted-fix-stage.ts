@@ -7,11 +7,14 @@ import { resolveModel } from './model-router';
 import { executeGenerate } from './runtime/execute-generate';
 import { composeWorkspaceContext } from './workspace-context';
 import { AiTelemetryCollector } from '@/lib/ai-telemetry';
+import { detectSourceFidelitySignals } from '@/lib/final-quality';
+import { replaceFirstTargetMatch, ResearchNotesArraySchema } from '@eai/shared';
 
 export const runTargetedFixStage = async ({
   provider,
   analysisSpeed,
   article,
+  originalDraft,
   targetText,
   feedback,
   editorInstruction,
@@ -22,6 +25,7 @@ export const runTargetedFixStage = async ({
   provider: AiProvider;
   analysisSpeed?: AnalysisSpeed;
   article: string;
+  originalDraft: string;
   targetText: string;
   feedback: string;
   editorInstruction: string;
@@ -42,19 +46,45 @@ export const runTargetedFixStage = async ({
   const day = parts.find((part) => part.type === 'day')?.value || '01';
   const currentDate = `${currentYear}-${month}-${day}`;
 
+  const parsedNotes = ResearchNotesArraySchema.safeParse(
+    (_metadata as Record<string, unknown> | undefined)?.researchNotes
+  );
+  const researchNotes = parsedNotes.success ? parsedNotes.data : [];
+  const notesSummary = researchNotes
+    .map((note, index) => {
+      const sourceUrls = note.sources?.map((source) => source.url).join(', ');
+      return [
+        `Note ${index + 1}: ${note.content}`,
+        sourceUrls ? `Sources: ${sourceUrls}` : '',
+      ].filter(Boolean).join('\n');
+    })
+    .join('\n\n');
+  const sourceMaterial = [
+    originalDraft,
+    ...researchNotes.map((note) => [
+      note.content,
+      ...(note.sources?.map((source) => source.url) ?? []),
+    ].join('\n')),
+  ].filter(Boolean).join('\n\n');
+
   const { xml: workspaceXml, agentInstruction } = composeWorkspaceContext({
     today: currentDate,
     timezone,
     profileConfig: editorialProfile.config,
+    notesSummary: notesSummary || null,
   });
 
-  const systemInstruction = `${new RefinementPromptComposer(
+  const baseSystemInstruction = `${new RefinementPromptComposer(
     'targeted_fix',
     editorialProfile.config
   ).compose('xml')}\n\n${agentInstruction}`;
 
-  const contents = [
+  const baseContents = [
     workspaceXml,
+    '<source_draft>',
+    originalDraft,
+    '</source_draft>',
+    '',
     '<article_draft>',
     article,
     '</article_draft>',
@@ -79,23 +109,70 @@ export const runTargetedFixStage = async ({
   const aiProvider = getProvider(provider);
   const modelName = resolveModel(provider, 'editor', analysisSpeed ?? 'balanced');
 
-  const result = await executeGenerate({
-    provider: aiProvider,
-    request: {
-      signal,
-      systemInstruction,
-      userContent: contents,
-      model: modelName,
-      maxOutputTokens: 800,
-      temperature: 0.2,
-      thinkingLevel: provider === 'gemini' ? 'medium' : undefined,
-    },
-    telemetry: new AiTelemetryCollector(),
-    stage: 'targeted_fix',
-  });
-
-  return {
-    modelName,
-    replacementText: result.text.replace(/^["']|["']$/g, '').trim(),
+  const baselineSignals = detectSourceFidelitySignals(
+    sourceMaterial || originalDraft,
+    article,
+    {
+      trustedEntities: [editorialProfile.config.brandName],
+      allowedEditorialTerms: editorialProfile.config.allowedEditorialTerms,
+    }
+  );
+  const baseline = {
+    numbers: new Set(baselineSignals.novelNumbers),
+    entities: new Set(baselineSignals.novelEntities),
+    urls: new Set(baselineSignals.novelUrls),
   };
+  const telemetry = new AiTelemetryCollector();
+  let correction = '';
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const result = await executeGenerate({
+      provider: aiProvider,
+      request: {
+        signal,
+        systemInstruction: `${baseSystemInstruction}${correction}`,
+        userContent: baseContents,
+        model: modelName,
+        maxOutputTokens: 800,
+        temperature: 0.2,
+        thinkingLevel: provider === 'gemini' ? 'medium' : undefined,
+      },
+      telemetry,
+      stage: 'targeted_fix',
+      attempt,
+    });
+    const replacementText = result.text.replace(/^["']|["']$/g, '').trim();
+    const candidate = replaceFirstTargetMatch(article, targetText, replacementText);
+    if (!candidate.success) {
+      throw new Error('The targeted text changed before the replacement could be validated.');
+    }
+
+    const candidateSignals = detectSourceFidelitySignals(
+      sourceMaterial || originalDraft,
+      candidate.nextText,
+      {
+        trustedEntities: [editorialProfile.config.brandName],
+        allowedEditorialTerms: editorialProfile.config.allowedEditorialTerms,
+      }
+    );
+    const introduced = [
+      ...candidateSignals.novelNumbers.filter((value) => !baseline.numbers.has(value)),
+      ...candidateSignals.novelEntities.filter((value) => !baseline.entities.has(value)),
+      ...candidateSignals.novelUrls.filter((value) => !baseline.urls.has(value)),
+    ];
+    if (introduced.length === 0) {
+      return { modelName, replacementText };
+    }
+
+    correction = `
+
+<retry_correction>
+The proposed replacement introduced source-fidelity signals that were absent from both the current article and supplied source material: ${introduced.slice(0, 6).join(', ')}.
+Rewrite the target again without adding those or any other new number, named entity, identity attribute, or URL.
+</retry_correction>`;
+  }
+
+  throw new Error(
+    'EAI could not produce a source-safe replacement after two attempts. Apply this finding manually or add a supporting source.'
+  );
 };

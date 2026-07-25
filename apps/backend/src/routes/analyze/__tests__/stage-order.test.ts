@@ -38,4 +38,26 @@ describe('analyze pipeline stage order', () => {
     expect(source).toContain("ctx.sendEvent('status', 'generating_seo')");
     expect(source).not.toContain("ctx.sendEvent('status', 'rewriting')");
   });
+
+  it('reuses saved editorial decisions and research context in standalone Quality Gate', () => {
+    const source = readHandler('publication.ts');
+
+    expect(source).toContain('readQualityResolutions(system)');
+    expect(source).toContain('resolvedQualityFindings');
+    expect(source).toContain('trustedSourceUrls');
+    expect(source).toContain('ResearchNotesArraySchema.safeParse(metadata.researchNotes)');
+  });
+
+  it('validates targeted replacements against source fidelity before returning them', () => {
+    const source = readHandler('fix-targeted.ts');
+    const stage = readFileSync(
+      resolve(process.cwd(), 'src/lib/ai/targeted-fix-stage.ts'),
+      'utf8'
+    );
+
+    expect(source).toContain('originalDraft: originalDraft || text ||');
+    expect(stage).toContain('<source_draft>');
+    expect(stage).toContain('detectSourceFidelitySignals');
+    expect(stage).toContain('<retry_correction>');
+  });
 });

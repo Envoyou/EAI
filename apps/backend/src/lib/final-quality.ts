@@ -50,6 +50,7 @@ const GENERIC_PROPER_NAMES = new Set([
 
 export interface SourceFidelityOptions {
   trustedInternalUrls?: string[];
+  trustedSourceUrls?: string[];
   trustedInternalDomains?: string[];
   trustedEntities?: string[];
   allowedEditorialTerms?: AllowedEditorialTerm[];
@@ -515,8 +516,11 @@ export const detectSourceFidelitySignals = (
   });
   const sourceEntities = collectEntityCandidates(originalWithoutUrlsOrCode);
   const finalEntities = collectEntityCandidates(finalWithoutUrlsOrCode);
-  const trustedInternalUrls = new Set(
-    (options.trustedInternalUrls ?? []).map((url) => url.replace(/[.,;:!?]+$/, ''))
+  const trustedUrls = new Set(
+    [
+      ...(options.trustedInternalUrls ?? []),
+      ...(options.trustedSourceUrls ?? []),
+    ].map((url) => url.replace(/[.,;:!?]+$/, ''))
   );
   const trustedEntities = new Set([
     ...GENERIC_PROPER_NAMES,
@@ -544,7 +548,7 @@ export const detectSourceFidelitySignals = (
 
   return {
     novelNumbers: filterByAllowlist(rawNovelNumbers, numericAllowlistSet, finalDraft, normalizeNumericSignal),
-    novelUrls: uniqueNovelValues(finalUrls, sourceUrls, trustedInternalUrls),
+    novelUrls: uniqueNovelValues(finalUrls, sourceUrls, trustedUrls),
     novelEntities: filterByAllowlist(rawNovelEntities, entityAllowlistSet, finalDraft, normalizeComparableText),
   };
 };
@@ -641,15 +645,19 @@ export const applyDeterministicQualityChecks = (
 ): FinalQualityGateOutput => {
   const isEn = options.language === 'en';
   let feedback = result.feedback.filter((item) => item.status !== 'pass');
-  let readiness = result.readiness;
   const trustedInternalUrls = (options.trustedInternalUrls ?? [])
     .map((url) => url.replace(/[.,;:!?]+$/, ''));
+  const trustedFeedbackUrls = [
+    ...trustedInternalUrls,
+    ...(options.trustedSourceUrls ?? [])
+      .map((url) => url.replace(/[.,;:!?]+$/, '')),
+  ];
   const trustedInternalDomains = new Set(
     (options.trustedInternalDomains ?? [])
       .map((domain) => domain.trim().toLowerCase().replace(/^www\./, ''))
       .filter(Boolean)
   );
-  if (trustedInternalUrls.length > 0) {
+  if (trustedFeedbackUrls.length > 0) {
     feedback = feedback.filter((item) => {
       const combined = [
         item.category,
@@ -658,7 +666,7 @@ export const applyDeterministicQualityChecks = (
         item.reason,
         item.targetText,
       ].filter(Boolean).join(' ');
-      const mentionsTrustedUrl = trustedInternalUrls.some((url) => combined.includes(url));
+      const mentionsTrustedUrl = trustedFeedbackUrls.some((url) => combined.includes(url));
       const onlyInternalLinkConcern = /internal link|tautan internal/i.test(combined)
         && !/angka|nominal|tanggal|entitas|klaim|atribusi|sebab-akibat/i.test(combined);
       return !mentionsTrustedUrl && !onlyInternalLinkConcern;
@@ -697,7 +705,6 @@ export const applyDeterministicQualityChecks = (
     ].filter((field) => field.value && hasIncompleteMetadataEnding(field.value));
 
     for (const field of incompleteFields) {
-      readiness = readiness === 'ready' ? 'needs_review' : readiness;
       feedback.unshift({
         category: 'Publication Metadata',
         status: 'fail',
@@ -715,7 +722,6 @@ export const applyDeterministicQualityChecks = (
   }
 
   if (hasAsciiTable(finalDraft)) {
-    readiness = readiness === 'ready' ? 'needs_review' : readiness;
     feedback.unshift({
       category: 'CMS Formatting',
       status: 'fail',
@@ -731,7 +737,6 @@ export const applyDeterministicQualityChecks = (
   }
 
   if (hasMalformedMarkdownTable(finalDraft)) {
-    readiness = readiness === 'ready' ? 'needs_review' : readiness;
     feedback.unshift({
       category: 'CMS Formatting',
       status: 'fail',
@@ -748,7 +753,6 @@ export const applyDeterministicQualityChecks = (
 
   const temporalPhaseMismatch = detectTemporalPhaseMismatch(finalDraft);
   if (temporalPhaseMismatch.length > 0) {
-    readiness = readiness === 'ready' ? 'needs_review' : readiness;
     feedback.unshift({
       category: 'Temporal Accuracy',
       status: 'fail',
@@ -764,7 +768,6 @@ export const applyDeterministicQualityChecks = (
   }
 
   if (VERIFICATION_ANNOTATION_PATTERN.test(finalDraft)) {
-    readiness = readiness === 'ready' ? 'needs_review' : readiness;
     feedback = feedback.filter((item) =>
       item.category.toLowerCase() !== 'source verification'
       && !/source verification recommended|annotation verifikasi/i.test(item.message)
@@ -789,7 +792,6 @@ export const applyDeterministicQualityChecks = (
 
   const acronymExpansionDrift = detectAcronymExpansionDrift(originalDraft, finalDraft);
   if (acronymExpansionDrift.length > 0) {
-    readiness = readiness === 'ready' ? 'needs_review' : readiness;
     const example = acronymExpansionDrift[0];
     feedback.push({
       category: 'Terminology',
@@ -807,7 +809,6 @@ export const applyDeterministicQualityChecks = (
 
   const unsupportedMotiveClaims = detectUnsupportedMotiveClaims(originalDraft, finalDraft);
   if (unsupportedMotiveClaims.length > 0) {
-    readiness = readiness === 'ready' ? 'needs_review' : readiness;
     const motiveContexts = collectUnsupportedMotiveContexts(originalDraft, finalDraft);
     const motiveSummary = motiveContexts.length > 0
       ? motiveContexts.slice(0, 2).map((context) => `"${context}"`).join(' ')
@@ -849,7 +850,6 @@ export const applyDeterministicQualityChecks = (
     });
 
     if (factualNovelNumbers.length > 0) {
-      readiness = readiness === 'ready' ? 'needs_review' : readiness;
       feedback.push({
         category: 'Source Fidelity',
         status: 'fail',
@@ -884,7 +884,6 @@ export const applyDeterministicQualityChecks = (
   }
 
   if (sourceFidelitySignals.novelEntities.length > 0) {
-    readiness = readiness === 'ready' ? 'needs_review' : readiness;
     feedback.push({
       category: 'Source Fidelity',
       status: 'warning',
@@ -917,7 +916,6 @@ export const applyDeterministicQualityChecks = (
       }
     });
 
-    readiness = readiness === 'ready' ? 'needs_review' : readiness;
     if (internalUrls.length > 0) {
       feedback.push({
         category: 'Internal Linking',
@@ -956,17 +954,15 @@ export const applyDeterministicQualityChecks = (
     flags = flags.filter((flag) => flag !== 'Source Fidelity Review');
   }
 
-  const finalFeedback = uniqueFeedback(feedback).slice(0, 5);
-  if (readiness === 'blocked' && !finalFeedback.some((item) => item.status === 'fail')) {
-    readiness = 'needs_review';
-  }
-  if (readiness === 'ready' && finalFeedback.some((item) => item.status === 'fail')) {
-    readiness = 'needs_review';
-  }
+  const finalFeedback = uniqueFeedback(feedback)
+    .sort((first, second) => getFeedbackPriority(second) - getFeedbackPriority(first))
+    .slice(0, 12);
   const finalFlags = Array.from(new Set(flags)).slice(0, 3);
-  if (readiness === 'needs_review' && finalFeedback.length === 0 && finalFlags.length === 0) {
-    readiness = 'ready';
-  }
+  const readiness = finalFeedback.some((item) => item.status === 'fail')
+    ? 'blocked'
+    : finalFeedback.length > 0 || finalFlags.length > 0
+      ? 'needs_review'
+      : 'ready';
 
   const hasUnsafeVisualFinding = finalFeedback.some((item) => {
     const text = [item.category, item.message, item.suggestion, item.targetText]

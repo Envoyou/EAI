@@ -68,6 +68,7 @@ Rute `/api/analyze` di *backend* didekomposisi ke dalam subfolder modular `src/r
     1. Gemini (Primer): via SDK `@google/genai` (model produksi: `gemini-3.6-flash`; SEO & lightweight roles: `gemini-3.5-flash-lite`). Konfigurasi native menggunakan helper `getNativeGeminiConfig(thinkingLevel)` dari `provider-runtime.ts` — **tidak menggunakan** `temperature` karena diabaikan oleh SDK saat `thinkingConfig` aktif.
     2. OpenRouter (Universal): Untuk integrasi multi-model (Anthropic, OpenAI, Llama) yang dikonfigurasi lewat `OPENROUTER_MODEL`. Konfigurasi sampling menggunakan `getOpenRouterSamplingConfig()`.
 *   **Thinking Configuration**: Review, Final Quality Gate, dan Quick Draft menggunakan thinking level rendah untuk menekan konsumsi token pada output terstruktur. Targeted Fix menggunakan level `MEDIUM` karena harus mempertahankan konteks kalimat sambil menghasilkan replacement yang presisi. Stage rewrite plain-text tidak mengaktifkan thinking config native.
+*   **Strategist Thinking Stream**: Chat Strategist produksi meminta `generation_config.thinking_summaries = "auto"` pada Gemini Interactions. Chat dengan Google Search memakai `thinking_level = "medium"`, sedangkan chat tanpa Search memakai `"low"`. Delta `thought_summary` dipetakan ke event SSE bersama `{ type: "thinking", kind, chunk }`; UI mempertahankan indikator statis jika provider tidak menghasilkan summary untuk prompt sederhana.
 *   **Orkestrasi Prompt**: Prompt dibangun secara dinamis dengan bantuan *utility* dari `@eai/shared/server`.
 *   **H1 & Publication Package Contract**: Draft mentah dari Strategist boleh membawa H1 sebagai working title. Rute `routes/analyze/` mengekstraknya melalui `stripLeadingH1`, mempertahankan nilainya sebagai `workingTitle`, dan memastikan publication body selalu tanpa H1. Pada Publish Ready, `PublicationPackage.title` menjadi field title CMS/H1 halaman; `metaTitle` tetap field SERP terpisah.
 *   **Four-Stage Pipeline**:
@@ -117,6 +118,8 @@ Pipeline mempertahankan dua representasi setelah rewrite:
 
 Publication Package memiliki status `not_generated`, `current`, atau `stale`. Setiap mutasi body setelah package dibuat—termasuk targeted fix, apply feedback, dan penambahan source link—mengubah status menjadi `stale`. Export CMS hanya menerima package `current` dengan body yang sama dengan publication draft tersimpan.
 
+Editor dapat mengonfirmasi bahwa Publication Package yang berstatus `stale` masih relevan melalui action `confirm_publication_package` pada `PATCH /api/history/:id/resolve`. Action ini hanya tersedia jika generated metadata dan polished draft telah tersimpan. Backend mengubah `publicationPackageStatus` menjadi `current` untuk body aktif serta mencatat `metadata._system.seoConfirmedAt`, tanpa mengubah nilai metadata. Konfirmasi ini tidak melewati Quality Gate; perubahan body berikutnya kembali membuat package `stale`, dan guard ekspor tetap mensyaratkan package `current`, body yang cocok, serta keputusan kualitas `ready`.
+
 Pemisahan ini mencegah instruksi seperti `[Source verification recommended]` bocor ke artikel publik tanpa menghilangkan warning pada refinement report.
 
 ### Deterministic Final Validation
@@ -128,6 +131,12 @@ Pemisahan ini mencegah instruksi seperti `[Source verification recommended]` boc
 *   Deteksi atribusi motif organisasi/tokoh yang tidak ada pada sumber.
 *   Validasi fase kalender berbasis zona waktu `Asia/Jakarta`.
 *   Normalisasi tautan internal tepercaya dan marker verifikasi.
+
+Final Draft menggunakan ledger resolusi persisten pada `metadata._system.resolvedQualityFindings` untuk membuat siklus perbaikan bersifat konvergen. Keputusan editor untuk warning yang diterima, diterapkan, atau diverifikasi dicocokkan kembali berdasarkan kategori dan target temuan. Ledger tidak pernah menyembunyikan temuan `fail`, warning baru, atau warning yang targetnya berubah secara material.
+
+Quality Check mandiri menggunakan ulang research notes tersimpan dan URL sumber eksternal persis yang telah diverifikasi editor. URL tepercaya hanya membuktikan keputusan atas link tersebut, bukan otomatis membenarkan seluruh klaim di sekitarnya. Targeted Fix menerima draft awal beserta research notes, memeriksa kandidat pengganti terhadap source fidelity, dan melakukan satu retry korektif jika perubahan memperkenalkan angka, entitas, atau URL baru. Kandidat yang tetap tidak aman tidak diterapkan.
+
+Temuan model dan deterministik diprioritaskan lalu dibatasi hingga 12 item yang dapat ditindaklanjuti. Readiness diturunkan secara kanonis: sedikitnya satu `fail` menghasilkan `blocked`, warning atau flag menghasilkan `needs_review`, dan hasil tanpa temuan menghasilkan `ready`.
 
 Smart internal linking menyaring kandidat berdasarkan istilah substantif, kualitas slug, dan keluarga topik sebelum daftar artikel diberikan kepada model.
 
@@ -252,7 +261,7 @@ Sistem menggunakan **Tiptap** sebagai editor teks kaya (*Rich Text Editor*) untu
 *   **Pemisahan Endpoint PATCH (PATCH Route Refactoring)**:
     *   Untuk mematuhi prinsip tanggung jawab tunggal (*Single Responsibility Principle*) dan mencegah kesalahan validasi Zod (`HISTORY_PATCH`), rute general `PATCH /api/history/:id` dipecah menjadi tiga endpoint spesifik:
         1.  `PATCH /api/history/:id/autosave`: Rute khusus autosave draft yang divalidasi dengan `AutosaveSchema` ringan dan dibatasi dengan middleware in-memory token-bucket `autosaveRateLimiter` (maksimal 100 request/menit per user) guna melindungi database dari beban berlebih.
-        2.  `PATCH /api/history/:id/resolve`: Rute khusus untuk menyimpan resolusi feedback dari saran AI yang divalidasi menggunakan `EditorialResolutionSchema`.
+        2.  `PATCH /api/history/:id/resolve`: Rute khusus untuk menyimpan resolusi feedback dari saran AI dan mengonfirmasi Publication Package yang masih relevan melalui action `confirm_publication_package`. Payload divalidasi sebagai discriminated action oleh `EditorialResolutionSchema`.
         3.  `PATCH /api/history/:id`: Disederhanakan khusus untuk pembaruan judul dokumen (*rename*).
 *   **Ekstraktor JSON Tangguh (Brace-Counting JSON Parser)**:
     *   Rantai pemrosesan backend menggunakan fungsi `extractJsonFromText` yang mengimplementasikan **Stateful Brace-Counting Parser** untuk menyaring objek JSON secara presisi dari output model LLM. Parser ini mengabaikan karakter kurung kurawal di dalam string kutipan ganda (serta menangani *escaped characters* `\"`) dan memotong teks penjelasan tambahan dari model AI yang ditulis setelah JSON ditutup (seperti kalimat penutup yang memuat tanda kurung). Hal ini meminimalkan kegagalan parse JSON dan menghemat token pemrosesan ulang (*retry*).

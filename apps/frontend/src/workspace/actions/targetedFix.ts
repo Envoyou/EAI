@@ -1,7 +1,13 @@
 'use client';
 
 import { toast } from 'sonner';
-import type { AnalysisResult, FeedbackItem, EditorialReadiness } from '@eai/shared';
+import type {
+  AnalysisResult,
+  ArticleMetadata,
+  FeedbackItem,
+  EditorialReadiness,
+  ResearchNote,
+} from '@eai/shared';
 import type { AnalysisSpeed, DirectFetchType } from '../types';
 import { replaceFirstTargetMatch } from '@eai/shared';
 import { readWithTimeout } from '@/lib/stream-utils';
@@ -13,6 +19,9 @@ interface TargetedFixContext {
   setIsTargetedFixing: (idx: number | null) => void;
   directFetch: DirectFetchType;
   analysisSpeed: AnalysisSpeed;
+  metadata: ArticleMetadata;
+  originalDraft: string;
+  researchNotes: ResearchNote[];
   persistEditorialResolution: (
     feedback: FeedbackItem[],
     readiness: EditorialReadiness,
@@ -34,6 +43,9 @@ export async function executeTargetedFix(
     setIsTargetedFixing,
     directFetch,
     analysisSpeed,
+    metadata,
+    originalDraft,
+    researchNotes,
     persistEditorialResolution,
     setAnalysis,
     analyzeAbortControllerRef,
@@ -61,6 +73,11 @@ export async function executeTargetedFix(
         targetText: item.targetText,
         feedbackMessage: item.message || 'Address this editorial issue',
         instruction: instruction,
+        originalDraft,
+        metadata: {
+          ...metadata,
+          researchNotes,
+        },
         analysisSpeed: analysisSpeed === 'publish' ? 'deep' : 'fast',
       }),
     });

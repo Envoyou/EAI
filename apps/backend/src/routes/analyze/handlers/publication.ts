@@ -9,6 +9,12 @@ import {
   mergeConfirmedInternalUrls,
   readConfirmedInternalUrls,
 } from '@/lib/confirmed-internal-links';
+import {
+  mergeQualityResolutions,
+  readQualityResolutions,
+  readTrustedSourceUrls,
+} from '@/lib/quality-resolution-ledger';
+import { ResearchNotesArraySchema } from '@eai/shared';
 import type { PublicationStageContext } from '../types';
 import {
   sanitizeFactualSummary,
@@ -73,6 +79,12 @@ export async function handleQualityGateOnly(
     readConfirmedInternalUrls(system),
     log.feedback
   );
+  const resolvedQualityFindings = mergeQualityResolutions(
+    readQualityResolutions(system),
+    log.feedback
+  );
+  const trustedSourceUrls = readTrustedSourceUrls(resolvedQualityFindings);
+  const storedResearchNotes = ResearchNotesArraySchema.safeParse(metadata.researchNotes);
   ctx.sendEvent('status', 'quality_gate');
 
   const telemetry = new AiTelemetryCollector();
@@ -96,12 +108,14 @@ export async function handleQualityGateOnly(
         metadata: ctx.metadata,
         analysisSpeed: ctx.analysisSpeed,
         trustedInternalUrls: confirmedInternalUrls,
+        trustedSourceUrls,
         trustedInternalDomains: ctx.editorialProfile.config.internalLinkDomains,
+        resolvedQualityFindings,
         telemetry,
         editorialProfile: ctx.editorialProfile,
         sanitizeFeedback: sanitizeSuppressiveFeedbackItem,
         sanitizeSummary: sanitizeFactualSummary,
-        researchNotes: [],
+        researchNotes: storedResearchNotes.success ? storedResearchNotes.data : [],
         publicationMode: 'fast',
         workingTitle:
           typeof metadata.workingTitle === 'string'
@@ -127,6 +141,7 @@ export async function handleQualityGateOnly(
           refinementChanges: result.changes,
           qualityGateCheckedAt: new Date().toISOString(),
           confirmedInternalUrls,
+          resolvedQualityFindings,
         },
       } as Prisma.InputJsonValue,
     },

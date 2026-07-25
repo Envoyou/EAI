@@ -22,6 +22,8 @@ describe('revision-safe publication workflow', () => {
     expect(panel).toContain('Regenerate SEO metadata');
     expect(panel).toContain('Save Publication Metadata');
     expect(panel).toContain('Prepare current draft for export');
+    expect(panel).toContain("t('confirmMetadataCurrent')");
+    expect(panel).toContain('onConfirmPublicationMetadata');
     expect(panel).toContain(
       'icon={PreparePublicationIcon}'
     );
@@ -50,10 +52,15 @@ describe('revision-safe publication workflow', () => {
 
   it('uses standalone backend modes instead of full Analyze', () => {
     const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
+    const targetedFix = readFrontendSource('workspace/actions/targetedFix.ts');
 
     expect(workspace).toContain("mode: 'quality_gate'");
     expect(workspace).toContain("mode: 'generate_seo'");
     expect(workspace).toContain("action: 'update_final_draft'");
     expect(workspace).toContain("action: 'update_publication_package'");
+    expect(workspace).toContain("action: 'confirm_publication_package'");
+    expect(workspace).toContain('originalDraft: sourceDraft');
+    expect(targetedFix).toContain('originalDraft,');
+    expect(targetedFix).toContain('researchNotes,');
   });
 });

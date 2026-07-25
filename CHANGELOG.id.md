@@ -6,6 +6,27 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Workflow Kualitas Final Draft yang Konvergen**:
+  - Menambahkan ledger resolusi kualitas persisten pada metadata analisis agar warning yang telah diterima, diterapkan, atau diverifikasi dapat direkonsiliasi pada Quality Check berikutnya tanpa menyembunyikan masalah baru.
+  - Menambahkan penggunaan ulang URL sumber eksternal yang telah diverifikasi editor secara persis serta research notes tersimpan pada Quality Check mandiri.
+  - Menambahkan aksi eksplisit **Pertahankan metadata saat ini** ketika metadata publikasi berstatus stale, sehingga editor dapat mengonfirmasi bahwa paket SEO yang ada masih sesuai dengan draft aktif yang tersimpan.
+
+### Changed
+- **Targeted Fix Aman terhadap Sumber & Keputusan Kualitas Konsisten**:
+  - Targeted Fix kini menerima draft awal dan research notes tersimpan, memvalidasi kandidat pengganti terhadap angka, entitas, dan URL baru, lalu mencoba satu kali lagi dengan arahan korektif sebelum menolak perubahan yang tidak aman.
+  - Pemrosesan Final Quality kini memprioritaskan gabungan temuan model dan deterministik, mempertahankan hingga 12 item yang dapat ditindaklanjuti, serta menurunkan readiness secara konsisten: setiap failure menghasilkan `blocked`, warning menghasilkan `needs_review`, dan hasil bersih menghasilkan `ready`.
+  - Konfirmasi metadata publikasi mencatat keputusan editor untuk body aktif yang tersimpan tanpa mengubah nilai metadata atau melewati Quality Check. Mutasi body berikutnya akan membuat package kembali stale.
+
+### Fixed
+- **Loop Feedback Quality Gate Berulang**:
+  - Mencegah warning yang telah diselesaikan muncul tanpa henti selama kategori dan targetnya tetap sama, dengan tetap mempertahankan seluruh temuan berlevel failure serta warning yang berubah secara material.
+  - Mencegah link sumber yang telah diverifikasi editor ditandai berulang hanya karena Quality Check mandiri berikutnya tidak menerima konteks verifikasi sebelumnya.
+  - Memungkinkan editor menyelesaikan warning metadata publikasi stale melalui konfirmasi eksplisit tanpa dipaksa membuat ulang metadata SEO yang masih relevan.
+- **Stream Thinking Strategist Produksi**:
+  - Mengaktifkan Gemini Interactions thought summaries secara eksplisit untuk chat produksi. Chat dengan grounding menggunakan thinking level medium, sedangkan chat tanpa Search menggunakan level low.
+  - Menambahkan adapter teruji dari delta Gemini `thought_summary` ke event SSE Strategist `thinking`, dengan tetap mempertahankan fallback statis untuk prompt sederhana ketika provider tidak mengirim summary.
+
 ## [3.15.0] - 2026-07-24
 
 ### Added

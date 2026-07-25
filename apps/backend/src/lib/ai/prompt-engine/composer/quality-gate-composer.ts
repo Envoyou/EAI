@@ -65,6 +65,8 @@ Output rules:
 - In fast mode, publication fields are intentionally absent and must not be audited.
 - In publish-ready mode, target missing or inaccurate publication fields through targetField, never through a body text insertion.
 - Audit each diagram and table for necessity and source support. Unsupported visual labels or relationships are source-fidelity issues.
+- URLs listed in trusted_source_urls were explicitly verified by an editor. Do not flag the presence of those exact URLs again.
+- A trusted URL does not automatically verify every surrounding claim; continue to flag a materially unsupported claim when the supplied source context does not support it.
 
 Consistency rules:
 - If any feedback item has status "fail", readiness must be "blocked".

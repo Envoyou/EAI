@@ -13,6 +13,10 @@ import { getProvider } from './providers/registry';
 import { resolveModel } from './model-router';
 import { executeGenerate } from './runtime/execute-generate';
 import { composeWorkspaceContext } from './workspace-context';
+import {
+  reconcileQualityResolutions,
+  type QualityResolution,
+} from '@/lib/quality-resolution-ledger';
 
 const detectLanguage = (text: string): 'id' | 'en' => {
   const clean = text.toLowerCase();
@@ -41,7 +45,9 @@ const runFinalQualityGate = async ({
   metadata,
   analysisSpeed,
   trustedInternalUrls = [],
+  trustedSourceUrls = [],
   trustedInternalDomains = [],
+  resolvedQualityFindings = [],
   telemetry,
   editorialProfile,
   sanitizeFeedback,
@@ -59,7 +65,9 @@ const runFinalQualityGate = async ({
   metadata?: ArticleMetadata;
   analysisSpeed?: AnalysisSpeed;
   trustedInternalUrls?: string[];
+  trustedSourceUrls?: string[];
   trustedInternalDomains?: string[];
+  resolvedQualityFindings?: QualityResolution[];
   telemetry: AiTelemetryCollector;
   editorialProfile: EditorialProfileSnapshot;
   sanitizeFeedback: FeedbackSanitizer;
@@ -125,6 +133,7 @@ const runFinalQualityGate = async ({
     '</publishing_contract>',
     '',
     trustedInternalUrls.length > 0 ? `<trusted_internal_urls>\n${trustedInternalUrls.join('\n')}\n</trusted_internal_urls>\n` : '',
+    trustedSourceUrls.length > 0 ? `<trusted_source_urls>\n${trustedSourceUrls.join('\n')}\n</trusted_source_urls>\n` : '',
     trustedInternalDomains.length > 0 ? `<trusted_internal_domains>\n${trustedInternalDomains.join('\n')}\n</trusted_internal_domains>\n` : '',
     '<task>',
     'Evaluate finalDraft as the primary quality gate object. Use sourceDraft only to compare changes and source fidelity.',
@@ -175,6 +184,7 @@ The previous response failed structural validation. Return one JSON object only.
 
   result = applyDeterministicQualityChecks(result, finalDraft, originalDraft, {
     trustedInternalUrls,
+    trustedSourceUrls,
     trustedInternalDomains,
     trustedEntities: [editorialProfile.config.brandName],
     allowedEditorialTerms: editorialProfile.config.allowedEditorialTerms,
@@ -183,6 +193,12 @@ The previous response failed structural validation. Return one JSON object only.
     documentTitle: publicationPackage?.title || workingTitle,
     publicationPackage,
   });
+  result = reconcileQualityResolutions(
+    result,
+    finalDraft,
+    resolvedQualityFindings,
+    language
+  );
 
   return { result, modelName };
 };

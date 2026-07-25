@@ -103,6 +103,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
     handleQualityCheck,
     handleRegenerateSeo,
     handleSavePublicationMetadata,
+    handleConfirmPublicationMetadata,
     handlePrepareForExport,
     handleRefineAgain,
     handleApplyFix,
@@ -474,6 +475,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     onQualityCheck={handleQualityCheck}
                     onRegenerateSeo={handleRegenerateSeo}
                     onSavePublicationMetadata={handleSavePublicationMetadata}
+                    onConfirmPublicationMetadata={handleConfirmPublicationMetadata}
                     onPrepareForExport={handlePrepareForExport}
                     isSavingFinalDraft={isSavingFinalDraft}
                     isCheckingQuality={isCheckingQuality}
@@ -633,6 +635,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     onQualityCheck={handleQualityCheck}
                     onRegenerateSeo={handleRegenerateSeo}
                     onSavePublicationMetadata={handleSavePublicationMetadata}
+                    onConfirmPublicationMetadata={handleConfirmPublicationMetadata}
                     onPrepareForExport={handlePrepareForExport}
                     isSavingFinalDraft={isSavingFinalDraft}
                     isCheckingQuality={isCheckingQuality}
