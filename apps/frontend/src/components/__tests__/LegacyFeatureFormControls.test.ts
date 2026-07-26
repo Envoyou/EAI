@@ -22,8 +22,8 @@ describe('remaining legacy feature form-control contract', () => {
   });
 
   it('uses canonical surface inputs for the Onboarding activation fields', () => {
-    expect(activationStep.match(/<Input\b/g)).toHaveLength(2);
-    expect(activationStep.match(/variant="surface"/g)).toHaveLength(2);
+    expect(activationStep.match(/<Input\b/g)).toHaveLength(3);
+    expect(activationStep.match(/variant="surface"/g)).toHaveLength(7);
     expect(onboardingSource).not.toMatch(/ui-control|ui-input|ui-textarea|ui-select/);
   });
 

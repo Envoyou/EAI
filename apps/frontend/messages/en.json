@@ -213,6 +213,80 @@
       "generatingBrand": "Generating brand identity for \"{workspaceName}\"...",
       "synthesizing": "Synthesizing writing tone and categories for {lang}...",
       "finalizing": "Finalizing Editorial DNA and structure..."
+    },
+    "questions": {
+      "progress": "Question {current} of {total}",
+      "completed": "{percent}% Completed",
+      "q1": {
+        "title": "What is the name of your team's workspace?",
+        "desc": "This name will be your primary editorial identity in EAI Envoyou.",
+        "placeholder": "e.g., TechNews Editorial, Creative Content Studio"
+      },
+      "q2": {
+        "title": "What is your publication's current website URL?",
+        "optional": "(Optional)",
+        "desc": "Our AI will analyze your brand tone & style automatically via Web Scraper in the next step.",
+        "placeholder": "https://yourblog.com or https://media.com"
+      },
+      "q3": {
+        "title": "What is your role or position in the editorial team?",
+        "desc": "Helps EAI tailor workflows and feature recommendations for your team.",
+        "roles": {
+          "editor_in_chief": {
+            "title": "Editor-in-Chief / Content Manager",
+            "desc": "Manages editorial strategy, writer assignments, and publication standards."
+          },
+          "editor_reviewer": {
+            "title": "Editor / Fact Checker & SEO",
+            "desc": "Reviews article drafts, verifies data accuracy, and optimizes SEO."
+          },
+          "content_writer": {
+            "title": "Content Writer / Journalist",
+            "desc": "Creates articles, researches topics, and drafts compelling stories."
+          },
+          "it_ops_admin": {
+            "title": "IT Administrator / Ops",
+            "desc": "Manages CMS integrations, team access permissions, and technical setup."
+          }
+        }
+      },
+      "q4": {
+        "title": "How did you hear about EAI Envoyou?",
+        "desc": "Select how you first discovered our platform.",
+        "sources": {
+          "social_media": { "label": "Professional Social Media", "hint": "LinkedIn, X/Twitter, etc." },
+          "colleague_recommendation": { "label": "Colleague / Friend Referral", "hint": "Recommended by a colleague" },
+          "google": { "label": "Google Search Engine", "hint": "Organic search query" },
+          "industry_blog": { "label": "Blog Article / Industry News", "hint": "Media publication or review" },
+          "chatgpt": { "label": "ChatGPT", "hint": "OpenAI ChatGPT recommendation" },
+          "claude": { "label": "Claude AI", "hint": "Anthropic Claude recommendation" },
+          "perplexity": { "label": "Perplexity AI", "hint": "Perplexity Search recommendation" },
+          "gemini": { "label": "Google Gemini AI", "hint": "Google Gemini recommendation" },
+          "other": { "label": "Other", "hint": "Other source of information" }
+        }
+      },
+      "q5": {
+        "title": "What is the primary focus your team wants to achieve using AI?",
+        "desc": "Select your top priority goal right now to customize AI agents."
+      },
+      "q6": {
+        "title": "What is the primary language for your articles?",
+        "desc": "This language will be used as default for content analysis, research, and generation.",
+        "options": {
+          "auto": { "title": "Auto-detect", "desc": "Follows the source content language" },
+          "id": { "title": "Indonesian", "desc": "Standard & professional Indonesian" },
+          "en": { "title": "English", "desc": "English for international readers" }
+        }
+      }
+    },
+    "buttons": {
+      "back": "Back",
+      "next": "Continue",
+      "startAi": "Start AI Discovery",
+      "useDefaults": "Use defaults",
+      "activate": "Activate Workspace",
+      "activating": "Activating...",
+      "saving": "Saving..."
     }
   }
 }

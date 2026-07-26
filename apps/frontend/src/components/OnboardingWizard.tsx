@@ -13,11 +13,8 @@ import {
   CheckCircle2,
   FileText,
   Globe2,
-  Goal,
-  Languages,
   Loader2,
   Rocket,
-  Rss,
   ShieldCheck,
   Sparkles,
   WandSparkles,
@@ -34,13 +31,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { DEFAULT_ONBOARDING_DATA, type OnboardingData, type OnboardingStep } from '@eai/shared';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 const STEPS: Array<{
@@ -60,6 +50,25 @@ const GOALS = [
   { id: 'knowledge_base', icon: BookOpenText },
   { id: 'research', icon: Sparkles },
   { id: 'documentation', icon: FileText },
+];
+
+const USER_ROLES = [
+  { id: 'editor_in_chief', icon: ShieldCheck },
+  { id: 'editor_reviewer', icon: Edit2 },
+  { id: 'content_writer', icon: FileText },
+  { id: 'it_ops_admin', icon: Building2 },
+];
+
+const ACQUISITION_SOURCES = [
+  'social_media',
+  'colleague_recommendation',
+  'google',
+  'industry_blog',
+  'chatgpt',
+  'claude',
+  'perplexity',
+  'gemini',
+  'other',
 ];
 
 const PREDEFINED_CATEGORIES = [
@@ -104,6 +113,7 @@ export function OnboardingWizard() {
   const t = useTranslations('Onboarding');
   const [data, setData] = useState<OnboardingData>(() => structuredClone(DEFAULT_ONBOARDING_DATA));
   const [step, setStep] = useState<OnboardingStep>('activation');
+  const [activationSubStep, setActivationSubStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [discovering, setDiscovering] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -545,77 +555,276 @@ export function OnboardingWizard() {
                 >
                   {step === 'activation' && (
                     <div className="space-y-6">
-                      <WizardField label="Workspace Name" icon={Building2}>
-                        <Input
-                          variant="surface"
-                          type="text"
-                          value={data.activation.workspaceName}
-                          onChange={(event) => updateActivation('workspaceName', event.target.value)}
-                          placeholder="e.g. my publication"
-                          className="h-11 font-sans text-sm md:text-base"
-                        />
-                      </WizardField>
-
-                      <WizardField label="Publication Website" icon={Rss} optional>
-                        <Input
-                          variant="surface"
-                          type="url"
-                          value={data.activation.website}
-                          onChange={(event) => updateActivation('website', event.target.value)}
-                          placeholder="https://yourblog.com"
-                          className="h-11 font-sans text-sm md:text-base"
-                        />
-                      </WizardField>
-
-                      <WizardField label="Primary Goal" icon={Goal}>
-                        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-                          {GOALS.map((goal) => {
-                            const active = data.activation.primaryGoal === goal.id;
-                            const GoalIcon = goal.icon;
-                            return (
-                              <Button
-                                key={goal.id}
-                                type="button"
-                                onClick={() => updateActivation('primaryGoal', goal.id)}
-                                variant="surface"
-                                aria-pressed={active}
-                                className={`onboarding-goal-card transition cursor-pointer select-none ${
-                                  active
-                                    ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)] ring-1 ring-[var(--primary)]/50'
-                                    : 'border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)]'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between w-full mb-3">
-                                  <GoalIcon className={`size-5 shrink-0 ${active ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'}`} />
-                                  {active && <CheckCircle2 className="size-4 shrink-0 text-[var(--success)]" />}
-                                </div>
-                                <div className="w-full">
-                                  <div className="font-sans text-sm font-bold text-[var(--foreground)]">{t(`goals.${goal.id}.label`)}</div>
-                                  <p className="mt-1 font-sans text-xs leading-relaxed text-[var(--muted-foreground)] whitespace-normal">
-                                    {t(`goals.${goal.id}.desc`)}
-                                  </p>
-                                </div>
-                              </Button>
-                            );
-                          })}
+                      {/* Sub-step Progress Bar & Indicator */}
+                      <div className="space-y-2 mb-6">
+                        <div className="flex items-center justify-between text-xs font-mono text-[var(--muted-foreground)]">
+                          <span className="flex items-center gap-1.5 font-semibold text-[var(--primary)]">
+                            <Sparkles className="size-3.5" />
+                            {t('questions.progress', { current: activationSubStep + 1, total: 6 })}
+                          </span>
+                          <span>{t('questions.completed', { percent: Math.round(((activationSubStep + 1) / 6) * 100) })}</span>
                         </div>
-                      </WizardField>
+                        <div className="h-1.5 w-full rounded-full bg-[var(--surface-3)] overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--success)] transition-all duration-300 ease-out rounded-full"
+                            style={{ width: `${((activationSubStep + 1) / 6) * 100}%` }}
+                          />
+                        </div>
+                      </div>
 
-                      <WizardField label={t('fields.defaultLanguage')} icon={Languages}>
-                        <Select
-                          value={data.activation.defaultLanguage}
-                          onValueChange={(value) => { if (value !== null) updateActivation('defaultLanguage', value); }}
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          key={activationSubStep}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                          className="space-y-6"
                         >
-                          <SelectTrigger className="w-full h-11 rounded-xl font-sans text-sm md:text-base">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="auto">{t('languages.auto')}</SelectItem>
-                            <SelectItem value="en">{t('languages.en')}</SelectItem>
-                            <SelectItem value="id">{t('languages.id')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </WizardField>
+                          {/* Q1: Workspace Name */}
+                          {activationSubStep === 0 && (
+                            <div className="space-y-4">
+                              <h2 className="text-xl font-bold font-sans text-[var(--foreground)] md:text-2xl">
+                                {t('questions.q1.title')}
+                              </h2>
+                              <p className="text-sm font-sans text-[var(--muted-foreground)] leading-relaxed">
+                                {t('questions.q1.desc')}
+                              </p>
+                              <Input
+                                variant="surface"
+                                type="text"
+                                autoFocus
+                                value={data.activation.workspaceName}
+                                onChange={(event) => updateActivation('workspaceName', event.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && data.activation.workspaceName.trim()) {
+                                    e.preventDefault();
+                                    setActivationSubStep(1);
+                                  }
+                                }}
+                                placeholder={t('questions.q1.placeholder')}
+                                className="h-12 font-sans text-base md:text-lg px-4"
+                              />
+                            </div>
+                          )}
+
+                          {/* Q2: Publication Website */}
+                          {activationSubStep === 1 && (
+                            <div className="space-y-4">
+                              <h2 className="text-xl font-bold font-sans text-[var(--foreground)] md:text-2xl">
+                                {t('questions.q2.title')} <span className="text-xs font-mono font-normal text-[var(--muted-foreground)] uppercase ml-2">{t('questions.q2.optional')}</span>
+                              </h2>
+                              <p className="text-sm font-sans text-[var(--muted-foreground)] leading-relaxed">
+                                {t('questions.q2.desc')}
+                              </p>
+                              <Input
+                                variant="surface"
+                                type="url"
+                                autoFocus
+                                value={data.activation.website}
+                                onChange={(event) => updateActivation('website', event.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    setActivationSubStep(2);
+                                  }
+                                }}
+                                placeholder={t('questions.q2.placeholder')}
+                                className="h-12 font-sans text-base md:text-lg px-4"
+                              />
+                            </div>
+                          )}
+
+                          {/* Q3: User Role */}
+                          {activationSubStep === 2 && (
+                            <div className="space-y-4">
+                              <h2 className="text-xl font-bold font-sans text-[var(--foreground)] md:text-2xl">
+                                {t('questions.q3.title')}
+                              </h2>
+                              <p className="text-sm font-sans text-[var(--muted-foreground)] leading-relaxed">
+                                {t('questions.q3.desc')}
+                              </p>
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                {USER_ROLES.map((role) => {
+                                  const active = data.activation.userRole === role.id;
+                                  const RoleIcon = role.icon;
+                                  return (
+                                    <Button
+                                      key={role.id}
+                                      type="button"
+                                      onClick={() => {
+                                        updateActivation('userRole', role.id);
+                                        setTimeout(() => setActivationSubStep(3), 150);
+                                      }}
+                                      variant="surface"
+                                      aria-pressed={active}
+                                      className={`onboarding-card-option transition cursor-pointer select-none border ${
+                                        active
+                                          ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)] ring-1 ring-[var(--primary)]/50'
+                                          : 'border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)]'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between w-full mb-2">
+                                        <div className="flex items-center gap-2.5">
+                                          <div className={`p-2 rounded-lg ${active ? 'bg-[var(--primary)]/20 text-[var(--primary)]' : 'bg-[var(--surface-3)] text-[var(--muted-foreground)]'}`}>
+                                            <RoleIcon className="size-4" />
+                                          </div>
+                                          <span className="font-sans text-sm font-bold text-[var(--foreground)]">{t(`questions.q3.roles.${role.id}.title`)}</span>
+                                        </div>
+                                        {active && <CheckCircle2 className="size-4 shrink-0 text-[var(--success)]" />}
+                                      </div>
+                                      <p className="font-sans text-xs leading-relaxed text-[var(--muted-foreground)] whitespace-normal">
+                                        {t(`questions.q3.roles.${role.id}.desc`)}
+                                      </p>
+                                    </Button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Q4: Acquisition Source */}
+                          {activationSubStep === 3 && (
+                            <div className="space-y-4">
+                              <h2 className="text-xl font-bold font-sans text-[var(--foreground)] md:text-2xl">
+                                {t('questions.q4.title')}
+                              </h2>
+                              <p className="text-sm font-sans text-[var(--muted-foreground)] leading-relaxed">
+                                {t('questions.q4.desc')}
+                              </p>
+                              <div className="grid gap-2.5 sm:grid-cols-3">
+                                {ACQUISITION_SOURCES.map((srcId) => {
+                                  const active = data.activation.acquisitionSource === srcId;
+                                  return (
+                                    <Button
+                                      key={srcId}
+                                      type="button"
+                                      onClick={() => {
+                                        updateActivation('acquisitionSource', srcId);
+                                        if (srcId !== 'other') {
+                                          setTimeout(() => setActivationSubStep(4), 150);
+                                        }
+                                      }}
+                                      variant="surface"
+                                      aria-pressed={active}
+                                      className={`onboarding-card-option transition cursor-pointer select-none border ${
+                                        active
+                                          ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)] ring-1 ring-[var(--primary)]/50'
+                                          : 'border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)]'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between w-full mb-1">
+                                        <span className="font-sans text-xs font-bold text-[var(--foreground)]">{t(`questions.q4.sources.${srcId}.label`)}</span>
+                                        {active && <CheckCircle2 className="size-3.5 shrink-0 text-[var(--success)]" />}
+                                      </div>
+                                      <span className="font-sans text-[10px] text-[var(--muted-foreground)] truncate">{t(`questions.q4.sources.${srcId}.hint`)}</span>
+                                    </Button>
+                                  );
+                                })}
+                              </div>
+
+                              {data.activation.acquisitionSource === 'other' && (
+                                <div className="mt-3 space-y-1.5 animate-fade-in">
+                                  <label className="text-xs font-semibold text-[var(--foreground)]">Please specify channel details:</label>
+                                  <Input
+                                    variant="surface"
+                                    type="text"
+                                    placeholder="e.g. Reddit, YouTube, Product Hunt, Podcast..."
+                                    value={data.activation.acquisitionSourceOther || ''}
+                                    onChange={(e) => updateActivation('acquisitionSourceOther', e.target.value)}
+                                    className="text-xs"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Q5: Primary Goal */}
+                          {activationSubStep === 4 && (
+                            <div className="space-y-4">
+                              <h2 className="text-xl font-bold font-sans text-[var(--foreground)] md:text-2xl">
+                                {t('questions.q5.title')}
+                              </h2>
+                              <p className="text-sm font-sans text-[var(--muted-foreground)] leading-relaxed">
+                                {t('questions.q5.desc')}
+                              </p>
+                              <div className="grid gap-3.5 sm:grid-cols-2">
+                                {GOALS.map((goal) => {
+                                  const active = data.activation.primaryGoal === goal.id;
+                                  const GoalIcon = goal.icon;
+                                  return (
+                                    <Button
+                                      key={goal.id}
+                                      type="button"
+                                      onClick={() => {
+                                        updateActivation('primaryGoal', goal.id);
+                                        setTimeout(() => setActivationSubStep(5), 150);
+                                      }}
+                                      variant="surface"
+                                      aria-pressed={active}
+                                      className={`onboarding-card-option transition cursor-pointer select-none border ${
+                                        active
+                                          ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)] ring-1 ring-[var(--primary)]/50'
+                                          : 'border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)]'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between w-full mb-2">
+                                        <div className="flex items-center gap-2">
+                                          <GoalIcon className={`size-5 shrink-0 ${active ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'}`} />
+                                          <span className="font-sans text-sm font-bold text-[var(--foreground)]">{t(`goals.${goal.id}.label`)}</span>
+                                        </div>
+                                        {active && <CheckCircle2 className="size-4 shrink-0 text-[var(--success)]" />}
+                                      </div>
+                                      <p className="font-sans text-xs leading-relaxed text-[var(--muted-foreground)] whitespace-normal">
+                                        {t(`goals.${goal.id}.desc`)}
+                                      </p>
+                                    </Button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Q6: Default Language */}
+                          {activationSubStep === 5 && (
+                            <div className="space-y-4">
+                              <h2 className="text-xl font-bold font-sans text-[var(--foreground)] md:text-2xl">
+                                {t('questions.q6.title')}
+                              </h2>
+                              <p className="text-sm font-sans text-[var(--muted-foreground)] leading-relaxed">
+                                {t('questions.q6.desc')}
+                              </p>
+                              <div className="grid gap-3 sm:grid-cols-3">
+                                {['auto', 'id', 'en'].map((langId) => {
+                                  const active = data.activation.defaultLanguage === langId;
+                                  return (
+                                    <Button
+                                      key={langId}
+                                      type="button"
+                                      onClick={() => updateActivation('defaultLanguage', langId)}
+                                      variant="surface"
+                                      aria-pressed={active}
+                                      className={`onboarding-card-option transition cursor-pointer select-none border ${
+                                        active
+                                          ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)] ring-1 ring-[var(--primary)]/50'
+                                          : 'border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)]'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between w-full mb-2">
+                                        <span className="font-sans text-sm font-bold text-[var(--foreground)]">{t(`questions.q6.options.${langId}.title`)}</span>
+                                        {active && <CheckCircle2 className="size-4 shrink-0 text-[var(--success)]" />}
+                                      </div>
+                                      <p className="font-sans text-xs leading-relaxed text-[var(--muted-foreground)] whitespace-normal">
+                                        {t(`questions.q6.options.${langId}.desc`)}
+                                      </p>
+                                    </Button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </motion.div>
+                      </AnimatePresence>
                     </div>
                   )}
 
@@ -982,7 +1191,18 @@ export function OnboardingWizard() {
                     className="font-sans text-sm gap-2"
                   >
                     <ArrowLeft className="size-4" />
-                    Back
+                    {t('buttons.back')}
+                  </Button>
+                ) : step === 'activation' && activationSubStep > 0 ? (
+                  <Button
+                    type="button"
+                    onClick={() => setActivationSubStep((prev) => prev - 1)}
+                    disabled={saving}
+                    variant="muted"
+                    className="font-sans text-sm gap-2"
+                  >
+                    <ArrowLeft className="size-4" />
+                    {t('buttons.back')}
                   </Button>
                 ) : (
                   <Button
@@ -993,7 +1213,7 @@ export function OnboardingWizard() {
                     size="sm"
                     className="font-sans text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] gap-1.5"
                   >
-                    Use defaults
+                    {t('buttons.useDefaults')}
                   </Button>
                 )}
               </div>
@@ -1008,20 +1228,40 @@ export function OnboardingWizard() {
                   className="px-6 font-sans text-sm gap-2 font-semibold"
                 >
                   {activating ? <Loader2 className="size-4 animate-spin" /> : <Rocket className="size-4" />}
-                  {activating ? 'Activating...' : 'Activate Workspace'}
+                  {activating ? t('buttons.activating') : t('buttons.activate')}
                 </Button>
               ) : step === 'activation' ? (
-                <Button
-                  type="button"
-                  onClick={() => void goNext()}
-                  disabled={saving}
-                  variant="primary"
-                  size="lg"
-                  className="px-6 font-sans text-sm gap-2 font-semibold"
-                >
-                  {saving ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
-                  {saving ? 'Saving...' : 'Continue'}
-                </Button>
+                activationSubStep < 5 ? (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (activationSubStep === 0 && !data.activation.workspaceName.trim()) {
+                        toast.error(t('questions.q1.placeholder'));
+                        return;
+                      }
+                      setActivationSubStep((prev) => prev + 1);
+                    }}
+                    disabled={saving}
+                    variant="primary"
+                    size="lg"
+                    className="px-6 font-sans text-sm gap-2 font-semibold"
+                  >
+                    {t('buttons.next')}
+                    <ArrowRight className="size-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => void goNext()}
+                    disabled={saving}
+                    variant="primary"
+                    size="lg"
+                    className="px-6 font-sans text-sm gap-2 font-semibold"
+                  >
+                    {saving ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                    {saving ? t('buttons.saving') : t('buttons.startAi')}
+                  </Button>
+                )
               ) : (
                 <div className="h-11" />
               )}
@@ -1047,6 +1287,15 @@ export function OnboardingWizard() {
                 {data.activation.workspaceName || activeOrganization?.name || 'Your Brand'}
               </h2>
               <div className="mt-5 space-y-3 border-t border-[var(--border)] pt-4">
+                <SignatureRow label="Role" value={(data.activation.userRole || 'editor_in_chief').replace('_', ' ')} />
+                <SignatureRow
+                  label="Source"
+                  value={
+                    data.activation.acquisitionSource === 'other' && data.activation.acquisitionSourceOther
+                      ? `Other (${data.activation.acquisitionSourceOther})`
+                      : (data.activation.acquisitionSource || 'google').replace('_', ' ')
+                  }
+                />
                 <SignatureRow label="Goal" value={data.activation.primaryGoal.replace('_', ' ')} />
                 <SignatureRow label="Language" value={data.activation.defaultLanguage} />
                 <SignatureRow label="Website" value={data.activation.website ? 'Provided' : 'None'} />
@@ -1061,35 +1310,6 @@ export function OnboardingWizard() {
         </aside>
       </main>
     </div>
-  );
-}
-
-function WizardField({
-  label,
-  hint,
-  icon: Icon,
-  optional,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  icon: typeof Building2;
-  optional?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block space-y-2">
-      <div className="flex items-center justify-between gap-3 font-sans font-medium">
-        <span className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
-          <Icon className="size-4 text-[var(--primary)]" />
-          {label}
-        </span>
-        <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--muted-foreground)]">
-          {hint || (optional ? 'Optional' : 'Required')}
-        </span>
-      </div>
-      {children}
-    </label>
   );
 }
 

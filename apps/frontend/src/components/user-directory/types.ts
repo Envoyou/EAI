@@ -3,6 +3,7 @@ export type DirectoryUser = {
   email: string;
   name: string | null;
   role: string;
+  onboardingRole?: string | null;
   createdAt: string;
   lastSignInAt: string | null;
   imageUrl: string | null;
@@ -15,6 +16,12 @@ export type DirectoryUser = {
     id: string;
     name: string;
     slug: string;
+    publicationName?: string | null;
+    domain?: string | null;
+    acquisitionSource?: string | null;
+    acquisitionSourceOther?: string | null;
+    primaryGoal?: string | null;
+    onboardingCompletedAt?: string | null;
   } | null;
   onboardingDraft: {
     step: string;

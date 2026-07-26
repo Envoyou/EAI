@@ -12,6 +12,8 @@ model User {
   name      String?
   imageUrl  String?
   role      String   @default("editor") // editor, admin
+  /// Self-reported editorial role during onboarding; NOT for permission authorization
+  onboardingRole String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   lastSignInAt DateTime?
@@ -92,6 +94,14 @@ model Organization {
   balanceIdr     Int                 @default(0)
   isActive  Boolean  @default(true)
   onboardingStatus OnboardingStatus @default(completed)
+  /// Acquisition channel reported by workspace creator during onboarding
+  acquisitionSource String?
+  /// Specific channel details if acquisitionSource is 'other'
+  acquisitionSourceOther String?
+  /// Primary objective of the workspace reported during onboarding
+  primaryGoal String?
+  /// Timestamp when the workspace onboarding flow was completed or skipped
+  onboardingCompletedAt DateTime?
   activatedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

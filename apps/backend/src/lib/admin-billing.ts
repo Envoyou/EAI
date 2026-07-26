@@ -153,10 +153,14 @@ export const searchBillingOrganizations = async (query: string) => {
       publicationName: true,
       slug: true,
       domain: true,
+      acquisitionSource: true,
+      acquisitionSourceOther: true,
+      primaryGoal: true,
+      onboardingCompletedAt: true,
       users: {
         orderBy: { createdAt: 'asc' },
         take: 5,
-        select: { id: true, email: true, name: true, role: true },
+        select: { id: true, email: true, name: true, role: true, onboardingRole: true },
       },
       subscriptions: {
         select: {
@@ -195,10 +199,14 @@ export const getBillingOrganizationDetail = async (organizationId: string) => {
       publicationName: true,
       slug: true,
       domain: true,
+      acquisitionSource: true,
+      acquisitionSourceOther: true,
+      primaryGoal: true,
+      onboardingCompletedAt: true,
       createdAt: true,
       users: {
         orderBy: { createdAt: 'asc' },
-        select: { id: true, email: true, name: true, role: true },
+        select: { id: true, email: true, name: true, role: true, onboardingRole: true },
       },
       subscriptions: {
         select: {

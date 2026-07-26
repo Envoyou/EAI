@@ -2,6 +2,7 @@
 
 import { History, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { USER_ROLE_LABELS, ACQUISITION_SOURCE_LABELS, PRIMARY_GOAL_LABELS } from '@eai/shared';
 import type { DirectoryUser, UserDetailsData } from '../types';
 import { formatDate } from '../hooks/useUserDirectory';
 import { Badge } from '@/components/ui/badge';
@@ -123,6 +124,52 @@ export function OrganizationDetailDrawer({
                   </div>
                 </div>
 
+                <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] space-y-2">
+                  <h4 className="font-bold text-[var(--foreground)] uppercase text-[10px] text-[var(--muted-foreground)]">
+                    Onboarding & Marketing Insights
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[var(--muted-foreground)]">Self-Reported Role:</span>{' '}
+                      <span className="font-semibold">
+                        {detailsData.user.onboardingRole
+                          ? USER_ROLE_LABELS[detailsData.user.onboardingRole as keyof typeof USER_ROLE_LABELS] || detailsData.user.onboardingRole
+                          : 'Not provided'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--muted-foreground)]">Acquisition Source:</span>{' '}
+                      <span className="font-semibold">
+                        {detailsData.user.organization?.acquisitionSource
+                          ? ACQUISITION_SOURCE_LABELS[detailsData.user.organization.acquisitionSource as keyof typeof ACQUISITION_SOURCE_LABELS] || detailsData.user.organization.acquisitionSource
+                          : 'Not provided'}
+                      </span>
+                    </div>
+                    {detailsData.user.organization?.acquisitionSourceOther && (
+                      <div className="col-span-2">
+                        <span className="text-[var(--muted-foreground)]">Channel Detail:</span>{' '}
+                        <span className="font-semibold text-[var(--primary)] font-mono">{detailsData.user.organization.acquisitionSourceOther}</span>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-[var(--muted-foreground)]">Primary Goal:</span>{' '}
+                      <span className="font-semibold">
+                        {detailsData.user.organization?.primaryGoal
+                          ? PRIMARY_GOAL_LABELS[detailsData.user.organization.primaryGoal] || detailsData.user.organization.primaryGoal
+                          : 'Not provided'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--muted-foreground)]">Activated At:</span>{' '}
+                      <span className="font-semibold">
+                        {detailsData.user.organization?.onboardingCompletedAt
+                          ? formatDate(detailsData.user.organization.onboardingCompletedAt)
+                          : 'Not completed / Skipped'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 {detailsData.user.organization && (
                   <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] space-y-2">
                     <h4 className="font-bold text-[var(--foreground)] uppercase text-[10px] text-[var(--muted-foreground)]">
@@ -137,6 +184,18 @@ export function OrganizationDetailDrawer({
                         <span className="text-[var(--muted-foreground)]">Slug:</span>{' '}
                         <span className="font-semibold font-mono">{detailsData.user.organization.slug}</span>
                       </div>
+                      {detailsData.user.organization.publicationName && (
+                        <div>
+                          <span className="text-[var(--muted-foreground)]">Publication Name:</span>{' '}
+                          <span className="font-semibold">{detailsData.user.organization.publicationName}</span>
+                        </div>
+                      )}
+                      {detailsData.user.organization.domain && (
+                        <div>
+                          <span className="text-[var(--muted-foreground)]">Domain / Website:</span>{' '}
+                          <span className="font-semibold font-mono">{detailsData.user.organization.domain}</span>
+                        </div>
+                      )}
                       <div className="col-span-2">
                         <span className="text-[var(--muted-foreground)]">Org ID:</span>{' '}
                         <span className="font-mono text-[11px] select-all">{detailsData.user.organization.id}</span>

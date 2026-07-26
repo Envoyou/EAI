@@ -213,6 +213,80 @@
       "generatingBrand": "Membuat identitas brand untuk \"{workspaceName}\"...",
       "synthesizing": "Sintesis nada penulisan dan kategori untuk {lang}...",
       "finalizing": "Finalisasi Editorial DNA dan struktur..."
+    },
+    "questions": {
+      "progress": "Pertanyaan {current} dari {total}",
+      "completed": "{percent}% Selesai",
+      "q1": {
+        "title": "Apa nama ruang kerja (workspace) tim Anda?",
+        "desc": "Nama ini menjadi identitas utama redaksi Anda di EAI Envoyou.",
+        "placeholder": "Contoh: Redaksi TechNews, Studio Konten Kreatif"
+      },
+      "q2": {
+        "title": "Apa URL situs publikasi Anda saat ini?",
+        "optional": "(Opsional)",
+        "desc": "Sistem AI akan mengekstrak gaya & gaya bahasa publikasi secara otomatis via Dual-Strategy Web Scraper (Jina Reader API) di langkah berikutnya.",
+        "placeholder": "https://yourblog.com atau https://media.com"
+      },
+      "q3": {
+        "title": "Apa peran atau posisi Anda di dalam tim redaksi?",
+        "desc": "Membantu EAI menyesuaikan alur kerja dan rekomendasi fitur untuk tim Anda.",
+        "roles": {
+          "editor_in_chief": {
+            "title": "Pemimpin Redaksi / Manajer Konten",
+            "desc": "Mengelola strategi editorial, alokasi penulis, dan standar kualitas publikasi."
+          },
+          "editor_reviewer": {
+            "title": "Editor / Pemeriksa Fakta & SEO",
+            "desc": "Meninjau draf artikel, memverifikasi akurasi data, serta optimasi SEO."
+          },
+          "content_writer": {
+            "title": "Penulis Konten / Jurnalis",
+            "desc": "Membuat artikel, riset topik, dan menyusun draf cerita berkualitas."
+          },
+          "it_ops_admin": {
+            "title": "Administrator IT / Ops",
+            "desc": "Mengelola integrasi CMS, akses anggota tim, dan konfigurasi teknis."
+          }
+        }
+      },
+      "q4": {
+        "title": "Dari mana Anda mengetahui tentang EAI Envoyou?",
+        "desc": "Pilih rujukan awal tempat Anda pertama kali mengetahui platform kami.",
+        "sources": {
+          "social_media": { "label": "Media Sosial Profesional", "hint": "LinkedIn, X/Twitter, Instagram" },
+          "colleague_recommendation": { "label": "Rekomendasi Kolega / Teman", "hint": "Rujukan dari rekan kerja" },
+          "google": { "label": "Mesin Pencari Google", "hint": "Pencarian kata kunci organik" },
+          "industry_blog": { "label": "Artikel Blog / Berita Industri", "hint": "Publikasi media atau review" },
+          "chatgpt": { "label": "ChatGPT", "hint": "Rekomendasi OpenAI ChatGPT" },
+          "claude": { "label": "Claude AI", "hint": "Rekomendasi Anthropic Claude" },
+          "perplexity": { "label": "Perplexity AI", "hint": "Rekomendasi Perplexity Search" },
+          "gemini": { "label": "Google Gemini AI", "hint": "Rekomendasi Google Gemini" },
+          "other": { "label": "Lainnya", "hint": "Sumber informasi lainnya" }
+        }
+      },
+      "q5": {
+        "title": "Apa fokus utama yang ingin dicapai tim Anda menggunakan AI?",
+        "desc": "Pilih tujuan prioritas utama Anda saat ini untuk menyesuaikan agen AI."
+      },
+      "q6": {
+        "title": "Apa bahasa pengantar utama untuk artikel Anda?",
+        "desc": "Bahasa ini digunakan sebagai default untuk analisis, riset, dan pembuatan artikel.",
+        "options": {
+          "auto": { "title": "Deteksi Otomatis", "desc": "Mengikuti bahasa sumber artikel" },
+          "id": { "title": "Bahasa Indonesia", "desc": "Bahasa Indonesia baku & profesional" },
+          "en": { "title": "Bahasa Inggris", "desc": "English for international readers" }
+        }
+      }
+    },
+    "buttons": {
+      "back": "Kembali",
+      "next": "Lanjut",
+      "startAi": "Mulai Analisis AI",
+      "useDefaults": "Gunakan default",
+      "activate": "Aktivasi Workspace",
+      "activating": "Mengaktifkan...",
+      "saving": "Menyimpan..."
     }
   }
 }

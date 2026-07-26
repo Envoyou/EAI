@@ -81,16 +81,18 @@
   color: #ffffff;
 }
 
-.onboarding-goal-card.ui-btn {
+.onboarding-goal-card.ui-btn,
+.onboarding-card-option.ui-btn {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  align-items: flex-start;
-  border-radius: var(--radius-xl);
-  padding: 1rem;
+  align-items: stretch;
+  border-radius: var(--radius-2xl);
+  padding: 1.125rem;
   height: auto;
-  min-height: 7.5rem;
+  min-height: 6rem;
   white-space: normal;
   text-align: left;
+  transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 

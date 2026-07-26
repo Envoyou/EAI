@@ -182,6 +182,8 @@ const buildOnboardingDataFromWorkspace = (
     activation: {
       workspaceName: publicationName,
       website: organization?.domain || '',
+      userRole: 'editor_in_chief' as const,
+      acquisitionSource: 'google' as const,
       primaryGoal: 'grow_traffic' as const,
       defaultLanguage: 'auto' as const,
     },
@@ -498,7 +500,27 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Only organization admins can configure this workspace.' });
     }
     if (workspace && !workspace.needsOnboarding) {
-      return res.status(409).json({ error: 'Workspace is already active.' });
+      const existingProfile = await prisma.editorialProfile.findUnique({
+        where: {
+          organizationId_key: {
+            organizationId: workspace.organizationId!,
+            key: workspace.organization!.slug,
+          },
+        },
+        select: {
+          versions: {
+            orderBy: { version: 'desc' },
+            take: 1,
+            select: { id: true },
+          },
+        },
+      });
+      return res.json({
+        success: true,
+        alreadyCompleted: true,
+        organization: workspace.organization,
+        profileVersionId: existingProfile?.versions[0]?.id || null,
+      });
     }
 
     const body = req.body || {};
@@ -518,7 +540,11 @@ router.post('/', requireAuth, async (req, res) => {
               publicationName,
               isActive: true,
               onboardingStatus: 'completed',
+              onboardingCompletedAt: new Date(),
               activatedAt: new Date(),
+              acquisitionSource: null,
+              acquisitionSourceOther: null,
+              primaryGoal: null,
             },
           });
           const profile = await tx.editorialProfile.upsert({
@@ -564,6 +590,7 @@ router.post('/', requireAuth, async (req, res) => {
             data: {
               organizationId: organization.id,
               role: 'admin',
+              onboardingRole: null,
             },
           });
 
@@ -608,9 +635,13 @@ router.post('/', requireAuth, async (req, res) => {
         const activatedOrganization = await tx.organization.update({
           where: { id: workspace!.organizationId! },
           data: {
-            publicationName: activation.workspaceName,
-            domain: activation.website || null,
+            publicationName: activation.workspaceName ?? null,
+            domain: activation.website ? activation.website : null,
             onboardingStatus: 'completed',
+            acquisitionSource: activation.acquisitionSource ?? null,
+            acquisitionSourceOther: activation.acquisitionSource === 'other' ? (activation.acquisitionSourceOther ?? null) : null,
+            primaryGoal: activation.primaryGoal ?? null,
+            onboardingCompletedAt: new Date(),
             activatedAt: new Date(),
           },
         });
@@ -653,6 +684,7 @@ router.post('/', requireAuth, async (req, res) => {
           data: {
             organizationId: activatedOrganization.id,
             role: 'admin',
+            onboardingRole: activation.userRole ?? null,
           },
         });
         await tx.onboardingDraft.delete({ where: { userId } });
