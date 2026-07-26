@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.17.0] - 2026-07-26
+
 ### Added
 - **Real-Time Gemini Reasoning Stream in Onboarding**:
   - Upgraded `/api/onboarding/discover` to stream real-time Gemini AI thinking thoughts (*Chain of Thought*) via Server-Sent Events (SSE).

@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.17.0] - 2026-07-26
+
 ### Added
 - **Stream Penalaran Real-Time Gemini pada Onboarding**:
   - Meng-upgrade `/api/onboarding/discover` untuk mengalirkan pemikiran AI Gemini (*Chain of Thought*) secara *real-time* via Server-Sent Events (SSE).
