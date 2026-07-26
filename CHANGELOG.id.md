@@ -6,6 +6,19 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Stream Penalaran Real-Time Gemini pada Onboarding**:
+  - Meng-upgrade `/api/onboarding/discover` untuk mengalirkan pemikiran AI Gemini (*Chain of Thought*) secara *real-time* via Server-Sent Events (SSE).
+  - Mengintegrasikan pengolahan rich text `ReactMarkdown` untuk baris penalaran pada `OnboardingWizard`, merender teks cetak tebal, kode inline, dan judul tanpa simbol mentah Markdown.
+  - Mengimplementasikan antrean stream typewriter yang halus (interval 18ms) dengan *adaptive token popping* dan *smooth auto-scrolling*.
+
+### Changed
+- **Redesain UI Onboarding & Kepatuhan Standar Clerk**:
+  - Mere-design tata letak onboarding untuk menyesuaikan tampilan floating multi-island IDE dengan tipografi Inter dan kontras token yang presisi (`bg-[var(--card)]`, `inset 0 0 0 1px var(--card-border)`).
+  - Menambahkan kelas komposisi `.onboarding-goal-card.ui-btn` di `composite-controls.css` untuk melepaskan stadium pill shape dan mencegah distorsi teks kartu.
+  - Mengganti ikon bidang dengan Lucide `Goal`, `Rss` (Publication Website), dan `Languages` (Primary Language).
+  - Memperluas kontainer stream penalaran menjadi tata letak *full-width frameless* tanpa pembatas border atau background sub-card.
+
 ## [3.16.0] - 2026-07-25
 
 ### Added

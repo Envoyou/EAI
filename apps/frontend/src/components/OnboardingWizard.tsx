@@ -1,7 +1,7 @@
 'use client';
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -13,15 +13,20 @@ import {
   CheckCircle2,
   FileText,
   Globe2,
+  Goal,
+  Languages,
   Loader2,
   Rocket,
+  Rss,
   ShieldCheck,
   Sparkles,
   WandSparkles,
   RefreshCw,
-  Edit2
+  Edit2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
+import ReactMarkdown from 'react-markdown';
 
 import { EAILogo } from '@/components/EAILogo';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -36,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { fetchWithTimeout, REQUEST_TIMEOUT_MS } from '@/lib/fetch-utils';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 const STEPS: Array<{
   id: OnboardingStep;
@@ -50,11 +55,11 @@ const STEPS: Array<{
 ];
 
 const GOALS = [
-  { id: 'grow_traffic', label: 'Grow Organic Traffic', desc: 'Fokus pada optimasi SEO dan menarik pengunjung baru.', icon: Globe2 },
-  { id: 'publish_faster', label: 'Publish Faster', desc: 'Mempercepat produksi draf siap publikasi.', icon: Rocket },
-  { id: 'knowledge_base', label: 'Build Knowledge Base', desc: 'Mengorganisir informasi dan dokumentasi internal.', icon: BookOpenText },
-  { id: 'research', label: 'Research & Copilot', desc: 'Melakukan riset mendalam terhadap topik tertentu.', icon: Sparkles },
-  { id: 'documentation', label: 'Documentation', desc: 'Membuat petunjuk teknis dan dokumentasi terstruktur.', icon: FileText },
+  { id: 'grow_traffic', icon: Globe2 },
+  { id: 'publish_faster', icon: Rocket },
+  { id: 'knowledge_base', icon: BookOpenText },
+  { id: 'research', icon: Sparkles },
+  { id: 'documentation', icon: FileText },
 ];
 
 const PREDEFINED_CATEGORIES = [
@@ -96,6 +101,7 @@ const PREDEFINED_ARTICLE_TYPES = [
 
 export function OnboardingWizard() {
   const router = useRouter();
+  const t = useTranslations('Onboarding');
   const [data, setData] = useState<OnboardingData>(() => structuredClone(DEFAULT_ONBOARDING_DATA));
   const [step, setStep] = useState<OnboardingStep>('activation');
   const [loading, setLoading] = useState(true);
@@ -104,13 +110,36 @@ export function OnboardingWizard() {
   const [activating, setActivating] = useState(false);
   const [activeOrganization, setActiveOrganization] = useState<{ name: string; slug: string } | null>(null);
   
-  // Loading dynamic micro-copy stages
-  const [loadingPhase, setLoadingPhase] = useState(0);
+  // Loading dynamic micro-copy & SSE thinking stream
+  const [streamText, setStreamText] = useState('');
+  const incomingQueueRef = useRef('');
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const discoverCancelledRef = useRef(false);
   const discoveryAbortControllerRef = useRef<AbortController | null>(null);
   const discoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const discoveryTransitionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Smooth typewriter ticker loop
+  useEffect(() => {
+    if (!discovering && !incomingQueueRef.current) return;
+
+    const timer = setInterval(() => {
+      if (incomingQueueRef.current.length > 0) {
+        const chunkSize = incomingQueueRef.current.length > 80 ? 6 : incomingQueueRef.current.length > 30 ? 3 : 1;
+        const nextChars = incomingQueueRef.current.slice(0, chunkSize);
+        incomingQueueRef.current = incomingQueueRef.current.slice(chunkSize);
+
+        setStreamText((prev) => prev + nextChars);
+
+        if (scrollRef.current) {
+          scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+        }
+      }
+    }, 18);
+
+    return () => clearInterval(timer);
+  }, [discovering]);
 
   const currentIndex = STEPS.findIndex((item) => item.id === step);
   const currentStep = STEPS[currentIndex] || STEPS[0];
@@ -175,54 +204,68 @@ export function OnboardingWizard() {
     discoveryAbortControllerRef.current = controller;
     discoverCancelledRef.current = false;
     setDiscovering(true);
-    setLoadingPhase(0);
+    setStreamText('');
+    incomingQueueRef.current = '';
     setStep('discovery');
 
-    // Simulate phases animation
-    const interval = setInterval(() => {
-      setLoadingPhase((p) => Math.min(p + 1, 3));
-    }, 2500);
-    discoveryIntervalRef.current = interval;
-
     try {
-      const response = await fetchWithTimeout('/api/onboarding/discover', {
+      const response = await fetch('/api/onboarding/discover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
-        timeoutMs: REQUEST_TIMEOUT_MS.aiFlex,
         body: JSON.stringify(data.activation),
       });
-      const result = await response.json();
-      clearInterval(interval);
 
-      if (discoverCancelledRef.current) {
-        console.log('[ONBOARDING] Discovery response ignored because it was cancelled.');
-        return;
+      if (discoverCancelledRef.current) return;
+
+      if (!response.ok || !response.body) {
+        throw new Error('Discovery stream failed to start.');
       }
 
-      if (!response.ok) throw new Error(result.error || 'Discovery failed.');
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-      // Complete phases immediately
-      setLoadingPhase(3);
-      
-      setData((current) => ({
-        ...current,
-        editorialProfile: result.profile,
-      }));
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done || discoverCancelledRef.current) break;
 
-      // Wait a bit for the animation to look complete before moving to review
-      discoveryTransitionRef.current = setTimeout(() => {
-        if (discoverCancelledRef.current) return;
-        setStep('review');
-        setDiscovering(false);
-      }, 800);
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
 
+        for (const part of parts) {
+          const line = part.trim();
+          if (line.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(line.slice(6));
+              if ((event.type === 'thought_delta' || event.type === 'thought') && event.text) {
+                incomingQueueRef.current += event.text;
+              } else if (event.type === 'profile' && event.profile) {
+                setData((current) => ({
+                  ...current,
+                  editorialProfile: event.profile,
+                }));
+              } else if (event.type === 'done') {
+                discoveryTransitionRef.current = setTimeout(() => {
+                  if (discoverCancelledRef.current) return;
+                  setStep('review');
+                  setDiscovering(false);
+                }, 800);
+              } else if (event.type === 'error') {
+                throw new Error(event.error || 'Discovery stream error');
+              }
+            } catch (err) {
+              if (err instanceof Error && err.message.includes('Discovery stream error')) throw err;
+              console.error('[ONBOARDING_SSE_PARSE_ERROR]', err);
+            }
+          }
+        }
+      }
     } catch (error) {
       if (discoverCancelledRef.current || controller.signal.aborted) return;
-      clearInterval(interval);
       toast.error(error instanceof Error ? error.message : 'Discovery failed. Loading defaults.');
       
-      // Fallback
       const workspaceName = data.activation.workspaceName || activeOrganization?.name || 'Publication';
       const fallbackProfile = {
         brandName: workspaceName,
@@ -260,10 +303,6 @@ export function OnboardingWizard() {
         setDiscovering(false);
       }, 1000);
     } finally {
-      clearInterval(interval);
-      if (discoveryIntervalRef.current === interval) {
-        discoveryIntervalRef.current = null;
-      }
       if (discoveryAbortControllerRef.current === controller) {
         discoveryAbortControllerRef.current = null;
       }
@@ -318,7 +357,6 @@ export function OnboardingWizard() {
   const activateWorkspace = async () => {
     setActivating(true);
     try {
-      // First save the current data as review draft
       await saveDraft('review');
       const response = await fetchWithTimeout('/api/onboarding', { method: 'POST' });
       const result = await response.json();
@@ -395,24 +433,11 @@ export function OnboardingWizard() {
     event.preventDefault();
   };
 
-  const dynamicLoadingCopy = useMemo(() => {
-    const website = data.activation.website;
-    const workspaceName = data.activation.workspaceName || activeOrganization?.name || 'Workspace';
-    const lang = data.activation.defaultLanguage === 'id' ? 'Bahasa Indonesia' : data.activation.defaultLanguage === 'en' ? 'English' : 'Otomatis';
-
-    return [
-      { text: `Analyzing primary goals for "${workspaceName}"...`, complete: loadingPhase > 0 },
-      { text: website ? `Extracting brand identity from ${website}...` : `Generating brand identity for "${workspaceName}"...`, complete: loadingPhase > 1 },
-      { text: `Synthesizing writing tone and categories for ${lang}...`, complete: loadingPhase > 2 },
-      { text: `Finalizing Editorial DNA and structure...`, complete: loadingPhase >= 3 }
-    ];
-  }, [data.activation, activeOrganization, loadingPhase]);
-
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] text-[var(--foreground)]">
+      <div className="flex h-screen items-center justify-center bg-[var(--background)] text-[var(--foreground)] font-sans">
         <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <Loader2 className="h-4 w-4 animate-spin text-[var(--primary)]" />
           Preparing launch desk
         </div>
       </div>
@@ -420,502 +445,533 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)] relative flex flex-col">
-      {/* Ambient Radial Glow */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_0%,rgba(13,135,207,0.05),transparent_40%),radial-gradient(circle_at_80%_10%,rgba(99,102,241,0.03),transparent_35%)] dark:bg-[radial-gradient(circle_at_20%_0%,rgba(13,135,207,0.1),transparent_40%),radial-gradient(circle_at_80%_10%,rgba(99,102,241,0.06),transparent_35%)]" />
-      
-      {/* Subtle Noise Material */}
-      <div 
-        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.02] dark:opacity-[0.035] mix-blend-overlay"
-        style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}
-      />
-
-      <header className="ide-titlebar justify-between px-5 md:px-8 relative z-20 border-b border-[var(--border)] bg-[var(--surface-1)]/80 backdrop-blur-2xl shrink-0">
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--primary)]">
-            <EAILogo className="h-5 w-5" />
+    <div className="flex h-screen min-h-0 flex-col overflow-hidden bg-[var(--background)] text-[var(--foreground)] font-sans">
+      {/* Titlebar Header */}
+      <header className="ide-titlebar relative z-20 flex h-[48px] shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface-1)] px-5 md:px-8">
+        <div className="flex items-center gap-3">
+          <div className="flex size-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--primary)]">
+            <EAILogo className="size-5" />
           </div>
           <div>
-            <div className="font-bold text-[var(--foreground)] text-lg leading-none">Publication Launch Desk</div>
-            <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
+            <div className="font-sans text-sm font-bold text-[var(--foreground)]">Publication Launch Desk</div>
+            <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
               EAI workspace onboarding
             </div>
           </div>
         </div>
-        <div className="relative z-10">
-          <ThemeToggle />
-        </div>
+        <ThemeToggle />
       </header>
 
-      <main className="relative z-10 mx-auto grid min-h-0 flex-1 w-full max-w-[1500px] lg:grid-cols-[300px_minmax(0,1fr)_320px]">
-        {/* Navigation Sidebar */}
-        <aside className="border-b lg:border-b-0 lg:border-r border-[var(--border)] p-4 md:p-6 lg:p-8 flex flex-col">
-          <div className="mb-6 lg:mb-8">
-            <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--primary)]">
+      {/* Main Multi-Island Shell Body */}
+      <main className="relative z-10 flex min-h-0 flex-1 gap-3 overflow-hidden p-2.5 md:p-3">
+        {/* Navigation Sidebar Island */}
+        <aside className="hidden lg:flex w-[280px] shrink-0 flex-col justify-between rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5 shadow-[inset_0_0_0_1px_var(--card-border),0_2px_8px_rgba(0,0,0,0.12)]">
+          <div>
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--primary)]">
               Launch sequence
             </div>
-            <p className="mt-2 lg:mt-3 text-xs leading-5 text-[var(--muted-foreground)]">
-              Sederhana, cepat, berbasis kecerdasan buatan. Biarkan EAI menganalisis brand Anda secara instan.
+            <p className="mt-2 font-sans text-xs leading-relaxed text-[var(--muted-foreground)]">
+              Simple, fast, with AI. Let EAI analyze your brand instantly.
             </p>
+
+            <div className="mt-6 space-y-2">
+              {STEPS.map((item, index) => {
+                const Icon = item.icon;
+                const active = item.id === step;
+                const complete = index < currentIndex;
+                return (
+                  <div
+                    key={item.id}
+                    className={`group flex w-full items-center gap-3 rounded-xl border p-3 text-left transition select-none ${
+                      active
+                        ? 'border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--foreground)]'
+                        : complete
+                          ? 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--foreground)]'
+                          : 'border-transparent opacity-50 text-[var(--muted-foreground)]'
+                    }`}
+                  >
+                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
+                      complete
+                        ? 'bg-[var(--success)]/10 text-[var(--success)]'
+                        : active
+                          ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
+                          : 'bg-[var(--surface-3)] text-[var(--muted-foreground)]'
+                    }`}>
+                      {complete ? <Check className="size-4" /> : <Icon className="size-4" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-mono text-[8px] uppercase tracking-[0.15em] text-[var(--muted-foreground)]">
+                        {item.eyebrow}
+                      </div>
+                      <div className={`mt-0.5 truncate font-sans text-xs font-semibold ${active ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}`}>
+                        {item.label}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className="space-y-2">
-            {STEPS.map((item, index) => {
-              const Icon = item.icon;
-              const active = item.id === step;
-              const complete = index < currentIndex;
-              return (
-                <div
-                  key={item.id}
-                  className={`group flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition select-none ${
-                    active
-                      ? 'border-[var(--primary)]/20 bg-[var(--primary)]/10 text-[var(--foreground)]'
-                      : complete
-                        ? 'border-transparent text-[var(--foreground)]'
-                        : 'border-transparent opacity-40 text-[var(--muted-foreground)]'
-                  }`}
-                >
-                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                    complete
-                      ? 'bg-[var(--success)]/10 text-[var(--success)]'
-                      : active
-                        ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
-                        : 'bg-[var(--surface-2)] text-[var(--muted-foreground)]'
-                  }`}>
-                    {complete ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-mono text-[8px] uppercase tracking-[0.15em] text-[var(--muted-foreground)]">
-                      {item.eyebrow}
-                    </div>
-                    <div className={`mt-1 truncate text-xs font-semibold ${active ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)]'}`}>
-                      {item.label}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+
+          <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3.5 font-sans text-xs leading-relaxed text-[var(--muted-foreground)]">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[var(--success)]" />
+            <span>
+              All publication settings can be re-configured anytime from workspace settings.
+            </span>
           </div>
         </aside>
 
-        {/* Wizard Main Content Canvas */}
-        <section className="flex min-w-0 flex-col p-5 md:p-10 lg:p-12">
-          <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center">
-            <div className="mb-8">
-              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--primary)]">
-                {currentStep.eyebrow}
+        {/* Wizard Main Content Canvas Island */}
+        <section className="flex min-w-0 flex-1 flex-col overflow-y-auto rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 md:p-10 shadow-[inset_0_0_0_1px_var(--card-border),0_2px_8px_rgba(0,0,0,0.12)]">
+          <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-between">
+            <div>
+              <div className="mb-6">
+                <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--primary)]">
+                  {currentStep.eyebrow}
+                </div>
+                <h1 className="mt-2 font-sans text-2xl font-bold tracking-tight text-[var(--foreground)] md:text-3xl">
+                  {currentStep.label}
+                </h1>
               </div>
-              <h1 className="mt-3 font-display text-4xl leading-tight md:text-5xl text-[var(--foreground)]">
-                {currentStep.label}
-              </h1>
-            </div>
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={step}
-                initial={{ opacity: 0, x: 20, filter: 'blur(5px)' }}
-                animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, x: -20, filter: 'blur(5px)' }}
-                transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-                className="flex-1"
-              >
-                {step === 'activation' && (
-                  <div className="space-y-6">
-                    <WizardField label="Nama Workspace" icon={Building2}>
-                      <Input
-                        variant="surface"
-                        type="text"
-                        value={data.activation.workspaceName}
-                        onChange={(event) => updateActivation('workspaceName', event.target.value)}
-                        placeholder="Nama Publikasi / Workspace Anda (misal: EAI Blog)"
-                        className="h-11"
-                      />
-                    </WizardField>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={step}
+                  initial={{ opacity: 0, x: 15 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -15 }}
+                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex-1"
+                >
+                  {step === 'activation' && (
+                    <div className="space-y-6">
+                      <WizardField label="Workspace Name" icon={Building2}>
+                        <Input
+                          variant="surface"
+                          type="text"
+                          value={data.activation.workspaceName}
+                          onChange={(event) => updateActivation('workspaceName', event.target.value)}
+                          placeholder="e.g. my publication"
+                          className="h-11 font-sans text-sm md:text-base"
+                        />
+                      </WizardField>
 
-                    <WizardField label="Website Publikasi" icon={Globe2} optional>
-                      <Input
-                        variant="surface"
-                        type="url"
-                        value={data.activation.website}
-                        onChange={(event) => updateActivation('website', event.target.value)}
-                        placeholder="https://blog.envoyou.com (opsional)"
-                        className="h-11"
-                      />
-                    </WizardField>
+                      <WizardField label="Publication Website" icon={Rss} optional>
+                        <Input
+                          variant="surface"
+                          type="url"
+                          value={data.activation.website}
+                          onChange={(event) => updateActivation('website', event.target.value)}
+                          placeholder="https://yourblog.com"
+                          className="h-11 font-sans text-sm md:text-base"
+                        />
+                      </WizardField>
 
-                    <WizardField label="Tujuan Utama (Primary Goal)" icon={Sparkles}>
-                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                        {GOALS.map((goal) => {
-                          const active = data.activation.primaryGoal === goal.id;
-                          const GoalIcon = goal.icon;
-                          return (
-                            <Button
-                              key={goal.id}
-                              type="button"
-                              onClick={() => updateActivation('primaryGoal', goal.id)}
-                              variant="muted"
-                              aria-pressed={active}
-                              className={`rounded-2xl border p-3.5 text-left transition select-none flex flex-col justify-between h-auto min-h-28 cursor-pointer ${
-                                active
-                                  ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]'
-                                  : 'border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)]'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between w-full mb-2">
-                                <GoalIcon className={`h-5 w-5 ${active ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'}`} />
-                                {active && <CheckCircle2 className="h-4 w-4 text-[var(--success)]" />}
-                              </div>
-                              <div>
-                                <div className="text-xs font-bold">{goal.label}</div>
-                                <p className="mt-1 text-[10px] leading-normal text-[var(--muted-foreground)]">
-                                  {goal.desc}
-                                </p>
-                              </div>
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    </WizardField>
+                      <WizardField label="Primary Goal" icon={Goal}>
+                        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+                          {GOALS.map((goal) => {
+                            const active = data.activation.primaryGoal === goal.id;
+                            const GoalIcon = goal.icon;
+                            return (
+                              <Button
+                                key={goal.id}
+                                type="button"
+                                onClick={() => updateActivation('primaryGoal', goal.id)}
+                                variant="surface"
+                                aria-pressed={active}
+                                className={`onboarding-goal-card transition cursor-pointer select-none ${
+                                  active
+                                    ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)] ring-1 ring-[var(--primary)]/50'
+                                    : 'border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--foreground)]'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between w-full mb-3">
+                                  <GoalIcon className={`size-5 shrink-0 ${active ? 'text-[var(--primary)]' : 'text-[var(--muted-foreground)]'}`} />
+                                  {active && <CheckCircle2 className="size-4 shrink-0 text-[var(--success)]" />}
+                                </div>
+                                <div className="w-full">
+                                  <div className="font-sans text-sm font-bold text-[var(--foreground)]">{t(`goals.${goal.id}.label`)}</div>
+                                  <p className="mt-1 font-sans text-xs leading-relaxed text-[var(--muted-foreground)] whitespace-normal">
+                                    {t(`goals.${goal.id}.desc`)}
+                                  </p>
+                                </div>
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </WizardField>
 
-                    <WizardField label="Bahasa Utama" icon={Globe2}>
-                      <Select
-                        value={data.activation.defaultLanguage}
-                        onValueChange={(value) => { if (value !== null) updateActivation('defaultLanguage', value); }}
-                      >
-                        <SelectTrigger className="w-full h-11 rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="auto">Auto-detect (Otomatis)</SelectItem>
-                          <SelectItem value="en">English</SelectItem>
-                          <SelectItem value="id">Bahasa Indonesia</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </WizardField>
-                  </div>
-                )}
-
-                {step === 'discovery' && (
-                  <div className="flex flex-col items-center justify-center py-10 space-y-8">
-                    <div className="relative">
-                      <div className="absolute inset-0 rounded-full bg-[var(--primary)]/20 blur-xl animate-pulse" />
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full border border-[var(--primary)]/20 bg-[var(--primary)]/10 text-[var(--primary)] relative z-10">
-                        <Loader2 className="h-10 w-10 animate-spin" />
-                      </div>
+                      <WizardField label={t('fields.defaultLanguage')} icon={Languages}>
+                        <Select
+                          value={data.activation.defaultLanguage}
+                          onValueChange={(value) => { if (value !== null) updateActivation('defaultLanguage', value); }}
+                        >
+                          <SelectTrigger className="w-full h-11 rounded-xl font-sans text-sm md:text-base">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="auto">{t('languages.auto')}</SelectItem>
+                            <SelectItem value="en">{t('languages.en')}</SelectItem>
+                            <SelectItem value="id">{t('languages.id')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </WizardField>
                     </div>
+                  )}
 
-                    <div className="w-full max-w-md space-y-3.5 bg-[var(--surface-2)]/60 border border-[var(--border)] p-6 rounded-3xl backdrop-blur-xl">
-                      <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--primary)] text-center">
-                        AI Scanning Progress
-                      </h3>
-                      <div className="space-y-3 pt-3">
-                        {dynamicLoadingCopy.map((phase, idx) => (
-                          <div key={idx} className="flex items-center gap-3 text-xs leading-normal">
-                            <span className={`flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] ${
-                              phase.complete
-                                ? 'bg-[var(--success)]/10 text-[var(--success)]'
-                                : loadingPhase === idx
-                                  ? 'bg-[var(--primary)]/20 text-[var(--primary)] animate-pulse'
-                                  : 'bg-[var(--surface-3)] text-[var(--muted-foreground)]'
-                            }`}>
-                              {phase.complete ? <Check className="size-3" /> : idx + 1}
-                            </span>
-                            <span className={phase.complete ? 'text-[var(--foreground)]' : loadingPhase === idx ? 'text-[var(--primary)] font-medium' : 'text-[var(--muted-foreground)]'}>
-                              {phase.text}
-                            </span>
-                          </div>
-                        ))}
+                  {step === 'discovery' && (
+                    <div className="flex flex-col items-center justify-center py-8 space-y-6">
+                      <div className="relative">
+                        <div className="absolute inset-0 rounded-full bg-[var(--primary)]/20 blur-xl animate-pulse" />
+                        <div className="flex size-20 items-center justify-center rounded-full border border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)] relative z-10">
+                          <Loader2 className="size-10 animate-spin text-[var(--primary)]" />
+                        </div>
                       </div>
-                    </div>
 
-                    <Button
-                      type="button"
-                      onClick={async () => {
-                        discoverCancelledRef.current = true;
-                        discoveryAbortControllerRef.current?.abort();
-                        discoveryAbortControllerRef.current = null;
-                        if (discoveryIntervalRef.current) {
-                          clearInterval(discoveryIntervalRef.current);
-                          discoveryIntervalRef.current = null;
-                        }
-                        if (discoveryTransitionRef.current) {
-                          clearTimeout(discoveryTransitionRef.current);
-                          discoveryTransitionRef.current = null;
-                        }
-                        setStep('activation');
-                        setDiscovering(false);
-                        try {
-                          await saveDraft('activation');
-                        } catch (err) {
-                          console.error(err);
-                        }
-                      }}
-                      variant="outline"
-                      className="px-6 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-all font-medium font-mono h-auto"
-                    >
-                      Batal & Kembali
-                    </Button>
-                  </div>
-                )}
-
-                {step === 'review' && data.editorialProfile && (
-                  <div className="space-y-6">
-                    <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xl overflow-hidden">
-                      <div className="h-1.5 bg-gradient-to-r from-[var(--primary)] via-sky-400 to-[var(--success)]" />
-                      <div className="p-6 md:p-8 space-y-6">
-                        <div className="flex justify-between items-start gap-4">
-                          <div>
-                            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--primary)]">
-                              Editorial DNA Profile v1
-                            </span>
-                            {isEditing ? (
-                              <div className="mt-3">
-                                <label className="block text-[10px] font-mono text-[var(--muted-foreground)] uppercase mb-1">Brand Name</label>
-                                <Input
-                                  value={data.editorialProfile.brandName}
-                                  onChange={(e) => updateProfile('brandName', e.target.value)}
-                                  className="h-10 text-xl font-bold font-display"
-                                />
-                              </div>
-                            ) : (
-                              <h2 className="mt-2 font-display text-3xl leading-tight text-[var(--foreground)]">
-                                {data.editorialProfile.brandName}
-                              </h2>
-                            )}
+                      <div className="w-full space-y-4 py-2">
+                        <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+                          <div className="flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-[0.15em] text-[var(--primary)]">
+                            <Sparkles className="size-3.5 animate-pulse text-[var(--primary)]" />
+                            Gemini AI Reasoning Stream
                           </div>
-
-                          <div className="flex items-center gap-2">
-                            <Button
-                              type="button"
-                              onClick={() => setIsEditing(!isEditing)}
-                              variant="muted"
-                              size="sm"
-                              aria-pressed={isEditing}
-                              className="text-xs gap-1.5 px-3 border border-[var(--border)]"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                              {isEditing ? 'Done' : 'Edit'}
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={() => void runDiscovery()}
-                              variant="muted"
-                              size="sm"
-                              className="text-xs gap-1.5 px-3 border border-[var(--border)] text-[var(--primary)]"
-                              disabled={discovering}
-                            >
-                              <RefreshCw className={`w-3.5 h-3.5 ${discovering ? 'animate-spin' : ''}`} />
-                              Regenerate
-                            </Button>
-                          </div>
+                          <span className="font-mono text-[10px] text-[var(--muted-foreground)]">
+                            Live Stream
+                          </span>
                         </div>
 
-                        <div className="grid gap-5 border-t border-[var(--border)] pt-5">
-                          <div>
-                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2">
-                              Positioning
-                            </span>
-                            {isEditing ? (
-                              <Textarea
-                                value={data.editorialProfile.positioning}
-                                onChange={(e) => updateProfile('positioning', e.target.value)}
-                                className="min-h-24 text-sm leading-normal"
-                              />
-                            ) : (
-                              <p className="text-sm leading-6 text-[var(--foreground)]">
-                                {data.editorialProfile.positioning}
-                              </p>
-                            )}
-                          </div>
+                        <div ref={scrollRef} className="max-h-72 overflow-y-auto space-y-2.5 pr-1 font-mono text-xs leading-relaxed text-[var(--foreground)] scrollbar-thin">
+                          {streamText.trim().length === 0 ? (
+                            <div className="flex items-center gap-2 text-[var(--muted-foreground)] py-4 justify-center">
+                              <Loader2 className="size-3.5 animate-spin text-[var(--primary)]" />
+                              Initializing Gemini AI Reasoning Engine...
+                            </div>
+                          ) : (
+                            streamText
+                              .split('\n')
+                              .map((line) => line.trim())
+                              .filter(Boolean)
+                              .map((line, idx, arr) => {
+                                const isLatest = idx === arr.length - 1;
+                                return (
+                                  <div key={idx} className="flex items-start gap-2.5 transition-all">
+                                    <span className="mt-0.5 shrink-0">
+                                      {isLatest ? (
+                                        <span className="relative flex size-2.5">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--primary)] opacity-75"></span>
+                                          <span className="relative inline-flex rounded-full size-2.5 bg-[var(--primary)]"></span>
+                                        </span>
+                                      ) : (
+                                        <Check className="size-3.5 text-[var(--success)] shrink-0" />
+                                      )}
+                                    </span>
+                                    <span className={isLatest ? 'text-[var(--primary)] font-semibold' : 'text-[var(--muted-foreground)]'}>
+                                      <ReactMarkdown
+                                        components={{
+                                          p: ({ children }) => <span className="inline">{children}</span>,
+                                          strong: ({ children }) => <strong className="font-bold text-[var(--foreground)]">{children}</strong>,
+                                          code: ({ children }) => <code className="px-1 py-0.5 rounded bg-[var(--surface-3)] font-mono text-xs">{children}</code>,
+                                        }}
+                                      >
+                                        {line}
+                                      </ReactMarkdown>
+                                    </span>
+                                  </div>
+                                );
+                              })
+                          )}
+                        </div>
+                      </div>
 
-                          <div>
-                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2">
-                              Target Audience
-                            </span>
-                            {isEditing ? (
-                              <Textarea
-                                value={data.editorialProfile.audience}
-                                onChange={(e) => updateProfile('audience', e.target.value)}
-                                className="min-h-20 text-sm leading-normal"
-                              />
-                            ) : (
-                              <p className="text-sm leading-6 text-[var(--foreground)]">
-                                {data.editorialProfile.audience}
-                              </p>
-                            )}
-                          </div>
+                      <Button
+                        type="button"
+                        onClick={async () => {
+                          discoverCancelledRef.current = true;
+                          discoveryAbortControllerRef.current?.abort();
+                          discoveryAbortControllerRef.current = null;
+                          if (discoveryTransitionRef.current) {
+                            clearTimeout(discoveryTransitionRef.current);
+                            discoveryTransitionRef.current = null;
+                          }
+                          setStep('activation');
+                          setDiscovering(false);
+                          try {
+                            await saveDraft('activation');
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                        variant="muted"
+                        className="px-5 py-2 rounded-xl text-xs font-mono font-medium text-[var(--muted-foreground)]"
+                      >
+                        {t('actions.cancelAndBack')}
+                      </Button>
+                    </div>
+                  )}
 
-                          <div>
-                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2.5">
-                              Topics & Categories
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {data.editorialProfile.categories.map((cat) => (
-                                <span
-                                  key={cat}
-                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--surface-2)] text-[var(--foreground)] border border-[var(--border)] group"
-                                >
-                                  {cat}
-                                  {isEditing && (
-                                    <Button
-                                      type="button"
-                                      onClick={() => handleToggleCategory(cat)}
-                                      variant="ghost"
-                                      size="icon-xs"
-                                      className="hover:text-[var(--error)] font-bold ml-0.5 text-xs border-none p-0 h-auto"
-                                    >
-                                      ×
-                                    </Button>
-                                  )}
-                                </span>
-                              ))}
+                  {step === 'review' && data.editorialProfile && (
+                    <div className="space-y-6">
+                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] shadow-sm overflow-hidden">
+                        <div className="h-1 bg-gradient-to-r from-[var(--primary)] to-[var(--success)]" />
+                        <div className="p-6 md:p-8 space-y-6">
+                          <div className="flex justify-between items-start gap-4">
+                            <div>
+                              <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--primary)]">
+                                Editorial DNA Profile v1
+                              </span>
+                              {isEditing ? (
+                                <div className="mt-3">
+                                  <label className="block text-[10px] font-mono text-[var(--muted-foreground)] uppercase mb-1">Brand Name</label>
+                                  <Input
+                                    variant="surface"
+                                    value={data.editorialProfile.brandName}
+                                    onChange={(e) => updateProfile('brandName', e.target.value)}
+                                    className="h-10 font-sans text-xl font-bold"
+                                  />
+                                </div>
+                              ) : (
+                                <h2 className="mt-1 font-sans text-2xl font-bold leading-tight text-[var(--foreground)] md:text-3xl">
+                                  {data.editorialProfile.brandName}
+                                </h2>
+                              )}
                             </div>
 
-                            {isEditing && (
-                              <div className="mt-3">
-                                <label className="block text-[10px] font-mono text-[var(--muted-foreground)] uppercase mb-1">Add categories</label>
-                                <div className="max-h-28 overflow-y-auto border border-[var(--border)] bg-[var(--surface-2)] p-2.5 rounded-xl flex flex-wrap gap-1.5">
-                                  {PREDEFINED_CATEGORIES.map((cat) => {
-                                    const active = data.editorialProfile?.categories.includes(cat);
-                                    return (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                onClick={() => setIsEditing(!isEditing)}
+                                variant="muted"
+                                size="sm"
+                                aria-pressed={isEditing}
+                                className="font-sans text-xs gap-1.5 px-3 border border-[var(--border)]"
+                              >
+                                <Edit2 className="size-3.5" />
+                                {isEditing ? 'Done' : 'Edit'}
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={() => void runDiscovery()}
+                                variant="muted"
+                                size="sm"
+                                className="font-sans text-xs gap-1.5 px-3 border border-[var(--border)] text-[var(--primary)]"
+                                disabled={discovering}
+                              >
+                                <RefreshCw className={`size-3.5 ${discovering ? 'animate-spin' : ''}`} />
+                                Regenerate
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-5 border-t border-[var(--border)] pt-5">
+                            <div>
+                              <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2">
+                                Positioning
+                              </span>
+                              {isEditing ? (
+                                <Textarea
+                                  variant="surface"
+                                  value={data.editorialProfile.positioning}
+                                  onChange={(e) => updateProfile('positioning', e.target.value)}
+                                  className="min-h-24 font-sans text-sm leading-relaxed"
+                                />
+                              ) : (
+                                <p className="font-sans text-sm md:text-base leading-relaxed text-[var(--foreground)]">
+                                  {data.editorialProfile.positioning}
+                                </p>
+                              )}
+                            </div>
+
+                            <div>
+                              <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2">
+                                Target Audience
+                              </span>
+                              {isEditing ? (
+                                <Textarea
+                                  variant="surface"
+                                  value={data.editorialProfile.audience}
+                                  onChange={(e) => updateProfile('audience', e.target.value)}
+                                  className="min-h-20 font-sans text-sm leading-relaxed"
+                                />
+                              ) : (
+                                <p className="font-sans text-sm md:text-base leading-relaxed text-[var(--foreground)]">
+                                  {data.editorialProfile.audience}
+                                </p>
+                              )}
+                            </div>
+
+                            <div>
+                              <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2.5">
+                                Topics & Categories
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {data.editorialProfile.categories.map((cat) => (
+                                  <span
+                                    key={cat}
+                                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full font-sans text-xs font-semibold bg-[var(--surface-3)] text-[var(--foreground)] border border-[var(--border)]"
+                                  >
+                                    {cat}
+                                    {isEditing && (
                                       <Button
-                                        key={cat}
                                         type="button"
                                         onClick={() => handleToggleCategory(cat)}
-                                        variant={active ? 'primary' : 'surface'}
-                                        className={`px-2 py-0.5 rounded-lg text-[9px] border transition h-auto ${
-                                          active
-                                            ? 'bg-[var(--primary)]/10 border-[var(--primary)]/40 text-[var(--primary)]'
-                                            : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
-                                        }`}
+                                        variant="ghost"
+                                        size="icon-xs"
+                                        className="hover:text-[var(--error)] font-bold ml-0.5 text-xs border-none p-0 h-auto"
                                       >
-                                        {cat}
+                                        ×
                                       </Button>
-                                    );
-                                  })}
-                                </div>
+                                    )}
+                                  </span>
+                                ))}
                               </div>
-                            )}
-                          </div>
 
-                          <div>
-                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2.5">
-                              Article Types
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {(data.editorialProfile.articleTypes || []).map((type) => (
-                                <span
-                                  key={type}
-                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--surface-2)] text-[var(--foreground)] border border-[var(--border)] group"
-                                >
-                                  {type}
-                                  {isEditing && (
-                                    <Button
-                                      type="button"
-                                      onClick={() => handleToggleArticleType(type)}
-                                      variant="ghost"
-                                      size="icon-xs"
-                                      className="hover:text-[var(--error)] font-bold ml-0.5 text-xs border-none p-0 h-auto"
-                                    >
-                                      ×
-                                    </Button>
-                                  )}
-                                </span>
-                              ))}
+                              {isEditing && (
+                                <div className="mt-3">
+                                  <label className="block font-mono text-[10px] text-[var(--muted-foreground)] uppercase mb-1">Add categories</label>
+                                  <div className="max-h-28 overflow-y-auto border border-[var(--border)] bg-[var(--surface-3)] p-2.5 rounded-xl flex flex-wrap gap-1.5">
+                                    {PREDEFINED_CATEGORIES.map((cat) => {
+                                      const active = data.editorialProfile?.categories.includes(cat);
+                                      return (
+                                        <Button
+                                          key={cat}
+                                          type="button"
+                                          onClick={() => handleToggleCategory(cat)}
+                                          variant={active ? 'primary' : 'surface'}
+                                          className={`px-2.5 py-1 rounded-lg font-sans text-xs border transition h-auto ${
+                                            active
+                                              ? 'bg-[var(--primary)]/10 border-[var(--primary)]/40 text-[var(--primary)]'
+                                              : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
+                                          }`}
+                                        >
+                                          {cat}
+                                        </Button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
-                            {isEditing && (
-                              <div className="mt-3">
-                                <label className="block text-[10px] font-mono text-[var(--muted-foreground)] uppercase mb-1">Add Article Types</label>
-                                <div className="max-h-28 overflow-y-auto border border-[var(--border)] bg-[var(--surface-2)] p-2.5 rounded-xl flex flex-wrap gap-1.5">
-                                  {PREDEFINED_ARTICLE_TYPES.map((type) => {
-                                    const active = data.editorialProfile?.articleTypes?.includes(type);
-                                    return (
+                            <div>
+                              <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2.5">
+                                Article Types
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(data.editorialProfile.articleTypes || []).map((type) => (
+                                  <span
+                                    key={type}
+                                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full font-sans text-xs font-semibold bg-[var(--surface-3)] text-[var(--foreground)] border border-[var(--border)]"
+                                  >
+                                    {type}
+                                    {isEditing && (
                                       <Button
-                                        key={type}
                                         type="button"
                                         onClick={() => handleToggleArticleType(type)}
-                                        variant={active ? 'primary' : 'surface'}
-                                        className={`px-2 py-0.5 rounded-lg text-[9px] border transition h-auto ${
-                                          active
-                                            ? 'bg-[var(--primary)]/10 border-[var(--primary)]/40 text-[var(--primary)]'
-                                            : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
-                                        }`}
+                                        variant="ghost"
+                                        size="icon-xs"
+                                        className="hover:text-[var(--error)] font-bold ml-0.5 text-xs border-none p-0 h-auto"
                                       >
-                                        {type}
+                                        ×
                                       </Button>
-                                    );
-                                  })}
-                                </div>
+                                    )}
+                                  </span>
+                                ))}
                               </div>
-                            )}
-                          </div>
 
-                          <div>
-                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2.5">
-                              Writing Style & Tone
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {data.editorialProfile.tone.map((tn) => (
-                                <span
-                                  key={tn}
-                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 capitalize"
-                                >
-                                  {tn}
-                                  {isEditing && (
-                                    <Button
-                                      type="button"
-                                      onClick={() => handleToggleTone(tn)}
-                                      variant="ghost"
-                                      size="icon-xs"
-                                      className="hover:text-[var(--error)] font-bold ml-0.5 text-xs border-none p-0 h-auto"
-                                    >
-                                      ×
-                                    </Button>
-                                  )}
-                                </span>
-                              ))}
+                              {isEditing && (
+                                <div className="mt-3">
+                                  <label className="block font-mono text-[10px] text-[var(--muted-foreground)] uppercase mb-1">Add Article Types</label>
+                                  <div className="max-h-28 overflow-y-auto border border-[var(--border)] bg-[var(--surface-3)] p-2.5 rounded-xl flex flex-wrap gap-1.5">
+                                    {PREDEFINED_ARTICLE_TYPES.map((type) => {
+                                      const active = data.editorialProfile?.articleTypes?.includes(type);
+                                      return (
+                                        <Button
+                                          key={type}
+                                          type="button"
+                                          onClick={() => handleToggleArticleType(type)}
+                                          variant={active ? 'primary' : 'surface'}
+                                          className={`px-2.5 py-1 rounded-lg font-sans text-xs border transition h-auto ${
+                                            active
+                                              ? 'bg-[var(--primary)]/10 border-[var(--primary)]/40 text-[var(--primary)]'
+                                              : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
+                                          }`}
+                                        >
+                                          {type}
+                                        </Button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
-                            {isEditing && (
-                              <div className="mt-3 space-y-2">
-                                <label className="block text-[10px] font-mono text-[var(--muted-foreground)] uppercase">Quick Add Tone</label>
-                                <div className="flex flex-wrap gap-1 bg-[var(--surface-2)] p-2 rounded-xl border border-[var(--border)]">
-                                  {['professional', 'clear', 'analytical', 'conversational', 'bold', 'data-driven', 'insightful', 'strategic', 'academic'].map((tn) => {
-                                    const active = data.editorialProfile?.tone.includes(tn);
-                                    return (
+                            <div>
+                              <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--muted-foreground)] block mb-2.5">
+                                Writing Style & Tone
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {data.editorialProfile.tone.map((tn) => (
+                                  <span
+                                    key={tn}
+                                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full font-sans text-xs font-semibold bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 capitalize"
+                                  >
+                                    {tn}
+                                    {isEditing && (
                                       <Button
-                                        key={tn}
                                         type="button"
                                         onClick={() => handleToggleTone(tn)}
-                                        variant={active ? 'primary' : 'surface'}
-                                        className={`px-2 py-0.5 rounded-lg text-[9px] border transition capitalize h-auto ${
-                                          active
-                                            ? 'bg-[var(--primary)]/10 border-[var(--primary)]/40 text-[var(--primary)]'
-                                            : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
-                                        }`}
+                                        variant="ghost"
+                                        size="icon-xs"
+                                        className="hover:text-[var(--error)] font-bold ml-0.5 text-xs border-none p-0 h-auto"
                                       >
-                                        {tn}
+                                        ×
                                       </Button>
-                                    );
-                                  })}
-                                </div>
-                                <Input
-                                  placeholder="Type custom tone and press Enter..."
-                                  onKeyDown={handleAddCustomTone}
-                                  className="h-9 text-xs"
-                                />
+                                    )}
+                                  </span>
+                                ))}
                               </div>
-                            )}
+
+                              {isEditing && (
+                                <div className="mt-3 space-y-2">
+                                  <label className="block font-mono text-[10px] text-[var(--muted-foreground)] uppercase">Quick Add Tone</label>
+                                  <div className="flex flex-wrap gap-1 bg-[var(--surface-3)] p-2 rounded-xl border border-[var(--border)]">
+                                    {['professional', 'clear', 'analytical', 'conversational', 'bold', 'data-driven', 'insightful', 'strategic', 'academic'].map((tn) => {
+                                      const active = data.editorialProfile?.tone.includes(tn);
+                                      return (
+                                        <Button
+                                          key={tn}
+                                          type="button"
+                                          onClick={() => handleToggleTone(tn)}
+                                          variant={active ? 'primary' : 'surface'}
+                                          className={`px-2.5 py-1 rounded-lg font-sans text-xs border transition capitalize h-auto ${
+                                            active
+                                              ? 'bg-[var(--primary)]/10 border-[var(--primary)]/40 text-[var(--primary)]'
+                                              : 'bg-transparent border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--foreground)]'
+                                          }`}
+                                        >
+                                          {tn}
+                                        </Button>
+                                      );
+                                    })}
+                                  </div>
+                                  <Input
+                                    variant="surface"
+                                    placeholder="Type custom tone and press Enter..."
+                                    onKeyDown={handleAddCustomTone}
+                                    className="h-9 font-sans text-xs"
+                                  />
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
-            <div className="mt-10 flex items-center justify-between border-t border-[var(--border)] pt-6">
+            <div className="mt-8 flex items-center justify-between border-t border-[var(--border)] pt-6">
               <div className="flex items-center gap-3">
                 {step === 'review' ? (
                   <Button
@@ -923,9 +979,9 @@ export function OnboardingWizard() {
                     onClick={() => void goBack()}
                     disabled={saving || activating}
                     variant="muted"
-                    className="text-sm gap-2"
+                    className="font-sans text-sm gap-2"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <ArrowLeft className="size-4" />
                     Back
                   </Button>
                 ) : (
@@ -935,7 +991,7 @@ export function OnboardingWizard() {
                     disabled={saving || activating}
                     variant="link"
                     size="sm"
-                    className="text-xs opacity-60 hover:opacity-100 font-normal gap-1.5"
+                    className="font-sans text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] gap-1.5"
                   >
                     Use defaults
                   </Button>
@@ -949,9 +1005,9 @@ export function OnboardingWizard() {
                   disabled={activating || saving}
                   variant="primary"
                   size="lg"
-                  className="px-6 shadow-xl shadow-[var(--primary)]/15 text-sm gap-2"
+                  className="px-6 font-sans text-sm gap-2 font-semibold"
                 >
-                  {activating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
+                  {activating ? <Loader2 className="size-4 animate-spin" /> : <Rocket className="size-4" />}
                   {activating ? 'Activating...' : 'Activate Workspace'}
                 </Button>
               ) : step === 'activation' ? (
@@ -961,47 +1017,46 @@ export function OnboardingWizard() {
                   disabled={saving}
                   variant="primary"
                   size="lg"
-                  className="px-6 shadow-xl shadow-[var(--primary)]/15 text-sm gap-2"
+                  className="px-6 font-sans text-sm gap-2 font-semibold"
                 >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                  {saving ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
                   {saving ? 'Saving...' : 'Continue'}
                 </Button>
               ) : (
-                <div className="h-11" /> // space placeholder for discovery loading
+                <div className="h-11" />
               )}
             </div>
           </div>
         </section>
 
-        {/* Live Editorial DNA Preview Sidebar */}
-        <aside className="hidden border-l border-[var(--border)] p-8 lg:block">
-          <div className="sticky top-24">
-            <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--muted-foreground)]">
-              Live DNA preview
-            </div>
-            <div className="mt-5 overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--card)] shadow-2xl shadow-black/10 dark:shadow-black/50">
-              <div className="h-1 bg-gradient-to-r from-[var(--primary)] via-sky-400 to-[var(--success)]" />
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-primary">
-                    Workspace DNA
-                  </span>
-                  <Sparkles className="h-4 w-4 text-[var(--gold)]" />
-                </div>
-                <h2 className="mt-8 font-display text-3xl leading-tight text-[var(--foreground)] truncate">
-                  {data.activation.workspaceName || activeOrganization?.name || 'Your Brand'}
-                </h2>
-                <div className="mt-7 space-y-3 border-t border-[var(--border)] pt-5">
-                  <SignatureRow label="Goal" value={data.activation.primaryGoal.replace('_', ' ')} />
-                  <SignatureRow label="Language" value={data.activation.defaultLanguage} />
-                  <SignatureRow label="Website" value={data.activation.website ? 'Provided' : 'None'} />
-                </div>
+        {/* Live Editorial DNA Preview Sidebar Island */}
+        <aside className="hidden lg:flex w-[320px] shrink-0 flex-col overflow-y-auto rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 shadow-[inset_0_0_0_1px_var(--card-border),0_2px_8px_rgba(0,0,0,0.12)]">
+          <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--muted-foreground)]">
+            Live DNA preview
+          </div>
+          <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] shadow-sm">
+            <div className="h-1 bg-gradient-to-r from-[var(--primary)] to-[var(--success)]" />
+            <div className="p-5">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--primary)] font-semibold">
+                  Workspace DNA
+                </span>
+                <Sparkles className="size-4 text-[var(--gold)]" />
+              </div>
+              <h2 className="mt-4 font-sans text-2xl font-bold leading-tight text-[var(--foreground)] truncate">
+                {data.activation.workspaceName || activeOrganization?.name || 'Your Brand'}
+              </h2>
+              <div className="mt-5 space-y-3 border-t border-[var(--border)] pt-4">
+                <SignatureRow label="Goal" value={data.activation.primaryGoal.replace('_', ' ')} />
+                <SignatureRow label="Language" value={data.activation.defaultLanguage} />
+                <SignatureRow label="Website" value={data.activation.website ? 'Provided' : 'None'} />
               </div>
             </div>
-            <div className="mt-5 flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-[11px] leading-5 text-[var(--muted-foreground)]">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--success)]" />
-              Core factual integrity guardrails stay locked automatically by EAI.
-            </div>
+          </div>
+
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3.5 font-sans text-xs leading-relaxed text-[var(--muted-foreground)]">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[var(--success)]" />
+            <span>Core factual integrity guardrails stay locked automatically by EAI.</span>
           </div>
         </aside>
       </main>
@@ -1023,13 +1078,13 @@ function WizardField({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
-      <div className="mb-2 flex items-center justify-between gap-3 font-medium">
-        <span className="flex items-center gap-2 text-xs font-semibold text-[var(--foreground)]">
-          <Icon className="h-3.5 w-3.5 text-primary" />
+    <label className="block space-y-2">
+      <div className="flex items-center justify-between gap-3 font-sans font-medium">
+        <span className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+          <Icon className="size-4 text-[var(--primary)]" />
           {label}
         </span>
-        <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
+        <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--muted-foreground)]">
           {hint || (optional ? 'Optional' : 'Required')}
         </span>
       </div>
@@ -1040,9 +1095,9 @@ function WizardField({
 
 function SignatureRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3 font-sans">
       <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted-foreground)]">{label}</span>
-      <span className="max-w-[150px] truncate text-right text-[11px] capitalize text-[var(--foreground)]">{value}</span>
+      <span className="max-w-[150px] truncate text-right text-xs capitalize text-[var(--foreground)] font-semibold">{value}</span>
     </div>
   );
 }

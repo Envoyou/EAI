@@ -170,7 +170,49 @@
     "limitAlert": "Batas {max} report telah tercapai. Hapus report lama sebelum menjalankan Deep Research baru.",
     "limitReached": "Maksimal {max} Deep Research report dapat disimpan per dokumen. Hapus report lama terlebih dahulu.",
     "storageError": "Koleksi report tidak dapat disimpan karena penyimpanan browser penuh.",
-    "followUpPrompt": "Tinjau Deep Research Report saya yang tersimpan dan bantu ubah temuannya menjadi arah artikel yang kuat. Mulai dari sudut pandang terbaik, target pembaca, dan langkah lanjutan yang direkomendasikan.",
-    "followUpActionPrompt": "Tinjau Deep Research Report saya yang tersimpan dan bantu saya melakukan langkah berikut: {action}"
+    "followUpPrompt": "Review my saved Deep Research Report and help me turn its findings into a strong article direction. Start with the best angle, audience, and recommended next steps.",
+    "followUpActionPrompt": "Review my saved Deep Research Report and help me with this next action: {action}"
+  },
+  "Onboarding": {
+    "goals": {
+      "grow_traffic": {
+        "label": "Tingkatkan Trafik Organik",
+        "desc": "Fokus pada optimasi SEO dan menarik pengunjung baru."
+      },
+      "publish_faster": {
+        "label": "Publikasi Lebih Cepat",
+        "desc": "Mempercepat produksi draf siap publikasi."
+      },
+      "knowledge_base": {
+        "label": "Basis Pengetahuan",
+        "desc": "Mengorganisir informasi dan dokumentasi internal."
+      },
+      "research": {
+        "label": "Riset & Copilot",
+        "desc": "Melakukan riset mendalam terhadap topik tertentu."
+      },
+      "documentation": {
+        "label": "Dokumentasi",
+        "desc": "Membuat petunjuk teknis dan dokumentasi terstruktur."
+      }
+    },
+    "fields": {
+      "defaultLanguage": "Bahasa Utama"
+    },
+    "languages": {
+      "auto": "Auto-detect (Otomatis)",
+      "en": "English",
+      "id": "Bahasa Indonesia"
+    },
+    "actions": {
+      "cancelAndBack": "Batal & Kembali"
+    },
+    "loading": {
+      "analyzingGoals": "Menganalisis tujuan utama untuk \"{workspaceName}\"...",
+      "extractingBrand": "Ekstraksi identitas brand dari {website}...",
+      "generatingBrand": "Membuat identitas brand untuk \"{workspaceName}\"...",
+      "synthesizing": "Sintesis nada penulisan dan kategori untuk {lang}...",
+      "finalizing": "Finalisasi Editorial DNA dan struktur..."
+    }
   }
 }

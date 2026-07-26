@@ -6,6 +6,19 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Real-Time Gemini Reasoning Stream in Onboarding**:
+  - Upgraded `/api/onboarding/discover` to stream real-time Gemini AI thinking thoughts (*Chain of Thought*) via Server-Sent Events (SSE).
+  - Integrated `ReactMarkdown` rich text rendering for reasoning stream lines in `OnboardingWizard`, formatting bold text, inline code, and headers without raw Markdown symbols.
+  - Implemented a smooth typewriter stream queue (18ms interval) with adaptive token popping and smooth auto-scrolling.
+
+### Changed
+- **Onboarding UI Redesign & Clerk Standards Compliance**:
+  - Redesigned the onboarding workspace shell to match the floating multi-island IDE layout with Inter typography and proper token contrast (`bg-[var(--card)]`, `inset 0 0 0 1px var(--card-border)`).
+  - Added bounded composite class `.onboarding-goal-card.ui-btn` in `composite-controls.css` to override pill shape and prevent card text distortion.
+  - Replaced field icons with Lucide `Goal`, `Rss` (Publication Website), and `Languages` (Primary Language).
+  - Expanded reasoning stream container to full-width frameless layout without inner sub-card borders or background constraints.
+
 ## [3.16.0] - 2026-07-25
 
 ### Added

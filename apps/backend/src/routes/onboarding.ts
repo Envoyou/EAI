@@ -5,10 +5,7 @@ import { hashEditorialConfiguration, PREDEFINED_CATEGORIES, PREDEFINED_ARTICLE_T
 import { buildSandboxEditorialProfile, OnboardingDataSchema, OnboardingSaveSchema } from '@eai/shared';
 import { ensureCurrentUserRecord, getWorkspaceState } from '@/lib/user-workspace';
 import { gemini, getNativeGeminiConfig } from '@/lib/ai/provider-runtime';
-import {
-  getGeminiRequestTimeoutMs,
-  withGeminiFlexRetry,
-} from '@/lib/ai/gemini-request-policy';
+import { getGeminiRequestTimeoutMs } from '@/lib/ai/gemini-request-policy';
 import { bindResponseAbort } from '@/lib/request-abort';
 
 const router = Router();
@@ -300,9 +297,20 @@ router.put('/', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/onboarding/discover
+// POST /api/onboarding/discover (SSE Stream)
 router.post('/discover', requireAuth, async (req, res) => {
   const requestAbort = bindResponseAbort(res, 'Onboarding discovery');
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  const sendEvent = (event: Record<string, unknown>) => {
+    if (res.writableEnded) return;
+    res.write(`data: ${JSON.stringify(event)}\n\n`);
+  };
+
   try {
     const { userId, orgId, orgSlug, orgRole } = req.auth!;
     const workspace = await getWorkspaceState(userId, {
@@ -312,23 +320,32 @@ router.post('/discover', requireAuth, async (req, res) => {
     });
 
     if (!hasActiveClerkOrganization(workspace, orgId)) {
-      return res.status(409).json({ error: 'Create or select a Clerk organization.' });
+      sendEvent({ type: 'error', error: 'Create or select a Clerk organization.' });
+      return res.end();
     }
 
     const { workspaceName, website, primaryGoal, defaultLanguage } = req.body;
     if (!workspaceName) {
-      return res.status(400).json({ error: 'Workspace Name is required' });
+      sendEvent({ type: 'error', error: 'Workspace Name is required' });
+      return res.end();
     }
 
-
+    sendEvent({ type: 'thought_delta', text: `Analyzing parameters for "${workspaceName}"...\n` });
 
     let scrapedText = '';
     if (website && website.trim()) {
+      sendEvent({ type: 'thought_delta', text: `Extracting brand identity from ${website.trim()}...\n` });
       try {
         scrapedText = await scrapeWebsiteWithTimeout(website.trim(), 8000);
+        if (scrapedText) {
+          sendEvent({ type: 'thought_delta', text: `Extracted ${scrapedText.length} characters from website.\n` });
+        }
       } catch (err) {
         console.warn(`Scrape failed for ${website}, falling back directly to metadata generation:`, err);
+        sendEvent({ type: 'thought_delta', text: `Website scrape bypassed, generating profile from workspace details.\n` });
       }
+    } else {
+      sendEvent({ type: 'thought_delta', text: `Generating brand identity for "${workspaceName}"...\n` });
     }
 
     const categoryList = PREDEFINED_CATEGORIES.flatMap((c) => c.items);
@@ -366,32 +383,52 @@ Default Language: ${defaultLanguage}
 ${scrapedText ? `Scraped Website Content:\n${scrapedText}` : 'No website provided or scraping failed.'}
 `;
 
-      const requestTimeoutMs = getGeminiRequestTimeoutMs() ?? 10_000;
+      const requestTimeoutMs = getGeminiRequestTimeoutMs() ?? 15_000;
       const aiSignal = AbortSignal.any([
         requestAbort.signal,
         AbortSignal.timeout(requestTimeoutMs),
       ]);
-      const response = await withGeminiFlexRetry(
-        () => gemini.models.generateContent({
-            model: 'gemini-3.5-flash',
-            contents: promptContent,
-            config: {
-              abortSignal: aiSignal,
-              systemInstruction,
-              ...getNativeGeminiConfig(),
-              candidateCount: 1,
-              responseMimeType: 'application/json',
-            },
-          }),
-        { signal: aiSignal }
-      );
 
-      const rawText = response.text ? response.text.trim() : '';
-      if (!rawText) throw new Error('Empty response from LLM');
+      sendEvent({ type: 'thought_delta', text: `Synthesizing writing tone and categories with Gemini AI...\n` });
 
-      const parsedJson = JSON.parse(rawText);
+      const responseStream = await gemini.models.generateContentStream({
+        model: 'gemini-3.5-flash',
+        contents: promptContent,
+        config: {
+          abortSignal: aiSignal,
+          systemInstruction,
+          ...getNativeGeminiConfig(),
+          thinkingConfig: {
+            includeThoughts: true,
+          },
+          candidateCount: 1,
+          responseMimeType: 'application/json',
+        },
+      });
 
-      // Verify and merge
+      let rawText = '';
+      for await (const chunk of responseStream) {
+        if (requestAbort.signal.aborted) break;
+        const candidate = chunk.candidates?.[0];
+        const parts = candidate?.content?.parts || [];
+        for (const part of parts) {
+          if ('thought' in part && part.thought && typeof part.text === 'string' && part.text) {
+            sendEvent({ type: 'thought_delta', text: part.text });
+          } else if (typeof part.text === 'string') {
+            rawText += part.text;
+          }
+        }
+        if (chunk.text && parts.length === 0) {
+          rawText += chunk.text;
+        }
+      }
+
+      if (!rawText.trim()) throw new Error('Empty response from LLM');
+
+      sendEvent({ type: 'thought_delta', text: `\nFinalizing Editorial DNA and structure...\n` });
+
+      const parsedJson = JSON.parse(rawText.trim());
+
       generatedProfile = {
         brandName: parsedJson.brandName || workspaceName,
         positioning: parsedJson.positioning || `Editorial workspace for ${workspaceName}`,
@@ -423,16 +460,23 @@ ${scrapedText ? `Scraped Website Content:\n${scrapedText}` : 'No website provide
         defaultLanguage,
       };
     } catch (err) {
-      requestAbort.signal.throwIfAborted();
-      console.error('Failed to generate editorial DNA with Gemini, falling back to defaults:', err);
-      generatedProfile = getFallbackProfile(workspaceName, primaryGoal, defaultLanguage);
+      if (!requestAbort.signal.aborted) {
+        console.error('Failed to generate editorial DNA with Gemini, falling back to defaults:', err);
+        sendEvent({ type: 'thought', text: `Generated fallback profile for ${workspaceName}.` });
+        generatedProfile = getFallbackProfile(workspaceName, primaryGoal, defaultLanguage);
+      }
     }
 
-    return res.json({ success: true, profile: generatedProfile });
+    if (generatedProfile) {
+      sendEvent({ type: 'profile', profile: generatedProfile });
+    }
+    sendEvent({ type: 'done' });
+    return res.end();
   } catch (error) {
     if (requestAbort.signal.aborted) return;
     console.error('[ONBOARDING_DISCOVER_ERROR]', error);
-    return res.status(500).json({ error: 'Failed to generate editorial DNA profile' });
+    sendEvent({ type: 'error', error: 'Failed to generate editorial DNA profile' });
+    return res.end();
   } finally {
     requestAbort.dispose();
   }

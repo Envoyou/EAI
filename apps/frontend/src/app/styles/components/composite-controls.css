@@ -80,3 +80,17 @@
   background: var(--color-primary-900);
   color: #ffffff;
 }
+
+.onboarding-goal-card.ui-btn {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-radius: var(--radius-xl);
+  padding: 1rem;
+  height: auto;
+  min-height: 7.5rem;
+  white-space: normal;
+  text-align: left;
+}
+

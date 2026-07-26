@@ -172,5 +172,47 @@
     "storageError": "The report library could not be saved because browser storage is full.",
     "followUpPrompt": "Review my saved Deep Research Report and help me turn its findings into a strong article direction. Start with the best angle, audience, and recommended next steps.",
     "followUpActionPrompt": "Review my saved Deep Research Report and help me with this next action: {action}"
+  },
+  "Onboarding": {
+    "goals": {
+      "grow_traffic": {
+        "label": "Grow Organic Traffic",
+        "desc": "Focus on SEO optimization and attracting organic visitors."
+      },
+      "publish_faster": {
+        "label": "Publish Faster",
+        "desc": "Speed up production of publication-ready drafts."
+      },
+      "knowledge_base": {
+        "label": "Build Knowledge Base",
+        "desc": "Organize internal information and documentation."
+      },
+      "research": {
+        "label": "Research & Copilot",
+        "desc": "Conduct in-depth research on specific topics."
+      },
+      "documentation": {
+        "label": "Documentation",
+        "desc": "Create technical guides and structured documentation."
+      }
+    },
+    "fields": {
+      "defaultLanguage": "Primary Language"
+    },
+    "languages": {
+      "auto": "Auto-detect",
+      "en": "English",
+      "id": "Bahasa Indonesia"
+    },
+    "actions": {
+      "cancelAndBack": "Cancel & Go Back"
+    },
+    "loading": {
+      "analyzingGoals": "Analyzing primary goals for \"{workspaceName}\"...",
+      "extractingBrand": "Extracting brand identity from {website}...",
+      "generatingBrand": "Generating brand identity for \"{workspaceName}\"...",
+      "synthesizing": "Synthesizing writing tone and categories for {lang}...",
+      "finalizing": "Finalizing Editorial DNA and structure..."
+    }
   }
 }
