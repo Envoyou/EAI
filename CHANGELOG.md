@@ -13,6 +13,14 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Upgraded `/api/onboarding/discover` to stream real-time Gemini AI thinking thoughts (*Chain of Thought*) via Server-Sent Events (SSE).
   - Integrated `ReactMarkdown` rich text rendering for reasoning stream lines in `OnboardingWizard`, formatting bold text, inline code, and headers without raw Markdown symbols.
   - Implemented a smooth typewriter stream queue (18ms interval) with adaptive token popping and smooth auto-scrolling.
+- **Permanent Onboarding Metadata Persistence & Admin Marketing Insights**:
+  - Added Prisma database fields `User.onboardingRole` (descriptive editorial role), `Organization.acquisitionSource` (acquisition channel), `Organization.acquisitionSourceOther` (channel details), `Organization.primaryGoal` (workspace objective), and `Organization.onboardingCompletedAt` (completion timestamp).
+  - Applied migration `20260726132147_persist_onboarding_metadata` to synchronize Neon database schema.
+  - Added Zod invariant schema validation in `@eai/shared` requiring `acquisitionSourceOther` min 2 characters when `acquisitionSource === 'other'`.
+  - Added canonical label dictionaries `USER_ROLE_LABELS`, `ACQUISITION_SOURCE_LABELS`, and `PRIMARY_GOAL_LABELS` in `@eai/shared`.
+  - Added `acquisitionSourceOther` text input in `OnboardingWizard` Q4 and live preview rendering in onboarding sidebar.
+  - Implemented an **Onboarding & Marketing Insights** section in `OrganizationDetailDrawer` (`/admin/users`) displaying self-reported role, acquisition channel & detail, primary goal, publication name, domain, and onboarding activation timestamp.
+  - Added comprehensive backend contract persistence unit tests in `apps/backend/src/routes/__tests__/onboarding-persistence.test.ts`.
 
 ### Changed
 - **Onboarding UI Redesign & Clerk Standards Compliance**:
@@ -20,6 +28,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added bounded composite class `.onboarding-goal-card.ui-btn` in `composite-controls.css` to override pill shape and prevent card text distortion.
   - Replaced field icons with Lucide `Goal`, `Rss` (Publication Website), and `Languages` (Primary Language).
   - Expanded reasoning stream container to full-width frameless layout without inner sub-card borders or background constraints.
+- **Activation Endpoint Idempotency & Strict Null Handling**:
+  - Updated `POST /api/onboarding` in backend to set strict `null` for unprovided marketing/role answers during activation or skip (preventing fake default fallbacks in analytics).
+  - Enforced activation idempotency: if workspace onboarding is already completed (`onboardingStatus === 'completed'`), returning existing active state cleanly without re-activating or creating duplicate `EditorialProfile` or `EditorialProfileVersion` records.
+- **Frontend Test Suite Ratchet**:
+  - Updated `LegacyFeatureFormControls.test.ts` to assert 3 surface `<Input>` components and 7 `variant="surface"` occurrences in the onboarding activation step.
 
 ## [3.16.0] - 2026-07-25
 

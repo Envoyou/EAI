@@ -13,6 +13,14 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Meng-upgrade `/api/onboarding/discover` untuk mengalirkan pemikiran AI Gemini (*Chain of Thought*) secara *real-time* via Server-Sent Events (SSE).
   - Mengintegrasikan pengolahan rich text `ReactMarkdown` untuk baris penalaran pada `OnboardingWizard`, merender teks cetak tebal, kode inline, dan judul tanpa simbol mentah Markdown.
   - Mengimplementasikan antrean stream typewriter yang halus (interval 18ms) dengan *adaptive token popping* dan *smooth auto-scrolling*.
+- **Penyimpanan Permanen Metadata Onboarding & Wawasan Marketing Admin**:
+  - Menambahkan bidang database Prisma `User.onboardingRole` (peran deskriptif editorial), `Organization.acquisitionSource` (saluran akuisisi), `Organization.acquisitionSourceOther` (detail saluran), `Organization.primaryGoal` (tujuan utama workspace), dan `Organization.onboardingCompletedAt` (stempel waktu penyelesaian).
+  - Menerapkan migrasi `20260726132147_persist_onboarding_metadata` untuk menyelaraskan skema database Neon.
+  - Menambahkan validasi skema invariant Zod di `@eai/shared` yang mewajibkan `acquisitionSourceOther` minimal 2 karakter ketika `acquisitionSource === 'other'`.
+  - Menambahkan kamus pemetaan label kanonis `USER_ROLE_LABELS`, `ACQUISITION_SOURCE_LABELS`, dan `PRIMARY_GOAL_LABELS` di `@eai/shared`.
+  - Menambahkan bidang input teks `acquisitionSourceOther` pada Q4 `OnboardingWizard` serta pratinjau langsung di bilah samping onboarding.
+  - Mengimplementasikan seksi **Onboarding & Marketing Insights** di `OrganizationDetailDrawer` (`/admin/users`) untuk menampilkan peran, saluran akuisisi, detail saluran, tujuan utama, nama publikasi, domain, dan stempel waktu aktivasi secara transparan.
+  - Menambahkan pengujian unit kontrak penyimpanan permanen backend secara komprehensif di `apps/backend/src/routes/__tests__/onboarding-persistence.test.ts`.
 
 ### Changed
 - **Redesain UI Onboarding & Kepatuhan Standar Clerk**:
@@ -20,6 +28,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan kelas komposisi `.onboarding-goal-card.ui-btn` di `composite-controls.css` untuk melepaskan stadium pill shape dan mencegah distorsi teks kartu.
   - Mengganti ikon bidang dengan Lucide `Goal`, `Rss` (Publication Website), dan `Languages` (Primary Language).
   - Memperluas kontainer stream penalaran menjadi tata letak *full-width frameless* tanpa pembatas border atau background sub-card.
+- **Idempotensi Endpoint Aktivasi & Penanganan Strict Null**:
+  - Memperbarui `POST /api/onboarding` di backend untuk menyimpan `null` murni pada jawaban peran/marketing yang tidak diisi saat aktivasi atau skip (mencegah fallback default palsu pada analitik).
+  - Menegaskan idempotensi aktivasi: jika onboarding workspace telah selesai (`onboardingStatus === 'completed'`), endpoint mengembalikan status aktif secara aman tanpa mere-aktivasi atau membuat duplikat rekaman `EditorialProfile` atau `EditorialProfileVersion`.
+- **Ratchet Test Suite Frontend**:
+  - Memperbarui `LegacyFeatureFormControls.test.ts` untuk mengonfirmasi 3 komponen `<Input>` surface dan 7 kemunculan `variant="surface"` pada tahap aktivasi onboarding.
 
 ## [3.16.0] - 2026-07-25
 
