@@ -1,0 +1,97 @@
+'use client';
+
+import { useId } from 'react';
+
+export function EAILoaderLogo({ className }: { className?: string }) {
+  const baseId = useId().replace(/:/g, '');
+  const glowFilterId = `eai-glow-${baseId}`;
+  const originCenterClass = `eai-origin-center-${baseId}`;
+  const pulseClass = `eai-pulse-${baseId}`;
+  const mainRotorClass = `eai-main-rotor-${baseId}`;
+  const glowRotorClass = `eai-glow-rotor-${baseId}`;
+
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 600 600"
+      className={className}
+      aria-label="EAI Animated Loader"
+    >
+      <defs>
+        <filter id={glowFilterId} x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="10" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <style>{`
+          @keyframes eaiSpinSlow-${baseId} {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+          }
+
+          @keyframes eaiSpinReverse-${baseId} {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(-360deg); }
+          }
+
+          @keyframes eaiPulse-${baseId} {
+            0%, 100% {
+              opacity: 0.92;
+              transform: scale(0.985);
+            }
+            50% {
+              opacity: 1;
+              transform: scale(1);
+            }
+          }
+
+          .${originCenterClass} {
+            transform-origin: 300px 300px;
+            transform-box: view-box;
+          }
+
+          .${pulseClass} {
+            animation: eaiPulse-${baseId} 2.8s ease-in-out infinite;
+          }
+
+          .${mainRotorClass} {
+            animation: eaiSpinSlow-${baseId} 6s linear infinite;
+          }
+
+          .${glowRotorClass} {
+            animation: eaiSpinReverse-${baseId} 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+          }
+        `}</style>
+      </defs>
+
+      <g className={`${originCenterClass} ${pulseClass}`}>
+        {/* Glow / echo layer */}
+        <g className={`${originCenterClass} ${glowRotorClass}`} opacity="0.25" filter={`url(#${glowFilterId})`}>
+          <path
+            fill="#3BB6FF"
+            stroke="currentColor"
+            strokeWidth="20"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            d="M289 67v56h22V10h-22zm89 11-21 53q0 2 9 5l10 4 1-2 21-52c22-56 21-51 15-53l-10-4-5-2zM187 33l-10 4 44 104 19-8-44-104zM95 95l-7 8 40 40 39 40 8-8 8-8-40-39-40-40zm362 33-39 39 7 8 8 8 40-40 39-40-7-8-8-7zm53 71-51 22 8 19 103-43 1-1-9-19zM34 184l-4 9-3 9 104 41q2 0 5-9l4-10-3-1-51-21-50-20zM10 300v11h113v-22H10zm279 0v11h301v-22H289zm178 58-4 10-3 8 3 1 51 21 50 19c1 1 9-18 9-19zM92 377l-51 22-12 5 9 19 103-44-9-19zm36 80-39 40 15 15 40-39 39-40-7-7-8-8zm298-31-7 7 39 40 40 39 15-15-79-79zm-56 37-9 4 20 48 22 51 1 5 20-9-45-103zm-146 0-40 101 19 9 41-104q0-2-9-5l-10-4zm66 71v56h22V477h-22z"
+          />
+        </g>
+
+        {/* Main layer */}
+        <g className={`${originCenterClass} ${mainRotorClass}`}>
+          <path
+            fill="#3BB6FF"
+            stroke="currentColor"
+            strokeWidth="20"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            d="M289 67v56h22V10h-22zm89 11-21 53q0 2 9 5l10 4 1-2 21-52c22-56 21-51 15-53l-10-4-5-2zM187 33l-10 4 44 104 19-8-44-104zM95 95l-7 8 40 40 39 40 8-8 8-8-40-39-40-40zm362 33-39 39 7 8 8 8 40-40 39-40-7-8-8-7zm53 71-51 22 8 19 103-43 1-1-9-19zM34 184l-4 9-3 9 104 41q2 0 5-9l4-10-3-1-51-21-50-20zM10 300v11h113v-22H10zm279 0v11h301v-22H289zm178 58-4 10-3 8 3 1 51 21 50 19c1 1 9-18 9-19zM92 377l-51 22-12 5 9 19 103-44-9-19zm36 80-39 40 15 15 40-39 39-40-7-7-8-8zm298-31-7 7 39 40 40 39 15-15-79-79zm-56 37-9 4 20 48 22 51 1 5 20-9-45-103zm-146 0-40 101 19 9 41-104q0-2-9-5l-10-4zm66 71v56h22V477h-22z"
+          />
+        </g>
+      </g>
+    </svg>
+  );
+}

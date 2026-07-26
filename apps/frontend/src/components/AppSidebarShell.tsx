@@ -117,9 +117,9 @@ export function AppSidebarShell({
                 }`}
                 aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
               >
-                <div className="w-7 h-7 flex items-center justify-center shrink-0 relative">
-                  <EAILogo className="w-7 h-7 transition-opacity duration-200 group-hover:opacity-0" />
-                  <PanelLeft className="w-5 h-5 absolute inset-0 m-auto text-[var(--foreground)] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                <div className="size-8 flex items-center justify-center shrink-0 relative">
+                  <EAILogo className="size-7 transition-opacity duration-200 group-hover:opacity-0" />
+                  <PanelLeft className="size-5 absolute inset-0 m-auto text-[var(--foreground)] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
                 </div>
                 <div
                   className={`flex flex-col justify-center min-w-0 overflow-hidden transition-all duration-300 ${

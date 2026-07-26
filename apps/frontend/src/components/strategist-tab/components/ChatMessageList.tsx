@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-  MessageSquare,
   Loader2,
   Globe,
   Copy,
@@ -14,6 +13,7 @@ import {
   RotateCcw,
   List,
 } from 'lucide-react';
+import { EAILogo } from '@/components/EAILogo';
 import { shouldShowAssistantSpinner } from '@/lib/strategist-stream';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { extractDynamicSuggestions, normalizeStrategistMarkdown } from '@/lib/strategist-utils';
@@ -166,10 +166,12 @@ export function ChatMessageList({
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-6 text-[var(--muted-foreground)]">
-        <MessageSquare className="w-8 h-8 text-[var(--muted-foreground)] opacity-20 mb-3" />
-        <p className="text-xs max-w-[240px] leading-relaxed">
-          Start a conversation about content strategy, SEO, outlines, or data
-          analysis.
+        <EAILogo className="size-9 mb-3" />
+        <p className="text-xs max-w-[280px] leading-relaxed">
+          <span className="block font-semibold text-[var(--foreground)] mb-1">
+            Hey there! What are we working on today?
+          </span>
+          Let’s dive into content strategy, SEO, outlines, or data analysis.
         </p>
       </div>
     );

@@ -22,6 +22,7 @@ import ThreeColumnLayout from '@/components/ThreeColumnLayout';
 import EditorCanvas from '@/components/EditorCanvas';
 import AICopilotPanel from '@/components/AICopilotPanel';
 import ShortcutsModal from '@/components/ShortcutsModal';
+import { EAILogo } from '@/components/EAILogo';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -717,7 +718,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                         cursor-pointer
                       "
                       aria-label="Open EAI Chat"
-                      icon={AssistantChatIcon}
+                      icon={EAILogo}
                       iconClassName="size-[18px] shrink-0"
                       label="EAI Chat"
                       labelClassName="

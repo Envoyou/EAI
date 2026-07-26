@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Sparkles, Loader2, Type, Code } from 'lucide-react';
+import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Loader2, Type, Code } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { useState, useRef, useEffect } from 'react';
@@ -13,6 +13,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { Markdown } from 'tiptap-markdown';
 
 import { SlashCommand, renderItems, getSuggestionItems } from './editor/extensions/slash-command';
+import { EAILogo } from '@/components/EAILogo';
 import { BubbleMenuAI } from './editor/BubbleMenuAI';
 import { LinkHoverPopover, type HoveredLinkTarget } from './editor/LinkHoverPopover';
 import { AIPreviewExtension } from './editor/extensions/ai-preview-extension';
@@ -600,7 +601,7 @@ export default function Editor({
         {(!value && !isWritingManually) && !isLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto select-none animate-fade-in my-auto">
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] text-[var(--primary)]">
-              <Sparkles className="w-5 h-5" />
+              <EAILogo className="size-5" />
             </div>
             <h3 className="text-lg font-semibold tracking-tight mb-2 text-[var(--foreground)]">
               Start your article

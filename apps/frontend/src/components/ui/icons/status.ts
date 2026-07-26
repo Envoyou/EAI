@@ -8,3 +8,5 @@ export {
   Cloud as SavedToCloudStatusIcon,
   AlertTriangle as WarningStatusIcon,
 } from 'lucide-react';
+
+export { EAILoaderLogo as EAILoaderStatusIcon } from '@/components/EAILoaderLogo';
