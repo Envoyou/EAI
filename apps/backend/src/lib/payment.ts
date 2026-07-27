@@ -141,8 +141,14 @@ export const getPaymentTaxLabel = () =>
 export const getPlanAmountIdr = (plan: PlanDetails) =>
   Math.round(plan.priceUsd * getPaymentUsdToIdrRate() * 1.11);
 
+/**
+ * Credits granted when a plan starts or renews.
+ *
+ * Yearly plans are prepaid for 12 months but allocate credits one month at a
+ * time. `billingMonths` controls the subscription term, not the initial grant.
+ */
 export const getPlanCreditsGranted = (plan: PlanDetails) =>
-  plan.creditsPerMonth * Math.max(1, plan.billingMonths);
+  plan.creditsPerMonth;
 
 export const getPlanPeriodEnd = (plan: PlanDetails, start: Date) => {
   const end = new Date(start);
@@ -166,7 +172,7 @@ export const getPlanCheckoutDisclosure = (
         : 'One-time credit add-on',
   creditValidity:
     plan.billingMonths === 12
-      ? 'Credits expire at the end of the 12-month plan period.'
+      ? 'Credits are allocated monthly and expire at the next monthly allocation.'
       : plan.isSubscription
         ? 'Credits expire at the end of the 1-month plan period.'
         : 'Add-on credits do not expire under the current terms.',
@@ -261,7 +267,10 @@ export async function createCheckoutSession(params: {
       orderId,
       amountIdr,
       planId,
-      itemName: `${plan.name} - ${getPlanCreditsGranted(plan)} Editorial Credits`,
+      itemName:
+        plan.billingMonths === 12
+          ? `${plan.name} - ${plan.creditsPerMonth} Editorial Credits/month`
+          : `${plan.name} - ${getPlanCreditsGranted(plan)} Editorial Credits`,
       customerId: organizationId || userId,
       customerEmail: userEmail,
       customerName: userName,

@@ -1,7 +1,11 @@
 import React, { Suspense } from 'react';
 import { auth } from '@clerk/nextjs/server';
 import { getWorkspaceState, toClerkOrganizationContext } from '@/lib/user-workspace';
-import { PLANS, type CheckoutDisclosure, type PlanDetails } from '@eai/shared';
+import {
+  getPlanCheckoutDisclosureWithRate,
+  PLANS,
+  type CheckoutDisclosure,
+} from '@eai/shared';
 import PricingGrid from '@/components/PricingGrid';
 import { getAllFeatureFlags } from '@eai/shared/server';
 import { getApiUrl } from '@/lib/api-url';
@@ -33,37 +37,6 @@ export default async function PricingPage() {
   } catch (error) {
     console.error('Failed to sync rate from backend:', error);
   }
-
-  const getPlanCheckoutDisclosureWithRate = (
-    plan: PlanDetails,
-    rate: number
-  ): CheckoutDisclosure => {
-    const amountIdr = Math.round(plan.priceUsd * rate * 1.11);
-    const creditsGranted = plan.creditsPerMonth * Math.max(1, plan.billingMonths);
-    return {
-      planName: plan.name,
-      priceUsd: plan.priceUsd,
-      amountIdr,
-      usdToIdrRate: rate,
-      creditsGranted,
-      billingLabel:
-        plan.billingMonths === 12
-          ? '12-month prepaid plan'
-          : plan.isSubscription
-            ? '1-month prepaid plan'
-            : 'One-time credit add-on',
-      creditValidity:
-        plan.billingMonths === 12
-          ? 'Credits expire at the end of the 12-month plan period.'
-          : plan.isSubscription
-            ? 'Credits expire at the end of the 1-month plan period.'
-            : 'Add-on credits do not expire under the current terms.',
-      renewalLabel: plan.isSubscription
-        ? 'Manual renewal. Automatic recurring billing is not enabled.'
-        : 'One-time purchase. No recurring billing.',
-      taxLabel: 'Excludes 11% VAT (PPN), which is added to the final checkout amount. A detailed tax invoice will be issued upon successful payment.',
-    };
-  };
 
   const disclosures: Record<string, CheckoutDisclosure> = {};
   for (const planId of Object.keys(PLANS)) {

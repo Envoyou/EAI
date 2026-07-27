@@ -521,6 +521,7 @@ export const overrideOrganizationSubscription = async (
         status: 'active',
         currentPeriodStart,
         currentPeriodEnd,
+        lastCreditAllocation: plan.billingMonths === 12 ? now : null,
       },
     });
 
@@ -561,6 +562,10 @@ export const overrideOrganizationSubscription = async (
 
     // 3. Allocate new subscription credits
     const creditsToGrant = getPlanCreditsGranted(plan);
+    const allocationEnd = new Date(currentPeriodStart);
+    if (plan.billingMonths === 12) {
+      allocationEnd.setUTCMonth(allocationEnd.getUTCMonth() + 1);
+    }
     await tx.creditTransaction.create({
       data: {
         organizationId: input.organizationId,
@@ -578,8 +583,8 @@ export const overrideOrganizationSubscription = async (
         performedByUserId: actor.userId,
         performedByEmail: actor.email,
         periodStart: currentPeriodStart,
-        periodEnd: currentPeriodEnd,
-        expiresAt: currentPeriodEnd,
+        periodEnd: plan.billingMonths === 12 ? allocationEnd : currentPeriodEnd,
+        expiresAt: plan.billingMonths === 12 ? allocationEnd : currentPeriodEnd,
       },
     });
 

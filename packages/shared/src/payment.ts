@@ -124,8 +124,14 @@ export const getPaymentTaxLabel = () =>
 export const getPlanAmountIdr = (plan: PlanDetails) =>
   Math.round(plan.priceUsd * getPaymentUsdToIdrRate() * 1.11);
 
+/**
+ * Credits granted when a plan starts or renews.
+ *
+ * Yearly plans are prepaid for 12 months but allocate credits one month at a
+ * time. `billingMonths` controls the subscription term, not the initial grant.
+ */
 export const getPlanCreditsGranted = (plan: PlanDetails) =>
-  plan.creditsPerMonth * Math.max(1, plan.billingMonths);
+  plan.creditsPerMonth;
 
 export const getPlanPeriodEnd = (plan: PlanDetails, start: Date) => {
   const end = new Date(start);
@@ -133,13 +139,15 @@ export const getPlanPeriodEnd = (plan: PlanDetails, start: Date) => {
   return end;
 };
 
-export const getPlanCheckoutDisclosure = (
-  plan: PlanDetails
+export const getPlanCheckoutDisclosureWithRate = (
+  plan: PlanDetails,
+  usdToIdrRate: number,
+  taxLabel = getPaymentTaxLabel()
 ): CheckoutDisclosure => ({
   planName: plan.name,
   priceUsd: plan.priceUsd,
-  amountIdr: getPlanAmountIdr(plan),
-  usdToIdrRate: getPaymentUsdToIdrRate(),
+  amountIdr: Math.round(plan.priceUsd * usdToIdrRate * 1.11),
+  usdToIdrRate,
   creditsGranted: getPlanCreditsGranted(plan),
   billingLabel:
     plan.billingMonths === 12
@@ -149,15 +157,24 @@ export const getPlanCheckoutDisclosure = (
         : 'One-time credit add-on',
   creditValidity:
     plan.billingMonths === 12
-      ? 'Credits expire at the end of the 12-month plan period.'
+      ? 'Credits are allocated monthly and expire at the next monthly allocation.'
       : plan.isSubscription
         ? 'Credits expire at the end of the 1-month plan period.'
         : 'Add-on credits do not expire under the current terms.',
   renewalLabel: plan.isSubscription
     ? 'Manual renewal. Automatic recurring billing is not enabled.'
     : 'One-time purchase. No recurring billing.',
-  taxLabel: getPaymentTaxLabel(),
+  taxLabel,
 });
+
+export const getPlanCheckoutDisclosure = (
+  plan: PlanDetails
+): CheckoutDisclosure =>
+  getPlanCheckoutDisclosureWithRate(
+    plan,
+    getPaymentUsdToIdrRate(),
+    getPaymentTaxLabel()
+  );
 
 export const getFriendlyInvoiceNumber = (orderId: string, createdAt: Date | string) => {
   const year = new Date(createdAt).getFullYear();
