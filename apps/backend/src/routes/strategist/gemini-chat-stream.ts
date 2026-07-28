@@ -37,6 +37,16 @@ export class GeminiInteractionStreamError extends Error {
   }
 }
 
+export function requireStrategistStreamOutput(text: string): string {
+  if (!text.trim()) {
+    throw new GeminiInteractionStreamError(
+      'Gemini returned an empty strategist response',
+      'UNAVAILABLE'
+    );
+  }
+  return text;
+}
+
 export function readStrategistStreamFailure(
   rawEvent: unknown
 ): GeminiInteractionStreamError | null {

@@ -42,6 +42,7 @@ import {
   buildStrategistChatGenerationConfig,
   readStrategistThinkingEvent,
   readStrategistStreamFailure,
+  requireStrategistStreamOutput,
   type GeminiInteractionStreamEvent,
 } from '../gemini-chat-stream';
 import { classifyStrategistChatFailure } from '../chat-request-lifecycle';
@@ -746,7 +747,7 @@ router.post(
           }
 
           return {
-            finalOutputText: attemptOutputText,
+            finalOutputText: requireStrategistStreamOutput(attemptOutputText),
             globalAnnotations: attemptAnnotations,
           };
         }, { signal: requestAbort.signal });
@@ -832,10 +833,6 @@ router.post(
         const outputToSend = finalOutputTextProcessed
           .replace(/\s*\[\s*$/g, '')
           .trim();
-
-        if (!outputToSend) {
-          throw new Error('Gemini returned an empty strategist response');
-        }
 
         if (dbSessionId) {
           const responsePayload = StrategistChatResultSchema.parse({

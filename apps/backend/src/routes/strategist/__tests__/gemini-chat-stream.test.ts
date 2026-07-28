@@ -3,6 +3,7 @@ import {
   buildStrategistChatGenerationConfig,
   readStrategistThinkingEvent,
   readStrategistStreamFailure,
+  requireStrategistStreamOutput,
 } from '../gemini-chat-stream';
 
 describe('Gemini Strategist chat stream adapter', () => {
@@ -94,5 +95,21 @@ describe('Gemini Strategist chat stream adapter', () => {
       event_type: 'interaction.completed',
       interaction: { status: 'incomplete' },
     })).toBeNull();
+  });
+
+  test('marks an empty completed stream as retryable provider unavailability', () => {
+    expect(() => requireStrategistStreamOutput(' \n ')).toThrow(
+      expect.objectContaining({
+        name: 'GeminiInteractionStreamError',
+        code: 'UNAVAILABLE',
+        message: 'Gemini returned an empty strategist response',
+      })
+    );
+  });
+
+  test('preserves non-empty stream output', () => {
+    expect(requireStrategistStreamOutput('Completed response')).toBe(
+      'Completed response'
+    );
   });
 });
