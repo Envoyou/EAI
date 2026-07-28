@@ -40,6 +40,7 @@ import {
 import { bindResponseAbort } from '@/lib/request-abort';
 import {
   buildStrategistChatGenerationConfig,
+  isEmptyStrategistStreamError,
   readStrategistThinkingEvent,
   readStrategistStreamFailure,
   requireStrategistStreamOutput,
@@ -681,8 +682,14 @@ router.post(
         finalFastModeInstruction += `\n\n${DOCUMENT_MODE_OVERRIDE}`;
       }
 
-      const { finalOutputText, globalAnnotations } =
-        await withGeminiFlexRetry(async () => {
+      let lastStreamDiagnostic: {
+        eventTypes: Record<string, number>;
+        deltaTypes: Record<string, number>;
+        terminalStatus?: string;
+      } | null = null;
+
+      const runFastStream = () =>
+        withGeminiFlexRetry(async () => {
           const stream = await gemini.interactions.create({
             model: MODEL,
             input: contextPrompt,
@@ -700,6 +707,9 @@ router.post(
 
           let attemptOutputText = '';
           const attemptAnnotations: GroundingAnnotation[] = [];
+          const eventTypes: Record<string, number> = {};
+          const deltaTypes: Record<string, number> = {};
+          let terminalStatus: string | undefined;
 
           for await (const rawEvent of stream) {
             if (requestAbort.isDisconnected()) break;
@@ -707,6 +717,15 @@ router.post(
             if (streamFailure) throw streamFailure;
 
             const event = rawEvent as unknown as GeminiInteractionStreamEvent;
+            const eventType = event.event_type || 'unknown';
+            eventTypes[eventType] = (eventTypes[eventType] || 0) + 1;
+            if (event.delta?.type) {
+              deltaTypes[event.delta.type] =
+                (deltaTypes[event.delta.type] || 0) + 1;
+            }
+            terminalStatus =
+              event.interaction?.status || event.status || terminalStatus;
+
             if (
               (
                 event.event_type === 'step.delta' ||
@@ -746,11 +765,57 @@ router.post(
             }
           }
 
+          lastStreamDiagnostic = {
+            eventTypes,
+            deltaTypes,
+            terminalStatus,
+          };
+
           return {
             finalOutputText: requireStrategistStreamOutput(attemptOutputText),
             globalAnnotations: attemptAnnotations,
           };
         }, { signal: requestAbort.signal });
+
+      let finalOutputText: string;
+      let globalAnnotations: GroundingAnnotation[];
+      try {
+        ({ finalOutputText, globalAnnotations } = await runFastStream());
+      } catch (error) {
+        if (!isEmptyStrategistStreamError(error)) throw error;
+
+        console.warn('[STRATEGIST_EMPTY_STREAM]', {
+          model: MODEL,
+          searchEnabled: isSearchEnabled,
+          diagnostic: lastStreamDiagnostic,
+          fallback: 'non_streaming_low_thinking',
+        });
+
+        const fallbackInteraction = await withGeminiFlexRetry(() =>
+          gemini.interactions.create({
+            model: MODEL,
+            input: contextPrompt,
+            system_instruction: finalFastModeInstruction,
+            tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()
+              ? [{ type: 'google_search' }]
+              : undefined,
+            generation_config: {
+              ...buildStrategistChatGenerationConfig(
+                FAST_MODE_MAX_OUTPUT_TOKENS,
+                false
+              ),
+              thinking_summaries: 'none' as const,
+            },
+            ...getGeminiInteractionConfig(),
+          }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
+          { signal: requestAbort.signal }
+        );
+
+        finalOutputText = requireStrategistStreamOutput(
+          fallbackInteraction.output_text || ''
+        );
+        globalAnnotations = [];
+      }
 
       if (!requestAbort.isDisconnected()) {
         if (requiredCredits > 0 && req.auth && req.auth.userId) {

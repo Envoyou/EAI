@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import {
   buildStrategistChatGenerationConfig,
+  GeminiInteractionStreamError,
+  isEmptyStrategistStreamError,
   readStrategistThinkingEvent,
   readStrategistStreamFailure,
   requireStrategistStreamOutput,
@@ -111,5 +113,18 @@ describe('Gemini Strategist chat stream adapter', () => {
     expect(requireStrategistStreamOutput('Completed response')).toBe(
       'Completed response'
     );
+  });
+
+  test('identifies only the empty-stream failure for fallback handling', () => {
+    expect(isEmptyStrategistStreamError(
+      new GeminiInteractionStreamError(
+        'Gemini returned an empty strategist response',
+        'UNAVAILABLE'
+      )
+    )).toBe(true);
+    expect(isEmptyStrategistStreamError(
+      new GeminiInteractionStreamError('Other provider failure', 'UNAVAILABLE')
+    )).toBe(false);
+    expect(isEmptyStrategistStreamError(new Error('Other failure'))).toBe(false);
   });
 });

@@ -5,6 +5,7 @@ import type {
 
 type GeminiInteractionStreamEvent = {
   event_type?: string;
+  status?: string;
   error?: {
     code?: string;
     message?: string;
@@ -35,6 +36,15 @@ export class GeminiInteractionStreamError extends Error {
     this.name = 'GeminiInteractionStreamError';
     this.code = code;
   }
+}
+
+export function isEmptyStrategistStreamError(
+  error: unknown
+): error is GeminiInteractionStreamError {
+  return (
+    error instanceof GeminiInteractionStreamError &&
+    error.message === 'Gemini returned an empty strategist response'
+  );
 }
 
 export function requireStrategistStreamOutput(text: string): string {

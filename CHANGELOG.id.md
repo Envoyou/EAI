@@ -27,6 +27,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Mengembalikan ulang respons yang sudah committed ketika UUID request chat yang sama diterima dan merekonsiliasi respons hilang dari frontend tanpa pemanggilan AI kedua.
   - Mencegah pemotongan kredit ganda pada retry request Fast Chat yang sama.
   - Meneruskan kegagalan dari event error/completion SSE Gemini dan stream selesai tanpa teks ke kebijakan retry Flex yang sudah ada, termasuk kegagalan setelah stream terbuka, serta mempertahankan kategori error provider yang aman untuk proses recovery.
+  - Menambahkan fallback non-streaming dengan thinking rendah secara terbatas ketika Gemini menyelesaikan stream Fast Chat tanpa teks jawaban, beserta diagnostik event terminal yang tidak menyimpan prompt maupun konten hasil generasi.
   - Mengganti alur exception unique constraint pada claim request blueprint dengan `createMany({ skipDuplicates: true })`, sehingga log Prisma `P2002` yang menyesatkan tidak lagi muncul.
 
 ## [3.17.0] - 2026-07-26

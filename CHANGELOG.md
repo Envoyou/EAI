@@ -27,6 +27,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Replayed an already committed response when the same chat request UUID is received again and reconciled lost responses from the frontend without another AI call.
   - Prevented duplicate credit deductions for retries of the same Fast Chat request.
   - Propagated Gemini SSE error/completion failures and empty completed streams through the existing Flex retry policy, including failures raised after the stream was opened, and preserved safe provider-specific failure categories for recovery.
+  - Added a bounded non-streaming, low-thinking fallback when Gemini completes a Fast Chat stream without any answer text, plus sanitized terminal event diagnostics that exclude prompts and generated content.
   - Replaced the blueprint request's expected unique-constraint exception flow with conflict-free `createMany({ skipDuplicates: true })` claiming, eliminating misleading Prisma `P2002` error logs.
 
 ## [3.17.0] - 2026-07-26
