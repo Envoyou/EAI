@@ -54,11 +54,20 @@ export async function deductCredits(
   amount: number,
   type: CreditTransactionType,
   description: string,
-  analysisLogId?: string
+  analysisLogId?: string,
+  idempotencyKey?: string
 ): Promise<void> {
   if (amount <= 0) return;
 
   await runSerializableTransaction(async (tx) => {
+    if (idempotencyKey) {
+      const existingTransaction = await tx.creditTransaction.findUnique({
+        where: { idempotencyKey },
+        select: { id: true },
+      });
+      if (existingTransaction) return;
+    }
+
     // 1. Check active subscription
     const activeSub = await tx.subscription.findFirst({
       where: {
@@ -106,6 +115,7 @@ export async function deductCredits(
         bucket: chosenBucket,
         amount: -amount,
         analysisLogId,
+        idempotencyKey,
         description,
       },
     });

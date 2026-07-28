@@ -24,6 +24,7 @@ import { resolveGroundingUrl } from '../utils/grounding';
 import type { GroundingAnnotation, UniqueSource } from '../types';
 import {
   ChatInputSchema,
+  StrategistChatResultSchema,
   StrategistCancelRequestSchema,
   StrategistCancelResponseSchema,
   StrategistStatusResponseSchema,
@@ -42,6 +43,8 @@ import {
   readStrategistThinkingEvent,
   type GeminiInteractionStreamEvent,
 } from '../gemini-chat-stream';
+import { classifyStrategistChatFailure } from '../chat-request-lifecycle';
+import { Prisma } from '@prisma/client';
 
 const router = Router();
 
@@ -205,6 +208,50 @@ router.post('/chat/status/:id/cancel', softAuth, async (req: Request, res: Respo
   }
 });
 
+// GET /api/strategist/chat/request/:requestId
+router.get('/chat/request/:requestId', softAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.auth?.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const chatRequest = await prisma.strategistChatRequest.findUnique({
+      where: { id: req.params.requestId },
+    });
+    if (!chatRequest || chatRequest.userId !== req.auth.userId) {
+      return res.status(404).json({ error: 'Chat request not found' });
+    }
+
+    if (chatRequest.status === 'completed' && chatRequest.response) {
+      const parsedResult = StrategistChatResultSchema.safeParse(
+        chatRequest.response
+      );
+      if (parsedResult.success) {
+        return res.json({
+          status: 'completed',
+          result: parsedResult.data,
+        });
+      }
+    }
+
+    return res.json({
+      status: chatRequest.status,
+      error:
+        chatRequest.status === 'failed'
+          ? {
+              code: chatRequest.errorCode || 'CHAT_FAILED',
+              message:
+                chatRequest.errorMessage ||
+                'The strategist could not complete this response.',
+            }
+          : null,
+    });
+  } catch (error) {
+    console.error('Error fetching strategist chat request:', error);
+    return res.status(500).json({ error: 'Failed to fetch chat request status' });
+  }
+});
+
 // POST /api/strategist/chat
 router.post(
   '/chat',
@@ -218,6 +265,9 @@ router.post(
   async (req: Request, res: Response) => {
     const requestAbort = bindResponseAbort(res, 'Strategist chat');
     let heartbeatInterval: NodeJS.Timeout | undefined;
+    let chatRequestClaimed = false;
+    let chatRequestCompleted = false;
+    let claimedRequestId: string | null = null;
     try {
       const parsedInput = ChatInputSchema.safeParse(req.body);
       if (!parsedInput.success) {
@@ -227,6 +277,7 @@ router.post(
         });
       }
       const {
+        requestId: clientRequestId,
         messages,
         mode,
         notesSummary,
@@ -235,6 +286,8 @@ router.post(
         activeHistoryId,
         sessionId,
       } = parsedInput.data;
+      const requestId = clientRequestId ?? crypto.randomUUID();
+      claimedRequestId = requestId;
       const chatInput = messages[messages.length - 1]?.content || '';
 
       if (req.auth?.userId && sessionId && sessionId !== 'new') {
@@ -244,6 +297,91 @@ router.post(
         });
         if (!ownedSession) {
           return res.status(404).json({ error: 'Chat session not found' });
+        }
+      }
+
+      let recoveredSessionId: string | undefined;
+      if (req.auth?.userId && mode !== 'deep') {
+        const claim = await prisma.strategistChatRequest.createMany({
+          data: [{
+            id: requestId,
+            userId: req.auth.userId,
+            sessionId:
+              sessionId && sessionId !== 'new' ? sessionId : undefined,
+          }],
+          skipDuplicates: true,
+        });
+
+        if (claim.count === 1) {
+          chatRequestClaimed = true;
+        } else {
+          const existingRequest =
+            await prisma.strategistChatRequest.findUnique({
+              where: { id: requestId },
+            });
+          if (!existingRequest || existingRequest.userId !== req.auth.userId) {
+            return res.status(409).json({ error: 'Chat request conflict' });
+          }
+
+          if (
+            existingRequest.status === 'completed' &&
+            existingRequest.response
+          ) {
+            const replay = StrategistChatResultSchema.safeParse(
+              existingRequest.response
+            );
+            if (!replay.success) {
+              throw new Error('Stored strategist chat response is invalid');
+            }
+            setStrategistSseHeaders(res);
+            writeStrategistSseEvent(res, {
+              type: 'session_init',
+              sessionId: replay.data.sessionId,
+            });
+            if (replay.data.text) {
+              writeStrategistSseEvent(res, {
+                type: 'replace_text',
+                text: replay.data.text,
+              });
+            }
+            if (replay.data.sources.length > 0) {
+              writeStrategistSseEvent(res, {
+                type: 'sources',
+                sources: replay.data.sources,
+              });
+            }
+            writeStrategistSseEvent(res, { type: 'done' });
+            return res.end();
+          }
+
+          if (existingRequest.status === 'pending') {
+            return res.status(202).json({
+              status: 'pending',
+              requestId,
+            });
+          }
+
+          const reclaimed = await prisma.strategistChatRequest.updateMany({
+            where: {
+              id: requestId,
+              userId: req.auth.userId,
+              status: 'failed',
+            },
+            data: {
+              status: 'pending',
+              response: Prisma.DbNull,
+              errorCode: null,
+              errorMessage: null,
+            },
+          });
+          if (reclaimed.count === 0) {
+            return res.status(202).json({
+              status: 'pending',
+              requestId,
+            });
+          }
+          recoveredSessionId = existingRequest.sessionId ?? undefined;
+          chatRequestClaimed = true;
         }
       }
 
@@ -321,7 +459,9 @@ router.post(
         }
       }
 
-      let dbSessionId = req.auth?.userId ? sessionId : undefined;
+      let dbSessionId = req.auth?.userId
+        ? recoveredSessionId ?? sessionId
+        : undefined;
       if (req.auth && req.auth.userId) {
         if (!dbSessionId || dbSessionId === 'new') {
           const firstMsg = chatInput.slice(0, 40).trim() || 'Percakapan Baru';
@@ -340,10 +480,17 @@ router.post(
               },
             });
             dbSessionId = newSession.id;
+            if (mode !== 'deep') {
+              await prisma.strategistChatRequest.update({
+                where: { id: requestId },
+                data: { sessionId: dbSessionId },
+              });
+            }
           } catch (dbErr) {
+            if (mode !== 'deep') throw dbErr;
             console.error('[CHAT_DB_ERROR] Failed to create chat session:', dbErr);
           }
-        } else {
+        } else if (mode === 'deep') {
           try {
             await prisma.chatSession.update({
               where: { id: dbSessionId },
@@ -357,19 +504,23 @@ router.post(
           }
         }
 
-        if (dbSessionId) {
-          try {
-            await prisma.chatMessage.create({
-              data: {
-                sessionId: dbSessionId,
-                role: 'user',
-                type: 'text',
-                content: chatInput,
-              },
-            });
-          } catch (dbErr) {
-            console.error('[CHAT_DB_ERROR] Failed to save user message:', dbErr);
-          }
+      }
+
+      if (mode === 'deep' && dbSessionId) {
+        try {
+          await prisma.chatMessage.create({
+            data: {
+              sessionId: dbSessionId,
+              role: 'user',
+              type: 'text',
+              content: chatInput,
+            },
+          });
+        } catch (dbErr) {
+          console.error(
+            '[CHAT_DB_ERROR] Failed to save Deep Research user message:',
+            dbErr
+          );
         }
       }
 
@@ -572,6 +723,7 @@ router.post(
             Array.isArray(event.delta.annotations)
           ) {
             for (const annotation of event.delta.annotations) {
+              if (typeof annotation.type !== 'string') continue;
               globalAnnotations.push({
                 type: annotation.type,
                 url: annotation.url,
@@ -597,7 +749,8 @@ router.post(
               requiredCredits,
               'copilot_chat',
               `Fast Chat with Search (Query: ${chatInput.slice(0, 60)})`,
-              activeHistoryId || undefined
+              activeHistoryId || undefined,
+              `strategist-chat:${requestId}`
             );
           } catch (billErr) {
             console.error(
@@ -666,6 +819,57 @@ router.post(
           .replace(/\s*\[\s*$/g, '')
           .trim();
 
+        if (!outputToSend) {
+          throw new Error('Gemini returned an empty strategist response');
+        }
+
+        if (dbSessionId) {
+          const responsePayload = StrategistChatResultSchema.parse({
+            sessionId: dbSessionId,
+            text: outputToSend,
+            sources: uniqueSourcesData,
+          });
+          await prisma.$transaction([
+            prisma.chatSession.update({
+              where: { id: dbSessionId },
+              data: { updatedAt: new Date() },
+            }),
+            prisma.chatMessage.create({
+              data: {
+                sessionId: dbSessionId,
+                role: 'user',
+                type: 'text',
+                content: chatInput,
+              },
+            }),
+            prisma.chatMessage.create({
+              data: {
+                sessionId: dbSessionId,
+                role: 'assistant',
+                type: 'text',
+                content: outputToSend,
+                payload:
+                  uniqueSourcesData.length > 0
+                    ? JSON.parse(
+                        JSON.stringify({ sources: uniqueSourcesData })
+                      ) as Prisma.InputJsonValue
+                    : undefined,
+              },
+            }),
+            prisma.strategistChatRequest.update({
+              where: { id: requestId },
+              data: {
+                sessionId: dbSessionId,
+                status: 'completed',
+                response: responsePayload as Prisma.InputJsonValue,
+                errorCode: null,
+                errorMessage: null,
+              },
+            }),
+          ]);
+          chatRequestCompleted = true;
+        }
+
         if (outputToSend) {
           writeStrategistSseEvent(res, {
             type: 'replace_text',
@@ -679,44 +883,72 @@ router.post(
           });
         }
         writeStrategistSseEvent(res, { type: 'done' });
-
-        if (dbSessionId && outputToSend) {
-          try {
-            await prisma.chatMessage.create({
-              data: {
-                sessionId: dbSessionId,
-                role: 'assistant',
-                type: 'text',
-                content: outputToSend,
-                payload:
-                  uniqueSourcesData.length > 0
-                    ? JSON.parse(JSON.stringify({ sources: uniqueSourcesData }))
-                    : undefined,
-              },
-            });
-          } catch (dbErr) {
-            console.error(
-              '[CHAT_DB_ERROR] Failed to save assistant message:',
-              dbErr
-            );
-          }
-        }
       }
 
       res.end();
     } catch (error) {
+      const failure = requestAbort.signal.aborted
+        ? {
+            code: 'REQUEST_CANCELLED' as const,
+            message: 'Chat request was cancelled.',
+          }
+        : classifyStrategistChatFailure(error);
+      if (chatRequestClaimed && !chatRequestCompleted && claimedRequestId) {
+        await prisma.strategistChatRequest
+          .updateMany({
+            where: {
+              id: claimedRequestId,
+              status: 'pending',
+            },
+            data: {
+              status: 'failed',
+              errorCode: failure.code,
+              errorMessage: failure.message,
+            },
+          })
+          .catch((requestError) => {
+            console.error(
+              '[STRATEGIST_CHAT_REQUEST_ERROR] Failed to record chat failure:',
+              requestError
+            );
+          });
+      }
       if (requestAbort.signal.aborted) return;
       console.error('Error in chat stream:', error);
       if (!res.headersSent) {
-        res.status(500).json({ error: 'Failed to chat' });
+        res.status(502).json({
+          error: failure.message,
+          code: failure.code,
+        });
       } else {
         writeStrategistSseEvent(res, {
           type: 'error',
-          message: 'Stream failed',
+          code: failure.code,
+          message: failure.message,
         });
         res.end();
       }
     } finally {
+      if (chatRequestClaimed && !chatRequestCompleted && claimedRequestId) {
+        await prisma.strategistChatRequest
+          .updateMany({
+            where: {
+              id: claimedRequestId,
+              status: 'pending',
+            },
+            data: {
+              status: 'failed',
+              errorCode: 'REQUEST_CANCELLED',
+              errorMessage: 'Chat request was cancelled.',
+            },
+          })
+          .catch((requestError) => {
+            console.error(
+              '[STRATEGIST_CHAT_REQUEST_ERROR] Failed to close pending chat request:',
+              requestError
+            );
+          });
+      }
       requestAbort.dispose();
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);

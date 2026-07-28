@@ -13,6 +13,7 @@ vi.mock('../db', () => ({
       findFirst: vi.fn(),
     },
     creditTransaction: {
+      findUnique: vi.fn(),
       groupBy: vi.fn(),
       create: vi.fn(),
     },
@@ -107,6 +108,25 @@ describe('chat-billing service', () => {
           creditsConsumed: 2,
         }),
       });
+    });
+
+    test('does not deduct credits twice for the same idempotency key', async () => {
+      vi.mocked(prisma.creditTransaction.findUnique).mockResolvedValue({
+        id: 'existing_transaction',
+      } as never);
+
+      await deductCredits(
+        'user_123',
+        null,
+        1,
+        'copilot_chat',
+        'Retry',
+        undefined,
+        'strategist-chat:request-1'
+      );
+
+      expect(prisma.creditTransaction.create).not.toHaveBeenCalled();
+      expect(prisma.creditUsage.create).not.toHaveBeenCalled();
     });
 
     test('should reject instead of creating a negative balance', async () => {

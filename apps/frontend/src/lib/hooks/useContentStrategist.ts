@@ -27,6 +27,7 @@ import {
   recoverStrategistPlanResult,
   type StrategistPlanResult,
 } from '@/lib/strategist-plan-request';
+import { recoverStrategistChatRequest } from '@/lib/strategist-chat-request';
 
 export type SignalData = {
   topic: string;
@@ -828,6 +829,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       : undefined;
 
     const assistantMsgId = generateId();
+    const chatRequestId = crypto.randomUUID();
     setMessages(prev => [...prev, {
       id: assistantMsgId,
       role: 'assistant',
@@ -851,11 +853,13 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
+          requestId: chatRequestId,
           messages: messagesBefore,
           mode: researchMode,
           notesSummary,
           attachments: uploadedAttachment ? [uploadedAttachment] : [],
-          enableSearch
+          enableSearch,
+          sessionId: currentSessionId,
         }),
       });
 
@@ -871,6 +875,9 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           }
         }
         throw new Error(await getResponseErrorMessage(res, `Strategist request failed (${res.status})`));
+      }
+      if (res.status === 202) {
+        throw new Error('Strategist request is still processing');
       }
 
       if (!res.body) throw new Error('No body');
@@ -906,7 +913,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
               }
               try {
                 const data = JSON.parse(dataStr);
-                if (data.type === 'deep_research_started') {
+                if (data.type === 'session_init') {
+                  setCurrentSessionId(data.sessionId);
+                  loadSessions();
+                } else if (data.type === 'deep_research_started') {
                   deepResearchStarted = true;
                   deepResearchMessageIdRef.current = assistantMsgId;
                   deepResearchCancelTokenRef.current = typeof data.cancel_token === 'string'
@@ -1000,7 +1010,42 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         }));
         return;
       }
-      const message = error instanceof Error ? error.message : 'Failed to rewrite message';
+      const recovery = await recoverStrategistChatRequest(
+        directFetch,
+        chatRequestId,
+        { signal: controller.signal }
+      );
+      if (controller.signal.aborted) {
+        setMessages(prev => prev.filter(message => message.id !== assistantMsgId));
+        return;
+      }
+      if (recovery?.status === 'completed') {
+        setCurrentSessionId(recovery.result.sessionId);
+        loadSessions();
+        const { displayContent, suggestions } = extractDynamicSuggestions(
+          recovery.result.text
+        );
+        setMessages(prev => prev.map(item => item.id === assistantMsgId
+          ? {
+              ...item,
+              content: displayContent,
+              payload: {
+                ...item.payload,
+                status: undefined,
+                lifecycle: 'success',
+                suggestions,
+                sources: recovery.result.sources,
+              },
+            }
+          : item));
+        fetchCredits();
+        return;
+      }
+      const message = recovery?.status === 'failed'
+        ? recovery.error.message
+        : error instanceof Error
+          ? error.message
+          : 'Failed to rewrite message';
       toast.error(message);
       setMessages(prev => prev.map(m => m.id === assistantMsgId
         ? {
@@ -1013,7 +1058,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       setIsTyping(false);
       chatAbortControllerRef.current = null;
     }
-  }, [messages, savedNotes, researchMode, uploadedAttachment, enableSearch, fetchCredits]);
+  }, [messages, savedNotes, researchMode, uploadedAttachment, enableSearch, fetchCredits, currentSessionId, directFetch, loadSessions, setCurrentSessionId, setMessages]);
 
   const submitQuickDraft = useCallback(async () => {
     if (!quickDraftTopic.trim() || isGeneratingQuickDraft || !quickDraftMode) return;
@@ -1292,6 +1337,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       : undefined;
 
     const assistantMsgId = generateId();
+    const chatRequestId = crypto.randomUUID();
     setMessages(prev => [...prev, {
       id: assistantMsgId,
       role: 'assistant',
@@ -1330,6 +1376,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
+          requestId: chatRequestId,
           messages: updatedMessages,
           mode: researchMode,
           notesSummary,
@@ -1353,6 +1400,9 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           }
         }
         throw new Error(await getResponseErrorMessage(res, `Strategist request failed (${res.status})`));
+      }
+      if (res.status === 202) {
+        throw new Error('Strategist request is still processing');
       }
       if (!res.body) throw new Error('No body');
 
@@ -1484,7 +1534,43 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         }));
         return;
       }
-      const message = error instanceof Error ? error.message : 'Failed to send message';
+      const recovery = await recoverStrategistChatRequest(
+        directFetch,
+        chatRequestId,
+        { signal: controller.signal }
+      );
+      if (controller.signal.aborted) {
+        setMessages(prev => prev.filter(message => message.id !== assistantMsgId));
+        return;
+      }
+      if (recovery?.status === 'completed') {
+        setCurrentSessionId(recovery.result.sessionId);
+        loadSessions();
+        const { displayContent, suggestions } = extractDynamicSuggestions(
+          recovery.result.text
+        );
+        setMessages(prev => prev.map(item => item.id === assistantMsgId
+          ? {
+              ...item,
+              content: displayContent,
+              payload: {
+                ...item.payload,
+                status: undefined,
+                lifecycle: 'success',
+                suggestions,
+                sources: recovery.result.sources,
+              },
+            }
+          : item));
+        fetchCredits();
+        return;
+      }
+
+      const message = recovery?.status === 'failed'
+        ? recovery.error.message
+        : error instanceof Error
+          ? error.message
+          : 'Failed to send message';
       toast.error(message);
       setMessages(prev => prev.map(item => item.id === assistantMsgId
         ? {

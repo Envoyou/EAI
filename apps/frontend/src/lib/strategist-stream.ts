@@ -5,6 +5,7 @@ export type StrategistStreamEvent = {
   text?: string;
   message?: string;
   error?: string;
+  code?: string;
   data?: unknown;
   [key: string]: unknown;
 };

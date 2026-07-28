@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { ArticleMetadata } from '@eai/shared';
 
 export const ChatInputSchema = z.object({
+  requestId: z.uuid().optional(),
   messages: z
     .array(
       z.object({

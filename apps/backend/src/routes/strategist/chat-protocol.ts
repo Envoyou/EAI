@@ -47,6 +47,7 @@ export const StrategistSseEventSchema = z.union([
       type: z.literal('error'),
       error: z.string().optional(),
       message: z.string().optional(),
+      code: z.string().optional(),
     })
     .refine((event) => Boolean(event.error || event.message), {
       message: 'An error event must include error or message',
@@ -54,6 +55,14 @@ export const StrategistSseEventSchema = z.union([
 ]);
 
 export type StrategistSseEvent = z.infer<typeof StrategistSseEventSchema>;
+
+export const StrategistChatResultSchema = z.object({
+  sessionId: z.string(),
+  text: z.string(),
+  sources: z.array(StrategistSourceSchema),
+});
+
+export type StrategistChatResult = z.infer<typeof StrategistChatResultSchema>;
 
 export const StrategistStatusResponseSchema = z.object({
   state: z.string(),

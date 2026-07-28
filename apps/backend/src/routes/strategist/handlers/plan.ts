@@ -112,24 +112,18 @@ router.post(
       }
 
       if (req.auth?.userId) {
-        try {
-          await prisma.strategistPlanRequest.create({
-            data: {
+        const claim = await prisma.strategistPlanRequest.createMany({
+          data: [{
               id: requestId,
               userId: req.auth.userId,
               sessionId:
                 sessionId && sessionId !== 'new' ? sessionId : undefined,
-            },
-          });
+          }],
+          skipDuplicates: true,
+        });
+        if (claim.count === 1) {
           planRequestClaimed = true;
-        } catch (error) {
-          if (
-            !(error instanceof Prisma.PrismaClientKnownRequestError) ||
-            error.code !== 'P2002'
-          ) {
-            throw error;
-          }
-
+        } else {
           const existingRequest =
             await prisma.strategistPlanRequest.findUnique({
               where: { id: requestId },
@@ -697,7 +691,7 @@ router.post(
               data: {
                 sessionId: dbSessionId,
                 status: 'completed',
-                response: responsePayload as Prisma.InputJsonValue,
+                response: responsePayload as unknown as Prisma.InputJsonValue,
                 error: null,
               },
             }),

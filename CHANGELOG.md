@@ -11,6 +11,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added a client-generated UUID to each blueprint generation request and a persisted `StrategistPlanRequest` lifecycle (`pending`, `completed`, or `failed`).
   - Added an authenticated blueprint request-status endpoint so the frontend can reconcile an ambiguous network outcome without starting another AI generation.
   - Added migration `20260728090000_add_strategist_plan_idempotency`, applied to the production Neon database on July 28, 2026.
+- **Fast Chat Request Lifecycle and Recovery**:
+  - Added UUID-based Fast Chat request claims with persisted `pending`, `completed`, and `failed` states plus an authenticated recovery endpoint.
+  - Added safe provider failure codes for rate limits, temporary unavailability, timeouts, cancellation, and uncategorized chat failures without exposing raw provider payloads.
+  - Added migration `20260729010000_add_strategist_chat_lifecycle`, applied to the production Neon database on July 29, 2026.
 
 ### Fixed
 - **False Blueprint Failure and Duplicate Generation**:
@@ -18,6 +22,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Made repeated submissions with the same request UUID replay the committed result or report the in-progress operation instead of generating and storing a duplicate blueprint.
   - Persisted the user message, assistant blueprint, and completed request result in one database transaction so chat history and request status cannot diverge.
   - Preserved rolling-deployment compatibility by generating a server-side UUID for older frontend bundles that do not yet send a request ID.
+- **Orphaned Strategist Messages After Failed AI Streams**:
+  - Deferred Fast Chat message persistence until AI generation succeeds, then committed the session timestamp, user message, assistant response, and completed request result atomically.
+  - Replayed an already committed response when the same chat request UUID is received again and reconciled lost responses from the frontend without another AI call.
+  - Prevented duplicate credit deductions for retries of the same Fast Chat request.
+  - Replaced the blueprint request's expected unique-constraint exception flow with conflict-free `createMany({ skipDuplicates: true })` claiming, eliminating misleading Prisma `P2002` error logs.
 
 ## [3.17.0] - 2026-07-26
 

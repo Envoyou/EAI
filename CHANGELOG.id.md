@@ -11,6 +11,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan UUID yang dibuat client pada setiap request generate blueprint serta lifecycle `StrategistPlanRequest` yang tersimpan (`pending`, `completed`, atau `failed`).
   - Menambahkan endpoint status request blueprint terautentikasi agar frontend dapat merekonsiliasi hasil jaringan yang tidak pasti tanpa memulai generasi AI kedua.
   - Menambahkan migration `20260728090000_add_strategist_plan_idempotency`, yang telah diterapkan ke database Neon production pada 28 Juli 2026.
+- **Lifecycle dan Pemulihan Request Fast Chat**:
+  - Menambahkan claim request Fast Chat berbasis UUID dengan status persisten `pending`, `completed`, dan `failed`, beserta endpoint pemulihan terautentikasi.
+  - Menambahkan kode kegagalan provider yang aman untuk rate limit, layanan tidak tersedia, timeout, pembatalan, dan kegagalan chat yang tidak terklasifikasi tanpa mengekspos payload mentah provider.
+  - Menambahkan migration `20260729010000_add_strategist_chat_lifecycle`, yang telah diterapkan ke database Neon production pada 29 Juli 2026.
 
 ### Fixed
 - **Notifikasi Gagal Palsu dan Duplikasi Generate Blueprint**:
@@ -18,6 +22,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Membuat pengiriman ulang dengan UUID request yang sama mengembalikan hasil yang sudah committed atau status operasi yang masih berjalan, bukan menghasilkan dan menyimpan blueprint duplikat.
   - Menyimpan pesan user, blueprint asisten, dan hasil request berstatus selesai dalam satu transaksi database agar riwayat chat dan status request tidak menyimpang.
   - Mempertahankan kompatibilitas rolling deployment dengan membuat UUID fallback di server untuk bundle frontend lama yang belum mengirim request ID.
+- **Pesan Strategist Yatim Setelah Stream AI Gagal**:
+  - Menunda penyimpanan pesan Fast Chat sampai generasi AI berhasil, lalu menyimpan timestamp sesi, pesan user, respons assistant, dan hasil request selesai dalam satu transaksi atomik.
+  - Mengembalikan ulang respons yang sudah committed ketika UUID request chat yang sama diterima dan merekonsiliasi respons hilang dari frontend tanpa pemanggilan AI kedua.
+  - Mencegah pemotongan kredit ganda pada retry request Fast Chat yang sama.
+  - Mengganti alur exception unique constraint pada claim request blueprint dengan `createMany({ skipDuplicates: true })`, sehingga log Prisma `P2002` yang menyesatkan tidak lagi muncul.
 
 ## [3.17.0] - 2026-07-26
 

@@ -374,6 +374,22 @@ model StrategistPlanRequest {
   @@index([createdAt])
 }
 
+model StrategistChatRequest {
+  id           String   @id
+  userId       String
+  sessionId    String?
+  status       String   @default("pending")
+  response     Json?
+  errorCode    String?
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
 model AuditLog {
   id          String   @id @default(cuid())
   action      String   // e.g. "feature_flag.update", "tenant.ai_config.update", "user.ban", "credit.adjust"
