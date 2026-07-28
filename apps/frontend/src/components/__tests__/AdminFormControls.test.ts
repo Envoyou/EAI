@@ -14,7 +14,9 @@ describe('admin form-control contract', () => {
   it('uses canonical inputs throughout AI Config', () => {
     expect(aiConfigSource).not.toMatch(/<input\b/);
     expect(aiConfigSource.match(/<Input\b/g)).toHaveLength(2);
-    expect(aiConfigSource.match(/variant="surface"/g)).toHaveLength(2);
+    expect(aiConfigSource).not.toMatch(/<select\b/);
+    expect(aiConfigSource.match(/<SelectTrigger\b/g)).toHaveLength(2);
+    expect(aiConfigSource.match(/variant="surface"/g)).toHaveLength(4);
     expect(aiConfigSource).not.toMatch(/ui-control|ui-input|ui-textarea|ui-select/);
   });
 

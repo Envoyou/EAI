@@ -1,35 +1,139 @@
+import {
+  AiRuntimeConfigSchema,
+  type AiFunctionKey,
+  type AiProviderModel,
+  type AiProviderName,
+  type AiRuntimeConfig,
+  isProviderAllowedForAiFunction,
+} from '@eai/shared';
 import { prisma } from '@/lib/db';
 import { redisConnection } from '@/lib/redis';
-import { AiProvider } from '@/lib/ai/provider-runtime';
 
-const CACHE_TTL_SECONDS = 3600; // 1 hour
+const CACHE_TTL_SECONDS = 3600;
 
-export interface AiConfig {
-  provider: AiProvider;
+export interface AiConfig extends AiRuntimeConfig {
+  /** Backward-compatible aliases consumed by legacy callers. */
+  provider: AiProviderName;
   modelOverride: string | null;
 }
+
+const getEnvironmentDefault = (): AiProviderModel => ({
+  provider: (
+    ['gemini', 'groq', 'openrouter'].includes(
+      process.env.ACTIVE_AI_PROVIDER || ''
+    )
+      ? process.env.ACTIVE_AI_PROVIDER
+      : 'gemini'
+  ) as AiProviderName,
+  model: null,
+});
+
+export const createDefaultAiRuntimeConfig = (): AiRuntimeConfig => ({
+  version: 1,
+  default: getEnvironmentDefault(),
+  functions: {},
+});
+
+export function parseStoredAiRuntimeConfig(
+  stored: string | null | undefined
+): AiRuntimeConfig {
+  const fallback = createDefaultAiRuntimeConfig();
+  if (!stored) return fallback;
+
+  if (stored.trim().startsWith('{')) {
+    try {
+      const parsed = AiRuntimeConfigSchema.safeParse(JSON.parse(stored));
+      if (parsed.success) return parsed.data;
+    } catch {
+      return fallback;
+    }
+    return fallback;
+  }
+
+  const separatorIndex = stored.indexOf(':');
+  const providerValue =
+    separatorIndex >= 0 ? stored.slice(0, separatorIndex) : stored;
+  const modelValue =
+    separatorIndex >= 0 ? stored.slice(separatorIndex + 1) : '';
+  const provider = (
+    ['gemini', 'groq', 'openrouter'].includes(providerValue)
+      ? providerValue
+      : fallback.default.provider
+  ) as AiProviderName;
+
+  return {
+    version: 1,
+    default: {
+      provider,
+      model: modelValue || null,
+    },
+    functions: {},
+  };
+}
+
+export const serializeAiRuntimeConfig = (config: AiRuntimeConfig): string =>
+  JSON.stringify(AiRuntimeConfigSchema.parse(config));
+
+const withLegacyAliases = (config: AiRuntimeConfig): AiConfig => ({
+  ...config,
+  provider: config.default.provider,
+  modelOverride: config.default.model,
+});
+
+const parseCachedConfig = (cached: string): AiConfig | null => {
+  try {
+    const value = JSON.parse(cached) as unknown;
+    const modern = AiRuntimeConfigSchema.safeParse(value);
+    if (modern.success) return withLegacyAliases(modern.data);
+
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      'provider' in value
+    ) {
+      const legacy = value as {
+        provider?: unknown;
+        modelOverride?: unknown;
+      };
+      if (
+        typeof legacy.provider === 'string' &&
+        ['gemini', 'groq', 'openrouter'].includes(legacy.provider)
+      ) {
+        return withLegacyAliases({
+          version: 1,
+          default: {
+            provider: legacy.provider as AiProviderName,
+            model:
+              typeof legacy.modelOverride === 'string'
+                ? legacy.modelOverride
+                : null,
+          },
+          functions: {},
+        });
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
 
 export const resolveActiveAiConfig = async (
   userId: string,
   organizationId?: string | null
 ): Promise<AiConfig> => {
-  const defaultProvider = (process.env.ACTIVE_AI_PROVIDER || 'gemini') as AiProvider;
-  
-  // Create a unique cache key based on org or user config
-  const cacheKey = organizationId 
-    ? `ai_config:org:${organizationId}` 
+  const cacheKey = organizationId
+    ? `ai_config:org:${organizationId}`
     : `ai_config:user:${userId}`;
 
   try {
-    // 1. Check Redis Cache
     const cachedConfig = await redisConnection.get(cacheKey);
     if (cachedConfig) {
-      return JSON.parse(cachedConfig) as AiConfig;
+      const parsed = parseCachedConfig(cachedConfig);
+      if (parsed) return parsed;
     }
 
-    // 2. Cache Miss: Query Database
     let providerOverride: string | null = null;
-
     if (organizationId) {
       const org = await prisma.organization.findUnique({
         where: { id: organizationId },
@@ -44,36 +148,50 @@ export const resolveActiveAiConfig = async (
       providerOverride = user?.aiProviderOverride || null;
     }
 
-    // 3. Resolve config
-    let provider: AiProvider = defaultProvider;
-    let modelOverride: string | null = null;
-
-    if (providerOverride) {
-      if (providerOverride.includes(':')) {
-        const parts = providerOverride.split(':');
-        provider = parts[0] as AiProvider;
-        modelOverride = parts[1] || null;
-      } else {
-        provider = providerOverride as AiProvider;
-      }
-    }
-
-    const config: AiConfig = { provider, modelOverride };
-
-    // 4. Save to Redis Cache
-    await redisConnection.setex(cacheKey, CACHE_TTL_SECONDS, JSON.stringify(config));
-
+    const config = withLegacyAliases(
+      parseStoredAiRuntimeConfig(providerOverride)
+    );
+    await redisConnection.setex(
+      cacheKey,
+      CACHE_TTL_SECONDS,
+      JSON.stringify(config)
+    );
     return config;
   } catch (error) {
     console.error('[AI Config Resolver] Error resolving AI config:', error);
-    return { provider: defaultProvider, modelOverride: null };
+    return withLegacyAliases(createDefaultAiRuntimeConfig());
   }
 };
+
+export function resolveAiFunctionConfig(
+  config: AiRuntimeConfig,
+  key: AiFunctionKey
+): AiProviderModel {
+  const requested = config.functions[key] ?? config.default;
+  if (isProviderAllowedForAiFunction(key, requested.provider)) {
+    return requested;
+  }
+
+  return {
+    provider: 'gemini',
+    model: null,
+  };
+}
+
+export const resolveActiveAiFunctionConfig = async (
+  userId: string,
+  organizationId: string | null | undefined,
+  key: AiFunctionKey
+): Promise<AiProviderModel> =>
+  resolveAiFunctionConfig(
+    await resolveActiveAiConfig(userId, organizationId),
+    key
+  );
 
 export const resolveActiveAiProvider = async (
   userId: string,
   organizationId?: string | null
-): Promise<AiProvider> => {
+): Promise<AiProviderName> => {
   const config = await resolveActiveAiConfig(userId, organizationId);
-  return config.provider;
+  return config.default.provider;
 };

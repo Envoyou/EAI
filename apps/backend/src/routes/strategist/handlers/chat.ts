@@ -49,6 +49,10 @@ import {
 } from '../gemini-chat-stream';
 import { classifyStrategistChatFailure } from '../chat-request-lifecycle';
 import { Prisma } from '@prisma/client';
+import { resolveActiveAiFunctionConfig } from '@/lib/ai-provider-resolver';
+import { getProvider } from '@/lib/ai/providers/registry';
+import { resolveModel } from '@/lib/ai/model-router';
+import { parseJsonResponse } from '@eai/shared';
 
 const router = Router();
 
@@ -75,7 +79,7 @@ const isValidDeepResearchCancelToken = (
 };
 
 // POST /api/strategist/analyze-data
-router.post('/analyze-data', async (req: Request, res: Response) => {
+router.post('/analyze-data', softAuth, async (req: Request, res: Response) => {
   const requestAbort = bindResponseAbort(res, 'Strategist data analysis');
   try {
     const { type, data } = req.body;
@@ -87,19 +91,33 @@ router.post('/analyze-data', async (req: Request, res: Response) => {
       inputPrompt = `<context>\nThe user provided the following manual performance metrics: "${data}"\n</context>\n\n<task>\nPlease analyze this and propose a friendly opening message to start a discussion on their next content strategy.\n</task>`;
     }
 
-    const interaction = await withGeminiFlexRetry(() =>
-      gemini.interactions.create({
-        model: MODEL,
-        input:
-          inputPrompt +
-          '\n\n<instructions>\nKeep your responses concise, insightful, and engaging.\n</instructions>',
-        system_instruction: new StrategistChatComposer().compose('xml'),
-        ...getGeminiInteractionConfig(),
-      }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
-      { signal: requestAbort.signal }
-    );
+    const orgId = req.auth?.userId
+      ? await resolveInternalOrgId(req.auth.orgId, req.auth.userId)
+      : null;
+    const config = req.auth?.userId
+      ? await resolveActiveAiFunctionConfig(
+          req.auth.userId,
+          orgId,
+          'strategist_data_analysis'
+        )
+      : { provider: 'gemini' as const, model: null };
+    const model =
+      config.model ||
+      (config.provider === 'gemini'
+        ? MODEL
+        : resolveModel(config.provider, 'editor', 'balanced'));
+    const result = await getProvider(config.provider).generate({
+      signal: requestAbort.signal,
+      model,
+      userContent:
+        inputPrompt +
+        '\n\n<instructions>\nKeep your responses concise, insightful, and engaging.\n</instructions>',
+      systemInstruction: new StrategistChatComposer().compose('xml'),
+      maxOutputTokens: 1200,
+      temperature: 0.35,
+    });
 
-    res.json({ reply: interaction.output_text });
+    res.json({ reply: result.text });
   } catch (error) {
     if (requestAbort.signal.aborted) return;
     console.error('Error analyzing data:', error);
@@ -110,7 +128,7 @@ router.post('/analyze-data', async (req: Request, res: Response) => {
 });
 
 // POST /api/strategist/greet
-router.post('/greet', async (req: Request, res: Response) => {
+router.post('/greet', softAuth, async (req: Request, res: Response) => {
   const requestAbort = bindResponseAbort(res, 'Strategist greeting');
   try {
     const chatSchema = {
@@ -122,27 +140,38 @@ router.post('/greet', async (req: Request, res: Response) => {
       required: ['reply', 'suggestions'],
     };
 
-    const interaction = await withGeminiFlexRetry(() =>
-      gemini.interactions.create({
-        model: MODEL,
-        input:
-          '<task>\nGreet the user to EAI Research Strategist. Introduce yourself as a Thinking Partner. Be concise, friendly, and offer to analyze their blog data, research trends, or brainstorm content.\n</task>\n\n<instructions>\nAlways provide 3-4 dynamic, clickable suggestion options.\n</instructions>',
-        system_instruction: new StrategistChatComposer().compose('xml'),
-        response_format: {
-          type: 'text',
-          mime_type: 'application/json',
-          schema: chatSchema,
-        },
-        ...getGeminiInteractionConfig(),
-      }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
-      { signal: requestAbort.signal }
-    );
+    const orgId = req.auth?.userId
+      ? await resolveInternalOrgId(req.auth.orgId, req.auth.userId)
+      : null;
+    const config = req.auth?.userId
+      ? await resolveActiveAiFunctionConfig(
+          req.auth.userId,
+          orgId,
+          'strategist_greeting'
+        )
+      : { provider: 'gemini' as const, model: null };
+    const model =
+      config.model ||
+      (config.provider === 'gemini'
+        ? MODEL
+        : resolveModel(config.provider, 'editor', 'balanced'));
+    const result = await getProvider(config.provider).generate({
+      signal: requestAbort.signal,
+      model,
+      userContent:
+        '<task>\nGreet the user to EAI Research Strategist. Introduce yourself as a Thinking Partner. Be concise, friendly, and offer to analyze their blog data, research trends, or brainstorm content.\n</task>\n\n<instructions>\nAlways provide 3-4 dynamic, clickable suggestion options.\n</instructions>',
+      systemInstruction: new StrategistChatComposer().compose('xml'),
+      responseFormat: 'json',
+      responseJsonSchema: chatSchema,
+      maxOutputTokens: 800,
+      temperature: 0.35,
+    });
 
     let output;
     try {
-      output = JSON.parse(interaction.output_text || '{}');
+      output = parseJsonResponse(result.text) || {};
     } catch (_e) {
-      output = { reply: interaction.output_text, suggestions: [] };
+      output = { reply: result.text, suggestions: [] };
     }
     res.json({ reply: output.reply, suggestions: output.suggestions });
   } catch (error) {
@@ -417,8 +446,33 @@ router.post(
 
       const isSearchEnabled =
         mode !== 'deep' && enableSearch !== false && !isSimpleGreeting(chatInput);
-      const fastChatModel = getStrategistFastChatModel(isSearchEnabled);
       const requiredCredits = mode === 'deep' ? 5 : isSearchEnabled ? 1 : 0;
+      const resolvedOrgId = req.auth?.userId
+        ? await resolveInternalOrgId(req.auth.orgId, req.auth.userId)
+        : null;
+      const selectedFunction =
+        mode === 'deep'
+          ? 'strategist_deep_research'
+          : isSearchEnabled
+            ? 'strategist_chat_search'
+            : 'strategist_chat';
+      const selectedAiConfig = req.auth?.userId
+        ? await resolveActiveAiFunctionConfig(
+            req.auth.userId,
+            resolvedOrgId,
+            selectedFunction
+          )
+        : {
+            provider: 'gemini' as const,
+            model: null,
+          };
+      const fastChatProvider = selectedAiConfig.provider;
+      const fastChatModel =
+        selectedAiConfig.model ||
+        (fastChatProvider === 'gemini'
+          ? getStrategistFastChatModel(isSearchEnabled)
+          : resolveModel(fastChatProvider, 'editor', 'balanced'));
+      const deepResearchModel = selectedAiConfig.model || RESEARCH_MODEL;
 
       if (requiredCredits > 0) {
         if (!req.auth || !req.auth.userId) {
@@ -429,12 +483,10 @@ router.post(
           });
         }
 
-        const internalOrgId = await resolveInternalOrgId(
-          req.auth.orgId,
-          req.auth.userId
+        const balance = await checkCreditsRemaining(
+          req.auth.userId,
+          resolvedOrgId
         );
-
-        const balance = await checkCreditsRemaining(req.auth.userId, internalOrgId);
         if (balance < requiredCredits) {
           return res.status(403).json({
             code: 'INSUFFICIENT_CREDITS',
@@ -445,19 +497,15 @@ router.post(
         }
 
         (req as Request & { resolvedOrgId?: string | null }).resolvedOrgId =
-          internalOrgId;
+          resolvedOrgId;
       }
 
       let profile = null;
       if (req.auth && req.auth.userId) {
         try {
-          const internalOrgId = await resolveInternalOrgId(
-            req.auth.orgId,
-            req.auth.userId
-          );
           profile = await resolveEditorialProfileForUser(
             req.auth.userId,
-            internalOrgId
+            resolvedOrgId
           );
         } catch (err) {
           console.warn('[CHAT_WARNING] Failed to resolve brand profile:', err);
@@ -471,16 +519,11 @@ router.post(
         if (!dbSessionId || dbSessionId === 'new') {
           const firstMsg = chatInput.slice(0, 40).trim() || 'Percakapan Baru';
           const title = firstMsg.length >= 40 ? `${firstMsg}...` : firstMsg;
-          const internalOrgId = await resolveInternalOrgId(
-            req.auth.orgId,
-            req.auth.userId
-          );
-
           try {
             const newSession = await prisma.chatSession.create({
               data: {
                 userId: req.auth.userId,
-                organizationId: internalOrgId,
+                organizationId: resolvedOrgId,
                 title,
               },
             });
@@ -641,7 +684,7 @@ router.post(
 
         const interaction = await withGeminiFlexRetry(() =>
           gemini.interactions.create({
-            model: RESEARCH_MODEL,
+            model: deepResearchModel,
             input: deepModeInput,
             system_instruction: new StrategistChatComposer(profile?.config).compose(
               'xml'
@@ -684,139 +727,157 @@ router.post(
         finalFastModeInstruction += `\n\n${DOCUMENT_MODE_OVERRIDE}`;
       }
 
-      let lastStreamDiagnostic: {
-        eventTypes: Record<string, number>;
-        deltaTypes: Record<string, number>;
-        terminalStatus?: string;
-      } | null = null;
+      let finalOutputText: string;
+      let globalAnnotations: GroundingAnnotation[];
+      if (fastChatProvider !== 'gemini') {
+        let output = '';
+        const providerStream = await getProvider(fastChatProvider).stream({
+          signal: requestAbort.signal,
+          systemInstruction: finalFastModeInstruction,
+          userContent: contextPrompt,
+          model: fastChatModel,
+          maxOutputTokens: FAST_MODE_MAX_OUTPUT_TOKENS,
+          temperature: 0.35,
+        });
+        for await (const chunk of providerStream) {
+          if (requestAbort.isDisconnected()) break;
+          output += chunk.text;
+        }
+        finalOutputText = requireStrategistStreamOutput(output);
+        globalAnnotations = [];
+      } else {
+        let lastStreamDiagnostic: {
+          eventTypes: Record<string, number>;
+          deltaTypes: Record<string, number>;
+          terminalStatus?: string;
+        } | null = null;
 
-      const runFastStream = () =>
-        withGeminiFlexRetry(async () => {
-          const stream = await gemini.interactions.create({
-            model: fastChatModel,
-            input: contextPrompt,
-            system_instruction: finalFastModeInstruction,
-            tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()
-              ? [{ type: 'google_search' }]
-              : undefined,
-            generation_config: buildStrategistChatGenerationConfig(
-              FAST_MODE_MAX_OUTPUT_TOKENS,
-              isSearchEnabled
-            ),
-            stream: true,
-            ...getGeminiInteractionConfig(),
-          }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal));
+        const runFastStream = () =>
+          withGeminiFlexRetry(async () => {
+            const stream = await gemini.interactions.create({
+              model: fastChatModel,
+              input: contextPrompt,
+              system_instruction: finalFastModeInstruction,
+              tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()
+                ? [{ type: 'google_search' }]
+                : undefined,
+              generation_config: buildStrategistChatGenerationConfig(
+                FAST_MODE_MAX_OUTPUT_TOKENS,
+                isSearchEnabled
+              ),
+              stream: true,
+              ...getGeminiInteractionConfig(),
+            }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal));
 
-          let attemptOutputText = '';
-          const attemptAnnotations: GroundingAnnotation[] = [];
-          const eventTypes: Record<string, number> = {};
-          const deltaTypes: Record<string, number> = {};
-          let terminalStatus: string | undefined;
+            let attemptOutputText = '';
+            const attemptAnnotations: GroundingAnnotation[] = [];
+            const eventTypes: Record<string, number> = {};
+            const deltaTypes: Record<string, number> = {};
+            let terminalStatus: string | undefined;
 
-          for await (const rawEvent of stream) {
-            if (requestAbort.isDisconnected()) break;
-            const streamFailure = readStrategistStreamFailure(rawEvent);
-            if (streamFailure) throw streamFailure;
+            for await (const rawEvent of stream) {
+              if (requestAbort.isDisconnected()) break;
+              const streamFailure = readStrategistStreamFailure(rawEvent);
+              if (streamFailure) throw streamFailure;
 
-            const event = rawEvent as unknown as GeminiInteractionStreamEvent;
-            const eventType = event.event_type || 'unknown';
-            eventTypes[eventType] = (eventTypes[eventType] || 0) + 1;
-            if (event.delta?.type) {
-              deltaTypes[event.delta.type] =
-                (deltaTypes[event.delta.type] || 0) + 1;
-            }
-            terminalStatus =
-              event.interaction?.status || event.status || terminalStatus;
-
-            if (
-              (
-                event.event_type === 'step.delta' ||
-                event.event_type === 'content.delta'
-              ) &&
-              event.delta
-            ) {
-              const thinkingEvent = readStrategistThinkingEvent(
-                event,
-                isSearchEnabled ? 'grounding' : 'reasoning'
-              );
-              if (thinkingEvent) {
-                writeStrategistSseEvent(res, thinkingEvent);
-              } else if (
-                event.delta.type !== 'thought_summary' &&
-                event.delta.text
-              ) {
-                attemptOutputText += event.delta.text;
+              const event = rawEvent as unknown as GeminiInteractionStreamEvent;
+              const eventType = event.event_type || 'unknown';
+              eventTypes[eventType] = (eventTypes[eventType] || 0) + 1;
+              if (event.delta?.type) {
+                deltaTypes[event.delta.type] =
+                  (deltaTypes[event.delta.type] || 0) + 1;
               }
+              terminalStatus =
+                event.interaction?.status || event.status || terminalStatus;
 
               if (
-                event.delta.annotations &&
-                Array.isArray(event.delta.annotations)
+                (
+                  event.event_type === 'step.delta' ||
+                  event.event_type === 'content.delta'
+                ) &&
+                event.delta
               ) {
-                for (const annotation of event.delta.annotations) {
-                  if (typeof annotation.type !== 'string') continue;
-                  attemptAnnotations.push({
-                    type: annotation.type,
-                    url: annotation.url,
-                    title:
-                      typeof annotation.title === 'string'
-                        ? annotation.title
-                        : undefined,
-                  });
+                const thinkingEvent = readStrategistThinkingEvent(
+                  event,
+                  isSearchEnabled ? 'grounding' : 'reasoning'
+                );
+                if (thinkingEvent) {
+                  writeStrategistSseEvent(res, thinkingEvent);
+                } else if (
+                  event.delta.type !== 'thought_summary' &&
+                  event.delta.text
+                ) {
+                  attemptOutputText += event.delta.text;
+                }
+
+                if (
+                  event.delta.annotations &&
+                  Array.isArray(event.delta.annotations)
+                ) {
+                  for (const annotation of event.delta.annotations) {
+                    if (typeof annotation.type !== 'string') continue;
+                    attemptAnnotations.push({
+                      type: annotation.type,
+                      url: annotation.url,
+                      title:
+                        typeof annotation.title === 'string'
+                          ? annotation.title
+                          : undefined,
+                    });
+                  }
                 }
               }
             }
-          }
 
-          lastStreamDiagnostic = {
-            eventTypes,
-            deltaTypes,
-            terminalStatus,
-          };
+            lastStreamDiagnostic = {
+              eventTypes,
+              deltaTypes,
+              terminalStatus,
+            };
 
-          return {
-            finalOutputText: requireStrategistStreamOutput(attemptOutputText),
-            globalAnnotations: attemptAnnotations,
-          };
-        }, { signal: requestAbort.signal });
+            return {
+              finalOutputText: requireStrategistStreamOutput(attemptOutputText),
+              globalAnnotations: attemptAnnotations,
+            };
+          }, { signal: requestAbort.signal });
 
-      let finalOutputText: string;
-      let globalAnnotations: GroundingAnnotation[];
-      try {
-        ({ finalOutputText, globalAnnotations } = await runFastStream());
-      } catch (error) {
-        if (!isEmptyStrategistStreamError(error)) throw error;
+        try {
+          ({ finalOutputText, globalAnnotations } = await runFastStream());
+        } catch (error) {
+          if (!isEmptyStrategistStreamError(error)) throw error;
 
-        console.warn('[STRATEGIST_EMPTY_STREAM]', {
-          model: fastChatModel,
-          searchEnabled: isSearchEnabled,
-          diagnostic: lastStreamDiagnostic,
-          fallback: 'non_streaming_low_thinking',
-        });
-
-        const fallbackInteraction = await withGeminiFlexRetry(() =>
-          gemini.interactions.create({
+          console.warn('[STRATEGIST_EMPTY_STREAM]', {
             model: fastChatModel,
-            input: contextPrompt,
-            system_instruction: finalFastModeInstruction,
-            tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()
-              ? [{ type: 'google_search' }]
-              : undefined,
-            generation_config: {
-              ...buildStrategistChatGenerationConfig(
-                FAST_MODE_MAX_OUTPUT_TOKENS,
-                false
-              ),
-              thinking_summaries: 'none' as const,
-            },
-            ...getGeminiInteractionConfig(),
-          }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
-          { signal: requestAbort.signal }
-        );
+            searchEnabled: isSearchEnabled,
+            diagnostic: lastStreamDiagnostic,
+            fallback: 'non_streaming_low_thinking',
+          });
 
-        finalOutputText = requireStrategistStreamOutput(
-          fallbackInteraction.output_text || ''
-        );
-        globalAnnotations = [];
+          const fallbackInteraction = await withGeminiFlexRetry(() =>
+            gemini.interactions.create({
+              model: fastChatModel,
+              input: contextPrompt,
+              system_instruction: finalFastModeInstruction,
+              tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()
+                ? [{ type: 'google_search' }]
+                : undefined,
+              generation_config: {
+                ...buildStrategistChatGenerationConfig(
+                  FAST_MODE_MAX_OUTPUT_TOKENS,
+                  false
+                ),
+                thinking_summaries: 'none' as const,
+              },
+              ...getGeminiInteractionConfig(),
+            }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
+            { signal: requestAbort.signal }
+          );
+
+          finalOutputText = requireStrategistStreamOutput(
+            fallbackInteraction.output_text || ''
+          );
+          globalAnnotations = [];
+        }
       }
 
       if (!requestAbort.isDisconnected()) {

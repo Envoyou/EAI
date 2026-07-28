@@ -25,6 +25,11 @@ import {
   withGeminiFlexRetry,
 } from '@/lib/ai/gemini-request-policy';
 import { bindResponseAbort } from '@/lib/request-abort';
+import {
+  createDefaultAiRuntimeConfig,
+  resolveActiveAiFunctionConfig,
+  resolveAiFunctionConfig,
+} from '@/lib/ai-provider-resolver';
 
 const router = Router();
 
@@ -193,11 +198,17 @@ router.post(
       mode = 'draft',
     } = parsedInput.data;
 
-    const configuredProvider = process.env.ACTIVE_AI_PROVIDER;
-    const provider: 'gemini' | 'groq' | 'openrouter' =
-      configuredProvider === 'groq' || configuredProvider === 'openrouter'
-        ? configuredProvider
-        : 'gemini';
+    const functionConfig = userId
+      ? await resolveActiveAiFunctionConfig(
+          userId,
+          workspaceOrganizationId,
+          'strategist_quick_draft'
+        )
+      : resolveAiFunctionConfig(
+          createDefaultAiRuntimeConfig(),
+          'strategist_quick_draft'
+        );
+    const provider = functionConfig.provider;
 
     if (!topic || !topic.trim()) {
       sendEvent('error', 'Topic is required');
@@ -314,7 +325,7 @@ router.post(
 
     if (provider === 'gemini') {
       // Use Interactions API (consistent with chat.ts and plan.ts)
-      modelName = 'gemini-3.6-flash';
+      modelName = functionConfig.model || 'gemini-3.6-flash';
       const draftStream = await withGeminiFlexRetry(() =>
         gemini.interactions.create({
           model: modelName,
@@ -342,7 +353,8 @@ router.post(
         }
       }
     } else if (provider === 'openrouter') {
-      modelName = getOpenRouterModelForRole('author', 'balanced');
+      modelName =
+        functionConfig.model || getOpenRouterModelForRole('author', 'balanced');
       const openRouterStream = await openrouter.chat.completions.create({
         model: modelName,
         messages: [
@@ -360,7 +372,7 @@ router.post(
         sendEvent('draft_chunk', partText);
       }
     } else {
-      modelName = GROQ_MODEL;
+      modelName = functionConfig.model || GROQ_MODEL;
       const groqStream = await groq.chat.completions.create({
         model: modelName,
         messages: [

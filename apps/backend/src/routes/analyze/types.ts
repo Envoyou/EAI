@@ -7,6 +7,7 @@ import type { AnalyzeMode, FeedbackOutput, PolishDiagnosisOutput, ArticleMetadat
 import type { EditorialAuditContext, EditorialProfileSnapshot } from '@eai/shared/server';
 import type { AiTelemetryCollector } from '@/lib/ai-telemetry';
 import type { getWorkspaceState } from '@/lib/user-workspace';
+import type { AiRuntimeConfig } from '@eai/shared';
 
 // ── SSE ─────────────────────────────────────────────────────────────────────
 
@@ -108,6 +109,7 @@ export type BaseHandlerContext = {
   editorialAudit: EditorialAuditContext;
   editorialLogFields: EditorialLogFields;
   telemetry: AiTelemetryCollector;
+  aiConfig: AiRuntimeConfig;
   modelOverride: string | null;
 };
 

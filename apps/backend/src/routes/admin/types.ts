@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import {
+  AiProviderModelSchema,
+  AiRuntimeConfigSchema,
+} from '@eai/shared';
 
 export const AdjustmentSchema = z.object({
   organizationId: z.string().min(1).max(100),
@@ -31,10 +35,22 @@ export const UserCreditAdjustmentSchema = z.object({
   idempotencyKey: z.string().trim().min(8).max(150),
 });
 
-export const AiConfigSchema = z.object({
-  provider: z.enum(['gemini', 'groq', 'openrouter']),
-  model: z.string().trim().max(100).optional().nullable(),
-});
+export const AiConfigSchema = z
+  .union([
+    AiRuntimeConfigSchema,
+    z.object({
+    provider: AiProviderModelSchema.shape.provider,
+    model: z.string().trim().max(150).optional().nullable(),
+    }).transform((legacy) => ({
+      version: 1 as const,
+      default: {
+        provider: legacy.provider,
+        model: legacy.model || null,
+      },
+      functions: {},
+    })),
+  ])
+  .pipe(AiRuntimeConfigSchema);
 
 export const AuditLogSchema = z.object({
   action: z.string().min(3).max(100),

@@ -23,6 +23,7 @@ import {
 import { bindResponseAbort } from '@/lib/request-abort';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
+import { resolveActiveAiFunctionConfig } from '@/lib/ai-provider-resolver';
 
 const router = Router();
 
@@ -226,9 +227,10 @@ router.post(
     `.trim();
 
       let profile = null;
+      let internalOrgId: string | null = null;
       if (req.auth && req.auth.userId) {
         try {
-          const internalOrgId = await resolveInternalOrgId(
+          internalOrgId = await resolveInternalOrgId(
             req.auth.orgId,
             req.auth.userId
           );
@@ -243,6 +245,14 @@ router.post(
           );
         }
       }
+      const blueprintConfig = req.auth?.userId
+        ? await resolveActiveAiFunctionConfig(
+            req.auth.userId,
+            internalOrgId,
+            'strategist_blueprint'
+          )
+        : { provider: 'gemini' as const, model: null };
+      const blueprintModel = blueprintConfig.model || MODEL;
 
       const strategistPlanSchema = {
         type: 'object',
@@ -309,7 +319,7 @@ router.post(
       try {
         interaction = await withGeminiFlexRetry(() =>
           gemini.interactions.create({
-            model: MODEL,
+            model: blueprintModel,
             input: prompt,
             system_instruction: new StrategistBlueprintComposer(
               profile?.config
@@ -336,7 +346,7 @@ router.post(
         );
         interaction = await withGeminiFlexRetry(() =>
           gemini.interactions.create({
-            model: MODEL,
+            model: blueprintModel,
             input: prompt,
             system_instruction: new StrategistBlueprintComposer(
               profile?.config

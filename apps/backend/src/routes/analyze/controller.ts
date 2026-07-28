@@ -8,12 +8,16 @@
 import { Router, Request } from 'express';
 import { PROMPT_VERSION } from '@/lib/prompts';
 import { FeedbackItemSchema } from '@eai/shared';
-import type { AnalyzeMode } from '@eai/shared';
+import type { AiFunctionKey, AiRuntimeConfig, AnalyzeMode } from '@eai/shared';
 import { AiTelemetryCollector } from '@/lib/ai-telemetry';
 import { buildEditorialAuditContext, ENVOYOU_EDITORIAL_PROFILE, getAllFeatureFlags } from '@eai/shared/server';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { getWorkspaceState } from '@/lib/user-workspace';
-import { resolveActiveAiConfig } from '@/lib/ai-provider-resolver';
+import {
+  createDefaultAiRuntimeConfig,
+  resolveActiveAiConfig,
+  resolveAiFunctionConfig,
+} from '@/lib/ai-provider-resolver';
 import { ReviewPromptComposer } from '@/lib/ai/prompt-engine/composer/review-composer';
 import { verifyToken } from '@clerk/backend';
 import { z } from 'zod';
@@ -290,21 +294,28 @@ router.post('/', async (req: Request, res) => {
       targetText?.trim() && (feedbackMessage?.trim() || instruction?.trim())
     );
     const effectiveMode: AnalyzeMode = mode ?? (looksLikeTargetedFix ? 'fix_targeted' : 'analyze');
-    let modelOverride: string | null = null;
-    let resolvedAiProvider: 'gemini' | 'groq' | 'openrouter' = 'gemini';
+    let aiConfig: AiRuntimeConfig = createDefaultAiRuntimeConfig();
 
     if (userId) {
-      const config = await resolveActiveAiConfig(userId, workspace?.organizationId);
-      resolvedAiProvider = config.provider;
-      modelOverride = config.modelOverride;
-    } else {
-      resolvedAiProvider = (process.env.ACTIVE_AI_PROVIDER || 'gemini') as
-        | 'gemini'
-        | 'groq'
-        | 'openrouter';
+      aiConfig = await resolveActiveAiConfig(
+        userId,
+        workspace?.organizationId
+      );
     }
 
-    const effectiveProvider: 'gemini' | 'groq' | 'openrouter' = resolvedAiProvider;
+    const primaryFunction: AiFunctionKey =
+      effectiveMode === 'fix_targeted'
+        ? 'analyze_targeted_fix'
+        : effectiveMode === 'refine'
+          ? 'analyze_refine'
+          : effectiveMode === 'quality_gate'
+            ? 'analyze_quality_gate'
+            : effectiveMode === 'generate_seo'
+              ? 'analyze_seo'
+              : 'analyze_review';
+    const primaryConfig = resolveAiFunctionConfig(aiConfig, primaryFunction);
+    const effectiveProvider = primaryConfig.provider;
+    const modelOverride = primaryConfig.model;
 
     // Populate shared logging state
     state.textToLog = text || '';
@@ -331,6 +342,7 @@ router.post('/', async (req: Request, res) => {
         editorialAudit,
         editorialLogFields,
         telemetry,
+        aiConfig,
         modelOverride,
       });
       res.end();
@@ -371,6 +383,7 @@ router.post('/', async (req: Request, res) => {
         editorialAudit,
         editorialLogFields,
         telemetry,
+        aiConfig,
         modelOverride,
       };
       if (effectiveMode === 'quality_gate') {
@@ -408,6 +421,7 @@ router.post('/', async (req: Request, res) => {
         editorialAudit,
         editorialLogFields,
         telemetry,
+        aiConfig,
         modelOverride,
       });
       res.end();
@@ -431,6 +445,7 @@ router.post('/', async (req: Request, res) => {
         editorialAudit,
         editorialLogFields,
         telemetry,
+        aiConfig,
         modelOverride,
       });
       res.end();
@@ -454,6 +469,7 @@ router.post('/', async (req: Request, res) => {
       editorialAudit,
       editorialLogFields,
       telemetry,
+      aiConfig,
       modelOverride,
     });
   } catch (error: unknown) {

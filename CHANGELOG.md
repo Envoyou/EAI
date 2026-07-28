@@ -7,6 +7,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Per-Function Runtime AI Configuration**:
+  - Expanded the internal Admin Console AI configuration from one workspace-wide provider/model override to a versioned default plus independent overrides for Strategist Fast Chat, Search Chat, Greeting, Data Analysis, Blueprint, Deep Research, Quick Draft, Draft from Notes, and the Analyze Review, Rewrite, Refine, SEO, Quality Gate, and Targeted Fix stages.
+  - Added runtime provider/model routing for Gemini, Groq, and OpenRouter across eligible functions, with Gemini-only capability guards for Google Search, grounded Blueprint generation, and Deep Research.
+  - Added a confirmation step, model presets, effective-runtime previews, cache invalidation, audit logging, legacy `provider:model` compatibility, and resolver regression tests.
+  - Reused the existing `aiProviderOverride` column with a versioned JSON payload, so this feature does not require a database migration.
 - **Durable Strategist Blueprint Request Idempotency**:
   - Added a client-generated UUID to each blueprint generation request and a persisted `StrategistPlanRequest` lifecycle (`pending`, `completed`, or `failed`).
   - Added an authenticated blueprint request-status endpoint so the frontend can reconcile an ambiguous network outcome without starting another AI generation.

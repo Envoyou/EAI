@@ -1,13 +1,33 @@
 'use client';
 
-import { fetchWithTimeout } from '@/lib/fetch-utils';
-
 import React, { useState } from 'react';
-import { Search, Loader2, Cpu, Save, AlertTriangle } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import {
+  AlertTriangle,
+  Cpu,
+  Loader2,
+  Save,
+  Search,
+  Settings2,
+} from 'lucide-react';
+import type {
+  AiFunctionDefinition,
+  AiFunctionKey,
+  AiProviderModel,
+  AiProviderName,
+  AiRuntimeConfig,
+} from '@eai/shared';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Alert } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type OrgSearchResult = {
   id: string;
@@ -16,23 +36,125 @@ type OrgSearchResult = {
   clerkOrganizationId: string | null;
 };
 
-type OrgAiConfig = {
+type OrgAiConfigResponse = {
   organizationId: string;
   name: string;
-  provider: 'gemini' | 'groq' | 'openrouter';
-  model: string;
+  config: AiRuntimeConfig;
+  functions: AiFunctionDefinition[];
 };
+
+const PROVIDERS: readonly AiProviderName[] = [
+  'gemini',
+  'groq',
+  'openrouter',
+];
+
+const MODEL_PRESETS: Record<AiProviderName, readonly string[]> = {
+  gemini: ['gemini-3.6-flash', 'gemini-3.5-flash-lite'],
+  groq: [
+    'qwen/qwen3-32b',
+    'llama-3.3-70b-versatile',
+    'llama-3.1-8b-instant',
+  ],
+  openrouter: [
+    'google/gemini-3.6-flash',
+    'openai/gpt-4o-mini',
+    'anthropic/claude-3.5-sonnet',
+  ],
+};
+
+const providerLabel = (provider: AiProviderName) =>
+  provider === 'gemini'
+    ? 'Gemini API'
+    : provider === 'openrouter'
+      ? 'OpenRouter'
+      : 'Groq';
+
+function ProviderModelFields({
+  value,
+  allowedProviders,
+  onChange,
+}: {
+  value: AiProviderModel;
+  allowedProviders: readonly AiProviderName[];
+  onChange: (value: AiProviderModel) => void;
+}) {
+  return (
+    <div className="grid gap-3 md:grid-cols-[minmax(150px,0.7fr)_minmax(220px,1.3fr)]">
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-[var(--foreground)]">
+          Provider
+        </label>
+        <Select
+          value={value.provider}
+          onValueChange={(provider) => {
+            if (provider !== null) {
+              onChange({
+                provider: provider as AiProviderName,
+                model: null,
+              });
+            }
+          }}
+        >
+          <SelectTrigger variant="surface" aria-label="AI provider">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {allowedProviders.map((provider) => (
+              <SelectItem key={provider} value={provider}>
+                {providerLabel(provider)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-3">
+          <label className="text-xs font-semibold text-[var(--foreground)]">
+            Model override
+          </label>
+          <span className="text-[10px] text-[var(--muted-foreground)]">
+            Blank uses the backend default
+          </span>
+        </div>
+        <Input
+          variant="surface"
+          value={value.model ?? ''}
+          onChange={(event) =>
+            onChange({ ...value, model: event.target.value || null })
+          }
+          placeholder={MODEL_PRESETS[value.provider][0]}
+          aria-label="Model override"
+        />
+        <div className="flex flex-wrap gap-1.5">
+          {MODEL_PRESETS[value.provider].map((model) => (
+            <Button
+              key={model}
+              type="button"
+              variant="muted"
+              size="xs"
+              onClick={() => onChange({ ...value, model })}
+            >
+              {model}
+            </Button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AiConfigAdminPage() {
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<OrgSearchResult[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
-  
   const [loadingConfig, setLoadingConfig] = useState(false);
-  const [config, setConfig] = useState<OrgAiConfig | null>(null);
-  
+  const [organization, setOrganization] =
+    useState<OrgAiConfigResponse | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -44,12 +166,14 @@ export default function AiConfigAdminPage() {
     setSearching(true);
     setErrorMsg('');
     try {
-      const response = await fetchWithTimeout(`/api/admin/billing?q=${encodeURIComponent(cleanQuery)}`);
+      const response = await fetchWithTimeout(
+        `/api/admin/billing?q=${encodeURIComponent(cleanQuery)}`
+      );
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
       setResults(data.organizations || []);
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       setErrorMsg('Failed to search organizations');
     } finally {
       setSearching(false);
@@ -62,78 +186,189 @@ export default function AiConfigAdminPage() {
     setErrorMsg('');
     setSaveSuccess(false);
     try {
-      const response = await fetchWithTimeout(`/api/admin/organizations/${orgId}/ai-config`);
+      const response = await fetchWithTimeout(
+        `/api/admin/organizations/${orgId}/ai-config`
+      );
       if (!response.ok) throw new Error('Failed to load configuration');
-      const data = await response.json();
-      setConfig(data);
-    } catch (err) {
-      console.error(err);
+      setOrganization((await response.json()) as OrgAiConfigResponse);
+    } catch (error) {
+      console.error(error);
       setErrorMsg('Failed to load organization configuration');
-      setConfig(null);
+      setOrganization(null);
     } finally {
       setLoadingConfig(false);
     }
   };
 
-  const saveConfig = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!config || !selectedOrgId) return;
+  const updateDefault = (value: AiProviderModel) => {
+    if (!organization) return;
+    setOrganization({
+      ...organization,
+      config: { ...organization.config, default: value },
+    });
+  };
+
+  const updateFunction = (
+    key: AiFunctionKey,
+    value: AiProviderModel | null
+  ) => {
+    if (!organization) return;
+    const functions = { ...organization.config.functions };
+    if (value) functions[key] = value;
+    else delete functions[key];
+    setOrganization({
+      ...organization,
+      config: { ...organization.config, functions },
+    });
+  };
+
+  const saveConfig = async () => {
+    if (!organization || !selectedOrgId) return;
 
     setSaving(true);
     setErrorMsg('');
     setSaveSuccess(false);
     try {
-      const response = await fetchWithTimeout(`/api/admin/organizations/${selectedOrgId}/ai-config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider: config.provider,
-          model: config.model || null,
-        }),
-      });
-
+      const response = await fetchWithTimeout(
+        `/api/admin/organizations/${selectedOrgId}/ai-config`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(organization.config),
+        }
+      );
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to save configuration');
       }
-      
+      const updated = (await response.json()) as OrgAiConfigResponse;
+      setOrganization(updated);
       setSaveSuccess(true);
-    } catch (err) {
-      console.error(err);
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to save configuration');
+      setShowConfirmation(false);
+    } catch (error) {
+      console.error(error);
+      setErrorMsg(
+        error instanceof Error ? error.message : 'Failed to save configuration'
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const setProviderAndClearModel = (provider: 'gemini' | 'groq' | 'openrouter') => {
-    if (!config) return;
-    setConfig({
-      ...config,
-      provider,
-      model: '', // clear override model name initially when switching providers
-    });
-  };
+  const renderCategory = (category: 'Strategist' | 'Analyze') => {
+    if (!organization) return null;
+    const definitions = organization.functions.filter(
+      (definition) => definition.category === category
+    );
 
-  const applyModelPreset = (modelName: string) => {
-    if (!config) return;
-    setConfig({
-      ...config,
-      model: modelName,
-    });
+    return (
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-sm font-bold text-[var(--foreground)]">
+            {category}
+          </h3>
+          <p className="text-xs text-[var(--muted-foreground)]">
+            Configure only the functions that need a different runtime.
+          </p>
+        </div>
+        {definitions.map((definition) => {
+          const override = organization.config.functions[definition.key];
+          const inherited = organization.config.default;
+          const effective =
+            override ??
+            (definition.allowedProviders.includes(inherited.provider)
+              ? inherited
+              : { provider: definition.allowedProviders[0], model: null });
+          return (
+            <div key={definition.key} className="ui-card p-4 space-y-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-xs font-bold text-[var(--foreground)]">
+                      {definition.label}
+                    </h4>
+                    {definition.allowedProviders.length === 1 && (
+                      <Badge variant="warning" size="xs">
+                        Gemini native
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                    {definition.description}
+                  </p>
+                </div>
+                <Select
+                  value={override ? 'override' : 'default'}
+                  onValueChange={(mode) => {
+                    if (mode === 'override') {
+                      const provider = definition.allowedProviders.includes(
+                        effective.provider
+                      )
+                        ? effective.provider
+                        : definition.allowedProviders[0];
+                      updateFunction(definition.key, {
+                        provider,
+                        model:
+                          provider === effective.provider
+                            ? effective.model
+                            : null,
+                      });
+                    } else if (mode === 'default') {
+                      updateFunction(definition.key, null);
+                    }
+                  }}
+                >
+                  <SelectTrigger
+                    variant="surface"
+                    size="sm"
+                    className="w-full sm:w-40"
+                    aria-label={`${definition.label} configuration mode`}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Use default</SelectItem>
+                    <SelectItem value="override">Custom override</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {override ? (
+                <ProviderModelFields
+                  value={override}
+                  allowedProviders={definition.allowedProviders}
+                  onChange={(value) =>
+                    updateFunction(definition.key, value)
+                  }
+                />
+              ) : (
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--muted-foreground)]">
+                  Effective runtime: {providerLabel(effective.provider)}
+                  {effective.model ? ` / ${effective.model}` : ' / provider default'}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </section>
+    );
   };
 
   return (
     <>
       <div className="settings-page-intro">
-        <Badge variant="warning" size="xs" className="mb-2 uppercase tracking-wider">Internal Use Only</Badge>
-        <h2 className="text-balance">Refine AI Engine Settings</h2>
-        <p className="text-pretty">Configure AI provider and specific model overrides for refinement and review stages.</p>
+        <Badge variant="warning" size="xs" className="mb-2 uppercase tracking-wider">
+          Internal Use Only
+        </Badge>
+        <h2 className="text-balance">AI Runtime Configuration</h2>
+        <p className="text-pretty">
+          Change provider and model defaults or override individual Chat and
+          Analyze functions without redeploying the backend.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start mt-6">
-        {/* Left Search Sidebar */}
-        <div className="lg:col-span-1 space-y-4">
+      <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-1">
           <form onSubmit={runSearch} className="ui-card p-4">
             <label className="text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
               Find workspace
@@ -143,7 +378,6 @@ export default function AiConfigAdminPage() {
                 variant="surface"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="text-xs"
                 placeholder="Organization, slug..."
                 aria-label="Search organization"
               />
@@ -152,7 +386,6 @@ export default function AiConfigAdminPage() {
                 disabled={searching}
                 variant="primary"
                 size="sm"
-                className="shrink-0"
               >
                 {searching ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -164,10 +397,9 @@ export default function AiConfigAdminPage() {
             </div>
           </form>
 
-          {/* Results List */}
           {results.length > 0 && (
-            <div className="ui-card p-3 space-y-1 max-h-[350px] overflow-y-auto">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] px-2.5 py-1.5">
+            <div className="ui-card max-h-[350px] space-y-1 overflow-y-auto p-3">
+              <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
                 Search Results ({results.length})
               </div>
               {results.map((org) => (
@@ -175,171 +407,152 @@ export default function AiConfigAdminPage() {
                   key={org.id}
                   type="button"
                   onClick={() => loadOrgConfig(org.id)}
-                  variant="ghost"
-                  className={`w-full text-left justify-start flex-col items-start px-3 py-2 h-auto rounded-lg text-xs transition-colors border-none bg-transparent cursor-pointer ${
-                    selectedOrgId === org.id
-                      ? 'bg-[var(--surface-3)] text-[var(--foreground)] font-semibold'
-                      : 'text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'
-                  }`}
+                  variant={selectedOrgId === org.id ? 'surface' : 'muted'}
+                  className="h-auto w-full justify-start"
                 >
-                  <div className="font-semibold truncate w-full">{org.name}</div>
-                  <div className="text-[10px] text-[var(--muted-foreground)] truncate mt-0.5">
-                    slug: {org.slug}
-                  </div>
+                  <span className="min-w-0 text-left">
+                    <span className="block truncate text-xs font-semibold">
+                      {org.name}
+                    </span>
+                    <span className="block truncate text-[10px] text-[var(--muted-foreground)]">
+                      slug: {org.slug}
+                    </span>
+                  </span>
                 </Button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Right Detail Panel */}
-        <div className="lg:col-span-2">
+        <div className="space-y-4 lg:col-span-2">
           {errorMsg && (
-            <Alert variant="danger" className="mb-4 flex items-start gap-2.5">
-              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <Alert variant="danger" className="flex items-start gap-2.5">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <div className="text-xs">{errorMsg}</div>
             </Alert>
           )}
-
           {saveSuccess && (
-            <Alert variant="success" className="mb-4 text-xs font-semibold">
-              AI Engine configuration updated successfully. Cache invalidated.
+            <Alert variant="success" className="text-xs font-semibold">
+              AI runtime configuration updated and cache invalidated.
             </Alert>
           )}
 
           {loadingConfig ? (
-            <div className="ui-card p-12 flex flex-col items-center justify-center text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)] mb-2" />
-              <span className="text-xs text-[var(--muted-foreground)]">Loading AI configuration...</span>
+            <div className="ui-card flex flex-col items-center justify-center p-12 text-center">
+              <Loader2 className="mb-2 h-8 w-8 animate-spin text-[var(--primary)]" />
+              <span className="text-xs text-[var(--muted-foreground)]">
+                Loading AI configuration...
+              </span>
             </div>
-          ) : config ? (
-            <form onSubmit={saveConfig} className="ui-card p-6 space-y-6">
-              <div className="flex items-center gap-2.5 pb-4 border-b border-[var(--border)]">
-                <Cpu className="h-5 w-5 text-[var(--primary)]" />
-                <div>
-                  <h3 className="text-sm font-bold text-[var(--foreground)]">{config.name}</h3>
-                  <p className="text-[10px] text-[var(--muted-foreground)]">ID: {config.organizationId}</p>
-                </div>
-              </div>
-
-              {/* Dynamic Warning Alert */}
-              <Alert variant="warning" className="flex items-start gap-2.5">
-                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-[var(--warning)]" />
-                <div className="text-xs space-y-1">
-                  <p className="font-semibold">B2B Override Scope Alert:</p>
-                  <p className="text-[var(--muted-foreground)] leading-relaxed">
-                    Pengaturan provider dan model ini <strong>hanya memengaruhi tahap pemolesan draf (Refine/Review)</strong>.
-                    Tahap chat strategist dan draf awal di editor akan tetap dikunci menggunakan Google Gemini untuk efisiensi performa.
-                  </p>
-                </div>
-              </Alert>
-
-              {/* Provider Selection */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
-                  Refinement AI Provider
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['gemini', 'groq', 'openrouter'] as const).map((prov) => (
-                    <Button
-                      key={prov}
-                      type="button"
-                      onClick={() => setProviderAndClearModel(prov)}
-                      variant={config.provider === prov ? 'primary' : 'surface'}
-                      className={`px-3 py-2.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer h-auto ${
-                        config.provider === prov
-                          ? 'bg-[var(--primary-bg)] border-[var(--primary)] text-[var(--primary)] shadow-xs'
-                          : 'bg-[var(--surface-2)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-3)]'
-                      }`}
-                    >
-                      <span className="capitalize">{prov === 'gemini' ? 'Gemini API' : prov}</span>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Model Name Input */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
-                    Model Override Name
-                  </label>
-                  <span className="text-[10px] text-[var(--muted-foreground)] italic">
-                    Leave blank to use provider default models
-                  </span>
-                </div>
-                <Input
-                  variant="surface"
-                  value={config.model}
-                  onChange={(event) => setConfig({ ...config, model: event.target.value })}
-                  className="text-xs"
-                  placeholder={
-                    config.provider === 'gemini'
-                      ? 'e.g. gemini-2.5-pro'
-                      : config.provider === 'groq'
-                        ? 'e.g. qwen/qwen3-32b'
-                        : 'e.g. google/gemini-2.5-pro'
-                  }
-                  aria-label="Model Override Name"
-                />
-
-                {/* Preset Suggestions based on provider */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-[var(--muted-foreground)] block">Suggested Presets:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {config.provider === 'gemini' && (
-                      <>
-                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('gemini-2.5-pro')} className="rounded-full">gemini-2.5-pro</Button>
-                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('gemini-2.5-flash')} className="rounded-full">gemini-2.5-flash</Button>
-                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('gemini-1.5-pro')} className="rounded-full">gemini-1.5-pro</Button>
-                      </>
-                    )}
-                    {config.provider === 'groq' && (
-                      <>
-                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('qwen/qwen3-32b')} className="rounded-full">qwen/qwen3-32b</Button>
-                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('llama-3.3-70b-versatile')} className="rounded-full">llama-3.3-70b</Button>
-                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('llama-3.1-8b-instant')} className="rounded-full">llama-3.1-8b</Button>
-                      </>
-                    )}
-                    {config.provider === 'openrouter' && (
-                      <>
-                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('google/gemini-2.5-pro')} className="rounded-full">gemini-2.5-pro</Button>
-                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('openai/gpt-4o-mini')} className="rounded-full">gpt-4o-mini</Button>
-                        <Button type="button" variant="muted" size="xs" onClick={() => applyModelPreset('anthropic/claude-3.5-sonnet')} className="rounded-full">claude-3.5-sonnet</Button>
-                      </>
-                    )}
+          ) : organization ? (
+            <>
+              <section className="ui-card space-y-5 p-5">
+                <div className="flex items-center gap-2.5 border-b border-[var(--border)] pb-4">
+                  <Cpu className="h-5 w-5 text-[var(--primary)]" />
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-bold text-[var(--foreground)]">
+                      {organization.name}
+                    </h3>
+                    <p className="truncate text-[10px] text-[var(--muted-foreground)]">
+                      ID: {organization.organizationId}
+                    </p>
                   </div>
                 </div>
-              </div>
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <Settings2 className="h-4 w-4 text-[var(--primary)]" />
+                    <h3 className="text-sm font-bold">Workspace default</h3>
+                  </div>
+                  <ProviderModelFields
+                    value={organization.config.default}
+                    allowedProviders={PROVIDERS}
+                    onChange={updateDefault}
+                  />
+                </div>
+              </section>
 
-              {/* Submit Buttons */}
-              <div className="flex justify-end pt-4 border-t border-[var(--border)]">
+              {renderCategory('Strategist')}
+              {renderCategory('Analyze')}
+
+              <div className="sticky bottom-3 flex justify-end rounded-xl border border-[var(--border)] bg-[var(--surface-1)]/95 p-3 shadow-lg backdrop-blur">
                 <Button
-                  type="submit"
-                  disabled={saving}
+                  type="button"
                   variant="primary"
-                  className="gap-2"
+                  onClick={() => setShowConfirmation(true)}
                 >
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  Save Configuration
+                  <Save className="h-4 w-4" />
+                  Save runtime configuration
                 </Button>
               </div>
-            </form>
+            </>
           ) : (
-            <div className="ui-card p-12 text-center flex flex-col items-center justify-center">
-              <Cpu className="h-10 w-10 text-[var(--muted-foreground)]/40 mb-3" />
-              <h3 className="text-sm font-bold text-[var(--foreground)]">No workspace selected</h3>
-              <p className="text-xs text-[var(--muted-foreground)] mt-1.5 max-w-sm">
-                Use the search tool on the left to select a tenant workspace and configure its Refine AI engine settings.
+            <div className="ui-card flex flex-col items-center justify-center p-12 text-center">
+              <Cpu className="mb-3 h-10 w-10 text-[var(--muted-foreground)]" />
+              <h3 className="text-sm font-bold text-[var(--foreground)]">
+                No workspace selected
+              </h3>
+              <p className="mt-1.5 max-w-sm text-xs text-[var(--muted-foreground)]">
+                Select a tenant workspace to configure its AI runtime.
               </p>
             </div>
           )}
         </div>
       </div>
+
+      {showConfirmation && organization && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+          role="presentation"
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !saving) {
+              setShowConfirmation(false);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-ai-config-title"
+            className="ui-card w-full max-w-md space-y-4 p-5 shadow-2xl"
+          >
+            <div>
+              <h3
+                id="confirm-ai-config-title"
+                className="text-base font-bold text-[var(--foreground)]"
+              >
+                Apply runtime configuration?
+              </h3>
+              <p className="mt-2 text-xs leading-relaxed text-[var(--muted-foreground)]">
+                New requests for {organization.name} will use these provider
+                and model settings immediately after the cache is invalidated.
+              </p>
+            </div>
+            <Alert variant="warning" className="text-xs">
+              An unavailable provider or invalid model name can make the
+              affected function fail until this setting is corrected.
+            </Alert>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="muted"
+                disabled={saving}
+                onClick={() => setShowConfirmation(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                disabled={saving}
+                onClick={saveConfig}
+              >
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                Confirm and apply
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

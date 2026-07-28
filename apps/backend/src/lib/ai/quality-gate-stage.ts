@@ -56,6 +56,7 @@ const runFinalQualityGate = async ({
   publicationMode,
   workingTitle,
   publicationPackage,
+  modelOverride,
   signal,
   attempt = 1,
 }: {
@@ -80,6 +81,7 @@ const runFinalQualityGate = async ({
   publicationMode: 'fast' | 'publish_ready';
   workingTitle?: string;
   publicationPackage?: PublicationPackage | null;
+  modelOverride?: string | null;
   signal?: AbortSignal;
   attempt?: number;
 }): Promise<{ result: FinalQualityGateOutput; modelName: string }> => {
@@ -141,7 +143,12 @@ const runFinalQualityGate = async ({
   ].filter(Boolean).join('\n');
 
   const aiProvider = getProvider(provider);
-  const modelName = resolveModel(provider, 'editor', analysisSpeed ?? 'balanced');
+  const modelName = resolveModel(
+    provider,
+    'editor',
+    analysisSpeed ?? 'balanced',
+    modelOverride
+  );
 
   const systemInstruction = `${new QualityGatePromptComposer(
     editorialProfile.config,

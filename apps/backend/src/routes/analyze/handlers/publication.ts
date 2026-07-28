@@ -103,6 +103,7 @@ export async function handleQualityGateOnly(
     : await runFinalQualityGateSafely({
         signal: ctx.state.signal,
         provider: ctx.effectiveProvider,
+        modelOverride: ctx.modelOverride,
         originalDraft: ctx.originalDraft || finalDraft,
         finalDraft,
         metadata: ctx.metadata,

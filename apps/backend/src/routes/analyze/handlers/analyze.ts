@@ -39,6 +39,7 @@ import {
   splitDraftIntoRewriteChunks,
 } from '../utils/text';
 import { preparePublicationDraft } from '../utils/text';
+import { resolveAiFunctionConfig } from '@/lib/ai-provider-resolver';
 
 export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
   const {
@@ -57,10 +58,10 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
     editorialAudit,
     editorialLogFields,
     telemetry,
+    aiConfig,
     modelOverride,
   } = ctx;
 
-  const provider = getProvider(effectiveProvider);
   const resolveModelName = (roleForModel: typeof role) =>
     resolveModel(effectiveProvider, roleForModel!, analysisSpeed, modelOverride);
 
@@ -169,7 +170,17 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
       sourceOnly: analysisSpeed === 'fast',
     }).compose('xml');
 
-    const rewriteModelName = resolveModelName('rewrite' as typeof role);
+    const rewriteConfig = resolveAiFunctionConfig(
+      aiConfig,
+      'analyze_rewrite'
+    );
+    const rewriteProvider = getProvider(rewriteConfig.provider);
+    const rewriteModelName = resolveModel(
+      rewriteConfig.provider,
+      'author',
+      analysisSpeed,
+      rewriteConfig.model
+    );
     state.usedModels.push(`${rewriteModelName}(rewrite)`);
 
     for (let i = 0; i < chunks.length; i++) {
@@ -188,7 +199,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
 
       // Single unified stream loop — provider handles Gemini vs OpenAI-compat internally
       for await (const chunkText2 of executeStream({
-        provider,
+        provider: rewriteProvider,
         request: {
           signal: state.signal,
           systemInstruction: rewriteSystemInstruction,
@@ -207,7 +218,8 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
           }),
           model: rewriteModelName,
           maxOutputTokens: getRewriteOutputTokens(chunkText, isSingleChunk),
-          thinkingLevel: effectiveProvider === 'gemini' ? 'minimal' : undefined,
+          thinkingLevel:
+            rewriteConfig.provider === 'gemini' ? 'minimal' : undefined,
           temperature: 0.35,
         },
         telemetry,
@@ -232,17 +244,23 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
 
     if (analysisSpeed !== 'fast') {
       sendEvent('status', 'generating_seo');
-      const seoModelName = resolveModelName('seo' as typeof role);
+      const seoConfig = resolveAiFunctionConfig(aiConfig, 'analyze_seo');
+      const seoModelName = resolveModel(
+        seoConfig.provider,
+        'seo',
+        analysisSpeed,
+        seoConfig.model
+      );
       state.usedModels.push(`${seoModelName}(seo)`);
       seo = await runSeoStage({
         signal: state.signal,
-        provider: effectiveProvider,
+        provider: seoConfig.provider,
         modelName: seoModelName,
         article: finalBody,
         metadata,
         editorialProfile,
         systemInstruction: new SeoPromptComposer(editorialProfile.config, {
-          includeTextSchema: effectiveProvider !== 'gemini',
+          includeTextSchema: seoConfig.provider !== 'gemini',
         }).compose('xml'),
         telemetry,
       });
@@ -262,9 +280,14 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
         ? publishedPosts.map((post) => buildCanonicalInternalPostUrl(internalLinkBaseUrl, post.slug))
         : [];
 
+    const qualityGateConfig = resolveAiFunctionConfig(
+      aiConfig,
+      'analyze_quality_gate'
+    );
     const qualityGateResponse = await runFinalQualityGateSafely({
       signal: state.signal,
-      provider: effectiveProvider,
+      provider: qualityGateConfig.provider,
+      modelOverride: qualityGateConfig.model,
       originalDraft: sourceTextToPolish,
       finalDraft: finalBody,
       metadata,
@@ -302,17 +325,23 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
   // Non-polish roles still use the standalone metadata stage.
   if (analysisSpeed !== 'fast' && !seo) {
     sendEvent('status', 'generating_seo');
-    const seoModelName = resolveModelName('seo' as typeof role);
+    const seoConfig = resolveAiFunctionConfig(aiConfig, 'analyze_seo');
+    const seoModelName = resolveModel(
+      seoConfig.provider,
+      'seo',
+      analysisSpeed,
+      seoConfig.model
+    );
     state.usedModels.push(`${seoModelName}(seo)`);
     seo = await runSeoStage({
       signal: state.signal,
-      provider: effectiveProvider,
+      provider: seoConfig.provider,
       modelName: seoModelName,
       article: polishedText || text,
       metadata,
       editorialProfile,
       systemInstruction: new SeoPromptComposer(editorialProfile.config, {
-        includeTextSchema: effectiveProvider !== 'gemini',
+        includeTextSchema: seoConfig.provider !== 'gemini',
       }).compose('xml'),
       telemetry,
     });

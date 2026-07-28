@@ -7,6 +7,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Konfigurasi Runtime AI per Fungsi**:
+  - Memperluas konfigurasi AI di Admin Console internal dari satu override provider/model untuk seluruh workspace menjadi default berversi serta override terpisah untuk Strategist Fast Chat, Search Chat, Greeting, Data Analysis, Blueprint, Deep Research, Quick Draft, Draft from Notes, dan tahap Analyze Review, Rewrite, Refine, SEO, Quality Gate, serta Targeted Fix.
+  - Menambahkan routing provider/model saat runtime untuk Gemini, Groq, dan OpenRouter pada fungsi yang kompatibel, dengan guard khusus Gemini untuk Google Search, Blueprint dengan grounding, dan Deep Research.
+  - Menambahkan tahap konfirmasi, preset model, pratinjau runtime efektif, invalidasi cache, audit log, kompatibilitas format lama `provider:model`, dan pengujian regresi resolver.
+  - Menggunakan kembali kolom `aiProviderOverride` dengan payload JSON berversi, sehingga fitur ini tidak membutuhkan migrasi database.
 - **Idempotensi Request Blueprint Strategist yang Persisten**:
   - Menambahkan UUID yang dibuat client pada setiap request generate blueprint serta lifecycle `StrategistPlanRequest` yang tersimpan (`pending`, `completed`, atau `failed`).
   - Menambahkan endpoint status request blueprint terautentikasi agar frontend dapat merekonsiliasi hasil jaringan yang tidak pasti tanpa memulai generasi AI kedua.

@@ -20,6 +20,7 @@ export const runTargetedFixStage = async ({
   editorInstruction,
   metadata: _metadata,
   editorialProfile,
+  modelOverride,
   signal,
 }: {
   provider: AiProvider;
@@ -31,6 +32,7 @@ export const runTargetedFixStage = async ({
   editorInstruction: string;
   metadata?: ArticleMetadata;
   editorialProfile: EditorialProfileSnapshot;
+  modelOverride?: string | null;
   signal?: AbortSignal;
 }): Promise<{ replacementText: string; modelName: string }> => {
   const timezone = editorialProfile.config.timezone || 'Asia/Jakarta';
@@ -107,7 +109,12 @@ export const runTargetedFixStage = async ({
   ].join('\n');
 
   const aiProvider = getProvider(provider);
-  const modelName = resolveModel(provider, 'editor', analysisSpeed ?? 'balanced');
+  const modelName = resolveModel(
+    provider,
+    'editor',
+    analysisSpeed ?? 'balanced',
+    modelOverride
+  );
 
   const baselineSignals = detectSourceFidelitySignals(
     sourceMaterial || originalDraft,

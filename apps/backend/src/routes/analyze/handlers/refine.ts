@@ -28,6 +28,7 @@ import {
   getRewriteOutputTokens,
   preparePublicationDraft,
 } from '../utils/text';
+import { resolveAiFunctionConfig } from '@/lib/ai-provider-resolver';
 
 export async function handleRefine(ctx: RefineContext): Promise<void> {
   const {
@@ -45,6 +46,7 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
     editorialAudit,
     editorialLogFields,
     telemetry,
+    aiConfig,
     modelOverride,
   } = ctx;
 
@@ -121,18 +123,24 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
   let refineSeo: PublicationPackage | null = null;
   if (analysisSpeed !== 'fast') {
     sendEvent('status', 'generating_seo');
-    const seoModelName = resolveModelName('seo');
+    const seoConfig = resolveAiFunctionConfig(aiConfig, 'analyze_seo');
+    const seoModelName = resolveModel(
+      seoConfig.provider,
+      'seo',
+      analysisSpeed,
+      seoConfig.model
+    );
     state.usedModels.push(`${seoModelName}(seo)`);
     refineSeo = await runSeoStage({
       signal: state.signal,
-      provider: effectiveProvider,
+      provider: seoConfig.provider,
       modelName: seoModelName,
       article: refinedText,
       metadata,
       editorialProfile,
       systemInstruction: new SeoPromptComposer(
         editorialProfile.config,
-        { includeTextSchema: effectiveProvider !== 'gemini' }
+        { includeTextSchema: seoConfig.provider !== 'gemini' }
       ).compose('xml'),
       telemetry,
     });
@@ -144,9 +152,14 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
   }
 
   sendEvent('status', 'quality_gate');
+  const qualityGateConfig = resolveAiFunctionConfig(
+    aiConfig,
+    'analyze_quality_gate'
+  );
   const refineQualityGateResponse = await runFinalQualityGateSafely({
     signal: state.signal,
-    provider: effectiveProvider,
+    provider: qualityGateConfig.provider,
+    modelOverride: qualityGateConfig.model,
     originalDraft: text,
     finalDraft: refinedText,
     metadata,

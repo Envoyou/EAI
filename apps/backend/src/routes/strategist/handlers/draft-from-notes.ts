@@ -3,7 +3,11 @@ import { getWorkspaceState } from '@/lib/user-workspace';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
 import { ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 import { DraftFromNotesComposer } from '@/lib/ai/prompt-engine/composer/draft-from-notes-composer';
-import { gemini } from '@/lib/ai/provider-runtime';
+import {
+  gemini,
+  getOpenRouterModelForRole,
+  GROQ_MODEL,
+} from '@/lib/ai/provider-runtime';
 import { MODEL } from '../utils/helpers';
 import { resolveInternalOrgId, softAuth } from '../utils/helpers';
 import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
@@ -17,6 +21,12 @@ import {
   withGeminiFlexRetry,
 } from '@/lib/ai/gemini-request-policy';
 import { bindResponseAbort } from '@/lib/request-abort';
+import {
+  createDefaultAiRuntimeConfig,
+  resolveActiveAiFunctionConfig,
+  resolveAiFunctionConfig,
+} from '@/lib/ai-provider-resolver';
+import { getProvider } from '@/lib/ai/providers/registry';
 
 const router = Router();
 
@@ -84,6 +94,23 @@ router.post(
         return res.status(402).json({ error: 'Insufficient credits' });
       }
     }
+    const functionConfig = userId
+      ? await resolveActiveAiFunctionConfig(
+          userId,
+          billingOrgId,
+          'strategist_draft_from_notes'
+        )
+      : resolveAiFunctionConfig(
+          createDefaultAiRuntimeConfig(),
+          'strategist_draft_from_notes'
+        );
+    const modelName =
+      functionConfig.model ||
+      (functionConfig.provider === 'gemini'
+        ? MODEL
+        : functionConfig.provider === 'groq'
+          ? GROQ_MODEL
+          : getOpenRouterModelForRole('author', 'balanced'));
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -182,49 +209,76 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
 </metadata>
 `.trim();
 
-    const stream = await withGeminiFlexRetry(() =>
-      gemini.interactions.create({
-        model: MODEL,
-        input: prompt,
-        system_instruction: systemInstruction,
-        stream: true,
-        generation_config: {
-          max_output_tokens: 6000,
-        },
-        ...getGeminiInteractionConfig(),
-      }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
-      { signal: requestAbort.signal }
-    );
-
     let generatedText = '';
-    for await (const event of stream) {
-      if (requestAbort.isDisconnected()) {
-        console.log(
-          '[generate-draft-from-notes] Aborting stream loop due to client disconnect.'
-        );
-        break;
-      }
-      if (
-        event.event_type === 'step.delta' &&
-        event.delta?.type === 'text' &&
-        event.delta.text
-      ) {
-        generatedText += event.delta.text;
-        res.write(
-          `data: ${JSON.stringify({ type: 'text', chunk: event.delta.text })}\n\n`
-        );
-      } else if (event.event_type === 'interaction.completed') {
-        const eventWithInteraction = event as {
+    if (functionConfig.provider === 'gemini') {
+      const stream = await withGeminiFlexRetry(() =>
+        gemini.interactions.create({
+          model: modelName,
+          input: prompt,
+          system_instruction: systemInstruction,
+          stream: true,
+          generation_config: {
+            max_output_tokens: 6000,
+          },
+          ...getGeminiInteractionConfig(),
+        }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
+        { signal: requestAbort.signal }
+      );
+
+      for await (const rawEvent of stream) {
+        if (requestAbort.isDisconnected()) {
+          console.log(
+            '[generate-draft-from-notes] Aborting stream loop due to client disconnect.'
+          );
+          break;
+        }
+        const event = rawEvent as unknown as {
+          event_type?: string;
+          delta?: { type?: string; text?: string };
           interaction?: { usage?: { total_tokens?: number } };
         };
-        const usage = eventWithInteraction.interaction?.usage;
-        if (usage) {
-          console.log(
-            `\n[ENVOYOU INTERNAL BILLING] Generate Draft from Notes Complete. Total Tokens: ${
-              usage.total_tokens || 0
-            }`
+        if (
+          (
+            event.event_type === 'step.delta' ||
+            event.event_type === 'content.delta'
+          ) &&
+          event.delta?.text
+        ) {
+          generatedText += event.delta.text;
+          res.write(
+            `data: ${JSON.stringify({ type: 'text', chunk: event.delta.text })}\n\n`
+          );
+        } else if (event.event_type === 'interaction.completed') {
+          const usage = event.interaction?.usage;
+          if (usage) {
+            console.log(
+              `\n[ENVOYOU INTERNAL BILLING] Generate Draft from Notes Complete. Total Tokens: ${
+                usage.total_tokens || 0
+              }`
+            );
+          }
+          res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+        }
+      }
+    } else {
+      const stream = await getProvider(functionConfig.provider).stream({
+        signal: requestAbort.signal,
+        systemInstruction,
+        userContent: prompt,
+        model: modelName,
+        maxOutputTokens: 6000,
+        temperature: 0.45,
+      });
+      for await (const chunk of stream) {
+        if (requestAbort.isDisconnected()) break;
+        generatedText += chunk.text;
+        if (chunk.text) {
+          res.write(
+            `data: ${JSON.stringify({ type: 'text', chunk: chunk.text })}\n\n`
           );
         }
+      }
+      if (!requestAbort.isDisconnected()) {
         res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
       }
     }
@@ -240,7 +294,7 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
           content: generatedText,
           metadata: { source: 'strategist_notes' },
           promptVersion: PROMPT_VERSION,
-          modelName: MODEL,
+          modelName,
           status: 'success',
         },
       });

@@ -13,6 +13,14 @@ import {
 import { getZohoDeskTicket, isZohoDeskEnabled } from '@/lib/zoho-desk';
 import { getActor } from '../utils';
 import { AdjustmentSchema, OverridePlanSchema, AiConfigSchema } from '../types';
+import {
+  AI_FUNCTION_DEFINITIONS,
+  isProviderAllowedForAiFunction,
+} from '@eai/shared';
+import {
+  parseStoredAiRuntimeConfig,
+  serializeAiRuntimeConfig,
+} from '@/lib/ai-provider-resolver';
 
 const router = Router();
 
@@ -220,24 +228,11 @@ router.get('/organizations/:id/ai-config', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
-    let provider = 'gemini';
-    let model = '';
-
-    if (org.aiProviderOverride) {
-      if (org.aiProviderOverride.includes(':')) {
-        const parts = org.aiProviderOverride.split(':');
-        provider = parts[0];
-        model = parts[1] || '';
-      } else {
-        provider = org.aiProviderOverride;
-      }
-    }
-
     return res.json({
       organizationId: org.id,
       name: org.name,
-      provider,
-      model,
+      config: parseStoredAiRuntimeConfig(org.aiProviderOverride),
+      functions: AI_FUNCTION_DEFINITIONS,
     });
   } catch (error) {
     console.error('[ADMIN_AI_CONFIG_GET]', error);
@@ -269,8 +264,22 @@ router.put('/organizations/:id/ai-config', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid config payload', issues: parsed.error.flatten() });
     }
 
-    const { provider, model } = parsed.data;
-    const value = model ? `${provider}:${model}` : provider;
+    for (const definition of AI_FUNCTION_DEFINITIONS) {
+      const override = parsed.data.functions[definition.key];
+      if (
+        override &&
+        !isProviderAllowedForAiFunction(
+          definition.key,
+          override.provider
+        )
+      ) {
+        return res.status(400).json({
+          error: `${override.provider} is not supported for ${definition.label}`,
+        });
+      }
+    }
+
+    const value = serializeAiRuntimeConfig(parsed.data);
     const oldVal = org.aiProviderOverride;
 
     await prisma.organization.update({
@@ -293,14 +302,19 @@ router.put('/organizations/:id/ai-config', requireAuth, async (req, res) => {
       actorEmail: actor.email,
       targetId: orgId,
       targetType: 'Tenant',
-      description: `Updated Refine AI Engine config for organization "${org.name}" to provider: ${provider}, model: ${model || 'default'}`,
+      description: `Updated per-function AI Engine configuration for organization "${org.name}"`,
       details: {
         oldValue: oldVal,
         newValue: value,
       },
     });
 
-    return res.json({ success: true });
+    return res.json({
+      organizationId: org.id,
+      name: org.name,
+      config: parsed.data,
+      functions: AI_FUNCTION_DEFINITIONS,
+    });
   } catch (error) {
     console.error('[ADMIN_AI_CONFIG_PUT]', error);
     return res.status(500).json({ error: 'Failed to update AI configuration' });

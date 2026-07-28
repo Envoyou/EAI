@@ -20,6 +20,7 @@ export async function handleFixTargeted(ctx: FixTargetedContext): Promise<void> 
     originalDraft,
     analysisSpeed,
     effectiveProvider,
+    modelOverride,
     workspace,
     editorialProfile,
   } = ctx;
@@ -69,6 +70,7 @@ export async function handleFixTargeted(ctx: FixTargetedContext): Promise<void> 
       editorInstruction: instruction || 'Fix and simplify the text',
       metadata,
       editorialProfile,
+      modelOverride,
     });
     state.usedModels.push(`${targetedResult.modelName}(fix_targeted)`);
     replacementText = targetedResult.replacementText;
