@@ -28,6 +28,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Mencegah pemotongan kredit ganda pada retry request Fast Chat yang sama.
   - Meneruskan kegagalan dari event error/completion SSE Gemini dan stream selesai tanpa teks ke kebijakan retry Flex yang sudah ada, termasuk kegagalan setelah stream terbuka, serta mempertahankan kategori error provider yang aman untuk proses recovery.
   - Menambahkan fallback non-streaming dengan thinking rendah secara terbatas ketika Gemini menyelesaikan stream Fast Chat tanpa teks jawaban, beserta diagnostik event terminal yang tidak menyimpan prompt maupun konten hasil generasi.
+  - Merutekan Fast Chat dengan Search melalui `gemini-3.6-flash` (dapat dikonfigurasi lewat `GEMINI_STRATEGIST_SEARCH_MODEL`) sambil mempertahankan Flash-Lite untuk chat tanpa Search, sehingga mencegah kegagalan `requires_action` / `malformed_tool_call` ketika Flash-Lite mencoba Google Search melalui Interactions API.
   - Mengganti alur exception unique constraint pada claim request blueprint dengan `createMany({ skipDuplicates: true })`, sehingga log Prisma `P2002` yang menyesatkan tidak lagi muncul.
 
 ## [3.17.0] - 2026-07-26

@@ -12,6 +12,7 @@ import {
   softAuth,
   truncateAtParagraphBoundary,
   MODEL,
+  getStrategistFastChatModel,
   RESEARCH_MODEL,
   FAST_MODE_MAX_OUTPUT_TOKENS,
   FAST_MODE_INSTRUCTION,
@@ -416,6 +417,7 @@ router.post(
 
       const isSearchEnabled =
         mode !== 'deep' && enableSearch !== false && !isSimpleGreeting(chatInput);
+      const fastChatModel = getStrategistFastChatModel(isSearchEnabled);
       const requiredCredits = mode === 'deep' ? 5 : isSearchEnabled ? 1 : 0;
 
       if (requiredCredits > 0) {
@@ -691,7 +693,7 @@ router.post(
       const runFastStream = () =>
         withGeminiFlexRetry(async () => {
           const stream = await gemini.interactions.create({
-            model: MODEL,
+            model: fastChatModel,
             input: contextPrompt,
             system_instruction: finalFastModeInstruction,
             tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()
@@ -785,7 +787,7 @@ router.post(
         if (!isEmptyStrategistStreamError(error)) throw error;
 
         console.warn('[STRATEGIST_EMPTY_STREAM]', {
-          model: MODEL,
+          model: fastChatModel,
           searchEnabled: isSearchEnabled,
           diagnostic: lastStreamDiagnostic,
           fallback: 'non_streaming_low_thinking',
@@ -793,7 +795,7 @@ router.post(
 
         const fallbackInteraction = await withGeminiFlexRetry(() =>
           gemini.interactions.create({
-            model: MODEL,
+            model: fastChatModel,
             input: contextPrompt,
             system_instruction: finalFastModeInstruction,
             tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()

@@ -176,6 +176,11 @@ const resolveModel = (modelName: string): string => {
 };
 
 export const MODEL = resolveModel(process.env.GEMINI_COPILOT_MODEL || 'gemini-3.5-flash-lite');
+export const STRATEGIST_SEARCH_MODEL = resolveModel(
+  process.env.GEMINI_STRATEGIST_SEARCH_MODEL || 'gemini-3.6-flash'
+);
+export const getStrategistFastChatModel = (searchEnabled: boolean): string =>
+  searchEnabled ? STRATEGIST_SEARCH_MODEL : MODEL;
 export const RESEARCH_MODEL = resolveModel(
   process.env.GEMINI_RESEARCH_MODEL || 'gemini-3.6-flash'
 );
