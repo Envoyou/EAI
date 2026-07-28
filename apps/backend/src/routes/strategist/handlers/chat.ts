@@ -2,7 +2,10 @@ import { Router, Request, Response } from 'express';
 import crypto from 'node:crypto';
 import { prisma } from '@/lib/db';
 import { checkCreditsRemaining, deductCredits } from '@/lib/chat-billing';
-import { gemini } from '@/lib/ai/provider-runtime';
+import {
+  extractGeminiText,
+  gemini,
+} from '@/lib/ai/provider-runtime';
 import { StrategistChatComposer } from '@/lib/ai/prompt-engine/composer/strategist-chat-composer';
 import { composeWorkspaceContext } from '@/lib/ai/workspace-context';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
@@ -33,6 +36,7 @@ import {
   writeStrategistSseEvent,
 } from '../chat-protocol';
 import {
+  getGeminiGenerateConfig,
   getGeminiInteractionConfig,
   getGeminiInteractionRequestOptions,
   isGeminiGroundingDisabledForTests,
@@ -42,6 +46,7 @@ import { bindResponseAbort } from '@/lib/request-abort';
 import {
   buildStrategistChatGenerationConfig,
   isEmptyStrategistStreamError,
+  readNativeGroundingAnnotations,
   readStrategistThinkingEvent,
   readStrategistStreamFailure,
   requireStrategistStreamOutput,
@@ -447,6 +452,7 @@ router.post(
       const isSearchEnabled =
         mode !== 'deep' && enableSearch !== false && !isSimpleGreeting(chatInput);
       const requiredCredits = mode === 'deep' ? 5 : isSearchEnabled ? 1 : 0;
+      let creditsToDeduct = requiredCredits;
       const resolvedOrgId = req.auth?.userId
         ? await resolveInternalOrgId(req.auth.orgId, req.auth.userId)
         : null;
@@ -850,38 +856,79 @@ router.post(
             model: fastChatModel,
             searchEnabled: isSearchEnabled,
             diagnostic: lastStreamDiagnostic,
-            fallback: 'non_streaming_low_thinking',
+            fallback: isSearchEnabled
+              ? 'native_models_google_search'
+              : 'native_models_no_search',
           });
 
-          const fallbackInteraction = await withGeminiFlexRetry(() =>
-            gemini.interactions.create({
+          if (
+            isSearchEnabled &&
+            !isGeminiGroundingDisabledForTests()
+          ) {
+            try {
+              const nativeGroundedResponse = await withGeminiFlexRetry(
+                () =>
+                  gemini.models.generateContent({
+                    model: fastChatModel,
+                    contents: contextPrompt,
+                    config: {
+                      abortSignal: requestAbort.signal,
+                      systemInstruction: finalFastModeInstruction,
+                      tools: [{ googleSearch: {} }],
+                      maxOutputTokens: FAST_MODE_MAX_OUTPUT_TOKENS,
+                      ...getGeminiGenerateConfig(),
+                    },
+                  }),
+                { signal: requestAbort.signal }
+              );
+              finalOutputText = requireStrategistStreamOutput(
+                extractGeminiText(nativeGroundedResponse)
+              );
+              globalAnnotations =
+                readNativeGroundingAnnotations(nativeGroundedResponse);
+            } catch (groundingError) {
+              const safeFailure =
+                classifyStrategistChatFailure(groundingError);
+              console.warn('[STRATEGIST_GROUNDING_FALLBACK_FAILED]', {
+                model: fastChatModel,
+                code: safeFailure.code,
+                fallback: 'native_models_no_search',
+              });
+              creditsToDeduct = 0;
+              const ungroundedResult = await getProvider('gemini').generate({
+                signal: requestAbort.signal,
+                systemInstruction:
+                  `${finalFastModeInstruction}\n\n` +
+                  'Google Search is temporarily unavailable. Do not imply that you searched the web, do not invent current facts, and clearly state when current information could not be verified.',
+                userContent: contextPrompt,
+                model: fastChatModel,
+                maxOutputTokens: FAST_MODE_MAX_OUTPUT_TOKENS,
+                thinkingLevel: 'low',
+              });
+              finalOutputText = requireStrategistStreamOutput(
+                ungroundedResult.text
+              );
+              globalAnnotations = [];
+            }
+          } else {
+            const fallbackResult = await getProvider('gemini').generate({
+              signal: requestAbort.signal,
+              systemInstruction: finalFastModeInstruction,
+              userContent: contextPrompt,
               model: fastChatModel,
-              input: contextPrompt,
-              system_instruction: finalFastModeInstruction,
-              tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()
-                ? [{ type: 'google_search' }]
-                : undefined,
-              generation_config: {
-                ...buildStrategistChatGenerationConfig(
-                  FAST_MODE_MAX_OUTPUT_TOKENS,
-                  false
-                ),
-                thinking_summaries: 'none' as const,
-              },
-              ...getGeminiInteractionConfig(),
-            }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
-            { signal: requestAbort.signal }
-          );
-
-          finalOutputText = requireStrategistStreamOutput(
-            fallbackInteraction.output_text || ''
-          );
-          globalAnnotations = [];
+              maxOutputTokens: FAST_MODE_MAX_OUTPUT_TOKENS,
+              thinkingLevel: 'low',
+            });
+            finalOutputText = requireStrategistStreamOutput(
+              fallbackResult.text
+            );
+            globalAnnotations = [];
+          }
         }
       }
 
       if (!requestAbort.isDisconnected()) {
-        if (requiredCredits > 0 && req.auth && req.auth.userId) {
+        if (creditsToDeduct > 0 && req.auth && req.auth.userId) {
           try {
             const resolvedOrgId =
               (req as Request & { resolvedOrgId?: string | null })
@@ -889,7 +936,7 @@ router.post(
             await deductCredits(
               req.auth.userId,
               resolvedOrgId,
-              requiredCredits,
+              creditsToDeduct,
               'copilot_chat',
               `Fast Chat with Search (Query: ${chatInput.slice(0, 60)})`,
               activeHistoryId || undefined,

@@ -115,4 +115,42 @@ export function readStrategistThinkingEvent(
   };
 }
 
+export function readNativeGroundingAnnotations(response: unknown): Array<{
+  type: 'url_citation';
+  url: string;
+  title?: string;
+}> {
+  if (typeof response !== 'object' || response === null) return [];
+  const candidates = (response as {
+    candidates?: Array<{
+      groundingMetadata?: {
+        groundingChunks?: Array<{
+          web?: { uri?: string; title?: string };
+        }>;
+      };
+    }>;
+  }).candidates;
+  if (!Array.isArray(candidates)) return [];
+
+  const seen = new Set<string>();
+  const annotations: Array<{
+    type: 'url_citation';
+    url: string;
+    title?: string;
+  }> = [];
+  for (const candidate of candidates) {
+    for (const chunk of candidate.groundingMetadata?.groundingChunks ?? []) {
+      const url = chunk.web?.uri;
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      annotations.push({
+        type: 'url_citation',
+        url,
+        ...(chunk.web?.title ? { title: chunk.web.title } : {}),
+      });
+    }
+  }
+  return annotations;
+}
+
 export type { GeminiInteractionStreamEvent };

@@ -3,12 +3,51 @@ import {
   buildStrategistChatGenerationConfig,
   GeminiInteractionStreamError,
   isEmptyStrategistStreamError,
+  readNativeGroundingAnnotations,
   readStrategistThinkingEvent,
   readStrategistStreamFailure,
   requireStrategistStreamOutput,
 } from '../gemini-chat-stream';
 
 describe('Gemini Strategist chat stream adapter', () => {
+  test('extracts and deduplicates native Gemini grounding sources', () => {
+    expect(
+      readNativeGroundingAnnotations({
+        candidates: [
+          {
+            groundingMetadata: {
+              groundingChunks: [
+                {
+                  web: {
+                    uri: 'https://example.com/report',
+                    title: 'Example Report',
+                  },
+                },
+                {
+                  web: {
+                    uri: 'https://example.com/report',
+                    title: 'Duplicate',
+                  },
+                },
+                { web: { uri: 'https://example.org/news' } },
+              ],
+            },
+          },
+        ],
+      })
+    ).toEqual([
+      {
+        type: 'url_citation',
+        url: 'https://example.com/report',
+        title: 'Example Report',
+      },
+      {
+        type: 'url_citation',
+        url: 'https://example.org/news',
+      },
+    ]);
+  });
+
   test('requests thought summaries with balanced reasoning for grounded chat', () => {
     expect(buildStrategistChatGenerationConfig(2048, true)).toEqual({
       max_output_tokens: 2048,
