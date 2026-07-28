@@ -16,7 +16,7 @@ import { GeneratePlanSchema, type GroundingAnnotation } from '../types';
 import {
   getGeminiInteractionConfig,
   getGeminiInteractionRequestOptions,
-  isGeminiGroundingDisabledForTests,
+  isGeminiGroundingDisabled,
   isRetryableGeminiFlexError,
   withGeminiFlexRetry,
 } from '@/lib/ai/gemini-request-policy';
@@ -324,7 +324,7 @@ router.post(
             system_instruction: new StrategistBlueprintComposer(
               profile?.config
             ).compose('xml'),
-            tools: isGeminiGroundingDisabledForTests()
+            tools: isGeminiGroundingDisabled()
               ? undefined
               : [{ type: 'google_search' }],
             response_format: {
@@ -351,7 +351,7 @@ router.post(
             system_instruction: new StrategistBlueprintComposer(
               profile?.config
             ).compose('xml'),
-            tools: isGeminiGroundingDisabledForTests()
+            tools: isGeminiGroundingDisabled()
               ? undefined
               : [{ type: 'google_search' }],
             ...getGeminiInteractionConfig(),

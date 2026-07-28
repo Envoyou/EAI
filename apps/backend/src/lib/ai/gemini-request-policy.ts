@@ -26,8 +26,8 @@ export function resolveGeminiServiceTier(
     : 'standard';
 }
 
-export function isGeminiGroundingDisabledForTests(): boolean {
-  return process.env.GEMINI_DISABLE_GROUNDING_FOR_TESTS?.trim().toLowerCase() === 'true';
+export function isGeminiGroundingDisabled(): boolean {
+  return process.env.GEMINI_DISABLE_GROUNDING?.trim().toLowerCase() === 'true';
 }
 
 export function getGeminiRequestTimeoutMs(

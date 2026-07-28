@@ -3,7 +3,7 @@ import {
   getGeminiGenerateConfig,
   getGeminiInteractionConfig,
   getGeminiInteractionRequestOptions,
-  isGeminiGroundingDisabledForTests,
+  isGeminiGroundingDisabled,
   isRetryableGeminiFlexError,
   resolveGeminiServiceTier,
   withGeminiFlexRetry,
@@ -38,12 +38,12 @@ describe('Gemini request policy', () => {
     expect(getGeminiInteractionRequestOptions()).toEqual({ timeout: 720_000 });
   });
 
-  test('disables paid grounding only when the explicit test guard is enabled', () => {
-    delete process.env.GEMINI_DISABLE_GROUNDING_FOR_TESTS;
-    expect(isGeminiGroundingDisabledForTests()).toBe(false);
+  test('disables paid grounding only when the global grounding guard is enabled', () => {
+    delete process.env.GEMINI_DISABLE_GROUNDING;
+    expect(isGeminiGroundingDisabled()).toBe(false);
 
-    process.env.GEMINI_DISABLE_GROUNDING_FOR_TESTS = 'true';
-    expect(isGeminiGroundingDisabledForTests()).toBe(true);
+    process.env.GEMINI_DISABLE_GROUNDING = 'true';
+    expect(isGeminiGroundingDisabled()).toBe(true);
   });
 
   test('retries only Flex capacity errors with exponential backoff', async () => {

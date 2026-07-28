@@ -22,6 +22,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan migration `20260729010000_add_strategist_chat_lifecycle`, yang telah diterapkan ke database Neon production pada 29 Juli 2026.
 
 ### Fixed
+- **Guard Grounding Gemini yang Tidak Ambigu**:
+  - Mengganti nama kill switch global Search/Deep Research dari `GEMINI_DISABLE_GROUNDING_FOR_TESTS` menjadi `GEMINI_DISABLE_GROUNDING`, memperjelas bahwa flag ini terpisah dari mock chat dan berlaku di setiap environment, serta menyelaraskan pemilihan model Strategist, mode thinking, diagnostic, dan pemotongan kredit dengan status Search yang benar-benar aktif.
 - **Notifikasi Gagal Palsu dan Duplikasi Generate Blueprint**:
   - Mencegah blueprint yang sudah berhasil tersimpan dilaporkan gagal ketika respons hilang atau terpotong di antara backend dan browser.
   - Membuat pengiriman ulang dengan UUID request yang sama mengembalikan hasil yang sudah committed atau status operasi yang masih berjalan, bukan menghasilkan dan menyimpan blueprint duplikat.

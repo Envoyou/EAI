@@ -39,7 +39,7 @@ import {
   getGeminiGenerateConfig,
   getGeminiInteractionConfig,
   getGeminiInteractionRequestOptions,
-  isGeminiGroundingDisabledForTests,
+  isGeminiGroundingDisabled,
   withGeminiFlexRetry,
 } from '@/lib/ai/gemini-request-policy';
 import { bindResponseAbort } from '@/lib/request-abort';
@@ -449,9 +449,13 @@ router.post(
         );
       };
 
-      const isSearchEnabled =
+      const isSearchRequested =
         mode !== 'deep' && enableSearch !== false && !isSimpleGreeting(chatInput);
-      const requiredCredits = mode === 'deep' ? 5 : isSearchEnabled ? 1 : 0;
+      const groundingDisabled = isGeminiGroundingDisabled();
+      const effectiveSearchEnabled =
+        isSearchRequested && !groundingDisabled;
+      const requiredCredits =
+        mode === 'deep' ? 5 : effectiveSearchEnabled ? 1 : 0;
       let creditsToDeduct = requiredCredits;
       const resolvedOrgId = req.auth?.userId
         ? await resolveInternalOrgId(req.auth.orgId, req.auth.userId)
@@ -459,7 +463,7 @@ router.post(
       const selectedFunction =
         mode === 'deep'
           ? 'strategist_deep_research'
-          : isSearchEnabled
+          : effectiveSearchEnabled
             ? 'strategist_chat_search'
             : 'strategist_chat';
       const selectedAiConfig = req.auth?.userId
@@ -476,7 +480,7 @@ router.post(
       const fastChatModel =
         selectedAiConfig.model ||
         (fastChatProvider === 'gemini'
-          ? getStrategistFastChatModel(isSearchEnabled)
+          ? getStrategistFastChatModel(effectiveSearchEnabled)
           : resolveModel(fastChatProvider, 'editor', 'balanced'));
       const deepResearchModel = selectedAiConfig.model || RESEARCH_MODEL;
 
@@ -667,10 +671,10 @@ router.post(
       const contextPrompt = `${workspaceXml}\n\n<task>\nuser: ${chatInput}\nassistant:\n</task>`;
 
       if (mode === 'deep') {
-        if (isGeminiGroundingDisabledForTests()) {
+        if (groundingDisabled) {
           writeStrategistSseEvent(res, {
             type: 'error',
-            error: 'Deep Research is disabled by the staging cost guard.',
+            error: 'Deep Research is disabled by the global grounding guard.',
           });
           res.end();
           return;
@@ -764,12 +768,12 @@ router.post(
               model: fastChatModel,
               input: contextPrompt,
               system_instruction: finalFastModeInstruction,
-              tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()
+              tools: effectiveSearchEnabled
                 ? [{ type: 'google_search' }]
                 : undefined,
               generation_config: buildStrategistChatGenerationConfig(
                 FAST_MODE_MAX_OUTPUT_TOKENS,
-                isSearchEnabled
+                effectiveSearchEnabled
               ),
               stream: true,
               ...getGeminiInteractionConfig(),
@@ -805,7 +809,7 @@ router.post(
               ) {
                 const thinkingEvent = readStrategistThinkingEvent(
                   event,
-                  isSearchEnabled ? 'grounding' : 'reasoning'
+                  effectiveSearchEnabled ? 'grounding' : 'reasoning'
                 );
                 if (thinkingEvent) {
                   writeStrategistSseEvent(res, thinkingEvent);
@@ -854,17 +858,16 @@ router.post(
 
           console.warn('[STRATEGIST_EMPTY_STREAM]', {
             model: fastChatModel,
-            searchEnabled: isSearchEnabled,
+            searchRequested: isSearchRequested,
+            searchEnabled: effectiveSearchEnabled,
+            groundingDisabled,
             diagnostic: lastStreamDiagnostic,
-            fallback: isSearchEnabled
+            fallback: effectiveSearchEnabled
               ? 'native_models_google_search'
               : 'native_models_no_search',
           });
 
-          if (
-            isSearchEnabled &&
-            !isGeminiGroundingDisabledForTests()
-          ) {
+          if (effectiveSearchEnabled) {
             try {
               const nativeGroundedResponse = await withGeminiFlexRetry(
                 () =>
