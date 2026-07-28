@@ -28,6 +28,10 @@ import {
   type StrategistPlanResult,
 } from '@/lib/strategist-plan-request';
 import { recoverStrategistChatRequest } from '@/lib/strategist-chat-request';
+import {
+  StrategistTypewriterQueue,
+  type StrategistTypewriterMode,
+} from '@/lib/strategist-typewriter';
 
 export type SignalData = {
   topic: string;
@@ -158,6 +162,74 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       return stored ? JSON.parse(stored) : [];
     } catch { return []; }
   });
+  const strategistTypewriterRef = useRef<StrategistTypewriterQueue | null>(null);
+  if (strategistTypewriterRef.current == null) {
+    strategistTypewriterRef.current = new StrategistTypewriterQueue();
+  }
+
+  useEffect(() => {
+    const queue = strategistTypewriterRef.current;
+    return () => queue?.dispose();
+  }, []);
+
+  const dropStrategistTypewriter = useCallback((messageId: string) => {
+    strategistTypewriterRef.current?.dropByPrefix(`${messageId}:`);
+  }, []);
+
+  const enqueueStrategistThinking = useCallback((
+    messageId: string,
+    kind: StrategistThinkingKind,
+    chunk: string
+  ) => {
+    strategistTypewriterRef.current?.enqueue(
+      `${messageId}:thinking`,
+      chunk,
+      'append',
+      (animatedText) => {
+        setMessages(prev => prev.map(message => message.id === messageId
+          ? {
+              ...message,
+              payload: {
+                ...message.payload,
+                status: 'Thinking...',
+                thinking: {
+                  kind,
+                  content: animatedText,
+                },
+              },
+            }
+          : message));
+      }
+    );
+  }, []);
+
+  const enqueueStrategistContent = useCallback((
+    messageId: string,
+    content: string,
+    suggestions: string[] | undefined,
+    mode: StrategistTypewriterMode = 'replace'
+  ) => {
+    strategistTypewriterRef.current?.drop(`${messageId}:thinking`);
+    strategistTypewriterRef.current?.enqueue(
+      `${messageId}:content`,
+      content,
+      mode,
+      (animatedText) => {
+        setMessages(prev => prev.map(message => message.id === messageId
+          ? {
+              ...message,
+              content: animatedText,
+              payload: {
+                ...message.payload,
+                status: undefined,
+                suggestions:
+                  suggestions || message.payload?.suggestions,
+              },
+            }
+          : message));
+      }
+    );
+  }, []);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<PreEditorPlan | null>(() => {
@@ -237,6 +309,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
   const selectSession = useCallback(async (sessionId: string) => {
     if (!user) return;
+    strategistTypewriterRef.current?.clear();
     setIsTyping(true);
     try {
       const res = await fetchWithTimeout(`/api/strategist/sessions/${sessionId}`);
@@ -324,6 +397,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     // Optimistic UI update
     setSessions(prev => prev.filter(s => s.id !== sessionId));
     if (currentSessionId === sessionId) {
+      strategistTypewriterRef.current?.clear();
       setCurrentSessionId(null);
       setMessages([]);
     }
@@ -346,6 +420,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
   }, [user, currentSessionId, loadSessions, setSessions, setCurrentSessionId, setMessages]);
 
   const startNewChat = useCallback(() => {
+    strategistTypewriterRef.current?.clear();
     setCurrentSessionId('new');
     setMessages([]);
     setCurrentPlan(null);
@@ -362,7 +437,11 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
   // Persist messages when they change
   useEffect(() => {
-    if (!isTyping && typeof window !== 'undefined') {
+    if (
+      !isTyping &&
+      !strategistTypewriterRef.current?.isActive() &&
+      typeof window !== 'undefined'
+    ) {
       sessionStorage.setItem(`eai_strategist_messages_${documentId}`, JSON.stringify(messages));
     }
   }, [messages, isTyping, documentId]);
@@ -890,8 +969,6 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       let receivedDone = false;
       let deepResearchStarted = false;
 
-      let currentThinkingContent = '';
-
       while (!done) {
         const { value, done: readerDone } = await readWithTimeout(
           reader,
@@ -927,32 +1004,29 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                     ? { ...m, payload: { ...m.payload, status: 'Deep Research in progress...' } }
                     : m));
                 } else if (data.type === 'thinking' && data.chunk) {
-                  currentThinkingContent += data.chunk;
                   const thinkingKind: StrategistThinkingKind =
                     data.kind === 'grounding' ? 'grounding' : 'reasoning';
-                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
-                    ...m,
-                    payload: {
-                      ...m.payload,
-                      status: 'Thinking...',
-                      thinking: {
-                        kind: thinkingKind,
-                        content: currentThinkingContent,
-                      },
-                    },
-                  } : m));
+                  enqueueStrategistThinking(
+                    assistantMsgId,
+                    thinkingKind,
+                    data.chunk
+                  );
                 } else if (data.type === 'chunk' || data.type === 'text') {
                   currentContent += data.chunk;
                   const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
-                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
-                    ...m, content: displayContent, payload: { ...m.payload, suggestions: suggestions || m.payload?.suggestions, status: undefined }
-                  } : m));
+                  enqueueStrategistContent(
+                    assistantMsgId,
+                    displayContent,
+                    suggestions
+                  );
                 } else if (data.type === 'replace_text') {
                   currentContent = data.text;
                   const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
-                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
-                    ...m, content: displayContent, payload: { ...m.payload, suggestions: suggestions || m.payload?.suggestions, status: undefined }
-                  } : m));
+                  enqueueStrategistContent(
+                    assistantMsgId,
+                    displayContent,
+                    suggestions
+                  );
                 } else if (data.type === 'sources') {
                   if (data.sources && data.sources.length > 0) {
                     setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, sources: data.sources } } : m));
@@ -972,6 +1046,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       }
 
       if (controller.signal.aborted) {
+        dropStrategistTypewriter(assistantMsgId);
         setMessages(prev => prev.flatMap(m => {
           if (m.id !== assistantMsgId) return [m];
           return m.content.trim()
@@ -989,12 +1064,20 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       if (sugMatch) {
         const extractedSuggestions = sugMatch[1].split('|').map(s => s.trim());
         currentContent = currentContent.replace(sugMatch[0], '').trim();
-        setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, suggestions: extractedSuggestions } } : m));
+        enqueueStrategistContent(
+          assistantMsgId,
+          currentContent,
+          extractedSuggestions
+        );
       } else {
         const cleaned = currentContent.replace(/\[SUGGESTIONS:[\s\S]*/g, '').trim();
         if (cleaned !== currentContent) {
           currentContent = cleaned;
-          setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent } : m));
+          enqueueStrategistContent(
+            assistantMsgId,
+            currentContent,
+            undefined
+          );
         }
       }
 
@@ -1002,6 +1085,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     } catch (error) {
       if (controller.signal.aborted && !(error instanceof StreamIdleTimeoutError)) {
         console.log('Chat stream aborted.');
+        dropStrategistTypewriter(assistantMsgId);
         setMessages(prev => prev.flatMap(m => {
           if (m.id !== assistantMsgId) return [m];
           return m.content.trim()
@@ -1016,6 +1100,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         { signal: controller.signal }
       );
       if (controller.signal.aborted) {
+        dropStrategistTypewriter(assistantMsgId);
         setMessages(prev => prev.filter(message => message.id !== assistantMsgId));
         return;
       }
@@ -1025,10 +1110,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         const { displayContent, suggestions } = extractDynamicSuggestions(
           recovery.result.text
         );
+        dropStrategistTypewriter(assistantMsgId);
         setMessages(prev => prev.map(item => item.id === assistantMsgId
           ? {
               ...item,
-              content: displayContent,
               payload: {
                 ...item.payload,
                 status: undefined,
@@ -1038,6 +1123,11 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
               },
             }
           : item));
+        enqueueStrategistContent(
+          assistantMsgId,
+          displayContent,
+          suggestions
+        );
         fetchCredits();
         return;
       }
@@ -1047,6 +1137,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           ? error.message
           : 'Failed to rewrite message';
       toast.error(message);
+      dropStrategistTypewriter(assistantMsgId);
       setMessages(prev => prev.map(m => m.id === assistantMsgId
         ? {
             ...m,
@@ -1414,8 +1505,6 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       let receivedDone = false;
       let deepResearchStarted = false;
 
-      let currentThinkingContent = '';
-
       while (!done) {
         const { value, done: readerDone } = await readWithTimeout(
           reader,
@@ -1451,32 +1540,29 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                 } else if (data.type === 'status') {
                   setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, status: data.message } } : m));
                 } else if (data.type === 'thinking' && data.chunk) {
-                  currentThinkingContent += data.chunk;
                   const thinkingKind: StrategistThinkingKind =
                     data.kind === 'grounding' ? 'grounding' : 'reasoning';
-                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
-                    ...m,
-                    payload: {
-                      ...m.payload,
-                      status: 'Thinking...',
-                      thinking: {
-                        kind: thinkingKind,
-                        content: currentThinkingContent,
-                      },
-                    },
-                  } : m));
+                  enqueueStrategistThinking(
+                    assistantMsgId,
+                    thinkingKind,
+                    data.chunk
+                  );
                 } else if (data.type === 'text') {
                   currentContent += data.chunk;
                   const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
-                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
-                    ...m, content: displayContent, payload: { ...m.payload, suggestions: suggestions || m.payload?.suggestions, status: undefined }
-                  } : m));
+                  enqueueStrategistContent(
+                    assistantMsgId,
+                    displayContent,
+                    suggestions
+                  );
                 } else if (data.type === 'replace_text') {
                   currentContent = data.text;
                   const { displayContent, suggestions } = extractDynamicSuggestions(currentContent);
-                  setMessages(prev => prev.map(m => m.id === assistantMsgId ? {
-                    ...m, content: displayContent, payload: { ...m.payload, suggestions: suggestions || m.payload?.suggestions, status: undefined }
-                  } : m));
+                  enqueueStrategistContent(
+                    assistantMsgId,
+                    displayContent,
+                    suggestions
+                  );
                 } else if (data.type === 'sources') {
                   if (data.sources && data.sources.length > 0) {
                     setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, payload: { ...m.payload, sources: data.sources } } : m));
@@ -1496,6 +1582,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       }
 
       if (controller.signal.aborted) {
+        dropStrategistTypewriter(assistantMsgId);
         setMessages(prev => prev.flatMap(m => {
           if (m.id !== assistantMsgId) return [m];
           return m.content.trim()
@@ -1513,12 +1600,20 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       if (sugMatch) {
         const extractedSuggestions = sugMatch[1].split('|').map(s => s.trim());
         currentContent = currentContent.replace(sugMatch[0], '').trim();
-        setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent, payload: { ...m.payload, suggestions: extractedSuggestions } } : m));
+        enqueueStrategistContent(
+          assistantMsgId,
+          currentContent,
+          extractedSuggestions
+        );
       } else {
         const cleaned = currentContent.replace(/\[SUGGESTIONS:[\s\S]*/g, '').trim();
         if (cleaned !== currentContent) {
           currentContent = cleaned;
-          setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: currentContent } : m));
+          enqueueStrategistContent(
+            assistantMsgId,
+            currentContent,
+            undefined
+          );
         }
       }
 
@@ -1526,6 +1621,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     } catch (error) {
       if (controller.signal.aborted && !(error instanceof StreamIdleTimeoutError)) {
         console.log('Chat stream aborted.');
+        dropStrategistTypewriter(assistantMsgId);
         setMessages(prev => prev.flatMap(m => {
           if (m.id !== assistantMsgId) return [m];
           return m.content.trim()
@@ -1540,6 +1636,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         { signal: controller.signal }
       );
       if (controller.signal.aborted) {
+        dropStrategistTypewriter(assistantMsgId);
         setMessages(prev => prev.filter(message => message.id !== assistantMsgId));
         return;
       }
@@ -1549,10 +1646,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         const { displayContent, suggestions } = extractDynamicSuggestions(
           recovery.result.text
         );
+        dropStrategistTypewriter(assistantMsgId);
         setMessages(prev => prev.map(item => item.id === assistantMsgId
           ? {
               ...item,
-              content: displayContent,
               payload: {
                 ...item.payload,
                 status: undefined,
@@ -1562,6 +1659,11 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
               },
             }
           : item));
+        enqueueStrategistContent(
+          assistantMsgId,
+          displayContent,
+          suggestions
+        );
         fetchCredits();
         return;
       }
@@ -1572,6 +1674,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           ? error.message
           : 'Failed to send message';
       toast.error(message);
+      dropStrategistTypewriter(assistantMsgId);
       setMessages(prev => prev.map(item => item.id === assistantMsgId
         ? {
             ...item,

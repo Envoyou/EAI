@@ -22,6 +22,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added migration `20260729010000_add_strategist_chat_lifecycle`, applied to the production Neon database on July 29, 2026.
 
 ### Fixed
+- **Progressive Strategist Thinking and Answer Reveal**:
+  - Added a shared adaptive typewriter queue for Strategist reasoning, Search grounding summaries, streamed text, and final replacement responses, with lifecycle-safe cancellation, session switching, and `prefers-reduced-motion` support.
 - **Unambiguous Gemini Grounding Guard**:
   - Renamed the global Search/Deep Research kill switch from `GEMINI_DISABLE_GROUNDING_FOR_TESTS` to `GEMINI_DISABLE_GROUNDING`, clarified that it is independent of mock chat and applies in every environment, and aligned Strategist model routing, thinking mode, diagnostics, and credit charging with whether Search is actually enabled.
 - **False Blueprint Failure and Duplicate Generation**:

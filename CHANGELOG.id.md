@@ -22,6 +22,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan migration `20260729010000_add_strategist_chat_lifecycle`, yang telah diterapkan ke database Neon production pada 29 Juli 2026.
 
 ### Fixed
+- **Kemunculan Bertahap Thinking dan Jawaban Strategist**:
+  - Menambahkan antrean typewriter adaptif bersama untuk reasoning Strategist, ringkasan grounding Search, teks stream, dan respons final pengganti, dengan pembatalan yang aman terhadap lifecycle, pergantian sesi, serta dukungan `prefers-reduced-motion`.
 - **Guard Grounding Gemini yang Tidak Ambigu**:
   - Mengganti nama kill switch global Search/Deep Research dari `GEMINI_DISABLE_GROUNDING_FOR_TESTS` menjadi `GEMINI_DISABLE_GROUNDING`, memperjelas bahwa flag ini terpisah dari mock chat dan berlaku di setiap environment, serta menyelaraskan pemilihan model Strategist, mode thinking, diagnostic, dan pemotongan kredit dengan status Search yang benar-benar aktif.
 - **Notifikasi Gagal Palsu dan Duplikasi Generate Blueprint**:
