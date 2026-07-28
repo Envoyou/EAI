@@ -23,6 +23,10 @@ import {
   getStrategistStatusPath,
   getStrategistCancelPath,
 } from '@/lib/hooks/useStrategistChatPath';
+import {
+  recoverStrategistPlanResult,
+  type StrategistPlanResult,
+} from '@/lib/strategist-plan-request';
 
 export type SignalData = {
   topic: string;
@@ -675,27 +679,14 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
   const generatePlan = useCallback(async (recommendationText: string, history: ChatMessage[]) => {
     setIsTyping(true);
     const assistantMsgId = generateId();
+    const requestId = crypto.randomUUID();
     setMessages(prev => [...prev, { id: assistantMsgId, role: 'assistant', type: 'text', content: '', payload: { status: 'Generating Editorial Blueprint...', lifecycle: 'pending' } }]);
 
     chatAbortControllerRef.current?.abort();
     const controller = new AbortController();
     chatAbortControllerRef.current = controller;
 
-    try {
-      const res = await directFetch('/api/strategist/generate-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        timeoutMs: REQUEST_TIMEOUT_MS.aiFlex,
-        body: JSON.stringify({ recommendation: recommendationText, history, sessionId: currentSessionId }),
-      });
-
-      if (!res.ok) {
-        throw new Error(await getResponseErrorMessage(res, `Plan generation failed (${res.status})`));
-      }
-      const data = await res.json();
-      
-      // If a new session was created in the backend for this plan, update local state
+    const applyPlanResult = (data: StrategistPlanResult<PreEditorPlan>) => {
       if (data.sessionId && data.sessionId !== currentSessionId) {
         setCurrentSessionId(data.sessionId);
         loadSessions();
@@ -703,7 +694,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
       if (data.plan) {
         setCurrentPlan(data.plan);
-        if (data.plan?.sources && data.plan.sources.length > 0) {
+        if (data.plan.sources?.length > 0) {
           const fakeDomains = data.plan.sources.map((url: string) => {
             let domain = 'Source';
             try { domain = new URL(url).hostname.replace('www.', ''); } catch {}
@@ -715,6 +706,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           });
         }
       }
+
       let displayContent = data.reply || "";
       if (data.plan) {
         const plan = data.plan;
@@ -725,12 +717,12 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           displayContent += `* **Hook**: *"${plan.hook}"*\n`;
         }
         displayContent += `\n`;
-        
+
         if (plan.outline) {
           displayContent += `### **Proposed Outline**\n${plan.outline}\n\n`;
         }
-        
-        if (plan.sources && plan.sources.length > 0) {
+
+        if (plan.sources?.length > 0) {
           displayContent += `### **Sources**\n`;
           plan.sources.forEach((src: string, index: number) => {
             let domain = 'Source';
@@ -752,11 +744,50 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         content: displayContent,
         payload: { suggestions: data.suggestions, lifecycle: 'success' }
       } : m));
+    };
+
+    try {
+      const res = await directFetch('/api/strategist/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        timeoutMs: REQUEST_TIMEOUT_MS.aiFlex,
+        body: JSON.stringify({ requestId, recommendation: recommendationText, history, sessionId: currentSessionId }),
+      });
+
+      if (!res.ok) {
+        throw new Error(await getResponseErrorMessage(res, `Plan generation failed (${res.status})`));
+      }
+      if (res.status === 202) {
+        throw new Error('Blueprint request is still processing');
+      }
+      const data = await res.json() as StrategistPlanResult<PreEditorPlan>;
+      applyPlanResult(data);
     } catch (error) {
       if (controller.signal.aborted) {
         setMessages(prev => prev.filter(message => message.id !== assistantMsgId));
         return;
       }
+
+      let recovered: StrategistPlanResult<PreEditorPlan> | null = null;
+      try {
+        recovered = await recoverStrategistPlanResult<PreEditorPlan>(
+          directFetch,
+          requestId,
+          { signal: controller.signal }
+        );
+      } catch {
+        // Preserve the original request error below when recovery confirms failure.
+      }
+      if (controller.signal.aborted) {
+        setMessages(prev => prev.filter(message => message.id !== assistantMsgId));
+        return;
+      }
+      if (recovered) {
+        applyPlanResult(recovered);
+        return;
+      }
+
       const message = error instanceof Error ? error.message : 'Failed to generate draft plan';
       toast.error(message);
       setMessages(prev => prev.map(m => m.id === assistantMsgId ? {

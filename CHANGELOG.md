@@ -6,6 +6,19 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Durable Strategist Blueprint Request Idempotency**:
+  - Added a client-generated UUID to each blueprint generation request and a persisted `StrategistPlanRequest` lifecycle (`pending`, `completed`, or `failed`).
+  - Added an authenticated blueprint request-status endpoint so the frontend can reconcile an ambiguous network outcome without starting another AI generation.
+  - Added migration `20260728090000_add_strategist_plan_idempotency`, applied to the production Neon database on July 28, 2026.
+
+### Fixed
+- **False Blueprint Failure and Duplicate Generation**:
+  - Prevented a successfully persisted blueprint from being reported as failed when the response was lost or truncated between the backend and browser.
+  - Made repeated submissions with the same request UUID replay the committed result or report the in-progress operation instead of generating and storing a duplicate blueprint.
+  - Persisted the user message, assistant blueprint, and completed request result in one database transaction so chat history and request status cannot diverge.
+  - Preserved rolling-deployment compatibility by generating a server-side UUID for older frontend bundles that do not yet send a request ID.
+
 ## [3.17.0] - 2026-07-26
 
 ### Added

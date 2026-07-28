@@ -35,6 +35,7 @@ export const ChatInputSchema = z.object({
 export type ChatInput = z.infer<typeof ChatInputSchema>;
 
 export const GeneratePlanSchema = z.object({
+  requestId: z.uuid().optional(),
   recommendation: z.string().min(1, 'Recommendation is required').max(20_000),
   history: z
     .array(

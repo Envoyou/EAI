@@ -6,6 +6,19 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Idempotensi Request Blueprint Strategist yang Persisten**:
+  - Menambahkan UUID yang dibuat client pada setiap request generate blueprint serta lifecycle `StrategistPlanRequest` yang tersimpan (`pending`, `completed`, atau `failed`).
+  - Menambahkan endpoint status request blueprint terautentikasi agar frontend dapat merekonsiliasi hasil jaringan yang tidak pasti tanpa memulai generasi AI kedua.
+  - Menambahkan migration `20260728090000_add_strategist_plan_idempotency`, yang telah diterapkan ke database Neon production pada 28 Juli 2026.
+
+### Fixed
+- **Notifikasi Gagal Palsu dan Duplikasi Generate Blueprint**:
+  - Mencegah blueprint yang sudah berhasil tersimpan dilaporkan gagal ketika respons hilang atau terpotong di antara backend dan browser.
+  - Membuat pengiriman ulang dengan UUID request yang sama mengembalikan hasil yang sudah committed atau status operasi yang masih berjalan, bukan menghasilkan dan menyimpan blueprint duplikat.
+  - Menyimpan pesan user, blueprint asisten, dan hasil request berstatus selesai dalam satu transaksi database agar riwayat chat dan status request tidak menyimpang.
+  - Mempertahankan kompatibilitas rolling deployment dengan membuat UUID fallback di server untuk bundle frontend lama yang belum mengirim request ID.
+
 ## [3.17.0] - 2026-07-26
 
 ### Added

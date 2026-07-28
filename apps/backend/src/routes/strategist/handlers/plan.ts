@@ -21,8 +21,52 @@ import {
   withGeminiFlexRetry,
 } from '@/lib/ai/gemini-request-policy';
 import { bindResponseAbort } from '@/lib/request-abort';
+import { Prisma } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 
 const router = Router();
+
+// GET /api/strategist/generate-plan/:requestId
+router.get(
+  '/generate-plan/:requestId',
+  softAuth,
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.auth?.userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const requestId = req.params.requestId;
+      const planRequest = await prisma.strategistPlanRequest.findUnique({
+        where: { id: requestId },
+      });
+
+      if (!planRequest || planRequest.userId !== req.auth.userId) {
+        return res.status(404).json({ error: 'Blueprint request not found' });
+      }
+
+      if (planRequest.status === 'completed' && planRequest.response) {
+        return res.json({
+          status: 'completed',
+          result: planRequest.response,
+        });
+      }
+
+      return res.json({
+        status: planRequest.status,
+        error:
+          planRequest.status === 'failed'
+            ? 'Blueprint generation failed'
+            : null,
+      });
+    } catch (error) {
+      console.error('Error fetching strategist plan request:', error);
+      return res.status(500).json({
+        error: 'Failed to fetch blueprint request status',
+      });
+    }
+  }
+);
 
 // POST /api/strategist/generate-plan
 router.post(
@@ -36,6 +80,9 @@ router.post(
   }),
   async (req: Request, res: Response) => {
     const requestAbort = bindResponseAbort(res, 'Strategist plan');
+    let planRequestClaimed = false;
+    let planRequestCompleted = false;
+    let claimedRequestId: string | null = null;
     try {
       const parsedInput = GeneratePlanSchema.safeParse(req.body);
       if (!parsedInput.success) {
@@ -44,7 +91,15 @@ router.post(
           issues: parsedInput.error.issues,
         });
       }
-      const { recommendation, history, sessionId } = parsedInput.data;
+      const {
+        requestId: clientRequestId,
+        recommendation,
+        history,
+        sessionId,
+      } = parsedInput.data;
+      const requestId = clientRequestId ?? randomUUID();
+      let recoveredSessionId: string | undefined;
+      claimedRequestId = requestId;
 
       if (req.auth?.userId && sessionId && sessionId !== 'new') {
         const ownedSession = await prisma.chatSession.findFirst({
@@ -53,6 +108,72 @@ router.post(
         });
         if (!ownedSession) {
           return res.status(404).json({ error: 'Chat session not found' });
+        }
+      }
+
+      if (req.auth?.userId) {
+        try {
+          await prisma.strategistPlanRequest.create({
+            data: {
+              id: requestId,
+              userId: req.auth.userId,
+              sessionId:
+                sessionId && sessionId !== 'new' ? sessionId : undefined,
+            },
+          });
+          planRequestClaimed = true;
+        } catch (error) {
+          if (
+            !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+            error.code !== 'P2002'
+          ) {
+            throw error;
+          }
+
+          const existingRequest =
+            await prisma.strategistPlanRequest.findUnique({
+              where: { id: requestId },
+            });
+
+          if (!existingRequest || existingRequest.userId !== req.auth.userId) {
+            return res.status(409).json({ error: 'Blueprint request conflict' });
+          }
+
+          if (
+            existingRequest.status === 'completed' &&
+            existingRequest.response
+          ) {
+            return res.json(existingRequest.response);
+          }
+
+          if (existingRequest.status === 'pending') {
+            return res.status(202).json({
+              status: 'pending',
+              requestId,
+            });
+          }
+
+          const reclaimed = await prisma.strategistPlanRequest.updateMany({
+            where: {
+              id: requestId,
+              userId: req.auth.userId,
+              status: 'failed',
+            },
+            data: {
+              status: 'pending',
+              error: null,
+              response: Prisma.DbNull,
+            },
+          });
+
+          if (reclaimed.count === 0) {
+            return res.status(202).json({
+              status: 'pending',
+              requestId,
+            });
+          }
+          recoveredSessionId = existingRequest.sessionId ?? undefined;
+          planRequestClaimed = true;
         }
       }
 
@@ -473,7 +594,9 @@ router.post(
         }
       }
 
-      let dbSessionId = req.auth?.userId ? sessionId : undefined;
+      let dbSessionId = req.auth?.userId
+        ? recoveredSessionId ?? sessionId
+        : undefined;
       if (req.auth && req.auth.userId) {
         if (!dbSessionId || dbSessionId === 'new') {
           const firstMsg =
@@ -484,21 +607,18 @@ router.post(
             req.auth.userId
           );
 
-          try {
-            const newSession = await prisma.chatSession.create({
-              data: {
-                userId: req.auth.userId,
-                organizationId: internalOrgId,
-                title,
-              },
-            });
-            dbSessionId = newSession.id;
-          } catch (dbErr) {
-            console.error(
-              '[CHAT_DB_ERROR] Failed to create chat session in generate-plan:',
-              dbErr
-            );
-          }
+          const newSession = await prisma.chatSession.create({
+            data: {
+              userId: req.auth.userId,
+              organizationId: internalOrgId,
+              title,
+            },
+          });
+          dbSessionId = newSession.id;
+          await prisma.strategistPlanRequest.update({
+            where: { id: requestId },
+            data: { sessionId: dbSessionId },
+          });
         } else {
           try {
             await prisma.chatSession.update({
@@ -514,48 +634,53 @@ router.post(
         }
 
         if (dbSessionId) {
-          try {
-            await prisma.chatMessage.create({
+          let displayContent = data.reply || '';
+          if (data.plan) {
+            const plan = data.plan;
+            displayContent += `\n\n### **Blueprint Preview**\n`;
+            displayContent += `* **Angle**: ${plan.angle || 'N/A'}\n`;
+            displayContent += `* **Audience**: ${plan.audience || 'N/A'}\n`;
+            if (plan.hook) {
+              displayContent += `* **Hook**: ${plan.hook}\n`;
+            }
+            if (plan.outline) {
+              displayContent += `\n**Outline Overview**:\n${plan.outline}\n`;
+            }
+            if (plan.draft) {
+              displayContent += `\n**Generated Article Draft**:\n${plan.draft}\n`;
+            }
+          }
+
+          const formattedSources =
+            data.plan && Array.isArray(data.plan.sources)
+              ? data.plan.sources.map((s: string) => {
+                  try {
+                    return {
+                      url: s,
+                      domain: new URL(s).hostname.replace('www.', ''),
+                    };
+                  } catch {
+                    return { url: s, domain: 'Source' };
+                  }
+                })
+              : undefined;
+
+          const sanitizedData = sanitizeGroundingLeaks(data);
+          const responsePayload = {
+            ...sanitizedData,
+            sessionId: dbSessionId,
+          };
+
+          await prisma.$transaction([
+            prisma.chatMessage.create({
               data: {
                 sessionId: dbSessionId,
                 role: 'user',
                 type: 'text',
                 content: recommendation,
               },
-            });
-
-            let displayContent = data.reply || '';
-            if (data.plan) {
-              const plan = data.plan;
-              displayContent += `\n\n### **Blueprint Preview**\n`;
-              displayContent += `* **Angle**: ${plan.angle || 'N/A'}\n`;
-              displayContent += `* **Audience**: ${plan.audience || 'N/A'}\n`;
-              if (plan.hook) {
-                displayContent += `* **Hook**: ${plan.hook}\n`;
-              }
-              if (plan.outline) {
-                displayContent += `\n**Outline Overview**:\n${plan.outline}\n`;
-              }
-              if (plan.draft) {
-                displayContent += `\n**Generated Article Draft**:\n${plan.draft}\n`;
-              }
-            }
-
-            const formattedSources =
-              data.plan && Array.isArray(data.plan.sources)
-                ? data.plan.sources.map((s: string) => {
-                    try {
-                      return {
-                        url: s,
-                        domain: new URL(s).hostname.replace('www.', ''),
-                      };
-                    } catch {
-                      return { url: s, domain: 'Source' };
-                    }
-                  })
-                : undefined;
-
-            await prisma.chatMessage.create({
+            }),
+            prisma.chatMessage.create({
               data: {
                 sessionId: dbSessionId,
                 role: 'assistant',
@@ -566,13 +691,20 @@ router.post(
                     ? { sources: formattedSources }
                     : undefined,
               },
-            });
-          } catch (dbErr) {
-            console.error(
-              '[CHAT_DB_ERROR] Failed to save generate-plan messages:',
-              dbErr
-            );
-          }
+            }),
+            prisma.strategistPlanRequest.update({
+              where: { id: requestId },
+              data: {
+                sessionId: dbSessionId,
+                status: 'completed',
+                response: responsePayload as Prisma.InputJsonValue,
+                error: null,
+              },
+            }),
+          ]);
+          planRequestCompleted = true;
+
+          return res.json(responsePayload);
         }
       }
 
@@ -582,6 +714,32 @@ router.post(
         sessionId: dbSessionId === 'new' ? null : dbSessionId,
       });
     } catch (error) {
+      if (
+        planRequestClaimed &&
+        !planRequestCompleted &&
+        claimedRequestId
+      ) {
+        await prisma.strategistPlanRequest
+          .updateMany({
+            where: {
+              id: claimedRequestId,
+              status: 'pending',
+            },
+            data: {
+              status: 'failed',
+              error:
+                error instanceof Error
+                  ? error.message.slice(0, 500)
+                  : 'Blueprint generation failed',
+            },
+          })
+          .catch((requestError) => {
+            console.error(
+              '[STRATEGIST_PLAN_REQUEST_ERROR] Failed to mark request as failed:',
+              requestError
+            );
+          });
+      }
       if (requestAbort.signal.aborted) return;
       console.error('Error in generate-plan:', error);
       res.status(500).json({ error: 'Failed to generate plan' });
