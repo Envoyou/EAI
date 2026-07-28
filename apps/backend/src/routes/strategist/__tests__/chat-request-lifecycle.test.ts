@@ -6,8 +6,11 @@ describe('classifyStrategistChatFailure', () => {
     [429, 'PROVIDER_RATE_LIMIT'],
     [503, 'PROVIDER_UNAVAILABLE'],
     [504, 'PROVIDER_TIMEOUT'],
+    ['RESOURCE_EXHAUSTED', 'PROVIDER_RATE_LIMIT'],
+    ['UNAVAILABLE', 'PROVIDER_UNAVAILABLE'],
+    ['DEADLINE_EXCEEDED', 'PROVIDER_TIMEOUT'],
   ] as const)('maps provider status %s to %s', (status, code) => {
-    expect(classifyStrategistChatFailure({ status })).toEqual(
+    expect(classifyStrategistChatFailure({ code: status })).toEqual(
       expect.objectContaining({ code })
     );
   });

@@ -41,6 +41,7 @@ import { bindResponseAbort } from '@/lib/request-abort';
 import {
   buildStrategistChatGenerationConfig,
   readStrategistThinkingEvent,
+  readStrategistStreamFailure,
   type GeminiInteractionStreamEvent,
 } from '../gemini-chat-stream';
 import { classifyStrategistChatFailure } from '../chat-request-lifecycle';
@@ -679,63 +680,76 @@ router.post(
         finalFastModeInstruction += `\n\n${DOCUMENT_MODE_OVERRIDE}`;
       }
 
-      const stream = await withGeminiFlexRetry(() =>
-        gemini.interactions.create({
-          model: MODEL,
-          input: contextPrompt,
-          system_instruction: finalFastModeInstruction,
-          tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()
-            ? [{ type: 'google_search' }]
-            : undefined,
-          generation_config: buildStrategistChatGenerationConfig(
-            FAST_MODE_MAX_OUTPUT_TOKENS,
-            isSearchEnabled
-          ),
-          stream: true,
-          ...getGeminiInteractionConfig(),
-        }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal)),
-        { signal: requestAbort.signal }
-      );
+      const { finalOutputText, globalAnnotations } =
+        await withGeminiFlexRetry(async () => {
+          const stream = await gemini.interactions.create({
+            model: MODEL,
+            input: contextPrompt,
+            system_instruction: finalFastModeInstruction,
+            tools: isSearchEnabled && !isGeminiGroundingDisabledForTests()
+              ? [{ type: 'google_search' }]
+              : undefined,
+            generation_config: buildStrategistChatGenerationConfig(
+              FAST_MODE_MAX_OUTPUT_TOKENS,
+              isSearchEnabled
+            ),
+            stream: true,
+            ...getGeminiInteractionConfig(),
+          }, getGeminiInteractionRequestOptions(undefined, requestAbort.signal));
 
-      let finalOutputText = '';
-      const globalAnnotations: GroundingAnnotation[] = [];
+          let attemptOutputText = '';
+          const attemptAnnotations: GroundingAnnotation[] = [];
 
-      for await (const rawEvent of stream) {
-        if (requestAbort.isDisconnected()) break;
-        const event = rawEvent as unknown as GeminiInteractionStreamEvent;
+          for await (const rawEvent of stream) {
+            if (requestAbort.isDisconnected()) break;
+            const streamFailure = readStrategistStreamFailure(rawEvent);
+            if (streamFailure) throw streamFailure;
 
-        if (
-          (event.event_type === 'step.delta' || event.event_type === 'content.delta') &&
-          event.delta
-        ) {
-          const thinkingEvent = readStrategistThinkingEvent(
-            event,
-            isSearchEnabled ? 'grounding' : 'reasoning'
-          );
-          if (thinkingEvent) {
-            writeStrategistSseEvent(res, thinkingEvent);
-          } else if (event.delta.type !== 'thought_summary' && event.delta.text) {
-            finalOutputText += event.delta.text;
-          }
+            const event = rawEvent as unknown as GeminiInteractionStreamEvent;
+            if (
+              (
+                event.event_type === 'step.delta' ||
+                event.event_type === 'content.delta'
+              ) &&
+              event.delta
+            ) {
+              const thinkingEvent = readStrategistThinkingEvent(
+                event,
+                isSearchEnabled ? 'grounding' : 'reasoning'
+              );
+              if (thinkingEvent) {
+                writeStrategistSseEvent(res, thinkingEvent);
+              } else if (
+                event.delta.type !== 'thought_summary' &&
+                event.delta.text
+              ) {
+                attemptOutputText += event.delta.text;
+              }
 
-          if (
-            event.delta.annotations &&
-            Array.isArray(event.delta.annotations)
-          ) {
-            for (const annotation of event.delta.annotations) {
-              if (typeof annotation.type !== 'string') continue;
-              globalAnnotations.push({
-                type: annotation.type,
-                url: annotation.url,
-                title:
-                  typeof annotation.title === 'string'
-                    ? annotation.title
-                    : undefined,
-              });
+              if (
+                event.delta.annotations &&
+                Array.isArray(event.delta.annotations)
+              ) {
+                for (const annotation of event.delta.annotations) {
+                  if (typeof annotation.type !== 'string') continue;
+                  attemptAnnotations.push({
+                    type: annotation.type,
+                    url: annotation.url,
+                    title:
+                      typeof annotation.title === 'string'
+                        ? annotation.title
+                        : undefined,
+                  });
+                }
+              }
             }
           }
-        }
-      }
+
+          return {
+            finalOutputText: attemptOutputText,
+            globalAnnotations: attemptAnnotations,
+          };
+        }, { signal: requestAbort.signal });
 
       if (!requestAbort.isDisconnected()) {
         if (requiredCredits > 0 && req.auth && req.auth.userId) {

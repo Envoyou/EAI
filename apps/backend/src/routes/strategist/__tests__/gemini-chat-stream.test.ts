@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import {
   buildStrategistChatGenerationConfig,
   readStrategistThinkingEvent,
+  readStrategistStreamFailure,
 } from '../gemini-chat-stream';
 
 describe('Gemini Strategist chat stream adapter', () => {
@@ -57,5 +58,41 @@ describe('Gemini Strategist chat stream adapter', () => {
         content: { type: 'text', text: '' },
       },
     }, 'reasoning')).toBeNull();
+  });
+
+  test('surfaces provider error events so the full stream can be retried', () => {
+    const error = readStrategistStreamFailure({
+      event_type: 'error',
+      error: {
+        code: 'UNAVAILABLE',
+        message: 'Temporary provider capacity failure',
+      },
+    });
+
+    expect(error).toMatchObject({
+      name: 'GeminiInteractionStreamError',
+      code: 'UNAVAILABLE',
+      message: 'Temporary provider capacity failure',
+    });
+  });
+
+  test('treats failed interaction completion as a retryable provider failure', () => {
+    expect(readStrategistStreamFailure({
+      event_type: 'interaction.completed',
+      interaction: { status: 'failed' },
+    })).toMatchObject({
+      code: 'UNAVAILABLE',
+    });
+  });
+
+  test('allows completed and incomplete interactions with usable text', () => {
+    expect(readStrategistStreamFailure({
+      event_type: 'interaction.completed',
+      interaction: { status: 'completed' },
+    })).toBeNull();
+    expect(readStrategistStreamFailure({
+      event_type: 'interaction.completed',
+      interaction: { status: 'incomplete' },
+    })).toBeNull();
   });
 });

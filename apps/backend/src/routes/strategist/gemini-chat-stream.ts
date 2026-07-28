@@ -5,6 +5,13 @@ import type {
 
 type GeminiInteractionStreamEvent = {
   event_type?: string;
+  error?: {
+    code?: string;
+    message?: string;
+  };
+  interaction?: {
+    status?: string;
+  };
   delta?: {
     type?: string;
     text?: string;
@@ -19,6 +26,41 @@ type GeminiInteractionStreamEvent = {
     }>;
   };
 };
+
+export class GeminiInteractionStreamError extends Error {
+  readonly code?: string;
+
+  constructor(message: string, code?: string) {
+    super(message);
+    this.name = 'GeminiInteractionStreamError';
+    this.code = code;
+  }
+}
+
+export function readStrategistStreamFailure(
+  rawEvent: unknown
+): GeminiInteractionStreamError | null {
+  const event = rawEvent as GeminiInteractionStreamEvent;
+  if (event.event_type === 'error') {
+    return new GeminiInteractionStreamError(
+      event.error?.message || 'Gemini interaction stream failed',
+      event.error?.code
+    );
+  }
+
+  const completedStatus = event.interaction?.status?.toLowerCase();
+  if (
+    event.event_type === 'interaction.completed' &&
+    (completedStatus === 'failed' || completedStatus === 'cancelled')
+  ) {
+    return new GeminiInteractionStreamError(
+      `Gemini interaction completed with status ${completedStatus}`,
+      completedStatus === 'cancelled' ? 'CANCELLED' : 'UNAVAILABLE'
+    );
+  }
+
+  return null;
+}
 
 export function buildStrategistChatGenerationConfig(
   maxOutputTokens: number,

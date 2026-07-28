@@ -28,6 +28,10 @@ const readErrorStatus = (error: unknown): number | undefined => {
   ]) {
     const parsed = Number(value);
     if (Number.isInteger(parsed)) return parsed;
+    const normalized = String(value ?? '').toUpperCase();
+    if (normalized.includes('RESOURCE_EXHAUSTED')) return 429;
+    if (normalized.includes('DEADLINE_EXCEEDED')) return 504;
+    if (normalized.includes('UNAVAILABLE')) return 503;
   }
   const messageMatch = String(candidate.message ?? '').match(
     /\b(408|429|500|502|503|504)\b/

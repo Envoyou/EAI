@@ -26,6 +26,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menunda penyimpanan pesan Fast Chat sampai generasi AI berhasil, lalu menyimpan timestamp sesi, pesan user, respons assistant, dan hasil request selesai dalam satu transaksi atomik.
   - Mengembalikan ulang respons yang sudah committed ketika UUID request chat yang sama diterima dan merekonsiliasi respons hilang dari frontend tanpa pemanggilan AI kedua.
   - Mencegah pemotongan kredit ganda pada retry request Fast Chat yang sama.
+  - Meneruskan kegagalan dari event error/completion SSE Gemini ke kebijakan retry Flex yang sudah ada, termasuk error setelah stream terbuka, serta mempertahankan kategori error provider yang aman untuk proses recovery.
   - Mengganti alur exception unique constraint pada claim request blueprint dengan `createMany({ skipDuplicates: true })`, sehingga log Prisma `P2002` yang menyesatkan tidak lagi muncul.
 
 ## [3.17.0] - 2026-07-26
