@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.19.0] - 2026-07-30
+
 ### Added
 - **Tenant Content Memory dan Duplicate Guard**:
   - Menambahkan registry kanonis per tenant untuk artefak Blueprint, Quick Draft, Draft from Notes, draf manual, dan konten yang dianalisis, beserta dokumen pencarian yang dapat dibangun ulang, reservasi generasi dengan masa berlaku, dan telemetry keputusan duplikasi.

@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.19.0] - 2026-07-30
+
 ### Added
 - **Tenant Content Memory and Duplicate Guard**:
   - Added a tenant-scoped canonical registry for Blueprint, Quick Draft, Draft from Notes, manual draft, and analyzed-content artifacts, with rebuildable search documents, expiring generation reservations, and duplicate-decision telemetry.
