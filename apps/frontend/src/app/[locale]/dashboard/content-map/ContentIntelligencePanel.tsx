@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import type {
   CannibalizationRisk,
+  ContentIntelligenceAction,
   ContentIntelligenceArtifact,
   ContentIntelligenceSnapshot,
   ContentUpdateRecommendation,
@@ -14,6 +17,21 @@ import { Button } from '@/components/ui/button';
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { getResponseErrorMessage } from '@/lib/fetch-utils';
 import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
+import { ActionButton } from '@/components/ui/action-button';
+import {
+  ArchiveActionIcon,
+  DownloadActionIcon,
+  OpenExternalActionIcon,
+} from '@/components/ui/icons/actions';
+import {
+  buildContentIntelligenceCsv,
+  contentIntelligenceFilename,
+  downloadCsv,
+} from './content-map-csv';
+import {
+  ContentArchiveDialog,
+  ContentComparisonDialog,
+} from './ContentIntelligenceDialogs';
 
 const coverageVariant = (
   coverage: 'established' | 'growing' | 'emerging'
@@ -42,11 +60,17 @@ const priorityVariant = (
 export function ContentIntelligencePanel() {
   const t = useTranslations('ContentMap');
   const locale = useLocale();
+  const router = useRouter();
   const directFetch = useDirectFetch();
   const [snapshot, setSnapshot] =
     useState<ContentIntelligenceSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [comparison, setComparison] =
+    useState<CannibalizationRisk | null>(null);
+  const [archiveArtifact, setArchiveArtifact] =
+    useState<ContentIntelligenceArtifact | null>(null);
+  const [submittingAction, setSubmittingAction] = useState(false);
 
   const fetchSnapshot = useCallback(async () => {
     const response = await directFetch(
@@ -113,6 +137,56 @@ export function ContentIntelligencePanel() {
       style: 'percent',
       maximumFractionDigits: 0,
     }).format(value);
+  const sourceLabel = (artifact: ContentIntelligenceArtifact) =>
+    t(`sources.${artifact.sourceType}`);
+  const localizeHref = (href: string) =>
+    locale === 'en' ? href : `/${locale}${href}`;
+  const openArtifact = (artifact: ContentIntelligenceArtifact) => {
+    if (artifact.sourceHref) {
+      router.push(localizeHref(artifact.sourceHref));
+    }
+  };
+  const createFromGap = (title: string, brief: string) => {
+    const params = new URLSearchParams({ title, brief });
+    router.push(
+      localizeHref(`/workspace?${params.toString()}`)
+    );
+  };
+  const applyAction = async (
+    action: ContentIntelligenceAction
+  ): Promise<boolean> => {
+    setSubmittingAction(true);
+    try {
+      const response = await directFetch(
+        '/api/content-memory/intelligence/actions',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(action),
+        }
+      );
+      if (!response.ok) {
+        throw new Error(
+          await getResponseErrorMessage(
+            response,
+            t('actions.applyError')
+          )
+        );
+      }
+      toast.success(t('actions.applied'));
+      await loadSnapshot();
+      return true;
+    } catch (actionError) {
+      toast.error(
+        actionError instanceof Error
+          ? actionError.message
+          : t('actions.applyError')
+      );
+      return false;
+    } finally {
+      setSubmittingAction(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -162,13 +236,28 @@ export function ContentIntelligencePanel() {
             {t('intelligence.description')}
           </p>
         </div>
-        <Button
-          variant="surface"
-          size="sm"
-          onClick={() => void loadSnapshot()}
-        >
-          {t('intelligence.refresh')}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ActionButton
+            icon={DownloadActionIcon}
+            label={t('export.intelligence')}
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              downloadCsv(
+                contentIntelligenceFilename(),
+                buildContentIntelligenceCsv(snapshot)
+              )
+            }
+          />
+          <Button
+            variant="surface"
+            size="sm"
+            onClick={() => void loadSnapshot()}
+          >
+            {t('intelligence.refresh')}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -241,14 +330,54 @@ export function ContentIntelligencePanel() {
                 {cluster.artifacts.slice(0, 4).map((artifact) => (
                   <li
                     key={artifact.id}
-                    className="flex items-start justify-between gap-3"
+                    className="rounded-lg border border-[var(--border)] p-3"
                   >
-                    <span className="line-clamp-2">
-                      {titleOf(artifact)}
-                    </span>
-                    <span className="shrink-0 text-[var(--muted-foreground)]">
-                      {formatDate(artifact.updatedAt)}
-                    </span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="line-clamp-2 font-medium">
+                          {titleOf(artifact)}
+                        </p>
+                        <p className="mt-1 line-clamp-1 text-[var(--muted-foreground)]">
+                          {artifact.topic || t('notAvailable')}
+                        </p>
+                        <p className="mt-1 line-clamp-1 text-[var(--muted-foreground)]">
+                          {sourceLabel(artifact)} ·{' '}
+                          {artifact.ownerName || t('workspaceMember')}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[var(--muted-foreground)]">
+                        {formatDate(artifact.updatedAt)}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Badge variant="surface" size="xs">
+                        {t(`stages.${artifact.stage}`)}
+                      </Badge>
+                      <Badge
+                        variant={
+                          artifact.exportStatus === 'exported'
+                            ? 'success'
+                            : artifact.exportStatus === 'failed'
+                              ? 'danger'
+                              : 'muted'
+                        }
+                        size="xs"
+                      >
+                        {t(
+                          `exportStatuses.${artifact.exportStatus}`
+                        )}
+                      </Badge>
+                      {artifact.sourceHref ? (
+                        <Button
+                          type="button"
+                          variant="link"
+                          size="xs"
+                          onClick={() => openArtifact(artifact)}
+                        >
+                          {t('actions.openDraft')}
+                        </Button>
+                      ) : null}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -286,14 +415,31 @@ export function ContentIntelligencePanel() {
                 <p className="mt-3 text-sm font-medium">
                   {titleOf(risk.left)}
                 </p>
-                <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  {risk.left.topic || t('notAvailable')} ·{' '}
+                  {t(`stages.${risk.left.stage}`)}
+                </p>
+                <p className="mt-3 text-sm font-medium">
                   {titleOf(risk.right)}
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  {risk.right.topic || t('notAvailable')} ·{' '}
+                  {t(`stages.${risk.right.stage}`)}
                 </p>
                 <p className="mt-3 text-xs">
                   {t(
                     `intelligence.recommendations.${risk.recommendation}`
                   )}
                 </p>
+                <Button
+                  type="button"
+                  variant="surface"
+                  size="xs"
+                  className="mt-3"
+                  onClick={() => setComparison(risk)}
+                >
+                  {t('actions.compare')}
+                </Button>
               </article>
             ))}
           </div>
@@ -319,6 +465,45 @@ export function ContentIntelligencePanel() {
                 <p className="mt-2 text-xs text-[var(--muted-foreground)]">
                   {t(`intelligence.gapRationales.${gap.rationale}`)}
                 </p>
+                {gap.relatedArtifacts.length > 0 ? (
+                  <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+                    {t('details.relatedWork', {
+                      count: gap.relatedArtifacts.length,
+                    })}
+                  </p>
+                ) : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {gap.relatedArtifacts.find(
+                    (artifact) => artifact.sourceHref
+                  ) ? (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="xs"
+                      onClick={() =>
+                        openArtifact(
+                          gap.relatedArtifacts.find(
+                            (artifact) => artifact.sourceHref
+                          )!
+                        )
+                      }
+                    >
+                      {t('actions.continueExisting')}
+                    </Button>
+                  ) : null}
+                  {gap.source === 'classifier_feedback' ? (
+                    <Button
+                      type="button"
+                      variant="surface"
+                      size="xs"
+                      onClick={() =>
+                        createFromGap(gap.suggestedAngle, gap.topic)
+                      }
+                    >
+                      {t('actions.createFromGap')}
+                    </Button>
+                  ) : null}
+                </div>
               </article>
             ))
           )}
@@ -333,29 +518,119 @@ export function ContentIntelligencePanel() {
               {t('intelligence.none.updates')}
             </p>
           ) : (
-            snapshot.updateRecommendations.map((recommendation) => (
-              <article key={recommendation.id} className="surface-card p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="font-medium">
-                    {titleOf(recommendation.artifact)}
-                  </p>
-                  <Badge
-                    variant={priorityVariant(recommendation.priority)}
-                    size="xs"
-                  >
+            snapshot.updateRecommendations.map((recommendation) => {
+              const matchingRisk =
+                recommendation.relatedArtifactId
+                  ? snapshot.cannibalizationRisks.find(
+                      (risk) =>
+                        (risk.left.id === recommendation.artifact.id &&
+                          risk.right.id ===
+                            recommendation.relatedArtifactId) ||
+                        (risk.right.id === recommendation.artifact.id &&
+                          risk.left.id ===
+                            recommendation.relatedArtifactId)
+                    )
+                  : undefined;
+              return (
+                <article key={recommendation.id} className="surface-card p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">
+                        {titleOf(recommendation.artifact)}
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                        {recommendation.artifact.topic ||
+                          t('notAvailable')}
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                        {sourceLabel(recommendation.artifact)} ·{' '}
+                        {recommendation.artifact.ownerName ||
+                          t('workspaceMember')}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={priorityVariant(recommendation.priority)}
+                      size="xs"
+                    >
+                      {t(
+                        `intelligence.priority.${recommendation.priority}`
+                      )}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge variant="surface" size="xs">
+                      {t(
+                        `stages.${recommendation.artifact.stage}`
+                      )}
+                    </Badge>
+                    <Badge
+                      variant={
+                        recommendation.artifact.exportStatus === 'exported'
+                          ? 'success'
+                          : recommendation.artifact.exportStatus ===
+                              'failed'
+                            ? 'danger'
+                            : 'muted'
+                      }
+                      size="xs"
+                    >
+                      {t(
+                        `exportStatuses.${recommendation.artifact.exportStatus}`
+                      )}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--muted-foreground)]">
                     {t(
-                      `intelligence.priority.${recommendation.priority}`
+                      `intelligence.updateReasons.${recommendation.reason}`,
+                      { days: recommendation.ageDays }
                     )}
-                  </Badge>
-                </div>
-                <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-                  {t(
-                    `intelligence.updateReasons.${recommendation.reason}`,
-                    { days: recommendation.ageDays }
-                  )}
-                </p>
-              </article>
-            ))
+                  </p>
+                  {recommendation.relatedArtifact ? (
+                    <p className="mt-2 text-xs">
+                      {t('details.relatedArticle')}:{' '}
+                      {titleOf(recommendation.relatedArtifact)}
+                    </p>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {recommendation.artifact.sourceHref ? (
+                      <ActionButton
+                        icon={OpenExternalActionIcon}
+                        label={t('actions.openDraft')}
+                        type="button"
+                        variant="surface"
+                        size="xs"
+                        onClick={() =>
+                          openArtifact(recommendation.artifact)
+                        }
+                      />
+                    ) : null}
+                    {matchingRisk ? (
+                      <Button
+                        type="button"
+                        variant="surface"
+                        size="xs"
+                        onClick={() => setComparison(matchingRisk)}
+                      >
+                        {t('actions.compare')}
+                      </Button>
+                    ) : null}
+                    {recommendation.artifact.canManage &&
+                    recommendation.artifact.status === 'active' ? (
+                      <ActionButton
+                        icon={ArchiveActionIcon}
+                        label={t('actions.archive')}
+                        type="button"
+                        variant="danger"
+                        size="xs"
+                        onClick={() =>
+                          setArchiveArtifact(recommendation.artifact)
+                        }
+                      />
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })
           )}
         </section>
       </div>
@@ -381,15 +656,43 @@ export function ContentIntelligencePanel() {
                 <p className="mt-1 font-medium">
                   {titleOf(opportunity.from)}
                 </p>
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  {opportunity.from.topic || t('notAvailable')}
+                </p>
                 <p className="mt-3 text-xs text-[var(--muted-foreground)]">
                   {t('intelligence.linkTo')}
                 </p>
                 <p className="mt-1 font-medium">
                   {titleOf(opportunity.to)}
                 </p>
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  {opportunity.to.topic || t('notAvailable')}
+                </p>
                 <p className="mt-3 text-xs">
                   {t(`intelligence.linkReasons.${opportunity.reason}`)}
                 </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {opportunity.from.sourceHref ? (
+                    <Button
+                      type="button"
+                      variant="surface"
+                      size="xs"
+                      onClick={() => openArtifact(opportunity.from)}
+                    >
+                      {t('actions.openSource')}
+                    </Button>
+                  ) : null}
+                  {opportunity.to.sourceHref ? (
+                    <Button
+                      type="button"
+                      variant="surface"
+                      size="xs"
+                      onClick={() => openArtifact(opportunity.to)}
+                    >
+                      {t('actions.openTarget')}
+                    </Button>
+                  ) : null}
+                </div>
               </article>
             ))}
           </div>
@@ -401,6 +704,20 @@ export function ContentIntelligencePanel() {
           date: formatDate(snapshot.generatedAt),
         })}
       </p>
+      <ContentComparisonDialog
+        key={comparison?.id ?? 'closed-comparison'}
+        risk={comparison}
+        submitting={submittingAction}
+        onClose={() => setComparison(null)}
+        onOpenArtifact={openArtifact}
+        onApply={applyAction}
+      />
+      <ContentArchiveDialog
+        artifact={archiveArtifact}
+        submitting={submittingAction}
+        onClose={() => setArchiveArtifact(null)}
+        onApply={applyAction}
+      />
     </div>
   );
 }

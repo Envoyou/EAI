@@ -111,6 +111,13 @@ and internal-link opportunities as responsive cards. The panel displays
 semantic coverage and bounded/truncated state; it never derives similarity
 thresholds or receives indexed body text.
 
+Phase 6.1 keeps Analytics export controls out of this route and provides
+view-specific inventory/intelligence CSV actions. Intelligence cards disclose
+article title, topic, stage, keyword, source owner, and CMS export state; source
+deep-links and compare/action dialogs consume only the authenticated backend
+snapshot/action contracts. Consolidation and archive require explicit
+confirmation and clearly state that source drafts are retained.
+
 ## 4. Workspace ownership and data flow
 
 The workspace follows a facade-oriented architecture:

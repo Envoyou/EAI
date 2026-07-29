@@ -19,6 +19,10 @@ describe('Content Intelligence UI contract', () => {
     expect(panel).toContain('snapshot.clusters.map');
     expect(panel).toContain('snapshot.cannibalizationRisks.map');
     expect(panel).toContain('snapshot.internalLinkOpportunities.map');
+    expect(panel).toContain(
+      "'/api/content-memory/intelligence/actions'"
+    );
+    expect(panel).toContain('buildContentIntelligenceCsv(snapshot)');
   });
 
   it('keeps all Phase 6 interface copy localized', () => {
@@ -30,5 +34,7 @@ describe('Content Intelligence UI contract', () => {
     ) as Record<string, Record<string, unknown>>;
     expect(english.ContentMap.intelligence).toBeTruthy();
     expect(indonesian.ContentMap.intelligence).toBeTruthy();
+    expect(english.ContentMap.dialogs).toBeTruthy();
+    expect(indonesian.ContentMap.actions).toBeTruthy();
   });
 });

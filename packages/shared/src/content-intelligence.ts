@@ -6,9 +6,18 @@ export const ContentIntelligenceArtifactSchema = z.object({
   topic: z.string().nullable(),
   angle: z.string().nullable(),
   primaryKeyword: z.string().nullable(),
+  searchIntent: z.string().nullable(),
   language: z.string().nullable(),
   stage: z.string(),
   status: z.string(),
+  sourceType: z.string(),
+  sourceId: z.string().nullable(),
+  sourceHref: z.string().nullable(),
+  ownerName: z.string().nullable(),
+  exportStatus: z.enum(['not_exported', 'exported', 'failed']),
+  lastExportedAt: z.string().nullable(),
+  canonicalArtifactId: z.string().nullable(),
+  canManage: z.boolean(),
   updatedAt: z.string(),
 });
 
@@ -60,6 +69,7 @@ export const ContentGapSchema = z.object({
     'classifier_identified_open_angle',
     'no_published_coverage',
   ]),
+  relatedArtifacts: z.array(ContentIntelligenceArtifactSchema),
 });
 
 export type ContentGap = z.infer<typeof ContentGapSchema>;
@@ -75,6 +85,7 @@ export const ContentUpdateRecommendationSchema = z.object({
   ageDays: z.number().int().min(0),
   artifact: ContentIntelligenceArtifactSchema,
   relatedArtifactId: z.string().nullable(),
+  relatedArtifact: ContentIntelligenceArtifactSchema.nullable(),
 });
 
 export type ContentUpdateRecommendation = z.infer<
@@ -120,4 +131,37 @@ export const ContentIntelligenceSnapshotSchema = z.object({
 
 export type ContentIntelligenceSnapshot = z.infer<
   typeof ContentIntelligenceSnapshotSchema
+>;
+
+export const ContentIntelligenceActionSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('not_cannibalization'),
+    artifactId: z.string().min(1),
+    relatedArtifactId: z.string().min(1),
+  }),
+  z.object({
+    action: z.literal('reposition'),
+    artifactId: z.string().min(1),
+    angle: z.string().trim().min(1).max(2_000),
+    primaryKeyword: z.string().trim().max(300).nullable().optional(),
+    searchIntent: z.string().trim().max(1_000).nullable().optional(),
+  }),
+  z.object({
+    action: z.literal('set_canonical'),
+    artifactId: z.string().min(1),
+    relatedArtifactId: z.string().min(1),
+  }),
+  z.object({
+    action: z.literal('consolidate'),
+    artifactId: z.string().min(1),
+    relatedArtifactId: z.string().min(1),
+  }),
+  z.object({
+    action: z.literal('archive'),
+    artifactId: z.string().min(1),
+  }),
+]);
+
+export type ContentIntelligenceAction = z.infer<
+  typeof ContentIntelligenceActionSchema
 >;

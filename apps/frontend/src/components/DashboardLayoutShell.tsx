@@ -33,12 +33,13 @@ export function DashboardLayoutShell({ children, isSuperAdmin }: { children: Rea
     setCustomEndDate,
     handleDownloadCSV,
   } = useDashboard();
+  const isContentMap = pathname.includes('/dashboard/content-map');
 
   if (pathname.includes('/dashboard/validation')) {
     return <>{children}</>;
   }
 
-  if (loading || !data) {
+  if ((loading || !data) && !isContentMap) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <EAILoaderStatusIcon className="w-8 h-8 text-accent-500" />
@@ -51,7 +52,7 @@ export function DashboardLayoutShell({ children, isSuperAdmin }: { children: Rea
       title="Analytics Dashboard"
       description="Editorial Quality & Performance Overview"
       currentPage="dashboard"
-      actions={
+      actions={isContentMap ? undefined : (
         <div className="flex items-center gap-2">
           {/* Date Selector Dropdown */}
           <Select value={timeRange} onValueChange={(val) => val && setTimeRange(val)}>
@@ -102,7 +103,7 @@ export function DashboardLayoutShell({ children, isSuperAdmin }: { children: Rea
             <span>Export CSV</span>
           </Button>
         </div>
-      }
+      )}
       sidebar={
         <>
 

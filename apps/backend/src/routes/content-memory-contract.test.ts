@@ -77,7 +77,7 @@ describe('Content Memory tenant contract', () => {
       "router.get('/intelligence', requireAuth"
     );
     expect(route).toContain(
-      'getContentIntelligenceSnapshot(\n      workspace.organizationId'
+      'getContentIntelligenceSnapshot(\n      workspace.organizationId,'
     );
     expect(intelligence).toContain(
       'const MAX_ANALYZED_ARTIFACTS = 300'
@@ -95,5 +95,33 @@ describe('Content Memory tenant contract', () => {
       'right_artifact."organizationId" = ${organizationId}'
     );
     expect(intelligence).not.toContain('getProvider(');
+  });
+
+  it('keeps Phase 6.1 actions tenant-scoped and auditable', () => {
+    const route = readSource('./content-memory.ts');
+    const actions = readSource(
+      '../lib/content-intelligence-actions.ts'
+    );
+    const migration = readSource(
+      '../../prisma/migrations/20260730090000_add_content_intelligence_actions/migration.sql'
+    );
+    expect(route).toContain(
+      "router.post('/intelligence/actions', requireAuth"
+    );
+    expect(route).toContain(
+      'organizationId: workspace.organizationId,\n      actorUserId: req.auth!.userId'
+    );
+    expect(actions).toContain(
+      'organizationId: params.organizationId'
+    );
+    expect(actions).toContain(
+      'contentIntelligenceDecision.create'
+    );
+    expect(migration).toContain(
+      'CREATE TABLE "ContentIntelligenceDecision"'
+    );
+    expect(migration).toContain(
+      '"canonicalArtifactId" TEXT'
+    );
   });
 });

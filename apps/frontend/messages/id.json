@@ -321,6 +321,11 @@
     "swipeHint": "Geser horizontal untuk melihat semua kolom",
     "untitled": "Konten tanpa judul",
     "workspaceMember": "Anggota workspace",
+    "notAvailable": "Tidak tersedia",
+    "export": {
+      "inventory": "Ekspor inventaris konten",
+      "intelligence": "Ekspor Content Intelligence"
+    },
     "tabs": {
       "inventory": "Inventaris konten",
       "intelligence": "Intelijen konten"
@@ -396,10 +401,73 @@
     },
     "columns": {
       "content": "Konten",
+      "topic": "Topik",
       "stage": "Tahap",
+      "status": "Status dan ekspor",
+      "keyword": "Kata kunci utama",
       "source": "Sumber",
       "owner": "Pemilik",
-      "updated": "Diperbarui"
+      "updated": "Diperbarui",
+      "actions": "Tindakan"
+    },
+    "statuses": {
+      "active": "Aktif",
+      "archived": "Diarsipkan",
+      "deleted": "Dihapus"
+    },
+    "exportStatuses": {
+      "not_exported": "Belum diekspor",
+      "exported": "Sudah diekspor",
+      "failed": "Ekspor gagal"
+    },
+    "details": {
+      "angle": "Angle pembeda",
+      "searchIntent": "Intent pencarian",
+      "export": "Ekspor CMS",
+      "relatedArticle": "Artikel terkait",
+      "relatedWork": "{count, plural, one {# artefak terkait} other {# artefak terkait}}"
+    },
+    "actions": {
+      "openDraft": "Buka draft",
+      "sourceUnavailable": "Sumber tidak tersedia",
+      "compare": "Bandingkan artikel",
+      "reposition": "Ubah angle",
+      "setPrimary": "Jadikan artikel utama",
+      "markConsolidated": "Tandai sudah digabung",
+      "notCannibalization": "Bukan kanibalisasi",
+      "continueExisting": "Lanjutkan draft yang ada",
+      "createFromGap": "Mulai angle ini",
+      "openSource": "Buka sumber",
+      "openTarget": "Buka tujuan",
+      "archive": "Arsipkan dari Peta Konten",
+      "close": "Tutup",
+      "back": "Kembali",
+      "cancel": "Batal",
+      "confirm": "Konfirmasi",
+      "saveReposition": "Simpan positioning",
+      "applied": "Tindakan Content Intelligence berhasil diterapkan.",
+      "applyError": "Gagal menerapkan tindakan Content Intelligence."
+    },
+    "dialogs": {
+      "compareTitle": "Bandingkan artikel yang tumpang tindih",
+      "compareDescription": "Tinjau metadata artikel sebelum mengambil tindakan. Skor overlap saat ini: {score}%.",
+      "repositionTitle": "Berikan posisi yang berbeda untuk artikel ini",
+      "archiveTitle": "Arsipkan artefak Peta Konten?",
+      "archiveDescription": "“{title}” akan dikeluarkan dari rekomendasi duplikat dan intelligence aktif. Draft sumbernya tidak dihapus.",
+      "confirm": {
+        "setCanonical": {
+          "title": "Jadikan artikel yang dipilih sebagai artikel utama?",
+          "description": "Artefak lainnya akan menunjuk ke artefak canonical ini. Isi artikel atau halaman CMS tidak diubah otomatis."
+        },
+        "consolidate": {
+          "title": "Tandai artefak lainnya sudah digabung?",
+          "description": "Artefak sekunder akan diarsipkan dari rekomendasi aktif Peta Konten dan dihubungkan ke artikel utama yang dipilih. Konfirmasikan hanya setelah konten pentingnya digabung secara manual."
+        },
+        "notCannibalization": {
+          "title": "Tandai pasangan ini sebagai konten berbeda?",
+          "description": "Pasangan ini tidak akan muncul lagi sebagai risiko kanibalisasi untuk workspace ini. Feedback dicatat untuk kalibrasi berikutnya."
+        }
+      }
     },
     "stages": {
       "planning": "Perencanaan",

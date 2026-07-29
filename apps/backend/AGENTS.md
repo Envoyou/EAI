@@ -270,6 +270,10 @@ Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes l
     300 recent artifacts, scope both sides of semantic pair queries by
     `organizationId`, fail open to metadata similarity, and never send tenant
     content to another model merely to render the dashboard.
+  * Content Intelligence actions must resolve every artifact inside the active
+    organization, require artifact-owner or organization-admin authority for
+    registry mutations, and persist `ContentIntelligenceDecision`. Archive and
+    consolidation never delete `AnalysisLog` or external CMS content.
 
 ---
 

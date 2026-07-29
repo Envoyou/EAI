@@ -26,6 +26,10 @@ import {
   applyContentMemoryEnforcement,
   getContentMemoryEnforcementConfig,
 } from '@/lib/content-memory-enforcement';
+import {
+  cleanContentLabel,
+  extractArticleTitle,
+} from '@/lib/content-labels';
 
 const RESERVATION_TTL_MS = 10 * 60 * 1000;
 const MAX_CANDIDATES = 100;
@@ -96,14 +100,6 @@ const normalizeIndexedText = (
   value: string | null | undefined
 ): string => normalizeContentText(value).slice(0, 500);
 
-const extractContentTitle = (content: string | null | undefined): string | null => {
-  const firstLine = content
-    ?.split('\n')
-    .map((line) => line.replace(/^#{1,6}\s+/, '').trim())
-    .find(Boolean);
-  return firstLine ? firstLine.slice(0, 200) : null;
-};
-
 const toOutlineText = (
   outline: ContentMemoryInput['outline'] | Prisma.JsonValue
 ): string => {
@@ -160,19 +156,14 @@ const fieldSimilarity = (
 };
 
 const inputTitle = (input: ContentMemoryInput): string | null =>
-  nonEmpty(input.title) ??
-  nonEmpty(input.topic) ??
-  nonEmpty(input.angle) ??
-  extractContentTitle(input.content);
+  cleanContentLabel(input.title) ??
+  extractArticleTitle(input.content) ??
+  cleanContentLabel(input.topic) ??
+  cleanContentLabel(input.angle);
 
 export const buildReservationKey = (input: ContentMemoryInput): string => {
   const fingerprint = [
-    normalizeContentText(
-      input.topic ??
-        input.title ??
-        input.angle ??
-        extractContentTitle(input.content)
-    ),
+    normalizeContentText(inputTitle(input)),
     normalizeContentText(input.primaryKeyword),
     normalizeContentText(input.searchIntent),
     normalizeContentText(input.audience),
@@ -185,10 +176,10 @@ export const buildContentMemorySearchText = (
 ): string =>
   [
     inputTitle(input),
-    input.topic,
+    cleanContentLabel(input.topic, 2_000),
     input.primaryKeyword,
     input.searchIntent,
-    input.angle,
+    cleanContentLabel(input.angle, 2_000),
     input.audience,
     input.summary,
     toOutlineText(input.outline),
@@ -671,12 +662,7 @@ export const beginContentGenerationGuard = async (params: {
         createdByUserId: params.userId,
         requestId,
         reservationKey,
-        normalizedTopic: normalizeContentText(
-          params.input.topic ??
-            params.input.title ??
-            params.input.angle ??
-            extractContentTitle(params.input.content)
-        ),
+        normalizedTopic: normalizeContentText(inputTitle(params.input)),
         expiresAt: new Date(now.getTime() + RESERVATION_TTL_MS),
       },
     });
@@ -719,7 +705,7 @@ export const upsertContentArtifact = async (
 ) => {
   const title = inputTitle(input)?.slice(0, 500) ?? null;
   const normalizedTitle = normalizeIndexedText(title);
-  const topic = nonEmpty(input.topic) ?? title;
+  const topic = cleanContentLabel(input.topic, 2_000) ?? title;
   const normalizedTopic = normalizeIndexedText(topic);
   const outline = toOutlineText(input.outline);
   const searchText = buildContentMemorySearchText(input);

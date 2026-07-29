@@ -321,6 +321,11 @@
     "swipeHint": "Swipe horizontally to view all columns",
     "untitled": "Untitled content",
     "workspaceMember": "Workspace member",
+    "notAvailable": "Not available",
+    "export": {
+      "inventory": "Export content inventory",
+      "intelligence": "Export Content Intelligence"
+    },
     "tabs": {
       "inventory": "Content inventory",
       "intelligence": "Content intelligence"
@@ -396,10 +401,73 @@
     },
     "columns": {
       "content": "Content",
+      "topic": "Topic",
       "stage": "Stage",
+      "status": "Status and export",
+      "keyword": "Primary keyword",
       "source": "Source",
       "owner": "Owner",
-      "updated": "Updated"
+      "updated": "Updated",
+      "actions": "Actions"
+    },
+    "statuses": {
+      "active": "Active",
+      "archived": "Archived",
+      "deleted": "Deleted"
+    },
+    "exportStatuses": {
+      "not_exported": "Not exported",
+      "exported": "Exported",
+      "failed": "Export failed"
+    },
+    "details": {
+      "angle": "Distinct angle",
+      "searchIntent": "Search intent",
+      "export": "CMS export",
+      "relatedArticle": "Related article",
+      "relatedWork": "{count, plural, one {# related artifact} other {# related artifacts}}"
+    },
+    "actions": {
+      "openDraft": "Open draft",
+      "sourceUnavailable": "Source unavailable",
+      "compare": "Compare articles",
+      "reposition": "Change angle",
+      "setPrimary": "Set as primary",
+      "markConsolidated": "Mark consolidated",
+      "notCannibalization": "Not cannibalization",
+      "continueExisting": "Continue existing draft",
+      "createFromGap": "Start this angle",
+      "openSource": "Open source",
+      "openTarget": "Open destination",
+      "archive": "Archive from Content Map",
+      "close": "Close",
+      "back": "Back",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "saveReposition": "Save positioning",
+      "applied": "Content Intelligence action applied.",
+      "applyError": "Failed to apply Content Intelligence action."
+    },
+    "dialogs": {
+      "compareTitle": "Compare overlapping articles",
+      "compareDescription": "Review article metadata before acting. Current overlap score: {score}%.",
+      "repositionTitle": "Give this article a distinct position",
+      "archiveTitle": "Archive Content Map artifact?",
+      "archiveDescription": "“{title}” will be excluded from active duplicate and intelligence recommendations. Its source draft is not deleted.",
+      "confirm": {
+        "setCanonical": {
+          "title": "Set the selected article as primary?",
+          "description": "The other artifact will point to this canonical artifact. No article body or CMS page is changed automatically."
+        },
+        "consolidate": {
+          "title": "Mark the other artifact as consolidated?",
+          "description": "The secondary artifact will be archived from active Content Map recommendations and linked to the selected primary artifact. Confirm only after its useful content has been merged manually."
+        },
+        "notCannibalization": {
+          "title": "Mark this pair as distinct?",
+          "description": "This pair will no longer appear as a cannibalization risk for this workspace. The feedback is recorded for future calibration."
+        }
+      }
     },
     "stages": {
       "planning": "Planning",

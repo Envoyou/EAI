@@ -1,5 +1,6 @@
 import { Router, type Request } from 'express';
 import { z } from 'zod';
+import { ContentIntelligenceActionSchema } from '@eai/shared';
 import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
 import { getWorkspaceState } from '@/lib/user-workspace';
@@ -16,6 +17,14 @@ import {
   getContentMemoryEnforcementConfig,
 } from '@/lib/content-memory-enforcement';
 import { getContentIntelligenceSnapshot } from '@/lib/content-intelligence';
+import {
+  getArtifactPresentation,
+  getContentArtifactPresentations,
+} from '@/lib/content-artifact-presentation';
+import {
+  applyContentIntelligenceAction,
+  ContentIntelligenceActionError,
+} from '@/lib/content-intelligence-actions';
 
 const router = Router();
 
@@ -60,6 +69,11 @@ const resolveWorkspace = async (req: Request) => {
   });
 };
 
+const canManageAllContent = (req: Request) =>
+  req.auth?.orgRole === 'org:admin' ||
+  req.auth?.orgRole === 'admin' ||
+  req.auth?.orgRole === 'owner';
+
 // Detection and disclosure remain separate: this endpoint exposes only
 // collaboration-safe metadata, never indexed body text or private chat.
 router.get('/', requireAuth, async (req, res) => {
@@ -102,8 +116,11 @@ router.get('/', requireAuth, async (req, res) => {
       },
       select: {
         id: true,
+        createdByUserId: true,
         artifactType: true,
         sourceType: true,
+        sourceId: true,
+        canonicalArtifactId: true,
         title: true,
         topic: true,
         angle: true,
@@ -125,8 +142,43 @@ router.get('/', requireAuth, async (req, res) => {
     });
     const hasMore = artifacts.length > limit;
     const data = hasMore ? artifacts.slice(0, limit) : artifacts;
+    const presentations = await getContentArtifactPresentations({
+      organizationId: workspace.organizationId,
+      artifacts: data,
+      viewerUserId: req.auth!.userId,
+      viewerCanManageAll: canManageAllContent(req),
+    });
     return res.json({
-      data,
+      data: data.map((artifact) => {
+        const presentation = getArtifactPresentation(
+          presentations,
+          artifact
+        );
+        const {
+          createdByUserId: _createdByUserId,
+          ...publicArtifact
+        } = artifact;
+        return {
+          ...publicArtifact,
+          title: presentation ? presentation.title : artifact.title,
+          topic: presentation ? presentation.topic : artifact.topic,
+          angle: presentation ? presentation.angle : artifact.angle,
+          primaryKeyword: presentation
+            ? presentation.primaryKeyword
+            : artifact.primaryKeyword,
+          searchIntent: presentation
+            ? presentation.searchIntent
+            : artifact.searchIntent,
+          sourceId: presentation?.sourceId ?? artifact.sourceId,
+          sourceHref: presentation?.sourceHref ?? null,
+          ownerName:
+            presentation?.ownerName ?? artifact.createdBy?.name ?? null,
+          exportStatus:
+            presentation?.exportStatus ?? 'not_exported',
+          lastExportedAt: presentation?.lastExportedAt ?? null,
+          canManage: presentation?.canManage ?? false,
+        };
+      }),
       nextCursor: hasMore ? data.at(-1)?.id ?? null : null,
     });
   } catch (error) {
@@ -240,7 +292,11 @@ router.get('/intelligence', requireAuth, async (req, res) => {
       return res.status(409).json({ error: 'Workspace onboarding required' });
     }
     const snapshot = await getContentIntelligenceSnapshot(
-      workspace.organizationId
+      workspace.organizationId,
+      {
+        userId: req.auth!.userId,
+        canManageAll: canManageAllContent(req),
+      }
     );
     res.setHeader('Cache-Control', 'private, no-store');
     return res.json(snapshot);
@@ -249,6 +305,38 @@ router.get('/intelligence', requireAuth, async (req, res) => {
     return res
       .status(500)
       .json({ error: 'Failed to build Content Intelligence snapshot' });
+  }
+});
+
+router.post('/intelligence/actions', requireAuth, async (req, res) => {
+  try {
+    const input = ContentIntelligenceActionSchema.safeParse(req.body);
+    if (!input.success) {
+      return res.status(400).json({
+        error: 'Invalid Content Intelligence action',
+        issues: input.error.issues,
+      });
+    }
+    const workspace = await resolveWorkspace(req);
+    if (!workspace || workspace.needsOnboarding || !workspace.organizationId) {
+      return res.status(409).json({ error: 'Workspace onboarding required' });
+    }
+    const result = await applyContentIntelligenceAction({
+      organizationId: workspace.organizationId,
+      actorUserId: req.auth!.userId,
+      actorCanManageAll: canManageAllContent(req),
+      input: input.data,
+    });
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.json(result);
+  } catch (error) {
+    if (error instanceof ContentIntelligenceActionError) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
+    console.error('[CONTENT_INTELLIGENCE_ACTION]', error);
+    return res
+      .status(500)
+      .json({ error: 'Failed to apply Content Intelligence action' });
   }
 });
 

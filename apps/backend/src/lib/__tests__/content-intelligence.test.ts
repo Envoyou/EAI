@@ -11,6 +11,10 @@ const artifact = (
 ): IntelligenceArtifact => ({
   id,
   rootArtifactId: null,
+  canonicalArtifactId: null,
+  createdByUserId: 'user-test',
+  sourceType: 'MANUAL_DRAFT',
+  sourceId: `log-${id}`,
   title: `Article ${id}`,
   topic: `Topic ${id}`,
   angle: null,
@@ -19,6 +23,12 @@ const artifact = (
   language: 'en',
   currentStage: 'DRAFTING' as ContentArtifactStage,
   status: 'ACTIVE',
+  sourceHref: `/workspace?history=log-${id}`,
+  ownerName: 'Test Editor',
+  exportStatus: 'not_exported',
+  lastExportedAt: null,
+  canManage: true,
+  metadataRepaired: false,
   updatedAt: new Date('2026-07-01T00:00:00.000Z'),
   ...overrides,
 });

@@ -23,18 +23,19 @@ model User {
   organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   onboardingDraft OnboardingDraft?
 
-  aiProviderOverride     String?
-  trialUsed              Boolean               @default(false)
-  balanceIdr             Int                   @default(0)
-  subscriptions          Subscription[]
-  transactions           CreditTransaction[]
-  usages                 CreditUsage[]
-  paymentOrders          PaymentOrder[]
-  chatSessions           ChatSession[]
-  contentArtifacts       ContentArtifact[]     @relation("ContentArtifactCreator")
-  contentReservations    ContentReservation[]  @relation("ContentReservationCreator")
-  duplicateGuardEvents   DuplicateGuardEvent[] @relation("DuplicateGuardEventActor")
-  duplicateGuardFeedback DuplicateGuardEvent[] @relation("DuplicateGuardEventFeedbackActor")
+  aiProviderOverride           String?
+  trialUsed                    Boolean                       @default(false)
+  balanceIdr                   Int                           @default(0)
+  subscriptions                Subscription[]
+  transactions                 CreditTransaction[]
+  usages                       CreditUsage[]
+  paymentOrders                PaymentOrder[]
+  chatSessions                 ChatSession[]
+  contentArtifacts             ContentArtifact[]             @relation("ContentArtifactCreator")
+  contentReservations          ContentReservation[]          @relation("ContentReservationCreator")
+  duplicateGuardEvents         DuplicateGuardEvent[]         @relation("DuplicateGuardEventActor")
+  duplicateGuardFeedback       DuplicateGuardEvent[]         @relation("DuplicateGuardEventFeedbackActor")
+  contentIntelligenceDecisions ContentIntelligenceDecision[] @relation("ContentIntelligenceDecisionActor")
 
   @@index([organizationId])
 }
@@ -115,15 +116,16 @@ model Organization {
   profiles       EditorialProfile[]
   cmsConnections CmsConnection[]
 
-  subscriptions          Subscription[]
-  transactions           CreditTransaction[]
-  usages                 CreditUsage[]
-  paymentOrders          PaymentOrder[]
-  chatSessions           ChatSession[]
-  contentArtifacts       ContentArtifact[]
-  contentSearchDocuments ContentSearchDocument[]
-  contentReservations    ContentReservation[]
-  duplicateGuardEvents   DuplicateGuardEvent[]
+  subscriptions                Subscription[]
+  transactions                 CreditTransaction[]
+  usages                       CreditUsage[]
+  paymentOrders                PaymentOrder[]
+  chatSessions                 ChatSession[]
+  contentArtifacts             ContentArtifact[]
+  contentSearchDocuments       ContentSearchDocument[]
+  contentReservations          ContentReservation[]
+  duplicateGuardEvents         DuplicateGuardEvent[]
+  contentIntelligenceDecisions ContentIntelligenceDecision[]
 
   @@index([createdByUserId])
 }
@@ -436,37 +438,40 @@ enum ContentArtifactStatus {
 }
 
 model ContentArtifact {
-  id              String                @id @default(cuid())
-  organizationId  String
-  createdByUserId String?
-  artifactType    ContentArtifactType
-  sourceType      ContentSourceType
-  sourceId        String?
-  rootArtifactId  String?
-  title           String?
-  normalizedTitle String?
-  topic           String?
-  normalizedTopic String?
-  angle           String?
-  audience        String?
-  primaryKeyword  String?
-  searchIntent    String?
-  language        String?
-  locale          String?
-  market          String?
-  summary         String?               @db.Text
-  outline         Json?
-  currentStage    ContentArtifactStage
-  status          ContentArtifactStatus @default(ACTIVE)
-  contentHash     String?
-  reservationKey  String?
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  id                  String                @id @default(cuid())
+  organizationId      String
+  createdByUserId     String?
+  artifactType        ContentArtifactType
+  sourceType          ContentSourceType
+  sourceId            String?
+  rootArtifactId      String?
+  canonicalArtifactId String?
+  title               String?
+  normalizedTitle     String?
+  topic               String?
+  normalizedTopic     String?
+  angle               String?
+  audience            String?
+  primaryKeyword      String?
+  searchIntent        String?
+  language            String?
+  locale              String?
+  market              String?
+  summary             String?               @db.Text
+  outline             Json?
+  currentStage        ContentArtifactStage
+  status              ContentArtifactStatus @default(ACTIVE)
+  contentHash         String?
+  reservationKey      String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
 
   organization         Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdBy            User?                  @relation("ContentArtifactCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   rootArtifact         ContentArtifact?       @relation("ContentArtifactRoot", fields: [rootArtifactId], references: [id], onDelete: SetNull)
   derivatives          ContentArtifact[]      @relation("ContentArtifactRoot")
+  canonicalArtifact    ContentArtifact?       @relation("ContentArtifactCanonical", fields: [canonicalArtifactId], references: [id], onDelete: SetNull)
+  canonicalVariants    ContentArtifact[]      @relation("ContentArtifactCanonical")
   searchDocument       ContentSearchDocument?
   duplicateGuardEvents DuplicateGuardEvent[]
 
@@ -478,6 +483,33 @@ model ContentArtifact {
   @@index([organizationId, primaryKeyword])
   @@index([organizationId, contentHash])
   @@index([rootArtifactId])
+  @@index([canonicalArtifactId])
+}
+
+enum ContentIntelligenceDecisionType {
+  NOT_CANNIBALIZATION
+  REPOSITIONED
+  SET_CANONICAL
+  CONSOLIDATED
+  ARCHIVED
+}
+
+model ContentIntelligenceDecision {
+  id                String                          @id @default(cuid())
+  organizationId    String
+  actorUserId       String
+  action            ContentIntelligenceDecisionType
+  artifactId        String
+  relatedArtifactId String?
+  details           Json?
+  createdAt         DateTime                        @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor        User         @relation("ContentIntelligenceDecisionActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, artifactId])
+  @@index([organizationId, relatedArtifactId])
 }
 
 model ContentSearchDocument {

@@ -74,6 +74,11 @@ npm run lint
   semantic coverage and bounded/truncated state, keep all recommendation copy
   localized, and do not infer new similarity thresholds or expose indexed body
   text in the client.
+- **Actionable Content Intelligence**: Keep Content Map CSV actions local to the
+  active inventory/intelligence view. Mutations must use the authenticated
+  action contract, honor backend `canManage`, and require an explicit
+  confirmation for canonical/consolidation/archive decisions. Never imply that
+  registry consolidation merged article bodies or changed CMS pages.
 
 ## 3. Frontend Directory Structure
 

@@ -121,6 +121,11 @@ To guarantee that all AI assistant operations (Chat, SEO Optimizer, Fact-Checker
   queries must scope both sides by `organizationId`, degrade to metadata
   clustering, avoid additional model calls, and exclude same-family lifecycle
   derivatives from cannibalization/internal-link pair recommendations.
+* Phase 6.1 actions must validate every referenced artifact against the active
+  internal `organizationId`, enforce owner/admin mutation rights, and append an
+  attributable `ContentIntelligenceDecision`. Canonical, consolidation, and
+  archive actions affect the registry only; they must not delete source drafts
+  or mutate CMS pages automatically.
 
 ---
 

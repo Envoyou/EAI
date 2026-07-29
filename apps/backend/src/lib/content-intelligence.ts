@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
-import { Prisma, type ContentArtifactStage } from '@prisma/client';
+import {
+  ContentIntelligenceDecisionType,
+  Prisma,
+  type ContentArtifactStage,
+  type ContentSourceType,
+} from '@prisma/client';
 import type {
   CannibalizationRisk,
   ContentGap,
@@ -15,6 +20,10 @@ import {
   tokenSimilarity,
 } from '@/lib/content-memory';
 import { CONTENT_MEMORY_EMBEDDING_MODEL } from '@/lib/content-memory-embedding';
+import {
+  getArtifactPresentation,
+  getContentArtifactPresentations,
+} from '@/lib/content-artifact-presentation';
 
 const MAX_ANALYZED_ARTIFACTS = 300;
 const MAX_SEMANTIC_PAIRS = 2_000;
@@ -24,6 +33,10 @@ const DEFAULT_STALE_DAYS = 180;
 export type IntelligenceArtifact = {
   id: string;
   rootArtifactId: string | null;
+  canonicalArtifactId: string | null;
+  createdByUserId: string | null;
+  sourceType: ContentSourceType;
+  sourceId: string | null;
   title: string | null;
   topic: string | null;
   angle: string | null;
@@ -32,6 +45,12 @@ export type IntelligenceArtifact = {
   language: string | null;
   currentStage: ContentArtifactStage;
   status: 'ACTIVE' | 'ARCHIVED';
+  sourceHref: string | null;
+  ownerName: string | null;
+  exportStatus: 'not_exported' | 'exported' | 'failed';
+  lastExportedAt: string | null;
+  canManage: boolean;
+  metadataRepaired: boolean;
   updatedAt: Date;
 };
 
@@ -73,22 +92,32 @@ const artifactRef = (
   topic: artifact.topic,
   angle: artifact.angle,
   primaryKeyword: artifact.primaryKeyword,
+  searchIntent: artifact.searchIntent,
   language: artifact.language,
   stage: artifact.currentStage.toLocaleLowerCase('en-US'),
   status: artifact.status.toLocaleLowerCase('en-US'),
+  sourceType: artifact.sourceType.toLocaleLowerCase('en-US'),
+  sourceId: artifact.sourceId,
+  sourceHref: artifact.sourceHref,
+  ownerName: artifact.ownerName,
+  exportStatus: artifact.exportStatus,
+  lastExportedAt: artifact.lastExportedAt,
+  canonicalArtifactId: artifact.canonicalArtifactId,
+  canManage: artifact.canManage,
   updatedAt: artifact.updatedAt.toISOString(),
 });
 
 const isPublishedCoverage = (stage: ContentArtifactStage) =>
   stage === 'PUBLISHED' || stage === 'READY';
 
+const artifactFamilyId = (artifact: IntelligenceArtifact) =>
+  artifact.canonicalArtifactId ?? artifact.rootArtifactId ?? artifact.id;
+
 const sameLineage = (
   left: IntelligenceArtifact,
   right: IntelligenceArtifact
 ) => {
-  const leftRoot = left.rootArtifactId ?? left.id;
-  const rightRoot = right.rootArtifactId ?? right.id;
-  return leftRoot === rightRoot;
+  return artifactFamilyId(left) === artifactFamilyId(right);
 };
 
 class DisjointSet {
@@ -162,6 +191,7 @@ export const buildContentIntelligenceSnapshot = (params: {
   gapSignals?: ContentGapSignal[];
   embeddedArtifactCount?: number;
   truncated?: boolean;
+  suppressedRiskPairs?: Set<string>;
   now?: Date;
 }): ContentIntelligenceSnapshot => {
   const now = params.now ?? new Date();
@@ -294,13 +324,14 @@ export const buildContentIntelligenceSnapshot = (params: {
       if (
         left.status !== 'ACTIVE' ||
         right.status !== 'ACTIVE' ||
-        sameLineage(left, right)
+        sameLineage(left, right) ||
+        params.suppressedRiskPairs?.has(pairKey(left.id, right.id))
       ) {
         continue;
       }
       const familyKey = pairKey(
-        left.rootArtifactId ?? left.id,
-        right.rootArtifactId ?? right.id
+        artifactFamilyId(left),
+        artifactFamilyId(right)
       );
       if (riskFamilyPairs.has(familyKey)) continue;
       const metadata = pairMetadata.get(pairKey(left.id, right.id));
@@ -387,6 +418,13 @@ export const buildContentIntelligenceSnapshot = (params: {
         suggestedAngle: alternativeAngle.slice(0, 500),
         source: 'classifier_feedback',
         rationale: 'classifier_identified_open_angle',
+        relatedArtifacts: signal.matchedArtifactIds
+          .map((artifactId) => artifactById.get(artifactId))
+          .filter(
+            (artifact): artifact is IntelligenceArtifact => Boolean(artifact)
+          )
+          .slice(0, 5)
+          .map(artifactRef),
       });
       if (gaps.length >= MAX_OUTPUT_ITEMS) break;
     }
@@ -407,6 +445,7 @@ export const buildContentIntelligenceSnapshot = (params: {
       suggestedAngle: cluster.label,
       source: 'lifecycle_coverage',
       rationale: 'no_published_coverage',
+      relatedArtifacts: cluster.artifacts.slice(0, 5),
     });
   }
 
@@ -433,6 +472,11 @@ export const buildContentIntelligenceSnapshot = (params: {
       ),
       artifact: artifactRef(artifact),
       relatedArtifactId,
+      relatedArtifact: relatedArtifactId
+        ? artifactById.has(relatedArtifactId)
+          ? artifactRef(artifactById.get(relatedArtifactId)!)
+          : null
+        : null,
     });
   };
   for (const artifact of artifacts) {
@@ -494,8 +538,8 @@ export const buildContentIntelligenceSnapshot = (params: {
       const key = pairKey(left.id, right.id);
       if (sameLineage(left, right) || criticalRiskPairs.has(key)) continue;
       const familyKey = pairKey(
-        left.rootArtifactId ?? left.id,
-        right.rootArtifactId ?? right.id
+        artifactFamilyId(left),
+        artifactFamilyId(right)
       );
       if (linkedFamilyPairs.has(familyKey)) continue;
       const metadata = pairMetadata.get(key);
@@ -612,7 +656,11 @@ const parseGapSignals = (
   });
 
 export const getContentIntelligenceSnapshot = async (
-  organizationId: string
+  organizationId: string,
+  viewer: {
+    userId: string;
+    canManageAll: boolean;
+  }
 ): Promise<ContentIntelligenceSnapshot> => {
   const rows = await prisma.contentArtifact.findMany({
     where: {
@@ -622,6 +670,10 @@ export const getContentIntelligenceSnapshot = async (
     select: {
       id: true,
       rootArtifactId: true,
+      canonicalArtifactId: true,
+      createdByUserId: true,
+      sourceType: true,
+      sourceId: true,
       title: true,
       topic: true,
       angle: true,
@@ -631,15 +683,44 @@ export const getContentIntelligenceSnapshot = async (
       currentStage: true,
       status: true,
       updatedAt: true,
+      createdBy: {
+        select: { name: true },
+      },
     },
     orderBy: { updatedAt: 'desc' },
     take: MAX_ANALYZED_ARTIFACTS + 1,
   });
   const truncated = rows.length > MAX_ANALYZED_ARTIFACTS;
-  const artifacts = rows.slice(
-    0,
-    MAX_ANALYZED_ARTIFACTS
-  ) as IntelligenceArtifact[];
+  const boundedRows = rows.slice(0, MAX_ANALYZED_ARTIFACTS);
+  const presentations = await getContentArtifactPresentations({
+    organizationId,
+    artifacts: boundedRows,
+    viewerUserId: viewer.userId,
+    viewerCanManageAll: viewer.canManageAll,
+  });
+  const artifacts = boundedRows.map((row) => {
+    const presentation = getArtifactPresentation(presentations, row);
+    return {
+      ...row,
+      status: row.status as 'ACTIVE' | 'ARCHIVED',
+      title: presentation ? presentation.title : row.title,
+      topic: presentation ? presentation.topic : row.topic,
+      angle: presentation ? presentation.angle : row.angle,
+      primaryKeyword: presentation
+        ? presentation.primaryKeyword
+        : row.primaryKeyword,
+      searchIntent: presentation
+        ? presentation.searchIntent
+        : row.searchIntent,
+      sourceId: presentation?.sourceId ?? row.sourceId,
+      sourceHref: presentation?.sourceHref ?? null,
+      ownerName: presentation?.ownerName ?? row.createdBy?.name ?? null,
+      exportStatus: presentation?.exportStatus ?? 'not_exported',
+      lastExportedAt: presentation?.lastExportedAt ?? null,
+      canManage: presentation?.canManage ?? false,
+      metadataRepaired: presentation?.metadataRepaired ?? false,
+    } satisfies IntelligenceArtifact;
+  });
   const artifactIds = artifacts.map((artifact) => artifact.id);
   if (artifactIds.length === 0) {
     return buildContentIntelligenceSnapshot({
@@ -648,7 +729,7 @@ export const getContentIntelligenceSnapshot = async (
     });
   }
 
-  const [events, semanticState] = await Promise.all([
+  const [events, decisions, semanticState] = await Promise.all([
     prisma.duplicateGuardEvent.findMany({
       where: {
         organizationId,
@@ -661,8 +742,27 @@ export const getContentIntelligenceSnapshot = async (
       orderBy: { createdAt: 'desc' },
       take: 500,
     }),
+    prisma.contentIntelligenceDecision.findMany({
+      where: {
+        organizationId,
+        action: ContentIntelligenceDecisionType.NOT_CANNIBALIZATION,
+        relatedArtifactId: { not: null },
+      },
+      select: {
+        artifactId: true,
+        relatedArtifactId: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 1_000,
+    }),
     (async () => {
       try {
+        const semanticArtifactIds = artifacts
+          .filter((artifact) => !artifact.metadataRepaired)
+          .map((artifact) => artifact.id);
+        if (semanticArtifactIds.length === 0) {
+          return { pairs: [], embeddedArtifactCount: 0 };
+        }
         const [pairs, coverage] = await Promise.all([
           prisma.$queryRaw<SemanticArtifactPair[]>`
             SELECT
@@ -683,8 +783,8 @@ export const getContentIntelligenceSnapshot = async (
               AND right_document."organizationId" = ${organizationId}
               AND left_artifact."organizationId" = ${organizationId}
               AND right_artifact."organizationId" = ${organizationId}
-              AND left_document."artifactId" IN (${Prisma.join(artifactIds)})
-              AND right_document."artifactId" IN (${Prisma.join(artifactIds)})
+              AND left_document."artifactId" IN (${Prisma.join(semanticArtifactIds)})
+              AND right_document."artifactId" IN (${Prisma.join(semanticArtifactIds)})
               AND left_document."embedding" IS NOT NULL
               AND right_document."embedding" IS NOT NULL
               AND left_document."embeddingModel" =
@@ -705,7 +805,7 @@ export const getContentIntelligenceSnapshot = async (
               ON artifact."id" = document."artifactId"
             WHERE document."organizationId" = ${organizationId}
               AND artifact."organizationId" = ${organizationId}
-              AND document."artifactId" IN (${Prisma.join(artifactIds)})
+              AND document."artifactId" IN (${Prisma.join(semanticArtifactIds)})
               AND document."embedding" IS NOT NULL
               AND document."embeddingModel" =
                 ${CONTENT_MEMORY_EMBEDDING_MODEL}
@@ -733,6 +833,20 @@ export const getContentIntelligenceSnapshot = async (
     semanticPairs: semanticState.pairs,
     embeddedArtifactCount: semanticState.embeddedArtifactCount,
     gapSignals: parseGapSignals(events),
+    suppressedRiskPairs: new Set(
+      decisions
+        .filter(
+          (
+            decision
+          ): decision is {
+            artifactId: string;
+            relatedArtifactId: string;
+          } => Boolean(decision.relatedArtifactId)
+        )
+        .map((decision) =>
+          pairKey(decision.artifactId, decision.relatedArtifactId)
+        )
+    ),
     truncated,
   });
 };

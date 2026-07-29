@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { useRouter } from 'next/navigation';
 import { MotionConfig } from 'framer-motion';
@@ -34,7 +35,17 @@ import { CancelActionIcon } from '@/components/ui/icons/actions';
 import { useEditorialWorkspace } from '@/workspace/useEditorialWorkspace';
 import { editorStatusBadgeVariant } from '@/workspace/utils';
 
-export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) {
+export default function EditorialWorkspace({
+  mode,
+  initialHistoryId,
+  initialTitle,
+  initialBrief,
+}: {
+  mode: 'demo' | 'workspace';
+  initialHistoryId?: string;
+  initialTitle?: string;
+  initialBrief?: string;
+}) {
   const router = useRouter();
   const workspace = useEditorialWorkspace({ mode });
 
@@ -124,6 +135,36 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
   } = workspace;
 
   const showDemoSignupModal = demoRefineCount >= 3;
+  const initialContentMapNavigationHandled = useRef(false);
+
+  useEffect(() => {
+    if (
+      workspaceChecking ||
+      initialContentMapNavigationHandled.current
+    ) {
+      return;
+    }
+    initialContentMapNavigationHandled.current = true;
+    if (initialHistoryId) {
+      void loadHistory(initialHistoryId);
+      return;
+    }
+    if (initialTitle || initialBrief) {
+      setMetadata((current) => ({
+        ...current,
+        ...(initialTitle ? { workingTitle: initialTitle } : {}),
+        ...(initialBrief ? { brief: initialBrief } : {}),
+      }));
+    }
+  }, [
+    initialBrief,
+    initialHistoryId,
+    initialTitle,
+    loadHistory,
+    setMetadata,
+    workspaceChecking,
+  ]);
+
   const setShowDemoSignupModal = (show: boolean) => {
     setDemoRefineCount(show ? 3 : 0);
   };

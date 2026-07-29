@@ -12,6 +12,7 @@ describe('Content Map frontend contract', () => {
   it('exposes the tenant Content Map from the dashboard navigation', () => {
     expect(shell).toContain('href="/dashboard/content-map"');
     expect(shell).toContain("useTranslations('ContentMap')");
+    expect(shell).toContain('isContentMap ? undefined');
   });
 
   it('loads only the Content Memory registry API and renders safe metadata', () => {
@@ -19,6 +20,8 @@ describe('Content Map frontend contract', () => {
     expect(page).toContain('artifact.createdBy?.name');
     expect(page).not.toContain('searchDocument');
     expect(page).not.toContain('contentHash');
+    expect(page).toContain('artifact.exportStatus');
+    expect(page).toContain('artifact.topic');
   });
 
   it('uses canonical controls and includes the required mobile table hint', () => {

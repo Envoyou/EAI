@@ -6,6 +6,17 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Content Intelligence yang Dapat Ditindaklanjuti (Phase 6.1)**:
+  - Menambahkan ekspor CSV khusus Peta Konten untuk inventaris dan seluruh snapshot intelligence yang bounded; kontrol tanggal/CSV Analytics yang tidak terkait tidak lagi muncul pada rute Peta Konten.
+  - Menambahkan navigasi ke draft sumber, perbandingan artikel, pengubahan angle pembeda, penetapan canonical, konfirmasi konsolidasi manual, arsip, dan feedback "bukan kanibalisasi" yang dapat diatribusikan.
+  - Menambahkan migrasi `20260730090000_add_content_intelligence_actions` untuk relasi canonical artefak dan riwayat keputusan tenant-scoped. Migrasi diterapkan ke database Neon production pada 30 Juli 2026; Prisma mengonfirmasi seluruh 30 migrasi sudah up to date. Tindakan konsolidasi/arsip hanya memperbarui registry Content Memory dan tidak pernah menghapus draft sumber atau halaman CMS.
+  - Presentasi Peta Konten kini memprioritaskan judul publikasi, working title, dan H1 artikel; instruksi prompt serta kalimat status editorial review/ekspor ditolak sebagai judul artikel. Perbaikan tampilan data lama dilakukan saat request dan vector yang terkontaminasi diabaikan sampai diperbarui.
+
+### Fixed
+- **Kejelasan data Peta Konten**:
+  - Menampilkan judul artikel, topik, tahap editorial, status registry, status ekspor CMS, kata kunci, sumber, pemilik, dan aksi sumber secara terpisah, bukan memakai ringkasan editorial review sebagai identitas artikel.
+
 ## [3.19.0] - 2026-07-30
 
 ### Added

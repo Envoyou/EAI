@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import type { ContentIntelligenceArtifact } from '@eai/shared';
 import { Search, RefreshCw } from 'lucide-react';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,17 +13,35 @@ import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
 import { getResponseErrorMessage } from '@/lib/fetch-utils';
 import { ContentIntelligencePanel } from './ContentIntelligencePanel';
+import { ActionButton } from '@/components/ui/action-button';
+import {
+  DownloadActionIcon,
+  OpenExternalActionIcon,
+} from '@/components/ui/icons/actions';
+import {
+  buildContentInventoryCsv,
+  contentInventoryFilename,
+  downloadCsv,
+} from './content-map-csv';
 
 type ContentArtifactListItem = {
   id: string;
   artifactType: string;
   sourceType: string;
+  sourceId: string | null;
+  sourceHref: string | null;
   title: string | null;
   topic: string | null;
   angle: string | null;
   primaryKeyword: string | null;
+  searchIntent: string | null;
   currentStage: string;
   status: string;
+  ownerName: string | null;
+  exportStatus: 'not_exported' | 'exported' | 'failed';
+  lastExportedAt: string | null;
+  canonicalArtifactId: string | null;
+  canManage: boolean;
   createdAt: string;
   updatedAt: string;
   createdBy: { name: string | null } | null;
@@ -37,6 +57,7 @@ const stageVariant = (stage: string): BadgeVariant => {
 export default function ContentMapPage() {
   const t = useTranslations('ContentMap');
   const locale = useLocale();
+  const router = useRouter();
   const directFetch = useDirectFetch();
   const [artifacts, setArtifacts] = useState<ContentArtifactListItem[]>([]);
   const [search, setSearch] = useState('');
@@ -148,6 +169,39 @@ export default function ContentMapPage() {
     return source;
   };
 
+  const localizeHref = (href: string) =>
+    locale === 'en' ? href : `/${locale}${href}`;
+
+  const exportInventory = () => {
+    const exportRows: ContentIntelligenceArtifact[] = artifacts.map(
+      (artifact) => ({
+        id: artifact.id,
+        title: artifact.title,
+        topic: artifact.topic,
+        angle: artifact.angle,
+        primaryKeyword: artifact.primaryKeyword,
+        searchIntent: artifact.searchIntent,
+        language: null,
+        stage: artifact.currentStage.toLocaleLowerCase('en-US'),
+        status: artifact.status.toLocaleLowerCase('en-US'),
+        sourceType: artifact.sourceType.toLocaleLowerCase('en-US'),
+        sourceId: artifact.sourceId,
+        sourceHref: artifact.sourceHref,
+        ownerName:
+          artifact.ownerName ?? artifact.createdBy?.name ?? null,
+        exportStatus: artifact.exportStatus,
+        lastExportedAt: artifact.lastExportedAt,
+        canonicalArtifactId: artifact.canonicalArtifactId,
+        canManage: artifact.canManage,
+        updatedAt: artifact.updatedAt,
+      })
+    );
+    downloadCsv(
+      contentInventoryFilename(),
+      buildContentInventoryCsv(exportRows)
+    );
+  };
+
   return (
     <section id="content-map" className="settings-page-section">
       <div className="settings-page-section-heading">
@@ -156,25 +210,38 @@ export default function ContentMapPage() {
       </div>
 
       <div className="settings-page-section-body space-y-6 py-6">
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant={activeView === 'inventory' ? 'primary' : 'surface'}
-            size="sm"
-            aria-pressed={activeView === 'inventory'}
-            onClick={() => setActiveView('inventory')}
-          >
-            {t('tabs.inventory')}
-          </Button>
-          <Button
-            type="button"
-            variant={activeView === 'intelligence' ? 'primary' : 'surface'}
-            size="sm"
-            aria-pressed={activeView === 'intelligence'}
-            onClick={() => setActiveView('intelligence')}
-          >
-            {t('tabs.intelligence')}
-          </Button>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant={activeView === 'inventory' ? 'primary' : 'surface'}
+              size="sm"
+              aria-pressed={activeView === 'inventory'}
+              onClick={() => setActiveView('inventory')}
+            >
+              {t('tabs.inventory')}
+            </Button>
+            <Button
+              type="button"
+              variant={activeView === 'intelligence' ? 'primary' : 'surface'}
+              size="sm"
+              aria-pressed={activeView === 'intelligence'}
+              onClick={() => setActiveView('intelligence')}
+            >
+              {t('tabs.intelligence')}
+            </Button>
+          </div>
+          {activeView === 'inventory' ? (
+            <ActionButton
+              icon={DownloadActionIcon}
+              label={t('export.inventory')}
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={loading || artifacts.length === 0}
+              onClick={exportInventory}
+            />
+          ) : null}
         </div>
 
         {activeView === 'intelligence' ? (
@@ -246,14 +313,18 @@ export default function ContentMapPage() {
               {t('swipeHint')}
             </div>
             <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-              <table className="w-full min-w-[760px] text-left text-sm">
+              <table className="w-full min-w-[1180px] text-left text-sm">
                 <thead className="bg-[var(--surface-2)] text-xs text-[var(--muted-foreground)]">
                   <tr>
                     <th className="px-4 py-3 font-medium">{t('columns.content')}</th>
+                    <th className="px-4 py-3 font-medium">{t('columns.topic')}</th>
                     <th className="px-4 py-3 font-medium">{t('columns.stage')}</th>
+                    <th className="px-4 py-3 font-medium">{t('columns.status')}</th>
+                    <th className="px-4 py-3 font-medium">{t('columns.keyword')}</th>
                     <th className="px-4 py-3 font-medium">{t('columns.source')}</th>
                     <th className="px-4 py-3 font-medium">{t('columns.owner')}</th>
                     <th className="px-4 py-3 font-medium">{t('columns.updated')}</th>
+                    <th className="px-4 py-3 font-medium">{t('columns.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -272,6 +343,9 @@ export default function ContentMapPage() {
                           </div>
                         ) : null}
                       </td>
+                      <td className="max-w-xs px-4 py-3 text-xs">
+                        {artifact.topic || t('notAvailable')}
+                      </td>
                       <td className="px-4 py-3">
                         <Badge
                           variant={stageVariant(artifact.currentStage)}
@@ -280,14 +354,69 @@ export default function ContentMapPage() {
                           {labelForStage(artifact.currentStage)}
                         </Badge>
                       </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col items-start gap-1">
+                          <Badge
+                            variant={
+                              artifact.status === 'ARCHIVED'
+                                ? 'muted'
+                                : 'surface'
+                            }
+                            size="xs"
+                          >
+                            {t(
+                              `statuses.${artifact.status.toLocaleLowerCase('en-US')}`
+                            )}
+                          </Badge>
+                          <Badge
+                            variant={
+                              artifact.exportStatus === 'exported'
+                                ? 'success'
+                                : artifact.exportStatus === 'failed'
+                                  ? 'danger'
+                                  : 'muted'
+                            }
+                            size="xs"
+                          >
+                            {t(
+                              `exportStatuses.${artifact.exportStatus}`
+                            )}
+                          </Badge>
+                        </div>
+                      </td>
+                      <td className="max-w-48 px-4 py-3 text-xs">
+                        {artifact.primaryKeyword || t('notAvailable')}
+                      </td>
                       <td className="px-4 py-3 text-xs">
                         {labelForSource(artifact.sourceType)}
                       </td>
                       <td className="px-4 py-3 text-xs">
-                        {artifact.createdBy?.name || t('workspaceMember')}
+                        {artifact.ownerName ||
+                          artifact.createdBy?.name ||
+                          t('workspaceMember')}
                       </td>
                       <td className="px-4 py-3 text-xs tabular-nums">
                         {formatDate(artifact.updatedAt)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {artifact.sourceHref ? (
+                          <ActionButton
+                            icon={OpenExternalActionIcon}
+                            label={t('actions.openDraft')}
+                            type="button"
+                            variant="muted"
+                            size="xs"
+                            onClick={() =>
+                              router.push(
+                                localizeHref(artifact.sourceHref!)
+                              )
+                            }
+                          />
+                        ) : (
+                          <span className="text-xs text-[var(--muted-foreground)]">
+                            {t('actions.sourceUnavailable')}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
