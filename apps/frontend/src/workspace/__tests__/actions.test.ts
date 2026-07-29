@@ -68,7 +68,9 @@ const createAnalyzeContext = (
       setDemoRefineCount: vi.fn(),
       setShowDemoSignupModal: vi.fn(),
       setRefreshTrigger: vi.fn(),
-      analyzeAbortControllerRef: { current: null },
+      analyzeAbortControllerRef: {
+        current: null as AbortController | null,
+      },
       draftChunkBufferRef: { current: '' },
       rafIdRef: { current: null },
       checkMissingSources: vi.fn(() => []),

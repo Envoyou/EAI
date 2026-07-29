@@ -8,6 +8,7 @@ import {
   shouldShowStrategistMessageSupport,
   updateStrategistContentAnimation,
 } from '../../strategist-stream';
+import type { StrategistMessageSupportState } from '../../strategist-stream';
 
 describe('Strategist SSE error contract', () => {
   test('preserves reasoning and grounding thinking kinds', () => {
@@ -54,7 +55,7 @@ describe('Strategist SSE error contract', () => {
   });
 
   test('reveals message support only after the stream and final animation complete', () => {
-    let state = {
+    let state: StrategistMessageSupportState = {
       lifecycle: 'pending',
       isStreamComplete: false,
       isSupportReady: false,
@@ -80,7 +81,7 @@ describe('Strategist SSE error contract', () => {
   });
 
   test('reveals message support when the animation finishes before stream completion', () => {
-    let state = {
+    let state: StrategistMessageSupportState = {
       lifecycle: 'pending',
       isStreamComplete: false,
       isSupportReady: false,
