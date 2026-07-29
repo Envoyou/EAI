@@ -10,6 +10,7 @@ import { LanguagePolicyNode } from '../core/rules';
 import { BrandIdentityNode } from '../tenant/profile';
 import { ToneCalibrationNode } from '../tenant/tone';
 import { VisualFormatSelectionPolicyNode } from '../core/format';
+import { RelatedContentGuidanceNode } from '../core/strategist';
 
 // ─── STRATEGIST ROLE Node ──────────────────────────────────────────────────
 export class StrategistRoleNode implements PromptNode {
@@ -182,6 +183,7 @@ export class StrategistPromptComposer {
     root.addChild(roleNode);
     root.addChild(langPolicyNode);
     root.addChild(visualFormatNode);
+    root.addChild(new RelatedContentGuidanceNode());
     root.addChild(configNode);
     root.addChild(instructionNode);
 

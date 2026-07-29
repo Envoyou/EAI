@@ -14,6 +14,14 @@ import {
   type Prisma,
 } from '@prisma/client';
 import { prisma } from '@/lib/db';
+import {
+  CONTENT_MEMORY_EMBEDDING_MODEL,
+  enqueueContentSearchEmbedding,
+  hashEmbeddingSource,
+  retrieveHybridCandidateScores,
+  type HybridCandidateScore,
+} from '@/lib/content-memory-embedding';
+import { classifyAmbiguousContentOverlap } from '@/lib/content-memory-classifier';
 
 const RESERVATION_TTL_MS = 10 * 60 * 1000;
 const MAX_CANDIDATES = 100;
@@ -168,7 +176,9 @@ export const buildReservationKey = (input: ContentMemoryInput): string => {
   return hashText(fingerprint);
 };
 
-const buildSearchText = (input: ContentMemoryInput): string =>
+export const buildContentMemorySearchText = (
+  input: ContentMemoryInput
+): string =>
   [
     inputTitle(input),
     input.topic,
@@ -184,7 +194,8 @@ const buildSearchText = (input: ContentMemoryInput): string =>
 
 const scoreCandidate = (
   input: ContentMemoryInput,
-  candidate: Candidate
+  candidate: Candidate,
+  retrieval?: HybridCandidateScore
 ): MatchedContentArtifact => {
   const title = inputTitle(input);
   const candidateTitle = candidate.title ?? candidate.topic ?? candidate.angle;
@@ -208,6 +219,8 @@ const scoreCandidate = (
     contentHash(input.content) &&
       contentHash(input.content) === candidate.contentHash
   );
+  const semanticScore = retrieval?.semanticScore ?? 0;
+  const lexicalScore = retrieval?.lexicalScore ?? 0;
   const reasons: OverlapReason[] = [];
 
   if (titleScore === 1) reasons.push('same_title');
@@ -218,6 +231,7 @@ const scoreCandidate = (
   if (outlineScore >= 0.65) reasons.push('outline_overlap');
   if (summaryScore >= 0.75) reasons.push('content_summary_overlap');
   if (audienceScore >= 0.8) reasons.push('shared_audience');
+  if (semanticScore >= 0.72) reasons.push('semantic_similarity');
 
   const weighted =
     titleScore * 0.35 +
@@ -228,7 +242,7 @@ const scoreCandidate = (
     summaryScore * 0.1 +
     audienceScore * 0.05 +
     angleScore * 0.05;
-  const rawScore =
+  const deterministicScore =
     sameContent || titleScore === 1
       ? 1
       : Math.min(
@@ -238,6 +252,24 @@ const scoreCandidate = (
             keywordScore >= 0.9 ? 0.35 : 0,
             intentScore >= 0.9 ? 0.35 : 0,
             summaryScore >= 0.75 ? 0.4 : 0
+          )
+        );
+  const semanticHybridScore =
+    semanticScore * 0.55 +
+    titleScore * 0.2 +
+    keywordScore * 0.1 +
+    outlineScore * 0.1 +
+    intentScore * 0.05;
+  const lexicalHybridScore = lexicalScore * 0.45 + deterministicScore * 0.55;
+  const rawScore =
+    sameContent || titleScore === 1
+      ? 1
+      : Math.min(
+          1,
+          Math.max(
+            deterministicScore,
+            semanticHybridScore,
+            lexicalHybridScore
           )
         );
   const score =
@@ -255,6 +287,12 @@ const scoreCandidate = (
     sourceType: candidate.sourceType.toLocaleLowerCase('en-US'),
     createdAt: candidate.createdAt.toISOString(),
     score: Number(score.toFixed(4)),
+    ...(retrieval?.semanticScore !== undefined
+      ? { semanticScore: Number(retrieval.semanticScore.toFixed(4)) }
+      : {}),
+    ...(retrieval?.lexicalScore !== undefined
+      ? { lexicalScore: Number(retrieval.lexicalScore.toFixed(4)) }
+      : {}),
     reasons,
   };
 };
@@ -313,6 +351,38 @@ export const classifyContentMatches = (
   };
 };
 
+const safeContextJson = (value: unknown): string =>
+  JSON.stringify(value, null, 2)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e');
+
+export const buildRelatedContentContext = (
+  result: DuplicateGuardResult | null | undefined
+): string => {
+  if (!result || result.matchedArtifacts.length === 0) return '';
+  return `
+<related_content_context>
+${safeContextJson({
+  verdict: result.verdict,
+  confidence: result.confidence,
+  sameElements: result.sameElements ?? [],
+  differentElements: result.differentElements ?? [],
+  alternativeAngles: result.alternativeAngles ?? [],
+  explanation: result.explanation ?? null,
+  artifacts: result.matchedArtifacts.slice(0, MAX_MATCHES).map((artifact) => ({
+    id: artifact.id,
+    title: artifact.title,
+    topic: artifact.topic,
+    angle: artifact.angle,
+    stage: artifact.stage,
+    status: artifact.status,
+    score: artifact.score,
+  })),
+})}
+</related_content_context>
+`.trim();
+};
+
 export const evaluateContentDuplicates = async (params: {
   organizationId: string;
   input: ContentMemoryInput;
@@ -364,26 +434,78 @@ export const evaluateContentDuplicates = async (params: {
     });
   }
 
-  const [exactCandidates, recentCandidates] = await Promise.all([
+  const exactCandidates =
     exactConditions.length > 0
-      ? prisma.contentArtifact.findMany({
+      ? await prisma.contentArtifact.findMany({
           where: { ...baseWhere, OR: exactConditions },
           take: 25,
           orderBy: { updatedAt: 'desc' },
           select,
-    })
-      : Promise.resolve([]),
-    prisma.contentArtifact.findMany({
-      where: {
-        ...baseWhere,
+        })
+      : [];
+  const exactMatches = exactCandidates
+    .filter(
+      (candidate) =>
+        !params.rootArtifactId ||
+        (candidate.id !== params.rootArtifactId &&
+          candidate.rootArtifactId !== params.rootArtifactId)
+    )
+    .map((candidate) => scoreCandidate(params.input, candidate as Candidate))
+    .filter((candidate) => candidate.score >= 0.25)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, MAX_MATCHES);
+  const exactClassification = classifyContentMatches(exactMatches);
+  if (exactClassification.recommendedAction === 'block') {
+    return {
+      ...exactClassification,
+      matchedArtifacts: exactMatches,
+      retrieval: {
+        mode: 'deterministic',
+        semanticAvailable: false,
+        semanticCandidateCount: 0,
+        lexicalCandidateCount: 0,
+        classifierInvoked: false,
+        classifierModel: null,
+        classifierLatencyMs: null,
       },
-      take: MAX_CANDIDATES,
-      orderBy: { updatedAt: 'desc' },
-      select,
-    }),
-  ]);
+    };
+  }
+
+  const retrieval = await retrieveHybridCandidateScores({
+    organizationId: params.organizationId,
+    searchText: buildContentMemorySearchText(params.input),
+    limit: 20,
+  });
+  const [hybridCandidates, recentCandidates] = await Promise.all([
+      retrieval.scores.size > 0
+        ? prisma.contentArtifact.findMany({
+            where: {
+              ...baseWhere,
+              id: {
+                in: [...retrieval.scores.keys()],
+                ...(params.excludeArtifactId
+                  ? { not: params.excludeArtifactId }
+                  : {}),
+              },
+            },
+            select,
+          })
+        : Promise.resolve([]),
+      prisma.contentArtifact.findMany({
+        where: {
+          ...baseWhere,
+        },
+        take: MAX_CANDIDATES,
+        orderBy: { updatedAt: 'desc' },
+        select,
+      }),
+    ]);
   const candidateMap = new Map<string, Candidate>();
-  for (const candidate of [...exactCandidates, ...recentCandidates]) {
+  for (const candidate of [
+    ...exactCandidates,
+    ...hybridCandidates,
+    ...recentCandidates,
+  ]) {
     if (
       params.rootArtifactId &&
       (candidate.id === params.rootArtifactId ||
@@ -395,13 +517,32 @@ export const evaluateContentDuplicates = async (params: {
   }
 
   const matches = [...candidateMap.values()]
-    .map((candidate) => scoreCandidate(params.input, candidate))
+    .map((candidate) =>
+      scoreCandidate(
+        params.input,
+        candidate,
+        retrieval.scores.get(candidate.id)
+      )
+    )
     .filter((candidate) => candidate.score >= 0.25)
     .sort((left, right) => right.score - left.score)
     .slice(0, MAX_MATCHES);
   return {
     ...classifyContentMatches(matches),
     matchedArtifacts: matches,
+    retrieval: {
+      mode:
+        retrieval.semanticCandidateCount > 0 ||
+        retrieval.lexicalCandidateCount > 0
+          ? 'hybrid'
+          : 'deterministic',
+      semanticAvailable: retrieval.semanticAvailable,
+      semanticCandidateCount: retrieval.semanticCandidateCount,
+      lexicalCandidateCount: retrieval.lexicalCandidateCount,
+      classifierInvoked: false,
+      classifierModel: null,
+      classifierLatencyMs: null,
+    },
   };
 };
 
@@ -425,9 +566,15 @@ export const beginContentGenerationGuard = async (params: {
 }> => {
   const requestId = params.requestId ?? randomUUID();
   const reservationKey = buildReservationKey(params.input);
-  const result = await evaluateContentDuplicates({
+  let result = await evaluateContentDuplicates({
     organizationId: params.organizationId,
     input: params.input,
+  });
+  result = await classifyAmbiguousContentOverlap({
+    organizationId: params.organizationId,
+    userId: params.userId,
+    input: params.input,
+    result,
   });
 
   await recordDuplicateGuardEvent({
@@ -510,7 +657,35 @@ export const upsertContentArtifact = async (
   const topic = nonEmpty(input.topic) ?? title;
   const normalizedTopic = normalizeIndexedText(topic);
   const outline = toOutlineText(input.outline);
-  const searchText = buildSearchText(input);
+  const searchText = buildContentMemorySearchText(input);
+  const sourceHash = hashEmbeddingSource(searchText);
+  const existingArtifact = await prisma.contentArtifact.findUnique({
+    where: {
+      organizationId_sourceType_sourceId: {
+        organizationId: input.organizationId,
+        sourceType: input.sourceType,
+        sourceId: input.sourceId,
+      },
+    },
+    select: {
+      searchDocument: {
+        select: {
+          searchText: true,
+          embeddingModel: true,
+          embeddingSourceHash: true,
+        },
+      },
+    },
+  });
+  const existingSearchDocument = existingArtifact?.searchDocument;
+  const searchTextChanged =
+    !existingSearchDocument ||
+    existingSearchDocument.searchText !== searchText;
+  const needsEmbedding =
+    searchTextChanged ||
+    existingSearchDocument?.embeddingModel !==
+      CONTENT_MEMORY_EMBEDDING_MODEL ||
+    existingSearchDocument?.embeddingSourceHash !== sourceHash;
   const artifact = await prisma.contentArtifact.upsert({
     where: {
       organizationId_sourceType_sourceId: {
@@ -591,12 +766,34 @@ export const upsertContentArtifact = async (
               stage: input.currentStage,
             },
             contentHash: contentHash(input.content),
+            ...(searchTextChanged
+              ? {
+                  embeddingModel: null,
+                  embeddingSourceHash: null,
+                  embeddingError: null,
+                  embeddingAttempts: 0,
+                  embeddedAt: null,
+                }
+              : {}),
             indexedAt: new Date(),
           },
         },
       },
     },
   });
+  if (needsEmbedding) {
+    await enqueueContentSearchEmbedding({
+      artifactId: artifact.id,
+      searchText,
+    }).catch((embeddingError) => {
+      console.warn(
+        '[CONTENT_MEMORY] Failed to enqueue semantic indexing:',
+        embeddingError instanceof Error
+          ? embeddingError.message
+          : embeddingError
+      );
+    });
+  }
   return artifact;
 };
 
@@ -623,6 +820,16 @@ export const recordDuplicateGuardEvent = async (params: {
       matchedArtifactIds: params.result.matchedArtifacts.map(
         (artifact) => artifact.id
       ),
+      retrievalMetadata: params.result.retrieval,
+      classifierMetadata: params.result.retrieval?.classifierInvoked
+        ? {
+            model: params.result.retrieval.classifierModel,
+            latencyMs: params.result.retrieval.classifierLatencyMs,
+            sameElements: params.result.sameElements,
+            differentElements: params.result.differentElements,
+            alternativeAngles: params.result.alternativeAngles,
+          }
+        : undefined,
       userAction: params.userAction,
     },
   });

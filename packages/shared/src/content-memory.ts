@@ -20,6 +20,7 @@ export const OverlapReasonSchema = z.enum([
   'content_summary_overlap',
   'shared_audience',
   'same_source',
+  'semantic_similarity',
   'active_reservation',
 ]);
 
@@ -47,11 +48,27 @@ export const MatchedContentArtifactSchema = z.object({
   sourceType: z.string(),
   createdAt: z.string(),
   score: z.number().min(0).max(1),
+  semanticScore: z.number().min(0).max(1).optional(),
+  lexicalScore: z.number().min(0).max(1).optional(),
   reasons: z.array(OverlapReasonSchema),
 });
 
 export type MatchedContentArtifact = z.infer<
   typeof MatchedContentArtifactSchema
+>;
+
+export const ContentMemoryRetrievalSchema = z.object({
+  mode: z.enum(['deterministic', 'hybrid']),
+  semanticAvailable: z.boolean(),
+  semanticCandidateCount: z.number().int().min(0),
+  lexicalCandidateCount: z.number().int().min(0),
+  classifierInvoked: z.boolean(),
+  classifierModel: z.string().nullable(),
+  classifierLatencyMs: z.number().int().min(0).nullable(),
+});
+
+export type ContentMemoryRetrieval = z.infer<
+  typeof ContentMemoryRetrievalSchema
 >;
 
 export const DuplicateGuardResultSchema = z.object({
@@ -60,6 +77,11 @@ export const DuplicateGuardResultSchema = z.object({
   reasons: z.array(OverlapReasonSchema),
   matchedArtifacts: z.array(MatchedContentArtifactSchema),
   recommendedAction: DuplicateGuardActionSchema,
+  sameElements: z.array(z.string()).optional(),
+  differentElements: z.array(z.string()).optional(),
+  alternativeAngles: z.array(z.string()).optional(),
+  explanation: z.string().optional(),
+  retrieval: ContentMemoryRetrievalSchema.optional(),
 });
 
 export type DuplicateGuardResult = z.infer<

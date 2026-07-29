@@ -12,6 +12,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan pemeriksaan overlap deterministik sebelum generasi AI. Kecocokan konten/judul yang identik dan benturan reservasi aktif memblokir pekerjaan duplikat, sedangkan kemiripan topik yang lebih luas tetap berupa peringatan sampai telemetry production mendukung enforcement yang lebih ketat.
   - Menambahkan API daftar/pemeriksaan Content Memory yang terautentikasi serta dashboard **Content Map** dalam bahasa Inggris dan Indonesia agar anggota dapat menemukan pekerjaan terkait tanpa mengekspos percakapan mentah Strategist atau seluruh body draf terindeks.
   - Menambahkan migrasi `20260729180000_add_content_memory_registry`, termasuk indeks tenant-safe dan backfill dari `AnalysisLog` yang dapat diatribusikan serta Blueprint yang telah selesai. Migrasi diterapkan ke database Neon production pada 29 Juli 2026; Prisma mengonfirmasi seluruh 27 migrasi sudah up to date.
+  - Menambahkan retrieval hybrid Phase 3 dengan kandidat full-text/trigram PostgreSQL yang tenant-filtered serta pencarian cosine pgvector 768 dimensi. Embedding Gemini dibuat secara asinkron melalui job BullMQ idempoten, diberi versi berdasarkan model/source hash, memiliki retry terbatas, dan tidak digunakan ketika stale.
+  - Menambahkan klasifikasi overlap terstruktur Phase 4 untuk kandidat ambigu melalui PCA composer khusus serta override runtime AI per fungsi di Admin. Classifier melaporkan elemen yang sama/berbeda dan rekomendasi angle, tetapi tidak dapat menghasilkan `exact_duplicate` atau memblokir request.
+  - Menginjeksikan metadata related-content yang aman untuk kolaborasi ke prompt Blueprint, Quick Draft, dan Draft from Notes agar generasi menghindari angle yang sudah tercakup tanpa menganggap artifact internal sebagai sumber fakta.
+  - Menambahkan migrasi `20260729210000_add_content_memory_semantic_retrieval` untuk pgvector, pg_trgm, indeks HNSW/full-text, field lifecycle embedding, serta telemetry classifier/retrieval. Migrasi diterapkan ke database Neon production pada 29 Juli 2026; Prisma mengonfirmasi seluruh 28 migrasi sudah up to date.
 
 ## [3.18.0] - 2026-07-29
 

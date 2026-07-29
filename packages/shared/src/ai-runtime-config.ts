@@ -18,6 +18,7 @@ export const AI_FUNCTION_KEYS = [
   'analyze_seo',
   'analyze_quality_gate',
   'analyze_targeted_fix',
+  'content_memory_classifier',
 ] as const;
 
 export const AiFunctionKeySchema = z.enum(AI_FUNCTION_KEYS);
@@ -41,7 +42,7 @@ export type AiRuntimeConfig = z.infer<typeof AiRuntimeConfigSchema>;
 
 export type AiFunctionDefinition = {
   key: AiFunctionKey;
-  category: 'Strategist' | 'Analyze';
+  category: 'Strategist' | 'Analyze' | 'Content Intelligence';
   label: string;
   description: string;
   allowedProviders: readonly AiProviderName[];
@@ -147,6 +148,14 @@ export const AI_FUNCTION_DEFINITIONS: readonly AiFunctionDefinition[] = [
     category: 'Analyze',
     label: 'Targeted Fix',
     description: 'Applies a bounded fix to selected draft content.',
+    allowedProviders: ALL_PROVIDERS,
+  },
+  {
+    key: 'content_memory_classifier',
+    category: 'Content Intelligence',
+    label: 'Overlap Classifier',
+    description:
+      'Adjudicates ambiguous Content Memory matches and recommends distinct angles.',
     allowedProviders: ALL_PROVIDERS,
   },
 ] as const;

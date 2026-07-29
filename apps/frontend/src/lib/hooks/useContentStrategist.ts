@@ -819,7 +819,13 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
             : data.duplicateGuard.verdict === 'high_overlap'
               ? 'highOverlap'
               : 'relatedWarning';
-        toast.warning(tContentMemory(warningKey));
+        const suggestedAngle =
+          data.duplicateGuard.alternativeAngles?.[0];
+        toast.warning(tContentMemory(warningKey), {
+          description: suggestedAngle
+            ? `${tContentMemory('suggestedAngle')}: ${suggestedAngle}`
+            : undefined,
+        });
       }
       if (data.sessionId && data.sessionId !== currentSessionId) {
         setCurrentSessionId(data.sessionId);
@@ -1275,7 +1281,12 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                 : result.verdict === 'high_overlap'
                   ? 'highOverlap'
                   : 'relatedWarning';
-            toast.warning(tContentMemory(warningKey));
+            const suggestedAngle = result.alternativeAngles?.[0];
+            toast.warning(tContentMemory(warningKey), {
+              description: suggestedAngle
+                ? `${tContentMemory('suggestedAngle')}: ${suggestedAngle}`
+                : undefined,
+            });
           } else if (event.type === 'complete') {
             receivedComplete = true;
           } else if (event.type === 'error') {

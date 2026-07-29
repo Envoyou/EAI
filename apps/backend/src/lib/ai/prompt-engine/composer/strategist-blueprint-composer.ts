@@ -4,7 +4,11 @@ import { EditorialMissionNode } from '../core/mission';
 import { LanguagePolicyNode } from '../core/rules';
 import { BrandIdentityNode } from '../tenant/profile';
 import { ToneCalibrationNode } from '../tenant/tone';
-import { StrategistSystemRoleNode, StrategistBlueprintInstructionNode } from '../core/strategist';
+import {
+  StrategistSystemRoleNode,
+  StrategistBlueprintInstructionNode,
+  RelatedContentGuidanceNode,
+} from '../core/strategist';
 
 export class StrategistBlueprintComposer {
   constructor(private profile?: EditorialProfileConfig | null) {}
@@ -22,6 +26,7 @@ export class StrategistBlueprintComposer {
     root.addChild(roleNode);
     root.addChild(langPolicyNode);
     root.addChild(instructionsNode);
+    root.addChild(new RelatedContentGuidanceNode());
 
     // Tenant Nodes
     if (this.profile) {

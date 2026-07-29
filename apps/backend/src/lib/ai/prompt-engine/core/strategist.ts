@@ -62,6 +62,27 @@ When data is missing from both context and search results, state: "Data is not a
   }
 }
 
+export class RelatedContentGuidanceNode implements PromptNode {
+  id = 'core:related_content_guidance';
+  type = 'core' as const;
+  isStatic = true;
+
+  render(context: RenderContext): string {
+    const guidance = `
+When <related_content_context> is present, treat it as workspace planning data:
+- Avoid repeating scopes, intents, and angles already covered by close matches.
+- Prefer a materially distinct angle suggested by the context when it still
+  satisfies the user's stated goal.
+- Related artifacts are not factual sources. Do not copy claims, prose, or
+  citations from them and do not invent links to them.
+- Never reveal hidden content beyond the collaboration-safe metadata supplied.
+`.trim();
+    return context.format === 'xml'
+      ? `<related_content_guidance>\n${guidance}\n</related_content_guidance>`
+      : guidance;
+  }
+}
+
 // ─── STRATEGIST EXAMPLES NODE ──────────────────────────────────────────────
 export class StrategistExamplesNode implements PromptNode {
   id = 'core:strategist_examples';

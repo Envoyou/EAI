@@ -480,16 +480,21 @@ model ContentArtifact {
 }
 
 model ContentSearchDocument {
-  id             String    @id @default(cuid())
-  organizationId String
-  artifactId     String    @unique
-  searchText     String    @db.Text
-  searchMetadata Json?
-  contentHash    String?
-  embeddingModel String?
-  embeddedAt     DateTime?
-  indexedAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                     String    @id @default(cuid())
+  organizationId         String
+  artifactId             String    @unique
+  searchText             String    @db.Text
+  searchMetadata         Json?
+  contentHash            String?
+  embedding              Unsupported("vector(768)")?
+  embeddingModel         String?
+  embeddingSourceHash    String?
+  embeddingError         String?
+  embeddingAttempts      Int       @default(0)
+  lastEmbeddingAttemptAt DateTime?
+  embeddedAt             DateTime?
+  indexedAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   artifact     ContentArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
@@ -528,6 +533,8 @@ model DuplicateGuardEvent {
   reasons                 Json
   recommendedAction       String
   matchedArtifactIds      Json
+  retrievalMetadata       Json?
+  classifierMetadata      Json?
   userAction              String?
   laterConfirmedDuplicate Boolean?
   createdAt               DateTime @default(now())

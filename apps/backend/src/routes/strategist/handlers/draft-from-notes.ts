@@ -33,8 +33,10 @@ import {
   ContentSourceType,
 } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
+import type { DuplicateGuardResult } from '@eai/shared';
 import {
   beginContentGenerationGuard,
+  buildRelatedContentContext,
   recordContentGuardOutcome,
   releaseContentReservation,
   upsertContentArtifact,
@@ -127,7 +129,7 @@ router.post(
           ? GROQ_MODEL
           : getOpenRouterModelForRole('author', 'balanced'));
 
-    let duplicateGuardResult = null;
+    let duplicateGuardResult: DuplicateGuardResult | null = null;
     if (userId && billingOrgId) {
       const notesPreview = notes.map((note) => note.content).join('\n\n');
       const guard = await beginContentGenerationGuard({
@@ -261,6 +263,8 @@ Target Audience: ${metadata?.targetAudience || 'General Audience'}
 Output Language: ${metadata?.outputLanguage || 'Follow the language of the input material.'}
 Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and engaging tone.'}
 </metadata>
+
+${buildRelatedContentContext(duplicateGuardResult)}
 `.trim();
 
     let generatedText = '';

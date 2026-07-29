@@ -161,7 +161,7 @@ Prompts in EAI are constructed dynamically using an Abstract Syntax Tree (AST) f
    - **Dynamic Tenant Nodes (`prompt-engine/tenant/`)**: Organization-specific profile rules (`BrandIdentityNode`, `ToneCalibrationNode`).
 
 2. **Stage Composers**:
-   - Specialized stage composers (`SeoPromptComposer`, `ReviewPromptComposer`, `RewritePromptComposer`, `RefinementPromptComposer`, `QualityGatePromptComposer`, `StrategistPromptComposer`) orchestrate AST nodes into a unified `CompositePromptNode`.
+   - Specialized stage composers (`SeoPromptComposer`, `ReviewPromptComposer`, `RewritePromptComposer`, `RefinementPromptComposer`, `QualityGatePromptComposer`, `StrategistPromptComposer`, `ContentMemoryClassifierComposer`) orchestrate AST nodes into a unified `CompositePromptNode`.
 
 3. **Gemini Prompt Caching Optimization**:
    - `CompositePromptNode` strictly enforces AST node order by placing static Core nodes at the beginning of the prompt and appending dynamic Tenant/Article context at the end. Prompt structure is optimized to take advantage of provider-side prompt caching where available.
@@ -265,8 +265,8 @@ erDiagram
 - **`Organization`**: Workspace multi-tenants mapped to Clerk Organizations (`clerkOrganizationId`). Stores custom publication names, domain settings, and provider overrides.
 - **`AnalysisLog`**: CUID-indexed audit record storing AI feedback, quality scores, editorial verdicts, execution metadata (JSON), prompt configuration hashes, and exact `EditorialProfileVersion` references.
 - **`ContentArtifact`**: Canonical organization-scoped registry for Blueprint, draft, analyzed, published, and imported content lifecycles. Source identifiers make writes idempotent and `rootArtifactId` links derived drafts to their originating artifact.
-- **`ContentSearchDocument`**: Rebuildable retrieval projection containing normalized collaboration-safe search context. It is never authoritative and every query must include the active internal `organizationId`.
-- **`ContentReservation` & `DuplicateGuardEvent`**: Short-lived request claims prevent concurrent duplicate generation, while audit events retain deterministic verdicts and user outcomes for future threshold calibration.
+- **`ContentSearchDocument`**: Rebuildable retrieval projection containing normalized collaboration-safe search context plus a model/source-versioned `vector(768)` embedding. Full-text, trigram, and cosine candidates are joined only within the active internal `organizationId`; stale vectors are excluded until the bounded BullMQ indexer refreshes them.
+- **`ContentReservation` & `DuplicateGuardEvent`**: Short-lived request claims prevent concurrent duplicate generation, while audit events retain deterministic/hybrid verdicts, classifier model/latency, and user outcomes for future threshold calibration. The ambiguity classifier cannot create an exact verdict or blocking action.
 - **`CmsConnection`**: Stores external CMS endpoint targets. Sensitive API keys are encrypted at rest using AES-256-GCM.
 - **`CreditTransaction` & `CreditUsage`**: Strict transactional credit accounting ledger enforcing idempotency keys (`idempotencyKey`), distinct credit buckets (`trial`, `subscription`, `addon`), and manual admin adjustment audit trails.
 - **`AuditLog`**: Immutable platform audit log capturing administrative actions (credit overrides, user bans, feature flag toggles).

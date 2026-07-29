@@ -99,7 +99,9 @@ over the authenticated Content Memory API. It exposes collaboration-safe
 artifact metadata (title/topic, source, stage, creator, and timestamps), never
 raw Strategist conversation text or indexed draft bodies. Search and refresh
 remain inside this route boundary; tenant authorization and filtering are owned
-by the backend.
+by the backend. Strategist warnings may display one classifier-supplied
+alternative angle as advisory text; the frontend never turns that advisory
+classification into a hard block.
 
 ## 4. Workspace ownership and data flow
 

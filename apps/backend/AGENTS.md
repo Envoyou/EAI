@@ -1,5 +1,5 @@
 <!-- Managed by agent: workflow-architect -->
-<!-- Last updated: 2026-07-25 -->
+<!-- Last updated: 2026-07-29 -->
 # Envoyou AI (EAI) — Backend Agent Guide
 
 ## Overview
@@ -231,7 +231,7 @@ The AI analysis pipeline is composed of stages in `src/lib/ai/` and managed dyna
 Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes located under `prompt-engine/core/` (statically defined guidelines) and `prompt-engine/tenant/` (tenant-specific details):
 * **Core Nodes**: Statically configured platform rules (`EditorialMissionNode`, `LanguagePolicyNode`, `StrictnessConstraintNode`, `InputBoundaryNode`, `MarkdownRulesNode`, `VerificationLockNode`, `TemporalContextNode`, `OutputSchemaNode`).
 * **Tenant Nodes**: Dynamic configurations (`BrandIdentityNode`, `ToneCalibrationNode`).
-* **Composers**: Composers (`SeoPromptComposer`, `ReviewPromptComposer`, `RewritePromptComposer`, `RefinementPromptComposer`, `QualityGatePromptComposer`, `StrategistPromptComposer`) assemble these nodes into a unified `CompositePromptNode`.
+* **Composers**: Composers (`SeoPromptComposer`, `ReviewPromptComposer`, `RewritePromptComposer`, `RefinementPromptComposer`, `QualityGatePromptComposer`, `StrategistPromptComposer`, `ContentMemoryClassifierComposer`) assemble these nodes into a unified `CompositePromptNode`.
 * **Gemini Prompt Caching**: Composers automatically group static Core nodes at the beginning of the prompt and append dynamic Tenant nodes at the end to maximize cache reuse and minimize Gemini API token costs.
 * **Master Prompts File**: Berkas `src/lib/prompts.ts` is simplified and **only** exports timezone, date, and prompt version helpers. All prompt content must be updated inside the AST nodes and stage composers. Never inline raw system prompt blocks in route handlers or stages.
 
@@ -252,6 +252,15 @@ Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes l
     internal `organizationId` at query time.
   * Search documents are derived data. Content artifacts and expiring topic
     reservations remain the authoritative registry.
+  * Semantic vectors use pgvector `vector(768)` and the configured
+    `CONTENT_MEMORY_EMBEDDING_MODEL`. Writes must invalidate stale embedding
+    metadata and enqueue bounded background indexing; provider/queue failures
+    must not roll back the canonical artifact.
+  * Hybrid SQL must scope both `ContentSearchDocument` and joined
+    `ContentArtifact` rows by the internal `organizationId`.
+  * `ContentMemoryClassifierComposer` is used only for ambiguous matches. Its
+    structured output cannot produce an exact-duplicate verdict or blocking
+    action, and only collaboration-safe metadata may enter its context.
 
 ---
 

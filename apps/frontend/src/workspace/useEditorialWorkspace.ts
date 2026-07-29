@@ -699,6 +699,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       setIsGeneratingDraftFromNotes,
       generateAbortControllerRef,
       duplicateGuardWarning: tContentMemory('relatedWarning'),
+      suggestedAngleLabel: tContentMemory('suggestedAngle'),
     };
     executeGenerateDraftFromNotes(ctx);
   };

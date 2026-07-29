@@ -31,6 +31,7 @@ import { randomUUID } from 'node:crypto';
 import { resolveActiveAiFunctionConfig } from '@/lib/ai-provider-resolver';
 import {
   beginContentGenerationGuard,
+  buildRelatedContentContext,
   recordContentGuardOutcome,
   releaseContentReservation,
   upsertContentArtifact,
@@ -298,6 +299,8 @@ router.post(
       
       Here is the preceding discussion history which contains the agreed-upon topic, audience, and outline:
       ${chatHistory}
+
+      ${buildRelatedContentContext(duplicateGuardResult)}
       </context>
     `.trim();
 

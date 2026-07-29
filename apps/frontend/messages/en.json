@@ -294,7 +294,8 @@
     "activeReservation": "A workspace member is already generating this topic.",
     "probableDuplicate": "A highly similar article exists. Review the related content before continuing.",
     "highOverlap": "Related workspace content covers much of this topic. Consider repositioning the angle.",
-    "relatedWarning": "Related workspace content was found and recorded by Content Memory."
+    "relatedWarning": "Related workspace content was found and recorded by Content Memory.",
+    "suggestedAngle": "Suggested distinct angle"
   },
   "ContentMap": {
     "nav": "Content Map",

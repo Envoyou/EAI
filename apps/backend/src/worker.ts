@@ -1,8 +1,18 @@
 import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
-import { AI_QUEUE_NAME, BILLING_QUEUE_NAME, redisConnection, billingQueue } from './lib/queue';
+import {
+  AI_QUEUE_NAME,
+  BILLING_QUEUE_NAME,
+  aiQueue,
+  billingQueue,
+  redisConnection,
+} from './lib/queue';
 import { runMonthlyCreditAllocation } from './jobs/monthly-credit-allocation';
 import { runActivateQueuedDowngrade } from './jobs/activate-queued-downgrade';
+import {
+  refreshContentSearchEmbedding,
+  refreshPendingContentSearchEmbeddings,
+} from './lib/content-memory-embedding';
 
 console.log('[Worker] Starting AI worker process...');
 
@@ -21,6 +31,23 @@ const aiWorker = new Worker(
         success: true,
         message: 'Mock processing completed',
         originalJobData: job.data
+      };
+    }
+    if (job.name === 'content-memory-embed') {
+      const artifactId =
+        typeof job.data?.artifactId === 'string' ? job.data.artifactId : '';
+      if (!artifactId) {
+        throw new Error('content-memory-embed requires artifactId');
+      }
+      return {
+        success: true,
+        refreshed: await refreshContentSearchEmbedding(artifactId),
+      };
+    }
+    if (job.name === 'content-memory-embedding-backfill') {
+      return {
+        success: true,
+        ...(await refreshPendingContentSearchEmbeddings(25)),
       };
     }
 
@@ -110,6 +137,29 @@ async function setupBillingSchedulers() {
 }
 
 void setupBillingSchedulers();
+
+async function setupContentMemoryScheduler() {
+  try {
+    await aiQueue.add(
+      'content-memory-embedding-backfill',
+      {},
+      {
+        jobId: 'content-memory-embedding-backfill',
+        repeat: { pattern: '*/5 * * * *' },
+      }
+    );
+    console.log(
+      '[Worker] Content Memory embedding backfill scheduler registered.'
+    );
+  } catch (error) {
+    console.error(
+      '[Worker] Failed to setup Content Memory embedding scheduler:',
+      error
+    );
+  }
+}
+
+void setupContentMemoryScheduler();
 
 process.on('SIGINT', async () => {
   console.log('[Worker] Shutting down gracefully...');

@@ -294,7 +294,8 @@
     "activeReservation": "Anggota workspace sedang membuat konten dengan topik ini.",
     "probableDuplicate": "Artikel yang sangat mirip ditemukan. Tinjau konten terkait sebelum melanjutkan.",
     "highOverlap": "Konten workspace yang terkait sudah banyak membahas topik ini. Pertimbangkan angle lain.",
-    "relatedWarning": "Content Memory menemukan dan mencatat konten workspace yang terkait."
+    "relatedWarning": "Content Memory menemukan dan mencatat konten workspace yang terkait.",
+    "suggestedAngle": "Saran angle yang berbeda"
   },
   "ContentMap": {
     "nav": "Peta Konten",

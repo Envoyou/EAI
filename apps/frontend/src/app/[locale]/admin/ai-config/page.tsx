@@ -255,7 +255,9 @@ export default function AiConfigAdminPage() {
     }
   };
 
-  const renderCategory = (category: 'Strategist' | 'Analyze') => {
+  const renderCategory = (
+    category: 'Strategist' | 'Analyze' | 'Content Intelligence'
+  ) => {
     if (!organization) return null;
     const definitions = organization.functions.filter(
       (definition) => definition.category === category
@@ -363,7 +365,8 @@ export default function AiConfigAdminPage() {
         <h2 className="text-balance">AI Runtime Configuration</h2>
         <p className="text-pretty">
           Change provider and model defaults or override individual Chat and
-          Analyze functions without redeploying the backend.
+          Analyze and Content Intelligence functions without redeploying the
+          backend.
         </p>
       </div>
 
@@ -473,6 +476,7 @@ export default function AiConfigAdminPage() {
 
               {renderCategory('Strategist')}
               {renderCategory('Analyze')}
+              {renderCategory('Content Intelligence')}
 
               <div className="sticky bottom-3 flex justify-end rounded-xl border border-[var(--border)] bg-[var(--surface-1)]/95 p-3 shadow-lg backdrop-blur">
                 <Button

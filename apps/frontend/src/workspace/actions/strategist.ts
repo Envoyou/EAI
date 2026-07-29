@@ -14,6 +14,7 @@ interface StrategistContext {
   setIsGeneratingDraftFromNotes: (g: boolean) => void;
   generateAbortControllerRef: React.MutableRefObject<AbortController | null>;
   duplicateGuardWarning: string;
+  suggestedAngleLabel: string;
 }
 
 export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
@@ -25,6 +26,7 @@ export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
     setIsGeneratingDraftFromNotes,
     generateAbortControllerRef,
     duplicateGuardWarning,
+    suggestedAngleLabel,
   } = ctx;
 
   const notesToGenerate = researchNotes.filter(n => n.content.length > 0);
@@ -85,7 +87,12 @@ export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
           } else if (data.type === 'blueprint_detected') {
             toast.info(data.message || 'Multiple topics detected — generating draft from the first topic.');
           } else if (data.type === 'duplicate_guard') {
-            toast.warning(duplicateGuardWarning);
+            const suggestedAngle = data.result?.alternativeAngles?.[0];
+            toast.warning(duplicateGuardWarning, {
+              description: suggestedAngle
+                ? `${suggestedAngleLabel}: ${suggestedAngle}`
+                : undefined,
+            });
           } else if (data.type === 'error') {
             throw new Error(data.message || data.error || 'Draft generation failed.');
           } else if (data.type === 'done') {

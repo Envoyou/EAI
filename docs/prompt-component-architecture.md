@@ -77,6 +77,7 @@ Berada di `apps/backend/src/lib/ai/prompt-engine/composer/`. Kelas-kelas kompose
 *   `RefinementPromptComposer` (Tahap Iterative Refinement & Targeted Fix)
 *   `QualityGatePromptComposer` (Tahap Final Quality Gate)
 *   `StrategistPromptComposer` (Tahap Draft & Outline Strategist)
+*   `ContentMemoryClassifierComposer` (Tahap klasifikasi overlap ambigu; tidak memiliki kewenangan hard-block)
 
 ---
 

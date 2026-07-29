@@ -36,8 +36,10 @@ import {
   ContentSourceType,
 } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
+import type { DuplicateGuardResult } from '@eai/shared';
 import {
   beginContentGenerationGuard,
+  buildRelatedContentContext,
   recordContentGuardOutcome,
   releaseContentReservation,
   upsertContentArtifact,
@@ -188,6 +190,7 @@ router.post(
   const contentGuardRequestId = randomUUID();
   let contentReservationId: string | null = null;
   let contentReservationKey: string | null = null;
+  let duplicateGuardResult: DuplicateGuardResult | null = null;
   let heartbeatInterval: NodeJS.Timeout | undefined;
 
   const sendEvent = (type: string, data: unknown) => {
@@ -221,6 +224,7 @@ router.post(
       });
       contentReservationId = guard.reservationId;
       contentReservationKey = guard.reservationKey;
+      duplicateGuardResult = guard.result;
       if (guard.result.recommendedAction === 'block') {
         return res.status(409).json({
           error:
@@ -230,15 +234,15 @@ router.post(
           duplicateGuard: guard.result,
         });
       }
-      if (guard.result.verdict !== 'distinct') {
-        sendEvent('duplicate_guard', guard.result);
-      }
     }
 
     res.setHeader('Content-Type', 'application/x-ndjson');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
+    if (duplicateGuardResult?.verdict !== 'distinct') {
+      sendEvent('duplicate_guard', duplicateGuardResult);
+    }
     heartbeatInterval = setInterval(() => {
       if (!res.writableEnded) {
         sendEvent('heartbeat', { timestamp: Date.now() });
@@ -402,8 +406,8 @@ router.post(
 
     sendEvent('status', 'generating');
     const userPrompt = mode === 'outline'
-      ? `Generate a structured outline for this topic:\nTOPIC: ${topic}`
-      : `Generate a structured rough draft based on this topic:\nTOPIC: ${topic}\n\n${outline ? `OUTLINE / KEY POINTS:\n${outline}` : ''}\n${referenceText ? `REFERENCE MATERIAL / SOURCE NOTES:\n${referenceText}` : ''}\n`;
+      ? `Generate a structured outline for this topic:\nTOPIC: ${topic}\n\n${buildRelatedContentContext(duplicateGuardResult)}`
+      : `Generate a structured rough draft based on this topic:\nTOPIC: ${topic}\n\n${outline ? `OUTLINE / KEY POINTS:\n${outline}` : ''}\n${referenceText ? `REFERENCE MATERIAL / SOURCE NOTES:\n${referenceText}` : ''}\n${buildRelatedContentContext(duplicateGuardResult)}`;
 
     let draftText = '';
     let modelName = 'unknown-model';

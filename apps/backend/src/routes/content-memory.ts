@@ -7,6 +7,7 @@ import {
   evaluateContentDuplicates,
   recordDuplicateGuardEvent,
 } from '@/lib/content-memory';
+import { classifyAmbiguousContentOverlap } from '@/lib/content-memory-classifier';
 import { ContentArtifactStatus } from '@prisma/client';
 
 const router = Router();
@@ -127,9 +128,15 @@ router.post('/check', requireAuth, async (req, res) => {
       return res.status(409).json({ error: 'Workspace onboarding required' });
     }
 
-    const result = await evaluateContentDuplicates({
+    const deterministicResult = await evaluateContentDuplicates({
       organizationId: workspace.organizationId,
       input: input.data,
+    });
+    const result = await classifyAmbiguousContentOverlap({
+      organizationId: workspace.organizationId,
+      userId: req.auth!.userId,
+      input: input.data,
+      result: deterministicResult,
     });
     await recordDuplicateGuardEvent({
       organizationId: workspace.organizationId,

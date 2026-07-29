@@ -36,4 +36,21 @@ describe('Content Memory tenant contract', () => {
       "'STRATEGIST_BLUEPRINT'::\"ContentSourceType\""
     );
   });
+
+  it('adds derived pgvector retrieval without weakening tenant scope', () => {
+    const migration = readSource(
+      '../../prisma/migrations/20260729210000_add_content_memory_semantic_retrieval/migration.sql'
+    );
+    const embeddingService = readSource(
+      '../lib/content-memory-embedding.ts'
+    );
+    expect(migration).toContain('vector(768)');
+    expect(migration).toContain('vector_cosine_ops');
+    expect(embeddingService).toContain(
+      'document."organizationId" = ${params.organizationId}'
+    );
+    expect(embeddingService).toContain(
+      'artifact."organizationId" = ${params.organizationId}'
+    );
+  });
 });
