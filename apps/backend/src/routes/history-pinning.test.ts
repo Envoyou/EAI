@@ -13,7 +13,7 @@ describe('history pinning contract', () => {
   );
 
   it('persists and returns pin state with pinned drafts ordered first', () => {
-    expect(schema).toContain('isPinned      Boolean');
+    expect(schema).toMatch(/isPinned\s+Boolean\s+@default\(false\)/);
     expect(schema).toContain('@@index([organizationId, isPinned, createdAt])');
     expect(route).toContain('isPinned: z.boolean().optional()');
     expect(route).toContain("{ isPinned: 'desc' }");

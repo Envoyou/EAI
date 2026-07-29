@@ -6,6 +6,13 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Tenant Content Memory and Duplicate Guard**:
+  - Added a tenant-scoped canonical registry for Blueprint, Quick Draft, Draft from Notes, manual draft, and analyzed-content artifacts, with rebuildable search documents, expiring generation reservations, and duplicate-decision telemetry.
+  - Added deterministic overlap checks before AI generation. Exact content/title matches and active reservation collisions block duplicate work, while broader topical overlap remains an advisory warning until production telemetry supports stricter enforcement.
+  - Added authenticated Content Memory list/check APIs and the localized **Content Map** dashboard so members can discover related work without exposing raw Strategist conversations or full indexed draft bodies.
+  - Added migration `20260729180000_add_content_memory_registry`, including tenant-safe indexes and backfill from attributable `AnalysisLog` and completed Blueprint records. The migration was applied to the production Neon database on July 29, 2026; Prisma confirmed all 27 migrations are up to date.
+
 ## [3.18.0] - 2026-07-29
 
 ### Added

@@ -81,9 +81,13 @@ Fase ini mendukung standar editorial tenant dan kolaborasi tim dalam skala lebih
 3.  ~~**Profil user dan organization berbasis akun**~~ (Diimplementasikan hingga v0.22.2):
     *   Clerk menyimpan identitas akun dan keanggotaan organization.
     *   Database EAI menyimpan workspace, peran, paket, kredit, profil editorial, serta riwayat analisis per tenant.
-4.  **Pelatihan AI berkelanjutan melalui feedback loop**:
+4.  ~~**Shared Content Memory dan pencegahan topik duplikat**~~ (Fase deterministik diimplementasikan pada Unreleased setelah v3.18.0):
+    *   Registry `ContentArtifact` per organization kini menyatukan Blueprint, Quick Draft, Draft from Notes, draf manual, dan hasil Analyze agar pekerjaan antar-member dapat ditemukan melalui Content Map.
+    *   Duplicate Guard memakai exact fingerprint, metadata overlap, dan reservasi sementara sebelum generasi. Exact match dan benturan request paralel diblokir; kemiripan non-eksak masih berupa warning agar false positive tidak menghentikan workflow editorial.
+    *   Semantic vector retrieval, clustering lintas bahasa, rekomendasi angle alternatif berbasis LLM, dan kalibrasi otomatis dari feedback event tetap menjadi fase Content Intelligence berikutnya.
+5.  **Pelatihan AI berkelanjutan melalui feedback loop**:
     *   Menambahkan tombol "Setujui / Sangkal Penilaian AI" bagi editor manusia. Data sanggahan ini akan disimpan ke database untuk disajikan sebagai bahan *fine-tuning* prompt sistem masa depan guna meminimalisir kesalahan evaluasi AI (*false positives*).
-5.  **Sistem Multi-bahasa (Bilingual Platform)** (Sebagian diimplementasikan pada v0.37.0):
+6.  **Sistem Multi-bahasa (Bilingual Platform)** (Sebagian diimplementasikan pada v0.37.0):
     *   Dukungan dwi-bahasa (default EN dan ID dengan prefiks `/id`) sudah berjalan menggunakan **`next-intl`** dengan sistem *locale routing* di App Router dan kamus terjemahan JSON (`messages/en.json` & `messages/id.json`).
     *   Integrasi Translation Management System (TMS) seperti **Tolgee** dan pipeline lokalisasi otomatis untuk sinkronisasi teks antarmuka (*UI copy*) baru masih direncanakan.
 

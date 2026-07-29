@@ -11,6 +11,12 @@ import type { Role } from '@eai/shared';
 import type { AiTelemetrySnapshot } from '@/lib/ai-telemetry';
 import { InsufficientCreditsError } from '@/lib/chat-billing';
 import { runSerializableTransaction } from '@/lib/serializable-transaction';
+import {
+  ContentArtifactStage,
+  ContentArtifactType,
+  ContentSourceType,
+} from '@prisma/client';
+import { upsertContentArtifact } from '@/lib/content-memory';
 
 export type CreateAnalysisLogInput = {
   userId: string;
@@ -40,7 +46,7 @@ export type CreateAnalysisLogInput = {
  * credit, and records a CreditUsage entry — all within a single transaction.
  */
 export async function createAnalysisLogAndDebitCredit(data: CreateAnalysisLogInput) {
-  return await runSerializableTransaction(async (tx) => {
+  const savedLog = await runSerializableTransaction(async (tx) => {
     const savedLog = await tx.analysisLog.create({
       data: {
         userId: data.userId,
@@ -129,4 +135,77 @@ export async function createAnalysisLogAndDebitCredit(data: CreateAnalysisLogInp
 
     return savedLog;
   });
+
+  if (data.organizationId) {
+    const metadata =
+      data.metadata &&
+      typeof data.metadata === 'object' &&
+      !Array.isArray(data.metadata)
+        ? (data.metadata as Record<string, unknown>)
+        : {};
+    const publicationPackage =
+      metadata.publicationPackage &&
+      typeof metadata.publicationPackage === 'object' &&
+      !Array.isArray(metadata.publicationPackage)
+        ? (metadata.publicationPackage as Record<string, unknown>)
+        : {};
+    const polishedDraft =
+      typeof metadata.polishedDraft === 'string'
+        ? metadata.polishedDraft
+        : typeof metadata.finalDraft === 'string'
+          ? metadata.finalDraft
+          : data.content;
+    const title =
+      typeof metadata.workingTitle === 'string'
+        ? metadata.workingTitle
+        : typeof publicationPackage.title === 'string'
+          ? publicationPackage.title
+          : undefined;
+    const lifecycleSourceId =
+      typeof metadata.sourceRef === 'string' && metadata.sourceRef.trim()
+        ? metadata.sourceRef
+        : savedLog.id;
+
+    await upsertContentArtifact({
+      organizationId: data.organizationId,
+      createdByUserId: data.userId,
+      artifactType: ContentArtifactType.DRAFT,
+      sourceType: ContentSourceType.ANALYSIS,
+      sourceId: lifecycleSourceId,
+      currentStage:
+        data.editorStatus === 'ready' || data.verdict === 'ready'
+          ? ContentArtifactStage.READY
+          : ContentArtifactStage.REFINED,
+      title,
+      topic:
+        typeof metadata.topic === 'string' ? metadata.topic : title,
+      angle:
+        typeof metadata.angle === 'string' ? metadata.angle : undefined,
+      audience:
+        typeof metadata.targetAudience === 'string'
+          ? metadata.targetAudience
+          : undefined,
+      primaryKeyword:
+        typeof metadata.primaryKeyword === 'string'
+          ? metadata.primaryKeyword
+          : undefined,
+      searchIntent:
+        typeof metadata.searchIntent === 'string'
+          ? metadata.searchIntent
+          : undefined,
+      summary: data.summary,
+      content: polishedDraft,
+      language:
+        typeof metadata.outputLanguage === 'string'
+          ? metadata.outputLanguage
+          : undefined,
+    }).catch((artifactError) => {
+      console.error(
+        '[CONTENT_MEMORY] Failed to index analyzed draft:',
+        artifactError
+      );
+    });
+  }
+
+  return savedLog;
 }

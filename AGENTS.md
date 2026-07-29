@@ -99,6 +99,17 @@ To guarantee that all AI assistant operations (Chat, SEO Optimizer, Fact-Checker
 └── AGENTS.md             # Primary developer & agent guide (This file)
 ```
 
+### Tenant Content Memory
+
+* `ContentArtifact` is the canonical tenant-scoped registry for Blueprints,
+  drafts, analyzed content, and future CMS imports.
+* `ContentSearchDocument` contains rebuildable retrieval data; it is not a
+  source of truth and must never be queried without `organizationId`.
+* Duplicate Guard uses deterministic checks and expiring
+  `ContentReservation` claims before AI generation. Only exact matches and
+  active reservation collisions block during the initial rollout; broader
+  overlap remains advisory until telemetry supports stricter enforcement.
+
 ---
 
 ## 2. Global Development Commands (Root CLI)

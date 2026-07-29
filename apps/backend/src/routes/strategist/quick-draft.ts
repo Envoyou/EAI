@@ -30,6 +30,18 @@ import {
   resolveActiveAiFunctionConfig,
   resolveAiFunctionConfig,
 } from '@/lib/ai-provider-resolver';
+import {
+  ContentArtifactStage,
+  ContentArtifactType,
+  ContentSourceType,
+} from '@prisma/client';
+import { randomUUID } from 'node:crypto';
+import {
+  beginContentGenerationGuard,
+  recordContentGuardOutcome,
+  releaseContentReservation,
+  upsertContentArtifact,
+} from '@/lib/content-memory';
 
 const router = Router();
 
@@ -172,21 +184,15 @@ router.post(
     promptConfigurationHash: editorialAudit.promptConfigurationHash,
   };
 
-  res.setHeader('Content-Type', 'application/x-ndjson');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no');
   const requestAbort = bindResponseAbort(res, 'Quick draft');
+  const contentGuardRequestId = randomUUID();
+  let contentReservationId: string | null = null;
+  let contentReservationKey: string | null = null;
+  let heartbeatInterval: NodeJS.Timeout | undefined;
 
   const sendEvent = (type: string, data: unknown) => {
     res.write(JSON.stringify({ type, data }) + '\n');
   };
-
-  const heartbeatInterval = setInterval(() => {
-    if (!res.writableEnded) {
-      sendEvent('heartbeat', { timestamp: Date.now() });
-    }
-  }, 5000);
 
   try {
     const {
@@ -197,6 +203,47 @@ router.post(
       draftMode = 'topic',
       mode = 'draft',
     } = parsedInput.data;
+
+    if (userId && workspaceOrganizationId) {
+      const guard = await beginContentGenerationGuard({
+        organizationId: workspaceOrganizationId,
+        userId,
+        requestId: contentGuardRequestId,
+        input: {
+          title: metadata?.workingTitle ?? topic,
+          topic,
+          angle: topic,
+          audience: metadata?.targetAudience,
+          outline,
+          summary: metadata?.brief,
+          language: metadata?.outputLanguage,
+        },
+      });
+      contentReservationId = guard.reservationId;
+      contentReservationKey = guard.reservationKey;
+      if (guard.result.recommendedAction === 'block') {
+        return res.status(409).json({
+          error:
+            guard.result.reasons.includes('active_reservation')
+              ? 'A workspace member is already generating this topic.'
+              : 'A matching content artifact already exists in this workspace.',
+          duplicateGuard: guard.result,
+        });
+      }
+      if (guard.result.verdict !== 'distinct') {
+        sendEvent('duplicate_guard', guard.result);
+      }
+    }
+
+    res.setHeader('Content-Type', 'application/x-ndjson');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    heartbeatInterval = setInterval(() => {
+      if (!res.writableEnded) {
+        sendEvent('heartbeat', { timestamp: Date.now() });
+      }
+    }, 5000);
 
     const functionConfig = userId
       ? await resolveActiveAiFunctionConfig(
@@ -297,6 +344,44 @@ router.post(
             }
           });
           savedLogId = savedLog.id;
+          if (workspaceOrganizationId) {
+            const artifact = await upsertContentArtifact({
+              organizationId: workspaceOrganizationId,
+              createdByUserId: userId,
+              artifactType: ContentArtifactType.DRAFT,
+              sourceType: ContentSourceType.QUICK_DRAFT,
+              sourceId: savedLog.id,
+              currentStage: ContentArtifactStage.DRAFTING,
+              title: metadata?.workingTitle ?? topic,
+              topic,
+              angle: topic,
+              audience: metadata?.targetAudience,
+              outline: mode === 'outline' ? mockContent : outline,
+              summary: metadata?.brief,
+              content: mockContent,
+              language: metadata?.outputLanguage,
+              reservationKey: contentReservationKey,
+            }).catch((artifactError) => {
+              console.error(
+                '[CONTENT_MEMORY] Failed to index mock Quick Draft:',
+                artifactError
+              );
+              return null;
+            });
+            if (artifact) {
+              await recordContentGuardOutcome({
+                organizationId: workspaceOrganizationId,
+                requestId: contentGuardRequestId,
+                artifactId: artifact.id,
+                userAction: 'continued',
+              }).catch((eventError) => {
+                console.error(
+                  '[CONTENT_MEMORY] Failed to record mock Quick Draft outcome:',
+                  eventError
+                );
+              });
+            }
+          }
           await deductCredits(
             userId,
             workspaceOrganizationId,
@@ -418,6 +503,44 @@ router.post(
           }
         });
         savedLogId = savedLog.id;
+        if (workspaceOrganizationId) {
+          const artifact = await upsertContentArtifact({
+            organizationId: workspaceOrganizationId,
+            createdByUserId: userId,
+            artifactType: ContentArtifactType.DRAFT,
+            sourceType: ContentSourceType.QUICK_DRAFT,
+            sourceId: savedLog.id,
+            currentStage: ContentArtifactStage.DRAFTING,
+            title: metadata?.workingTitle ?? topic,
+            topic,
+            angle: topic,
+            audience: metadata?.targetAudience,
+            outline: mode === 'outline' ? draftText : outline,
+            summary: metadata?.brief,
+            content: draftText,
+            language: metadata?.outputLanguage,
+            reservationKey: contentReservationKey,
+          }).catch((artifactError) => {
+            console.error(
+              '[CONTENT_MEMORY] Failed to index Quick Draft:',
+              artifactError
+            );
+            return null;
+          });
+          if (artifact) {
+            await recordContentGuardOutcome({
+              organizationId: workspaceOrganizationId,
+              requestId: contentGuardRequestId,
+              artifactId: artifact.id,
+              userAction: 'continued',
+            }).catch((eventError) => {
+              console.error(
+                '[CONTENT_MEMORY] Failed to record Quick Draft outcome:',
+                eventError
+              );
+            });
+          }
+        }
         await deductCredits(
           userId,
           workspaceOrganizationId,
@@ -439,8 +562,16 @@ router.post(
     sendEvent('error', error instanceof Error ? error.message : String(error));
     res.end();
   } finally {
+    await releaseContentReservation(contentReservationId).catch(
+      (reservationError) => {
+        console.error(
+          '[CONTENT_MEMORY] Failed to release Quick Draft reservation:',
+          reservationError
+        );
+      }
+    );
     requestAbort.dispose();
-    clearInterval(heartbeatInterval);
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
   }
   }
 );

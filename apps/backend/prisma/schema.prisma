@@ -1,5 +1,5 @@
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 generator client {
@@ -7,62 +7,65 @@ generator client {
 }
 
 model User {
-  id        String   @id // Clerk user ID (e.g., user_...)
-  email     String   @unique
-  name      String?
-  imageUrl  String?
-  role      String   @default("editor") // editor, admin
+  id             String    @id // Clerk user ID (e.g., user_...)
+  email          String    @unique
+  name           String?
+  imageUrl       String?
+  role           String    @default("editor") // editor, admin
   /// Self-reported editorial role during onboarding; NOT for permission authorization
   onboardingRole String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  lastSignInAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastSignInAt   DateTime?
 
-  logs      AnalysisLog[]
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  logs            AnalysisLog[]
+  organizationId  String?
+  organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   onboardingDraft OnboardingDraft?
 
-  aiProviderOverride String?
-  trialUsed      Boolean             @default(false)
-  balanceIdr     Int                 @default(0)
-  subscriptions  Subscription[]
-  transactions   CreditTransaction[]
-  usages         CreditUsage[]
-  paymentOrders  PaymentOrder[]
-  chatSessions   ChatSession[]
+  aiProviderOverride   String?
+  trialUsed            Boolean               @default(false)
+  balanceIdr           Int                   @default(0)
+  subscriptions        Subscription[]
+  transactions         CreditTransaction[]
+  usages               CreditUsage[]
+  paymentOrders        PaymentOrder[]
+  chatSessions         ChatSession[]
+  contentArtifacts     ContentArtifact[]     @relation("ContentArtifactCreator")
+  contentReservations  ContentReservation[]  @relation("ContentReservationCreator")
+  duplicateGuardEvents DuplicateGuardEvent[] @relation("DuplicateGuardEventActor")
 
   @@index([organizationId])
 }
 
 model AnalysisLog {
-  id            String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  role          String
-  content       String   @db.Text
-  metadata      Json?
+  role     String
+  content  String @db.Text
+  metadata Json?
 
   promptVersion String
   modelName     String
 
-  score         Int?
-  verdict       String?
-  summary       String?
-  feedback      Json?
-  flags         Json?
+  score    Int?
+  verdict  String?
+  summary  String?
+  feedback Json?
+  flags    Json?
 
-  status        AnalysisStatus @default(success)
-  editorStatus  String         @default("draft")
-  isPinned      Boolean        @default(false)
-  errorMessage  String?        @db.Text
+  status       AnalysisStatus @default(success)
+  editorStatus String         @default("draft")
+  isPinned     Boolean        @default(false)
+  errorMessage String?        @db.Text
 
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  userId        String?
-  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  creditUsage   CreditUsage?
+  creditUsage    CreditUsage?
 
   editorialProfileVersionId String?
   editorialProfileVersion   EditorialProfileVersion? @relation(fields: [editorialProfileVersionId], references: [id], onDelete: SetNull)
@@ -81,55 +84,59 @@ model AnalysisLog {
 }
 
 model Organization {
-  id        String   @id @default(cuid())
-  clerkOrganizationId String? @unique
-  createdByUserId String?
-  slug      String   @unique
-  name      String
-  publicationName String?
-  domain    String?
-  npwp      String?
-  billingAddress String?
-  aiProviderOverride String?
-  balanceIdr     Int                 @default(0)
-  isActive  Boolean  @default(true)
-  onboardingStatus OnboardingStatus @default(completed)
+  id                     String           @id @default(cuid())
+  clerkOrganizationId    String?          @unique
+  createdByUserId        String?
+  slug                   String           @unique
+  name                   String
+  publicationName        String?
+  domain                 String?
+  npwp                   String?
+  billingAddress         String?
+  aiProviderOverride     String?
+  balanceIdr             Int              @default(0)
+  isActive               Boolean          @default(true)
+  onboardingStatus       OnboardingStatus @default(completed)
   /// Acquisition channel reported by workspace creator during onboarding
-  acquisitionSource String?
+  acquisitionSource      String?
   /// Specific channel details if acquisitionSource is 'other'
   acquisitionSourceOther String?
   /// Primary objective of the workspace reported during onboarding
-  primaryGoal String?
+  primaryGoal            String?
   /// Timestamp when the workspace onboarding flow was completed or skipped
-  onboardingCompletedAt DateTime?
-  activatedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  onboardingCompletedAt  DateTime?
+  activatedAt            DateTime?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
 
-  users    User[]
-  logs     AnalysisLog[]
-  profiles EditorialProfile[]
+  users          User[]
+  logs           AnalysisLog[]
+  profiles       EditorialProfile[]
   cmsConnections CmsConnection[]
 
-  subscriptions  Subscription[]
-  transactions   CreditTransaction[]
-  usages         CreditUsage[]
-  paymentOrders  PaymentOrder[]
-  chatSessions   ChatSession[]
+  subscriptions          Subscription[]
+  transactions           CreditTransaction[]
+  usages                 CreditUsage[]
+  paymentOrders          PaymentOrder[]
+  chatSessions           ChatSession[]
+  contentArtifacts       ContentArtifact[]
+  contentSearchDocuments ContentSearchDocument[]
+  contentReservations    ContentReservation[]
+  duplicateGuardEvents   DuplicateGuardEvent[]
 
   @@index([createdByUserId])
 }
 
 model OnboardingDraft {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  organizationId String?
-  step      String   @default("organization")
-  data      Json
-  encryptedCredentials String? @db.Text
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  organizationId       String?
+  step                 String   @default("organization")
+  data                 Json
+  encryptedCredentials String?  @db.Text
   credentialKeyVersion String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -137,19 +144,19 @@ model OnboardingDraft {
 }
 
 model CmsConnection {
-  id                   String   @id @default(cuid())
+  id                   String              @id @default(cuid())
   organizationId       String
   adapterKey           String
   name                 String
   baseUrl              String
-  encryptedCredentials String?  @db.Text
+  encryptedCredentials String?             @db.Text
   credentialKeyVersion String?
   status               CmsConnectionStatus @default(pending)
-  isActive             Boolean  @default(true)
+  isActive             Boolean             @default(true)
   lastVerifiedAt       DateTime?
-  lastError            String?  @db.Text
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  lastError            String?             @db.Text
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -166,7 +173,7 @@ model EditorialProfile {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   versions     EditorialProfileVersion[]
 
   @@unique([organizationId, key])
@@ -225,45 +232,45 @@ enum CreditTransactionType {
 }
 
 model Subscription {
-  id                 String        @id
-  userId             String?
-  organizationId     String?
-  plan               String        
-  status             String        
-  currentPeriodStart DateTime
-  currentPeriodEnd   DateTime
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  cancelReason       String?
-  cancelFeedback     String?
+  id                   String    @id
+  userId               String?
+  organizationId       String?
+  plan                 String
+  status               String
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  cancelReason         String?
+  cancelFeedback       String?
   lastCreditAllocation DateTime?
 
-  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([organizationId])
 }
 
 model PaymentOrder {
-  id             String   @id
-  provider       String   @default("midtrans")
-  userId         String?
-  organizationId String?
-  planId         String
-  amountIdr      Int
-  discountIdr    Int      @default(0)
-  useAccountBalance Int   @default(0)
-  balanceRemaining Int  @default(0)
-  status         String   @default("pending")
-  transactionId  String?
-  paymentType    String?
-  paidAt         DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                String    @id
+  provider          String    @default("midtrans")
+  userId            String?
+  organizationId    String?
+  planId            String
+  amountIdr         Int
+  discountIdr       Int       @default(0)
+  useAccountBalance Int       @default(0)
+  balanceRemaining  Int       @default(0)
+  status            String    @default("pending")
+  transactionId     String?
+  paymentType       String?
+  paidAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  user            User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@index([userId, status])
   @@index([organizationId, status])
@@ -272,34 +279,34 @@ model PaymentOrder {
 }
 
 model CreditTransaction {
-  id              String                @id @default(cuid())
-  userId          String?
-  organizationId  String?
+  id             String  @id @default(cuid())
+  userId         String?
+  organizationId String?
 
-  type            CreditTransactionType
-  bucket          CreditBucket
-  amount          Int
+  type   CreditTransactionType
+  bucket CreditBucket
+  amount Int
 
-  subscriptionId  String?
-  analysisLogId   String?
-  idempotencyKey  String?               @unique
+  subscriptionId String?
+  analysisLogId  String?
+  idempotencyKey String? @unique
 
-  description     String?
-  adjustmentReason String?
+  description        String?
+  adjustmentReason   String?
   adjustmentGroupKey String?
-  ticketReference String?
-  externalTicketId String?
-  externalTicketUrl String?
-  performedByUserId String?
-  performedByEmail String?
-  periodStart     DateTime?
-  periodEnd       DateTime?
-  expiresAt       DateTime?
+  ticketReference    String?
+  externalTicketId   String?
+  externalTicketUrl  String?
+  performedByUserId  String?
+  performedByEmail   String?
+  periodStart        DateTime?
+  periodEnd          DateTime?
+  expiresAt          DateTime?
 
-  createdAt       DateTime              @default(now())
+  createdAt DateTime @default(now())
 
-  user            User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization    Organization?         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([userId, bucket])
   @@index([organizationId, bucket])
@@ -309,17 +316,17 @@ model CreditTransaction {
 }
 
 model CreditUsage {
-  id              String        @id @default(cuid())
+  id              String   @id @default(cuid())
   userId          String?
   organizationId  String?
-  analysisLogId   String?       @unique
-  creditsConsumed Int           @default(1)
-  costEstimate    Float         @default(0.0)
-  createdAt       DateTime      @default(now())
+  analysisLogId   String?  @unique
+  creditsConsumed Int      @default(1)
+  costEstimate    Float    @default(0.0)
+  createdAt       DateTime @default(now())
 
-  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  analysisLog     AnalysisLog?  @relation(fields: [analysisLogId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  analysisLog  AnalysisLog?  @relation(fields: [analysisLogId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([organizationId])
@@ -327,16 +334,16 @@ model CreditUsage {
 }
 
 model ChatSession {
-  id             String   @id @default(cuid())
+  id             String        @id @default(cuid())
   userId         String
   organizationId String?
-  title          String   @default("Percakapan Baru")
-  isPinned       Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  title          String        @default("Percakapan Baru")
+  isPinned       Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   messages       ChatMessage[]
 
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -346,13 +353,13 @@ model ChatSession {
 }
 
 model ChatMessage {
-  id         String   @id @default(cuid())
-  sessionId  String
-  role       String
-  type       String   @default("text")
-  content    String   @db.Text
-  payload    Json?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String
+  type      String   @default("text")
+  content   String   @db.Text
+  payload   Json?
+  createdAt DateTime @default(now())
 
   session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
@@ -397,15 +404,152 @@ model StrategistChatRequest {
   @@index([createdAt])
 }
 
+enum ContentArtifactType {
+  BLUEPRINT
+  DRAFT
+  PUBLISHED
+  IMPORTED
+}
+
+enum ContentSourceType {
+  STRATEGIST_BLUEPRINT
+  QUICK_DRAFT
+  DRAFT_FROM_NOTES
+  MANUAL_DRAFT
+  ANALYSIS
+  CMS_IMPORT
+}
+
+enum ContentArtifactStage {
+  PLANNING
+  DRAFTING
+  REFINED
+  READY
+  PUBLISHED
+}
+
+enum ContentArtifactStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+model ContentArtifact {
+  id              String                @id @default(cuid())
+  organizationId  String
+  createdByUserId String?
+  artifactType    ContentArtifactType
+  sourceType      ContentSourceType
+  sourceId        String?
+  rootArtifactId  String?
+  title           String?
+  normalizedTitle String?
+  topic           String?
+  normalizedTopic String?
+  angle           String?
+  audience        String?
+  primaryKeyword  String?
+  searchIntent    String?
+  language        String?
+  locale          String?
+  market          String?
+  summary         String?               @db.Text
+  outline         Json?
+  currentStage    ContentArtifactStage
+  status          ContentArtifactStatus @default(ACTIVE)
+  contentHash     String?
+  reservationKey  String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  organization         Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy            User?                  @relation("ContentArtifactCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  rootArtifact         ContentArtifact?       @relation("ContentArtifactRoot", fields: [rootArtifactId], references: [id], onDelete: SetNull)
+  derivatives          ContentArtifact[]      @relation("ContentArtifactRoot")
+  searchDocument       ContentSearchDocument?
+  duplicateGuardEvents DuplicateGuardEvent[]
+
+  @@unique([organizationId, sourceType, sourceId])
+  @@unique([organizationId, reservationKey])
+  @@index([organizationId, status, currentStage])
+  @@index([organizationId, normalizedTitle])
+  @@index([organizationId, normalizedTopic])
+  @@index([organizationId, primaryKeyword])
+  @@index([organizationId, contentHash])
+  @@index([rootArtifactId])
+}
+
+model ContentSearchDocument {
+  id             String    @id @default(cuid())
+  organizationId String
+  artifactId     String    @unique
+  searchText     String    @db.Text
+  searchMetadata Json?
+  contentHash    String?
+  embeddingModel String?
+  embeddedAt     DateTime?
+  indexedAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  artifact     ContentArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, indexedAt])
+}
+
+model ContentReservation {
+  id              String   @id @default(cuid())
+  organizationId  String
+  createdByUserId String
+  requestId       String
+  reservationKey  String
+  normalizedTopic String
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("ContentReservationCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, reservationKey])
+  @@unique([organizationId, requestId])
+  @@index([expiresAt])
+}
+
+model DuplicateGuardEvent {
+  id                      String   @id @default(cuid())
+  organizationId          String
+  actorUserId             String?
+  artifactId              String?
+  requestId               String?
+  inputFingerprint        String
+  verdict                 String
+  confidence              Float
+  reasons                 Json
+  recommendedAction       String
+  matchedArtifactIds      Json
+  userAction              String?
+  laterConfirmedDuplicate Boolean?
+  createdAt               DateTime @default(now())
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor        User?            @relation("DuplicateGuardEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  artifact     ContentArtifact? @relation(fields: [artifactId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, verdict])
+  @@index([artifactId])
+}
+
 model AuditLog {
   id          String   @id @default(cuid())
-  action      String   // e.g. "feature_flag.update", "tenant.ai_config.update", "user.ban", "credit.adjust"
-  actorId     String   // Admin Clerk User ID
-  actorEmail  String   // Admin Email
-  targetId    String?  // Target ID (e.g. tenant or user id)
-  targetType  String?  // e.g. "Tenant", "User", "System"
-  description String?  // Short human readable description
-  details     Json?    // Detailed payload comparison
+  action      String // e.g. "feature_flag.update", "tenant.ai_config.update", "user.ban", "credit.adjust"
+  actorId     String // Admin Clerk User ID
+  actorEmail  String // Admin Email
+  targetId    String? // Target ID (e.g. tenant or user id)
+  targetType  String? // e.g. "Tenant", "User", "System"
+  description String? // Short human readable description
+  details     Json? // Detailed payload comparison
   createdAt   DateTime @default(now())
 
   @@index([createdAt])

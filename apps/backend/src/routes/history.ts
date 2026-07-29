@@ -14,6 +14,12 @@ import {
   mergeQualityResolutions,
   readQualityResolutions,
 } from '@/lib/quality-resolution-ledger';
+import {
+  ContentArtifactStage,
+  ContentArtifactType,
+  ContentSourceType,
+} from '@prisma/client';
+import { upsertContentArtifact } from '@/lib/content-memory';
 
 const router = Router();
 
@@ -104,6 +110,28 @@ router.post('/', requireAuth, async (req, res) => {
         userId,
         organizationId: workspace.organizationId,
       },
+    });
+    await upsertContentArtifact({
+      organizationId: workspace.organizationId,
+      createdByUserId: userId,
+      artifactType: ContentArtifactType.DRAFT,
+      sourceType: ContentSourceType.MANUAL_DRAFT,
+      sourceId: log.id,
+      currentStage: ContentArtifactStage.DRAFTING,
+      title:
+        typeof metadata?.workingTitle === 'string'
+          ? metadata.workingTitle
+          : typeof metadata?.title === 'string'
+            ? metadata.title
+            : undefined,
+      topic:
+        typeof metadata?.topic === 'string' ? metadata.topic : undefined,
+      content: content || '',
+    }).catch((artifactError) => {
+      console.error(
+        '[CONTENT_MEMORY] Failed to index manual draft:',
+        artifactError
+      );
     });
 
     return res.json({ id: log.id });
@@ -345,6 +373,47 @@ router.patch('/:id/autosave', requireAuth, autosaveRateLimiter, async (req, res)
         content: content !== undefined ? content : undefined,
         metadata: updatedMetadata as Prisma.InputJsonValue,
       },
+    });
+    const existingArtifact = await prisma.contentArtifact.findFirst({
+      where: {
+        organizationId: workspace.organizationId,
+        sourceId: id,
+      },
+      select: { sourceType: true },
+    });
+    await upsertContentArtifact({
+      organizationId: workspace.organizationId,
+      createdByUserId: userId,
+      artifactType: ContentArtifactType.DRAFT,
+      sourceType:
+        existingArtifact?.sourceType ?? ContentSourceType.MANUAL_DRAFT,
+      sourceId: id,
+      currentStage: ContentArtifactStage.DRAFTING,
+      title:
+        newTitle ??
+        (typeof updatedMetadata.workingTitle === 'string'
+          ? updatedMetadata.workingTitle
+          : typeof updatedMetadata.title === 'string'
+            ? updatedMetadata.title
+            : undefined),
+      topic:
+        typeof updatedMetadata.topic === 'string'
+          ? updatedMetadata.topic
+          : undefined,
+      audience:
+        typeof updatedMetadata.targetAudience === 'string'
+          ? updatedMetadata.targetAudience
+          : undefined,
+      summary:
+        typeof updatedMetadata.brief === 'string'
+          ? updatedMetadata.brief
+          : undefined,
+      content: content ?? log.content,
+    }).catch((artifactError) => {
+      console.error(
+        '[CONTENT_MEMORY] Failed to refresh autosaved draft:',
+        artifactError
+      );
     });
 
     return res.json({ success: true });

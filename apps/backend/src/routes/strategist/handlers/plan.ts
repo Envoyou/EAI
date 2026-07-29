@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { gemini } from '@/lib/ai/provider-runtime';
 import { StrategistBlueprintComposer } from '@/lib/ai/prompt-engine/composer/strategist-blueprint-composer';
 import { resolveEditorialProfileForUser } from '@/lib/editorial-profile-server';
-import { parseJsonResponse } from '@eai/shared';
+import { parseJsonResponse, type DuplicateGuardResult } from '@eai/shared';
 import { prisma } from '@/lib/db';
 import {
   resolveInternalOrgId,
@@ -21,9 +21,20 @@ import {
   withGeminiFlexRetry,
 } from '@/lib/ai/gemini-request-policy';
 import { bindResponseAbort } from '@/lib/request-abort';
-import { Prisma } from '@prisma/client';
+import {
+  ContentArtifactStage,
+  ContentArtifactType,
+  ContentSourceType,
+  Prisma,
+} from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { resolveActiveAiFunctionConfig } from '@/lib/ai-provider-resolver';
+import {
+  beginContentGenerationGuard,
+  recordContentGuardOutcome,
+  releaseContentReservation,
+  upsertContentArtifact,
+} from '@/lib/content-memory';
 
 const router = Router();
 
@@ -93,6 +104,9 @@ router.post(
     let planRequestCompleted = false;
     let claimedRequestId: string | null = null;
     let claimedOrganizationId: string | null | undefined;
+    let contentReservationId: string | null = null;
+    let contentReservationKey: string | null = null;
+    let duplicateGuardResult: DuplicateGuardResult | null = null;
     try {
       const parsedInput = GeneratePlanSchema.safeParse(req.body);
       if (!parsedInput.success) {
@@ -192,6 +206,44 @@ router.post(
           }
           recoveredSessionId = existingRequest.sessionId ?? undefined;
           planRequestClaimed = true;
+        }
+      }
+
+      if (req.auth?.userId && internalOrgId) {
+        const guard = await beginContentGenerationGuard({
+          organizationId: internalOrgId,
+          userId: req.auth.userId,
+          requestId,
+          input: {
+            title: recommendation,
+            topic: recommendation,
+          },
+        });
+        duplicateGuardResult = guard.result;
+        contentReservationId = guard.reservationId;
+        contentReservationKey = guard.reservationKey;
+
+        if (guard.result.recommendedAction === 'block') {
+          await prisma.strategistPlanRequest.updateMany({
+            where: {
+              id: requestId,
+              userId: req.auth.userId,
+              organizationId: internalOrgId,
+              status: 'pending',
+            },
+            data: {
+              status: 'failed',
+              error: 'Duplicate content detected in this workspace.',
+            },
+          });
+          planRequestCompleted = true;
+          return res.status(409).json({
+            error:
+              guard.result.reasons.includes('active_reservation')
+                ? 'A workspace member is already generating this topic.'
+                : 'A matching content artifact already exists in this workspace.',
+            duplicateGuard: guard.result,
+          });
         }
       }
 
@@ -687,6 +739,7 @@ router.post(
           const responsePayload = {
             ...sanitizedData,
             sessionId: dbSessionId,
+            duplicateGuard: duplicateGuardResult,
           };
 
           await prisma.$transaction([
@@ -722,6 +775,45 @@ router.post(
           ]);
           planRequestCompleted = true;
 
+          if (internalOrgId) {
+            const artifact = await upsertContentArtifact({
+              organizationId: internalOrgId,
+              createdByUserId: req.auth.userId,
+              artifactType: ContentArtifactType.BLUEPRINT,
+              sourceType: ContentSourceType.STRATEGIST_BLUEPRINT,
+              sourceId: requestId,
+              currentStage: ContentArtifactStage.PLANNING,
+              title: data.plan?.angle ?? recommendation,
+              topic: recommendation,
+              angle: data.plan?.angle,
+              audience: data.plan?.audience,
+              searchIntent: data.plan?.seoIntent,
+              outline: data.plan?.outline,
+              summary: data.reply,
+              content: data.plan?.draft,
+              reservationKey: contentReservationKey,
+            }).catch((artifactError) => {
+              console.error(
+                '[CONTENT_MEMORY] Failed to index Blueprint artifact:',
+                artifactError
+              );
+              return null;
+            });
+            if (artifact) {
+              await recordContentGuardOutcome({
+                organizationId: internalOrgId,
+                requestId,
+                artifactId: artifact.id,
+                userAction: 'continued',
+              }).catch((eventError) => {
+                console.error(
+                  '[CONTENT_MEMORY] Failed to record Blueprint outcome:',
+                  eventError
+                );
+              });
+            }
+          }
+
           return res.json(responsePayload);
         }
       }
@@ -730,6 +822,7 @@ router.post(
       res.json({
         ...sanitizedData,
         sessionId: dbSessionId === 'new' ? null : dbSessionId,
+        duplicateGuard: duplicateGuardResult,
       });
     } catch (error) {
       if (
@@ -764,6 +857,14 @@ router.post(
       console.error('Error in generate-plan:', error);
       res.status(500).json({ error: 'Failed to generate plan' });
     } finally {
+      await releaseContentReservation(contentReservationId).catch(
+        (reservationError) => {
+          console.error(
+            '[CONTENT_MEMORY] Failed to release Blueprint reservation:',
+            reservationError
+          );
+        }
+      );
       requestAbort.dispose();
     }
   }

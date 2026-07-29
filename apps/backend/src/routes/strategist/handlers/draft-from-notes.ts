@@ -27,6 +27,18 @@ import {
   resolveAiFunctionConfig,
 } from '@/lib/ai-provider-resolver';
 import { getProvider } from '@/lib/ai/providers/registry';
+import {
+  ContentArtifactStage,
+  ContentArtifactType,
+  ContentSourceType,
+} from '@prisma/client';
+import { randomUUID } from 'node:crypto';
+import {
+  beginContentGenerationGuard,
+  recordContentGuardOutcome,
+  releaseContentReservation,
+  upsertContentArtifact,
+} from '@/lib/content-memory';
 
 const router = Router();
 
@@ -43,6 +55,9 @@ router.post(
   async (req: Request, res: Response) => {
   const requestAbort = bindResponseAbort(res, 'Draft from notes');
   let heartbeatInterval: NodeJS.Timeout | undefined;
+  let contentReservationId: string | null = null;
+  let contentReservationKey: string | null = null;
+  const contentGuardRequestId = randomUUID();
   try {
     let userId: string | null = null;
     let orgId: string | null = null;
@@ -112,6 +127,37 @@ router.post(
           ? GROQ_MODEL
           : getOpenRouterModelForRole('author', 'balanced'));
 
+    let duplicateGuardResult = null;
+    if (userId && billingOrgId) {
+      const notesPreview = notes.map((note) => note.content).join('\n\n');
+      const guard = await beginContentGenerationGuard({
+        organizationId: billingOrgId,
+        userId,
+        requestId: contentGuardRequestId,
+        input: {
+          title: metadata?.workingTitle,
+          topic: metadata?.workingTitle ?? metadata?.brief,
+          angle: metadata?.brief,
+          audience: metadata?.targetAudience,
+          summary: notesPreview.slice(0, 2_000),
+          content: notesPreview,
+          language: metadata?.outputLanguage,
+        },
+      });
+      duplicateGuardResult = guard.result;
+      contentReservationId = guard.reservationId;
+      contentReservationKey = guard.reservationKey;
+      if (guard.result.recommendedAction === 'block') {
+        return res.status(409).json({
+          error:
+            guard.result.reasons.includes('active_reservation')
+              ? 'A workspace member is already generating this topic.'
+              : 'A matching content artifact already exists in this workspace.',
+          duplicateGuard: guard.result,
+        });
+      }
+    }
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -129,6 +175,14 @@ router.post(
       );
       res.end();
       return;
+    }
+    if (duplicateGuardResult?.verdict !== 'distinct') {
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'duplicate_guard',
+          result: duplicateGuardResult,
+        })}\n\n`
+      );
     }
 
     let workspace = null;
@@ -298,6 +352,43 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
           status: 'success',
         },
       });
+      if (billingOrgId) {
+        const artifact = await upsertContentArtifact({
+          organizationId: billingOrgId,
+          createdByUserId: userId,
+          artifactType: ContentArtifactType.DRAFT,
+          sourceType: ContentSourceType.DRAFT_FROM_NOTES,
+          sourceId: savedLog.id,
+          currentStage: ContentArtifactStage.DRAFTING,
+          title: metadata?.workingTitle,
+          topic: metadata?.workingTitle ?? metadata?.brief,
+          angle: metadata?.brief,
+          audience: metadata?.targetAudience,
+          summary: notesText.slice(0, 2_000),
+          content: generatedText,
+          language: metadata?.outputLanguage,
+          reservationKey: contentReservationKey,
+        }).catch((artifactError) => {
+          console.error(
+            '[CONTENT_MEMORY] Failed to index Draft from Notes:',
+            artifactError
+          );
+          return null;
+        });
+        if (artifact) {
+          await recordContentGuardOutcome({
+            organizationId: billingOrgId,
+            requestId: contentGuardRequestId,
+            artifactId: artifact.id,
+            userAction: 'continued',
+          }).catch((eventError) => {
+            console.error(
+              '[CONTENT_MEMORY] Failed to record Draft from Notes outcome:',
+              eventError
+            );
+          });
+        }
+      }
       await deductCredits(
         userId,
         billingOrgId,
@@ -321,6 +412,14 @@ Writing Instructions: ${metadata?.brief || 'Write in a clear, professional, and 
       res.end();
     }
   } finally {
+    await releaseContentReservation(contentReservationId).catch(
+      (reservationError) => {
+        console.error(
+          '[CONTENT_MEMORY] Failed to release Draft from Notes reservation:',
+          reservationError
+        );
+      }
+    );
     requestAbort.dispose();
     if (heartbeatInterval) {
       clearInterval(heartbeatInterval);

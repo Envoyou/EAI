@@ -1,0 +1,653 @@
+import { createHash, randomUUID } from 'node:crypto';
+import type {
+  DuplicateGuardAction,
+  DuplicateGuardResult,
+  MatchedContentArtifact,
+  OverlapReason,
+  OverlapVerdict,
+} from '@eai/shared';
+import {
+  ContentArtifactStage,
+  ContentArtifactStatus,
+  ContentArtifactType,
+  ContentSourceType,
+  type Prisma,
+} from '@prisma/client';
+import { prisma } from '@/lib/db';
+
+const RESERVATION_TTL_MS = 10 * 60 * 1000;
+const MAX_CANDIDATES = 100;
+const MAX_MATCHES = 5;
+
+export interface ContentMemoryInput {
+  title?: string | null;
+  topic?: string | null;
+  angle?: string | null;
+  audience?: string | null;
+  primaryKeyword?: string | null;
+  searchIntent?: string | null;
+  outline?: string | string[] | null;
+  summary?: string | null;
+  content?: string | null;
+  language?: string | null;
+  locale?: string | null;
+  market?: string | null;
+}
+
+export interface ContentArtifactWriteInput extends ContentMemoryInput {
+  organizationId: string;
+  createdByUserId: string;
+  artifactType: ContentArtifactType;
+  sourceType: ContentSourceType;
+  sourceId: string;
+  currentStage: ContentArtifactStage;
+  rootArtifactId?: string | null;
+  status?: ContentArtifactStatus;
+  reservationKey?: string | null;
+}
+
+type Candidate = {
+  id: string;
+  title: string | null;
+  normalizedTitle: string | null;
+  topic: string | null;
+  normalizedTopic: string | null;
+  angle: string | null;
+  audience: string | null;
+  primaryKeyword: string | null;
+  searchIntent: string | null;
+  summary: string | null;
+  outline: Prisma.JsonValue | null;
+  status: ContentArtifactStatus;
+  currentStage: ContentArtifactStage;
+  sourceType: ContentSourceType;
+  contentHash: string | null;
+  rootArtifactId: string | null;
+  createdAt: Date;
+};
+
+export const normalizeContentText = (value: string | null | undefined): string =>
+  (value ?? '')
+    .normalize('NFKD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLocaleLowerCase('en-US')
+    .replace(/[^\p{Letter}\p{Number}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+
+const nonEmpty = (value: string | null | undefined): string | null => {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
+};
+
+const normalizeIndexedText = (
+  value: string | null | undefined
+): string => normalizeContentText(value).slice(0, 500);
+
+const extractContentTitle = (content: string | null | undefined): string | null => {
+  const firstLine = content
+    ?.split('\n')
+    .map((line) => line.replace(/^#{1,6}\s+/, '').trim())
+    .find(Boolean);
+  return firstLine ? firstLine.slice(0, 200) : null;
+};
+
+const toOutlineText = (
+  outline: ContentMemoryInput['outline'] | Prisma.JsonValue
+): string => {
+  if (typeof outline === 'string') return outline;
+  if (Array.isArray(outline)) {
+    return outline
+      .map((item) => (typeof item === 'string' ? item : JSON.stringify(item)))
+      .join('\n');
+  }
+  return outline ? JSON.stringify(outline) : '';
+};
+
+const hashText = (value: string): string =>
+  createHash('sha256').update(value).digest('hex');
+
+const contentHash = (content: string | null | undefined): string | null => {
+  const normalized = normalizeContentText(content);
+  return normalized ? hashText(normalized) : null;
+};
+
+const tokens = (value: string | null | undefined): Set<string> =>
+  new Set(
+    normalizeContentText(value)
+      .split(' ')
+      .filter((token) => token.length > 2)
+  );
+
+export const tokenSimilarity = (
+  left: string | null | undefined,
+  right: string | null | undefined
+): number => {
+  const a = tokens(left);
+  const b = tokens(right);
+  if (a.size === 0 || b.size === 0) return 0;
+  let intersection = 0;
+  for (const token of a) {
+    if (b.has(token)) intersection += 1;
+  }
+  return (2 * intersection) / (a.size + b.size);
+};
+
+const fieldSimilarity = (
+  left: string | null | undefined,
+  right: string | null | undefined
+): number => {
+  const a = normalizeContentText(left);
+  const b = normalizeContentText(right);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  if (a.length >= 12 && b.length >= 12 && (a.includes(b) || b.includes(a))) {
+    return 0.88;
+  }
+  return tokenSimilarity(a, b);
+};
+
+const inputTitle = (input: ContentMemoryInput): string | null =>
+  nonEmpty(input.title) ??
+  nonEmpty(input.topic) ??
+  nonEmpty(input.angle) ??
+  extractContentTitle(input.content);
+
+export const buildReservationKey = (input: ContentMemoryInput): string => {
+  const fingerprint = [
+    normalizeContentText(
+      input.topic ??
+        input.title ??
+        input.angle ??
+        extractContentTitle(input.content)
+    ),
+    normalizeContentText(input.primaryKeyword),
+    normalizeContentText(input.searchIntent),
+    normalizeContentText(input.audience),
+  ].join(':');
+  return hashText(fingerprint);
+};
+
+const buildSearchText = (input: ContentMemoryInput): string =>
+  [
+    inputTitle(input),
+    input.topic,
+    input.primaryKeyword,
+    input.searchIntent,
+    input.angle,
+    input.audience,
+    input.summary,
+    toOutlineText(input.outline),
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join('\n');
+
+const scoreCandidate = (
+  input: ContentMemoryInput,
+  candidate: Candidate
+): MatchedContentArtifact => {
+  const title = inputTitle(input);
+  const candidateTitle = candidate.title ?? candidate.topic ?? candidate.angle;
+  const titleScore = Math.max(
+    fieldSimilarity(title, candidateTitle),
+    fieldSimilarity(input.topic, candidate.topic)
+  );
+  const keywordScore = fieldSimilarity(
+    input.primaryKeyword,
+    candidate.primaryKeyword
+  );
+  const intentScore = fieldSimilarity(input.searchIntent, candidate.searchIntent);
+  const angleScore = fieldSimilarity(input.angle, candidate.angle);
+  const audienceScore = fieldSimilarity(input.audience, candidate.audience);
+  const outlineScore = tokenSimilarity(
+    toOutlineText(input.outline),
+    toOutlineText(candidate.outline)
+  );
+  const summaryScore = tokenSimilarity(input.summary, candidate.summary);
+  const sameContent = Boolean(
+    contentHash(input.content) &&
+      contentHash(input.content) === candidate.contentHash
+  );
+  const reasons: OverlapReason[] = [];
+
+  if (titleScore === 1) reasons.push('same_title');
+  if (sameContent) reasons.push('same_source');
+  if (keywordScore >= 0.8) reasons.push('same_primary_keyword');
+  if (intentScore >= 0.8) reasons.push('same_search_intent');
+  if (angleScore >= 0.8) reasons.push('same_angle');
+  if (outlineScore >= 0.65) reasons.push('outline_overlap');
+  if (summaryScore >= 0.75) reasons.push('content_summary_overlap');
+  if (audienceScore >= 0.8) reasons.push('shared_audience');
+
+  const weighted =
+    titleScore * 0.35 +
+    Math.max(titleScore, tokenSimilarity(input.topic, candidate.topic)) * 0.2 +
+    keywordScore * 0.15 +
+    intentScore * 0.1 +
+    outlineScore * 0.1 +
+    summaryScore * 0.1 +
+    audienceScore * 0.05 +
+    angleScore * 0.05;
+  const rawScore =
+    sameContent || titleScore === 1
+      ? 1
+      : Math.min(
+          1,
+          Math.max(
+            weighted,
+            keywordScore >= 0.9 ? 0.35 : 0,
+            intentScore >= 0.9 ? 0.35 : 0,
+            summaryScore >= 0.75 ? 0.4 : 0
+          )
+        );
+  const score =
+    candidate.status === ContentArtifactStatus.ARCHIVED
+      ? Math.min(0.49, rawScore)
+      : rawScore;
+
+  return {
+    id: candidate.id,
+    title: candidate.title,
+    topic: candidate.topic,
+    angle: candidate.angle,
+    status: candidate.status.toLocaleLowerCase('en-US'),
+    stage: candidate.currentStage.toLocaleLowerCase('en-US'),
+    sourceType: candidate.sourceType.toLocaleLowerCase('en-US'),
+    createdAt: candidate.createdAt.toISOString(),
+    score: Number(score.toFixed(4)),
+    reasons,
+  };
+};
+
+export const classifyContentMatches = (
+  matches: MatchedContentArtifact[]
+): Pick<
+  DuplicateGuardResult,
+  'verdict' | 'confidence' | 'reasons' | 'recommendedAction'
+> => {
+  const top = matches[0];
+  if (!top) {
+    return {
+      verdict: 'distinct',
+      confidence: 1,
+      reasons: [],
+      recommendedAction: 'continue',
+    };
+  }
+
+  let verdict: OverlapVerdict;
+  let recommendedAction: DuplicateGuardAction;
+  if (
+    top.score >= 0.98 &&
+    (top.reasons.includes('same_title') || top.reasons.includes('same_source'))
+  ) {
+    verdict = 'exact_duplicate';
+    recommendedAction = 'block';
+  } else if (top.score >= 0.82) {
+    verdict = 'probable_duplicate';
+    recommendedAction = 'require_confirmation';
+  } else if (top.score >= 0.65) {
+    verdict = 'high_overlap';
+    recommendedAction = 'suggest_repositioning';
+  } else if (
+    top.score >= 0.5 &&
+    !top.reasons.includes('same_angle') &&
+    (top.reasons.includes('same_primary_keyword') ||
+      top.reasons.includes('same_search_intent'))
+  ) {
+    verdict = 'same_topic_new_angle';
+    recommendedAction = 'continue_with_context';
+  } else if (top.score >= 0.35) {
+    verdict = 'related';
+    recommendedAction = 'continue_with_context';
+  } else {
+    verdict = 'distinct';
+    recommendedAction = 'continue';
+  }
+
+  return {
+    verdict,
+    confidence: Number(top.score.toFixed(4)),
+    reasons: top.reasons,
+    recommendedAction,
+  };
+};
+
+export const evaluateContentDuplicates = async (params: {
+  organizationId: string;
+  input: ContentMemoryInput;
+  excludeArtifactId?: string;
+  rootArtifactId?: string | null;
+}): Promise<DuplicateGuardResult> => {
+  const title = normalizeIndexedText(inputTitle(params.input));
+  const topic = normalizeIndexedText(params.input.topic);
+  const hash = contentHash(params.input.content);
+  const baseWhere = {
+    organizationId: params.organizationId,
+    status: {
+      in: [
+        ContentArtifactStatus.ACTIVE,
+        ContentArtifactStatus.ARCHIVED,
+      ],
+    },
+    id: params.excludeArtifactId ? { not: params.excludeArtifactId } : undefined,
+  } satisfies Prisma.ContentArtifactWhereInput;
+  const select = {
+    id: true,
+    title: true,
+    normalizedTitle: true,
+    topic: true,
+    normalizedTopic: true,
+    angle: true,
+    audience: true,
+    primaryKeyword: true,
+    searchIntent: true,
+    summary: true,
+    outline: true,
+    status: true,
+    currentStage: true,
+    sourceType: true,
+    contentHash: true,
+    rootArtifactId: true,
+    createdAt: true,
+  } satisfies Prisma.ContentArtifactSelect;
+  const exactConditions: Prisma.ContentArtifactWhereInput[] = [];
+  if (title) exactConditions.push({ normalizedTitle: title });
+  if (topic) exactConditions.push({ normalizedTopic: topic });
+  if (hash) exactConditions.push({ contentHash: hash });
+  if (params.input.primaryKeyword) {
+    exactConditions.push({
+      primaryKeyword: {
+        equals: params.input.primaryKeyword,
+        mode: 'insensitive',
+      },
+    });
+  }
+
+  const [exactCandidates, recentCandidates] = await Promise.all([
+    exactConditions.length > 0
+      ? prisma.contentArtifact.findMany({
+          where: { ...baseWhere, OR: exactConditions },
+          take: 25,
+          orderBy: { updatedAt: 'desc' },
+          select,
+    })
+      : Promise.resolve([]),
+    prisma.contentArtifact.findMany({
+      where: {
+        ...baseWhere,
+      },
+      take: MAX_CANDIDATES,
+      orderBy: { updatedAt: 'desc' },
+      select,
+    }),
+  ]);
+  const candidateMap = new Map<string, Candidate>();
+  for (const candidate of [...exactCandidates, ...recentCandidates]) {
+    if (
+      params.rootArtifactId &&
+      (candidate.id === params.rootArtifactId ||
+        candidate.rootArtifactId === params.rootArtifactId)
+    ) {
+      continue;
+    }
+    candidateMap.set(candidate.id, candidate as Candidate);
+  }
+
+  const matches = [...candidateMap.values()]
+    .map((candidate) => scoreCandidate(params.input, candidate))
+    .filter((candidate) => candidate.score >= 0.25)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, MAX_MATCHES);
+  return {
+    ...classifyContentMatches(matches),
+    matchedArtifacts: matches,
+  };
+};
+
+const reservationCollisionResult = (): DuplicateGuardResult => ({
+  verdict: 'exact_duplicate',
+  confidence: 1,
+  reasons: ['active_reservation'],
+  matchedArtifacts: [],
+  recommendedAction: 'block',
+});
+
+export const beginContentGenerationGuard = async (params: {
+  organizationId: string;
+  userId: string;
+  requestId?: string;
+  input: ContentMemoryInput;
+}): Promise<{
+  result: DuplicateGuardResult;
+  reservationId: string | null;
+  reservationKey: string;
+}> => {
+  const requestId = params.requestId ?? randomUUID();
+  const reservationKey = buildReservationKey(params.input);
+  const result = await evaluateContentDuplicates({
+    organizationId: params.organizationId,
+    input: params.input,
+  });
+
+  await recordDuplicateGuardEvent({
+    organizationId: params.organizationId,
+    userId: params.userId,
+    requestId,
+    input: params.input,
+    result,
+  }).catch((eventError) => {
+    console.error(
+      '[CONTENT_MEMORY] Failed to record duplicate guard event:',
+      eventError
+    );
+  });
+
+  if (result.recommendedAction === 'block') {
+    return { result, reservationId: null, reservationKey };
+  }
+
+  const now = new Date();
+  await prisma.contentReservation.deleteMany({
+    where: { expiresAt: { lte: now } },
+  });
+
+  try {
+    const reservation = await prisma.contentReservation.create({
+      data: {
+        organizationId: params.organizationId,
+        createdByUserId: params.userId,
+        requestId,
+        reservationKey,
+        normalizedTopic: normalizeContentText(
+          params.input.topic ??
+            params.input.title ??
+            params.input.angle ??
+            extractContentTitle(params.input.content)
+        ),
+        expiresAt: new Date(now.getTime() + RESERVATION_TTL_MS),
+      },
+    });
+    return { result, reservationId: reservation.id, reservationKey };
+  } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'P2002'
+    ) {
+      const collision = reservationCollisionResult();
+      await recordDuplicateGuardEvent({
+        organizationId: params.organizationId,
+        userId: params.userId,
+        requestId,
+        input: params.input,
+        result: collision,
+      }).catch((eventError) => {
+        console.error(
+          '[CONTENT_MEMORY] Failed to record reservation collision:',
+          eventError
+        );
+      });
+      return { result: collision, reservationId: null, reservationKey };
+    }
+    throw error;
+  }
+};
+
+export const releaseContentReservation = async (
+  reservationId: string | null | undefined
+): Promise<void> => {
+  if (!reservationId) return;
+  await prisma.contentReservation.deleteMany({ where: { id: reservationId } });
+};
+
+export const upsertContentArtifact = async (
+  input: ContentArtifactWriteInput
+) => {
+  const title = inputTitle(input)?.slice(0, 500) ?? null;
+  const normalizedTitle = normalizeIndexedText(title);
+  const topic = nonEmpty(input.topic) ?? title;
+  const normalizedTopic = normalizeIndexedText(topic);
+  const outline = toOutlineText(input.outline);
+  const searchText = buildSearchText(input);
+  const artifact = await prisma.contentArtifact.upsert({
+    where: {
+      organizationId_sourceType_sourceId: {
+        organizationId: input.organizationId,
+        sourceType: input.sourceType,
+        sourceId: input.sourceId,
+      },
+    },
+    create: {
+      organizationId: input.organizationId,
+      createdByUserId: input.createdByUserId,
+      artifactType: input.artifactType,
+      sourceType: input.sourceType,
+      sourceId: input.sourceId,
+      rootArtifactId: input.rootArtifactId,
+      title,
+      normalizedTitle,
+      topic,
+      normalizedTopic,
+      angle: nonEmpty(input.angle),
+      audience: nonEmpty(input.audience),
+      primaryKeyword: nonEmpty(input.primaryKeyword),
+      searchIntent: nonEmpty(input.searchIntent),
+      language: nonEmpty(input.language),
+      locale: nonEmpty(input.locale),
+      market: nonEmpty(input.market),
+      summary: nonEmpty(input.summary),
+      outline: outline || undefined,
+      currentStage: input.currentStage,
+      status: input.status ?? ContentArtifactStatus.ACTIVE,
+      contentHash: contentHash(input.content),
+      reservationKey: input.reservationKey,
+      searchDocument: {
+        create: {
+          organizationId: input.organizationId,
+          searchText,
+          searchMetadata: {
+            sourceType: input.sourceType,
+            stage: input.currentStage,
+          },
+          contentHash: contentHash(input.content),
+        },
+      },
+    },
+    update: {
+      rootArtifactId: input.rootArtifactId,
+      title,
+      normalizedTitle,
+      topic,
+      normalizedTopic,
+      angle: nonEmpty(input.angle),
+      audience: nonEmpty(input.audience),
+      primaryKeyword: nonEmpty(input.primaryKeyword),
+      searchIntent: nonEmpty(input.searchIntent),
+      language: nonEmpty(input.language),
+      locale: nonEmpty(input.locale),
+      market: nonEmpty(input.market),
+      summary: nonEmpty(input.summary),
+      outline: outline || undefined,
+      currentStage: input.currentStage,
+      status: input.status ?? ContentArtifactStatus.ACTIVE,
+      contentHash: contentHash(input.content),
+      searchDocument: {
+        upsert: {
+          create: {
+            organizationId: input.organizationId,
+            searchText,
+            searchMetadata: {
+              sourceType: input.sourceType,
+              stage: input.currentStage,
+            },
+            contentHash: contentHash(input.content),
+          },
+          update: {
+            searchText,
+            searchMetadata: {
+              sourceType: input.sourceType,
+              stage: input.currentStage,
+            },
+            contentHash: contentHash(input.content),
+            indexedAt: new Date(),
+          },
+        },
+      },
+    },
+  });
+  return artifact;
+};
+
+export const recordDuplicateGuardEvent = async (params: {
+  organizationId: string;
+  userId: string;
+  requestId?: string;
+  artifactId?: string;
+  input: ContentMemoryInput;
+  result: DuplicateGuardResult;
+  userAction?: string;
+}): Promise<void> => {
+  await prisma.duplicateGuardEvent.create({
+    data: {
+      organizationId: params.organizationId,
+      actorUserId: params.userId,
+      artifactId: params.artifactId,
+      requestId: params.requestId,
+      inputFingerprint: buildReservationKey(params.input),
+      verdict: params.result.verdict,
+      confidence: params.result.confidence,
+      reasons: params.result.reasons,
+      recommendedAction: params.result.recommendedAction,
+      matchedArtifactIds: params.result.matchedArtifacts.map(
+        (artifact) => artifact.id
+      ),
+      userAction: params.userAction,
+    },
+  });
+};
+
+export const recordContentGuardOutcome = async (params: {
+  organizationId: string;
+  requestId: string;
+  artifactId: string;
+  userAction:
+    | 'continued'
+    | 'changed_angle'
+    | 'opened_existing'
+    | 'cancelled'
+    | 'overrode_block';
+}): Promise<void> => {
+  await prisma.duplicateGuardEvent.updateMany({
+    where: {
+      organizationId: params.organizationId,
+      requestId: params.requestId,
+      userAction: null,
+    },
+    data: {
+      artifactId: params.artifactId,
+      userAction: params.userAction,
+    },
+  });
+};

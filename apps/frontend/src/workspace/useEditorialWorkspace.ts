@@ -48,6 +48,7 @@ import type { PendingRefineAction } from './types';
 export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) {
   const router = useRouter();
   const tFeedbackWorkflow = useTranslations('FeedbackWorkflow');
+  const tContentMemory = useTranslations('ContentMemory');
   const directFetch = useDirectFetch();
 
   // 1. Storage State Management
@@ -697,6 +698,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       setDraft,
       setIsGeneratingDraftFromNotes,
       generateAbortControllerRef,
+      duplicateGuardWarning: tContentMemory('relatedWarning'),
     };
     executeGenerateDraftFromNotes(ctx);
   };

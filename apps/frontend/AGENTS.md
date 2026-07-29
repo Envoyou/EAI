@@ -99,6 +99,7 @@ apps/frontend/
 │   │       ├── layout.tsx        # Root layout (Clerk + Sentry + ThemeProvider)
 │   │       ├── workspace/        # Main workspace editor (EditorialWorkspace)
 │   │       ├── dashboard/        # Analytics & usage dashboard
+│   │       │   └── content-map/  # Tenant-wide Blueprint and draft registry
 │   │       ├── settings/         # Settings shell
 │   │       │   ├── general/      # Organization name, slug, logo
 │   │       │   ├── account/      # User account settings

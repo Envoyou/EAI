@@ -236,12 +236,16 @@ datasource: {
 erDiagram
     Organization ||--o{ User : "members"
     Organization ||--o{ AnalysisLog : "owns"
+    Organization ||--o{ ContentArtifact : "remembers"
+    Organization ||--o{ ContentReservation : "reserves"
+    Organization ||--o{ DuplicateGuardEvent : "audits"
     Organization ||--o{ EditorialProfile : "configures"
     Organization ||--o{ CmsConnection : "connects"
     Organization ||--o{ Subscription : "subscribes"
     Organization ||--o{ CreditTransaction : "ledger"
 
     User ||--o{ AnalysisLog : "creates"
+    User ||--o{ ContentArtifact : "creates"
     User ||--o{ ChatSession : "owns"
     User ||--o{ CreditTransaction : "initiates"
 
@@ -249,6 +253,9 @@ erDiagram
     EditorialProfileVersion ||--o{ AnalysisLog : "snapshots"
 
     AnalysisLog ||--o| CreditUsage : "records"
+    ContentArtifact ||--o| ContentSearchDocument : "indexes"
+    ContentArtifact ||--o{ ContentArtifact : "derives"
+    ContentArtifact ||--o{ DuplicateGuardEvent : "matches"
     ChatSession ||--o{ ChatMessage : "contains"
 ```
 
@@ -257,6 +264,9 @@ erDiagram
 - **`User`**: Linked directly to Clerk via `id` (`user_...`). Tracks name, email, global role (`editor`, `admin`), balance, and trial allocations.
 - **`Organization`**: Workspace multi-tenants mapped to Clerk Organizations (`clerkOrganizationId`). Stores custom publication names, domain settings, and provider overrides.
 - **`AnalysisLog`**: CUID-indexed audit record storing AI feedback, quality scores, editorial verdicts, execution metadata (JSON), prompt configuration hashes, and exact `EditorialProfileVersion` references.
+- **`ContentArtifact`**: Canonical organization-scoped registry for Blueprint, draft, analyzed, published, and imported content lifecycles. Source identifiers make writes idempotent and `rootArtifactId` links derived drafts to their originating artifact.
+- **`ContentSearchDocument`**: Rebuildable retrieval projection containing normalized collaboration-safe search context. It is never authoritative and every query must include the active internal `organizationId`.
+- **`ContentReservation` & `DuplicateGuardEvent`**: Short-lived request claims prevent concurrent duplicate generation, while audit events retain deterministic verdicts and user outcomes for future threshold calibration.
 - **`CmsConnection`**: Stores external CMS endpoint targets. Sensitive API keys are encrypted at rest using AES-256-GCM.
 - **`CreditTransaction` & `CreditUsage`**: Strict transactional credit accounting ledger enforcing idempotency keys (`idempotencyKey`), distinct credit buckets (`trial`, `subscription`, `addon`), and manual admin adjustment audit trails.
 - **`AuditLog`**: Immutable platform audit log capturing administrative actions (credit overrides, user bans, feature flag toggles).

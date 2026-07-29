@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import type { ArticleMetadata, ResearchNote } from '@eai/shared';
 import type { DirectFetchType } from '../types';
 import { readWithTimeout, StreamIdleTimeoutError } from '@/lib/stream-utils';
+import { getResponseErrorMessage } from '@/lib/fetch-utils';
 
 interface StrategistContext {
   researchNotes: ResearchNote[];
@@ -12,6 +13,7 @@ interface StrategistContext {
   setDraft: (d: string) => void;
   setIsGeneratingDraftFromNotes: (g: boolean) => void;
   generateAbortControllerRef: React.MutableRefObject<AbortController | null>;
+  duplicateGuardWarning: string;
 }
 
 export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
@@ -22,6 +24,7 @@ export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
     setDraft,
     setIsGeneratingDraftFromNotes,
     generateAbortControllerRef,
+    duplicateGuardWarning,
   } = ctx;
 
   const notesToGenerate = researchNotes.filter(n => n.content.length > 0);
@@ -47,8 +50,12 @@ export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to generate draft: ${response.status} - ${errorText}`);
+      throw new Error(
+        await getResponseErrorMessage(
+          response,
+          `Failed to generate draft (${response.status})`
+        )
+      );
     }
 
     const reader = response.body?.getReader();
@@ -77,6 +84,8 @@ export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
             setDraft(currentDraft);
           } else if (data.type === 'blueprint_detected') {
             toast.info(data.message || 'Multiple topics detected — generating draft from the first topic.');
+          } else if (data.type === 'duplicate_guard') {
+            toast.warning(duplicateGuardWarning);
           } else if (data.type === 'error') {
             throw new Error(data.message || data.error || 'Draft generation failed.');
           } else if (data.type === 'done') {

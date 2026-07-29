@@ -288,5 +288,48 @@
       "activating": "Mengaktifkan...",
       "saving": "Menyimpan..."
     }
+  },
+  "ContentMemory": {
+    "exactDuplicate": "Artefak konten yang sama sudah ada di workspace ini.",
+    "activeReservation": "Anggota workspace sedang membuat konten dengan topik ini.",
+    "probableDuplicate": "Artikel yang sangat mirip ditemukan. Tinjau konten terkait sebelum melanjutkan.",
+    "highOverlap": "Konten workspace yang terkait sudah banyak membahas topik ini. Pertimbangkan angle lain.",
+    "relatedWarning": "Content Memory menemukan dan mencatat konten workspace yang terkait."
+  },
+  "ContentMap": {
+    "nav": "Peta Konten",
+    "title": "Peta Konten Tenant",
+    "description": "Pengetahuan bersama mengenai Blueprint dan draft di seluruh workspace ini.",
+    "searchLabel": "Cari konten workspace",
+    "searchPlaceholder": "Cari judul, topik, angle, atau kata kunci",
+    "search": "Cari",
+    "reset": "Atur ulang",
+    "loadError": "Gagal memuat Content Memory.",
+    "empty": "Tidak ada artefak konten yang sesuai.",
+    "swipeHint": "Geser horizontal untuk melihat semua kolom",
+    "untitled": "Konten tanpa judul",
+    "workspaceMember": "Anggota workspace",
+    "columns": {
+      "content": "Konten",
+      "stage": "Tahap",
+      "source": "Sumber",
+      "owner": "Pemilik",
+      "updated": "Diperbarui"
+    },
+    "stages": {
+      "planning": "Perencanaan",
+      "drafting": "Penyusunan",
+      "refined": "Disempurnakan",
+      "ready": "Siap",
+      "published": "Diterbitkan"
+    },
+    "sources": {
+      "strategist_blueprint": "Blueprint Strategist",
+      "quick_draft": "Draft Cepat",
+      "draft_from_notes": "Draft dari Catatan",
+      "manual_draft": "Draft Manual",
+      "analysis": "Analisis Editorial",
+      "cms_import": "Impor CMS"
+    }
   }
 }

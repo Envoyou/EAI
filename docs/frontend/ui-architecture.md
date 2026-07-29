@@ -94,6 +94,13 @@ This is appropriate for the editor workspace, which relies heavily on local
 state, Tiptap, storage, streaming, and browser events. It should not become the
 default pattern for mostly static route shells or read-only views.
 
+The localized `/[locale]/dashboard/content-map` route is a bounded client view
+over the authenticated Content Memory API. It exposes collaboration-safe
+artifact metadata (title/topic, source, stage, creator, and timestamps), never
+raw Strategist conversation text or indexed draft bodies. Search and refresh
+remain inside this route boundary; tenant authorization and filtering are owned
+by the backend.
+
 ## 4. Workspace ownership and data flow
 
 The workspace follows a facade-oriented architecture:

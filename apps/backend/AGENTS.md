@@ -245,6 +245,14 @@ Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes l
     * `getWorkspaceAgentInstruction`: Generates the dynamic `<agent_instruction>` guidelines detailing style restrictions and language fallbacks based on whether the workspace profile is fully configured.
   * Place reference materials and dates inside `<workspace_context>` tags and system-level instructions in `<agent_instruction>` tags to prevent prompt injection.
 
+* **Tenant Content Memory**:
+  * Persist canonical Blueprint and draft lifecycle metadata through
+    `src/lib/content-memory.ts`; do not index raw Strategist conversations.
+  * All artifact retrieval and Duplicate Guard queries must include the active
+    internal `organizationId` at query time.
+  * Search documents are derived data. Content artifacts and expiring topic
+    reservations remain the authoritative registry.
+
 ---
 
 ## Security

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { generateId, extractDynamicSuggestions } from '@/lib/strategist-utils';
 import { useUser } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
+import type { DuplicateGuardResult } from '@eai/shared';
 import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
 import { readWithTimeout, StreamIdleTimeoutError } from '@/lib/stream-utils';
 import {
@@ -139,6 +140,7 @@ const SESSION_KEY = 'eai_research_notes';
 export function useContentStrategist({ onComplete, notes, onNotesChange, documentId = 'new' }: UseContentStrategistOptions) {
   const { user } = useUser();
   const tReport = useTranslations('DeepResearchReport');
+  const tContentMemory = useTranslations('ContentMemory');
   const directFetch = useDirectFetch();
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
@@ -810,6 +812,15 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     chatAbortControllerRef.current = controller;
 
     const applyPlanResult = (data: StrategistPlanResult<PreEditorPlan>) => {
+      if (data.duplicateGuard && data.duplicateGuard.verdict !== 'distinct') {
+        const warningKey =
+          data.duplicateGuard.verdict === 'probable_duplicate'
+            ? 'probableDuplicate'
+            : data.duplicateGuard.verdict === 'high_overlap'
+              ? 'highOverlap'
+              : 'relatedWarning';
+        toast.warning(tContentMemory(warningKey));
+      }
       if (data.sessionId && data.sessionId !== currentSessionId) {
         setCurrentSessionId(data.sessionId);
         loadSessions();
@@ -1256,6 +1267,15 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           if (event.type === 'draft_chunk') {
             output += event.data as string;
             setQuickDraftOutput(output);
+          } else if (event.type === 'duplicate_guard') {
+            const result = event.data as DuplicateGuardResult;
+            const warningKey =
+              result.verdict === 'probable_duplicate'
+                ? 'probableDuplicate'
+                : result.verdict === 'high_overlap'
+                  ? 'highOverlap'
+                  : 'relatedWarning';
+            toast.warning(tContentMemory(warningKey));
           } else if (event.type === 'complete') {
             receivedComplete = true;
           } else if (event.type === 'error') {

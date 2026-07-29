@@ -288,5 +288,48 @@
       "activating": "Activating...",
       "saving": "Saving..."
     }
+  },
+  "ContentMemory": {
+    "exactDuplicate": "A matching content artifact already exists in this workspace.",
+    "activeReservation": "A workspace member is already generating this topic.",
+    "probableDuplicate": "A highly similar article exists. Review the related content before continuing.",
+    "highOverlap": "Related workspace content covers much of this topic. Consider repositioning the angle.",
+    "relatedWarning": "Related workspace content was found and recorded by Content Memory."
+  },
+  "ContentMap": {
+    "nav": "Content Map",
+    "title": "Tenant Content Map",
+    "description": "Shared awareness of Blueprints and drafts across this workspace.",
+    "searchLabel": "Search workspace content",
+    "searchPlaceholder": "Search title, topic, angle, or keyword",
+    "search": "Search",
+    "reset": "Reset",
+    "loadError": "Failed to load Content Memory.",
+    "empty": "No matching content artifacts were found.",
+    "swipeHint": "Swipe horizontally to view all columns",
+    "untitled": "Untitled content",
+    "workspaceMember": "Workspace member",
+    "columns": {
+      "content": "Content",
+      "stage": "Stage",
+      "source": "Source",
+      "owner": "Owner",
+      "updated": "Updated"
+    },
+    "stages": {
+      "planning": "Planning",
+      "drafting": "Drafting",
+      "refined": "Refined",
+      "ready": "Ready",
+      "published": "Published"
+    },
+    "sources": {
+      "strategist_blueprint": "Strategist Blueprint",
+      "quick_draft": "Quick Draft",
+      "draft_from_notes": "Draft from Notes",
+      "manual_draft": "Manual Draft",
+      "analysis": "Editorial Analysis",
+      "cms_import": "CMS Import"
+    }
   }
 }

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
-import { Activity, FileText, CheckCircle, Users, Download, ShieldAlert } from 'lucide-react';
+import { Activity, FileText, CheckCircle, Users, Download, ShieldAlert, LibraryBig } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { WorkspacePageShell } from '@/components/WorkspacePageShell';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useDashboard } from './DashboardProvider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 
 const sections = [
   { id: 'overview', label: 'Overview', icon: Activity, href: '/dashboard/overview' },
@@ -20,6 +21,7 @@ const sections = [
 
 export function DashboardLayoutShell({ children, isSuperAdmin }: { children: React.ReactNode; isSuperAdmin?: boolean }) {
   const pathname = usePathname();
+  const tContentMap = useTranslations('ContentMap');
   const {
     data,
     loading,
@@ -122,6 +124,15 @@ export function DashboardLayoutShell({ children, isSuperAdmin }: { children: Rea
                 </Link>
               );
             })}
+            <Link
+              href="/dashboard/content-map"
+              data-active={pathname.startsWith('/dashboard/content-map')}
+              aria-current={pathname.startsWith('/dashboard/content-map') ? 'page' : undefined}
+              prefetch={false}
+            >
+              <LibraryBig className="h-4 w-4" />
+              {tContentMap('nav')}
+            </Link>
 
             {isSuperAdmin && (
               <>

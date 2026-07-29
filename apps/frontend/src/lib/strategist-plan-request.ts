@@ -1,4 +1,5 @@
 import { REQUEST_TIMEOUT_MS, type TimeoutRequestInit } from '@/lib/fetch-utils';
+import type { DuplicateGuardResult } from '@eai/shared';
 
 type DirectFetch = (
   path: string,
@@ -10,6 +11,7 @@ export type StrategistPlanResult<TPlan = unknown> = {
   suggestions?: string[];
   plan?: TPlan;
   sessionId?: string | null;
+  duplicateGuard?: DuplicateGuardResult | null;
 };
 
 type PlanRequestStatus<TPlan> = {
