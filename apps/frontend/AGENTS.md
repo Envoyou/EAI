@@ -79,6 +79,11 @@ npm run lint
   action contract, honor backend `canManage`, and require an explicit
   confirmation for canonical/consolidation/archive decisions. Never imply that
   registry consolidation merged article bodies or changed CMS pages.
+- **Content Map source preview**: Source actions should open the shared Base UI
+  right-side drawer first and fetch draft text only from the authenticated,
+  tenant-scoped History endpoint after explicit user intent. Keep full
+  Workspace navigation available inside the drawer; do not return to direct
+  route navigation as the only way to inspect a source.
 
 ## 3. Frontend Directory Structure
 
@@ -160,6 +165,7 @@ apps/frontend/
 │   │   │   ├── switch.tsx        # Canonical Base UI switch
 │   │   │   ├── file-input.tsx    # Native file semantics boundary
 │   │   │   ├── scroll-area.tsx   # Scroll area
+│   │   │   ├── side-drawer.tsx   # Portalled Base UI right-side drawer
 │   │   │   ├── sidebar-item.tsx  # Sidebar navigation item
 │   │   │   └── sonner.tsx        # Toast provider (Sonner)
 │   │   ├── editor/               # Tiptap editor extensions & components

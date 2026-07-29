@@ -23,6 +23,9 @@ describe('Content Intelligence UI contract', () => {
       "'/api/content-memory/intelligence/actions'"
     );
     expect(panel).toContain('buildContentIntelligenceCsv(snapshot)');
+    expect(panel).toContain('<ContentArtifactPreviewDrawer');
+    expect(panel).toContain('setPreviewArtifact(artifact)');
+    expect(panel).not.toContain('router.push(localizeHref(artifact.sourceHref))');
   });
 
   it('keeps all Phase 6 interface copy localized', () => {

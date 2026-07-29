@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import type { ContentIntelligenceArtifact } from '@eai/shared';
 import { Search, RefreshCw } from 'lucide-react';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
@@ -14,15 +13,17 @@ import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
 import { getResponseErrorMessage } from '@/lib/fetch-utils';
 import { ContentIntelligencePanel } from './ContentIntelligencePanel';
 import { ActionButton } from '@/components/ui/action-button';
-import {
-  DownloadActionIcon,
-  OpenExternalActionIcon,
-} from '@/components/ui/icons/actions';
+import { DownloadActionIcon } from '@/components/ui/icons/actions';
+import { PreviewViewIcon } from '@/components/ui/icons/content';
 import {
   buildContentInventoryCsv,
   contentInventoryFilename,
   downloadCsv,
 } from './content-map-csv';
+import {
+  ContentArtifactPreviewDrawer,
+  type ContentPreviewArtifact,
+} from './ContentArtifactPreviewDrawer';
 
 type ContentArtifactListItem = {
   id: string;
@@ -57,9 +58,10 @@ const stageVariant = (stage: string): BadgeVariant => {
 export default function ContentMapPage() {
   const t = useTranslations('ContentMap');
   const locale = useLocale();
-  const router = useRouter();
   const directFetch = useDirectFetch();
   const [artifacts, setArtifacts] = useState<ContentArtifactListItem[]>([]);
+  const [previewArtifact, setPreviewArtifact] =
+    useState<ContentPreviewArtifact | null>(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -168,9 +170,6 @@ export default function ContentMapPage() {
     }
     return source;
   };
-
-  const localizeHref = (href: string) =>
-    locale === 'en' ? href : `/${locale}${href}`;
 
   const exportInventory = () => {
     const exportRows: ContentIntelligenceArtifact[] = artifacts.map(
@@ -401,15 +400,27 @@ export default function ContentMapPage() {
                       <td className="px-4 py-3">
                         {artifact.sourceHref ? (
                           <ActionButton
-                            icon={OpenExternalActionIcon}
-                            label={t('actions.openDraft')}
+                            icon={PreviewViewIcon}
+                            label={t('actions.preview')}
                             type="button"
                             variant="muted"
                             size="xs"
                             onClick={() =>
-                              router.push(
-                                localizeHref(artifact.sourceHref!)
-                              )
+                              setPreviewArtifact({
+                                id: artifact.id,
+                                sourceId: artifact.sourceId,
+                                sourceHref: artifact.sourceHref,
+                                sourceType: artifact.sourceType,
+                                title: artifact.title,
+                                topic: artifact.topic,
+                                stage: artifact.currentStage,
+                                ownerName:
+                                  artifact.ownerName ??
+                                  artifact.createdBy?.name ??
+                                  null,
+                                exportStatus: artifact.exportStatus,
+                                updatedAt: artifact.updatedAt,
+                              })
                             }
                           />
                         ) : (
@@ -428,6 +439,13 @@ export default function ContentMapPage() {
           </>
         )}
       </div>
+      {previewArtifact ? (
+        <ContentArtifactPreviewDrawer
+          key={previewArtifact.sourceId ?? previewArtifact.id}
+          artifact={previewArtifact}
+          onClose={() => setPreviewArtifact(null)}
+        />
+      ) : null}
     </section>
   );
 }

@@ -429,6 +429,10 @@
     },
     "actions": {
       "openDraft": "Buka draft",
+      "preview": "Pratinjau",
+      "previewSource": "Pratinjau sumber",
+      "previewTarget": "Pratinjau tujuan",
+      "openWorkspace": "Buka di Workspace",
       "sourceUnavailable": "Sumber tidak tersedia",
       "compare": "Bandingkan artikel",
       "reposition": "Ubah angle",
@@ -447,6 +451,13 @@
       "saveReposition": "Simpan positioning",
       "applied": "Tindakan Content Intelligence berhasil diterapkan.",
       "applyError": "Gagal menerapkan tindakan Content Intelligence."
+    },
+    "preview": {
+      "description": "Tinjau draft ini tanpa meninggalkan Peta Konten.",
+      "loading": "Memuat pratinjau draft…",
+      "loadError": "Gagal memuat pratinjau draft.",
+      "empty": "Artefak ini belum memiliki teks draft yang dapat dipratinjau.",
+      "refinedDraft": "Draft hasil penyempurnaan"
     },
     "dialogs": {
       "compareTitle": "Bandingkan artikel yang tumpang tindih",

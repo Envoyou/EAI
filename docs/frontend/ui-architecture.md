@@ -114,7 +114,11 @@ thresholds or receives indexed body text.
 Phase 6.1 keeps Analytics export controls out of this route and provides
 view-specific inventory/intelligence CSV actions. Intelligence cards disclose
 article title, topic, stage, keyword, source owner, and CMS export state; source
-deep-links and compare/action dialogs consume only the authenticated backend
+actions open a shared, portalled Base UI right-side preview drawer instead of
+navigating away immediately. The list and snapshot still contain metadata
+only; the selected draft body is fetched lazily through the existing
+tenant-scoped History endpoint. The drawer provides an explicit full Workspace
+action. Compare/action dialogs consume only the authenticated backend
 snapshot/action contracts. Consolidation and archive require explicit
 confirmation and clearly state that source drafts are retained.
 
@@ -302,7 +306,10 @@ portal and positioner primitives. This provides:
 - predictable z-index ownership.
 
 The responsive Select is the reference pattern: desktop uses a positioned
-popover, while mobile uses a portalled bottom sheet and backdrop.
+popover, while mobile uses a portalled bottom sheet and backdrop. Full-height
+detail previews use the shared `SideDrawer`, backed by Base UI Drawer for
+portal, focus trapping, Escape/outside dismissal, and right-edge swipe
+dismissal.
 
 Custom overlays are permitted only when an editor-specific interaction cannot
 be represented by an existing primitive. They must document ownership of:

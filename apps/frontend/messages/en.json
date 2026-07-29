@@ -429,6 +429,10 @@
     },
     "actions": {
       "openDraft": "Open draft",
+      "preview": "Preview",
+      "previewSource": "Preview source",
+      "previewTarget": "Preview destination",
+      "openWorkspace": "Open in Workspace",
       "sourceUnavailable": "Source unavailable",
       "compare": "Compare articles",
       "reposition": "Change angle",
@@ -447,6 +451,13 @@
       "saveReposition": "Save positioning",
       "applied": "Content Intelligence action applied.",
       "applyError": "Failed to apply Content Intelligence action."
+    },
+    "preview": {
+      "description": "Review this draft without leaving Content Map.",
+      "loading": "Loading draft preview…",
+      "loadError": "Failed to load the draft preview.",
+      "empty": "This artifact does not contain previewable draft text yet.",
+      "refinedDraft": "Refined draft"
     },
     "dialogs": {
       "compareTitle": "Compare overlapping articles",

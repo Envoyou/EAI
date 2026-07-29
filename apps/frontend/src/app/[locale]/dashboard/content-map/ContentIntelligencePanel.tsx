@@ -21,8 +21,8 @@ import { ActionButton } from '@/components/ui/action-button';
 import {
   ArchiveActionIcon,
   DownloadActionIcon,
-  OpenExternalActionIcon,
 } from '@/components/ui/icons/actions';
+import { PreviewViewIcon } from '@/components/ui/icons/content';
 import {
   buildContentIntelligenceCsv,
   contentIntelligenceFilename,
@@ -32,6 +32,10 @@ import {
   ContentArchiveDialog,
   ContentComparisonDialog,
 } from './ContentIntelligenceDialogs';
+import {
+  ContentArtifactPreviewDrawer,
+  type ContentPreviewArtifact,
+} from './ContentArtifactPreviewDrawer';
 
 const coverageVariant = (
   coverage: 'established' | 'growing' | 'emerging'
@@ -70,6 +74,8 @@ export function ContentIntelligencePanel() {
     useState<CannibalizationRisk | null>(null);
   const [archiveArtifact, setArchiveArtifact] =
     useState<ContentIntelligenceArtifact | null>(null);
+  const [previewArtifact, setPreviewArtifact] =
+    useState<ContentPreviewArtifact | null>(null);
   const [submittingAction, setSubmittingAction] = useState(false);
 
   const fetchSnapshot = useCallback(async () => {
@@ -141,9 +147,10 @@ export function ContentIntelligencePanel() {
     t(`sources.${artifact.sourceType}`);
   const localizeHref = (href: string) =>
     locale === 'en' ? href : `/${locale}${href}`;
-  const openArtifact = (artifact: ContentIntelligenceArtifact) => {
+  const previewSource = (artifact: ContentIntelligenceArtifact) => {
     if (artifact.sourceHref) {
-      router.push(localizeHref(artifact.sourceHref));
+      setComparison(null);
+      setPreviewArtifact(artifact);
     }
   };
   const createFromGap = (title: string, brief: string) => {
@@ -372,9 +379,9 @@ export function ContentIntelligencePanel() {
                           type="button"
                           variant="link"
                           size="xs"
-                          onClick={() => openArtifact(artifact)}
+                          onClick={() => previewSource(artifact)}
                         >
-                          {t('actions.openDraft')}
+                          {t('actions.preview')}
                         </Button>
                       ) : null}
                     </div>
@@ -481,7 +488,7 @@ export function ContentIntelligencePanel() {
                       variant="primary"
                       size="xs"
                       onClick={() =>
-                        openArtifact(
+                        previewSource(
                           gap.relatedArtifacts.find(
                             (artifact) => artifact.sourceHref
                           )!
@@ -594,13 +601,13 @@ export function ContentIntelligencePanel() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     {recommendation.artifact.sourceHref ? (
                       <ActionButton
-                        icon={OpenExternalActionIcon}
-                        label={t('actions.openDraft')}
+                        icon={PreviewViewIcon}
+                        label={t('actions.preview')}
                         type="button"
                         variant="surface"
                         size="xs"
                         onClick={() =>
-                          openArtifact(recommendation.artifact)
+                          previewSource(recommendation.artifact)
                         }
                       />
                     ) : null}
@@ -677,9 +684,9 @@ export function ContentIntelligencePanel() {
                       type="button"
                       variant="surface"
                       size="xs"
-                      onClick={() => openArtifact(opportunity.from)}
+                      onClick={() => previewSource(opportunity.from)}
                     >
-                      {t('actions.openSource')}
+                      {t('actions.previewSource')}
                     </Button>
                   ) : null}
                   {opportunity.to.sourceHref ? (
@@ -687,9 +694,9 @@ export function ContentIntelligencePanel() {
                       type="button"
                       variant="surface"
                       size="xs"
-                      onClick={() => openArtifact(opportunity.to)}
+                      onClick={() => previewSource(opportunity.to)}
                     >
-                      {t('actions.openTarget')}
+                      {t('actions.previewTarget')}
                     </Button>
                   ) : null}
                 </div>
@@ -709,7 +716,7 @@ export function ContentIntelligencePanel() {
         risk={comparison}
         submitting={submittingAction}
         onClose={() => setComparison(null)}
-        onOpenArtifact={openArtifact}
+        onOpenArtifact={previewSource}
         onApply={applyAction}
       />
       <ContentArchiveDialog
@@ -718,6 +725,13 @@ export function ContentIntelligencePanel() {
         onClose={() => setArchiveArtifact(null)}
         onApply={applyAction}
       />
+      {previewArtifact ? (
+        <ContentArtifactPreviewDrawer
+          key={previewArtifact.sourceId ?? previewArtifact.id}
+          artifact={previewArtifact}
+          onClose={() => setPreviewArtifact(null)}
+        />
+      ) : null}
     </div>
   );
 }

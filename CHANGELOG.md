@@ -9,6 +9,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ### Added
 - **Actionable Content Intelligence (Phase 6.1)**:
   - Added Content Map-specific CSV exports for the inventory and complete bounded intelligence snapshot; the unrelated Analytics CSV/date controls no longer appear on the Content Map route.
+  - Added an accessible Base UI right-side draft preview drawer across inventory and intelligence source actions. Draft text is fetched from the existing tenant-scoped History endpoint only after a member requests a preview; the drawer retains an explicit option to continue in the full Workspace.
   - Added source-draft navigation, article comparison, distinct-angle editing, canonical selection, manual-consolidation confirmation, archive, and attributable "not cannibalization" feedback actions.
   - Added migration `20260730090000_add_content_intelligence_actions` for canonical artifact relationships and tenant-scoped decision history. It was applied to the production Neon database on July 30, 2026; Prisma confirmed all 30 migrations are up to date. Consolidation/archive actions only update the Content Memory registry and never delete source drafts or CMS pages.
   - Content Map presentation now prioritizes publication titles, working titles, and article H1 metadata; prompt instructions and editorial-review/export status sentences are rejected as article titles. Legacy display repair is request-time and contaminated vectors are ignored until refreshed.

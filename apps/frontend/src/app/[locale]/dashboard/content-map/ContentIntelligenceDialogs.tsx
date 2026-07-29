@@ -81,7 +81,7 @@ function ArtifactComparisonCard({
           disabled={!artifact.sourceHref}
           onClick={onOpen}
         >
-          {t('actions.openDraft')}
+          {t('actions.preview')}
         </Button>
         <Button
           type="button"
