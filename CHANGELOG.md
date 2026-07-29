@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.18.0] - 2026-07-29
+
 ### Added
 - **Per-Function Runtime AI Configuration**:
   - Expanded the internal Admin Console AI configuration from one workspace-wide provider/model override to a versioned default plus independent overrides for Strategist Fast Chat, Search Chat, Greeting, Data Analysis, Blueprint, Deep Research, Quick Draft, Draft from Notes, and the Analyze Review, Rewrite, Refine, SEO, Quality Gate, and Targeted Fix stages.

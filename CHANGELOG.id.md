@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.18.0] - 2026-07-29
+
 ### Added
 - **Konfigurasi Runtime AI per Fungsi**:
   - Memperluas konfigurasi AI di Admin Console internal dari satu override provider/model untuk seluruh workspace menjadi default berversi serta override terpisah untuk Strategist Fast Chat, Search Chat, Greeting, Data Analysis, Blueprint, Deep Research, Quick Draft, Draft from Notes, dan tahap Analyze Review, Rewrite, Refine, SEO, Quality Gate, serta Targeted Fix.
