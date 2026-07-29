@@ -102,6 +102,7 @@ export type ChatMessage = {
   payload?: {
     status?: string;
     lifecycle?: AssistantLifecycle;
+    isContentAnimating?: boolean;
     thinking?: {
       kind: StrategistThinkingKind;
       content: string;
@@ -210,11 +211,20 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     mode: StrategistTypewriterMode = 'replace'
   ) => {
     strategistTypewriterRef.current?.drop(`${messageId}:thinking`);
+    setMessages(prev => prev.map(message => message.id === messageId
+      ? {
+          ...message,
+          payload: {
+            ...message.payload,
+            isContentAnimating: true,
+          },
+        }
+      : message));
     strategistTypewriterRef.current?.enqueue(
       `${messageId}:content`,
       content,
       mode,
-      (animatedText) => {
+      (animatedText, complete) => {
         setMessages(prev => prev.map(message => message.id === messageId
           ? {
               ...message,
@@ -222,8 +232,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
               payload: {
                 ...message.payload,
                 status: undefined,
-                suggestions:
-                  suggestions || message.payload?.suggestions,
+                isContentAnimating: !complete,
+                ...(complete && suggestions !== undefined
+                  ? { suggestions }
+                  : {}),
               },
             }
           : message));
@@ -1050,7 +1062,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         setMessages(prev => prev.flatMap(m => {
           if (m.id !== assistantMsgId) return [m];
           return m.content.trim()
-            ? [{ ...m, payload: { ...m.payload, status: undefined, lifecycle: 'cancelled' } }]
+            ? [{ ...m, payload: { ...m.payload, status: undefined, lifecycle: 'cancelled', isContentAnimating: false } }]
             : [];
         }));
         return;
@@ -1089,7 +1101,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         setMessages(prev => prev.flatMap(m => {
           if (m.id !== assistantMsgId) return [m];
           return m.content.trim()
-            ? [{ ...m, payload: { ...m.payload, status: undefined, lifecycle: 'cancelled' } }]
+            ? [{ ...m, payload: { ...m.payload, status: undefined, lifecycle: 'cancelled', isContentAnimating: false } }]
             : [];
         }));
         return;
@@ -1142,7 +1154,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         ? {
             ...m,
             content: m.content.trim() || message,
-            payload: { ...m.payload, status: undefined, lifecycle: 'error' },
+            payload: { ...m.payload, status: undefined, lifecycle: 'error', isContentAnimating: false },
           }
         : m));
     } finally {
@@ -1586,7 +1598,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         setMessages(prev => prev.flatMap(m => {
           if (m.id !== assistantMsgId) return [m];
           return m.content.trim()
-            ? [{ ...m, payload: { ...m.payload, status: undefined, lifecycle: 'cancelled' } }]
+            ? [{ ...m, payload: { ...m.payload, status: undefined, lifecycle: 'cancelled', isContentAnimating: false } }]
             : [];
         }));
         return;
@@ -1625,7 +1637,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         setMessages(prev => prev.flatMap(m => {
           if (m.id !== assistantMsgId) return [m];
           return m.content.trim()
-            ? [{ ...m, payload: { ...m.payload, status: undefined, lifecycle: 'cancelled' } }]
+            ? [{ ...m, payload: { ...m.payload, status: undefined, lifecycle: 'cancelled', isContentAnimating: false } }]
             : [];
         }));
         return;
@@ -1679,7 +1691,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         ? {
             ...item,
             content: item.content.trim() || message,
-            payload: { ...item.payload, status: undefined, lifecycle: 'error' },
+            payload: { ...item.payload, status: undefined, lifecycle: 'error', isContentAnimating: false },
           }
         : item));
     } finally {

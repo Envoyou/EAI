@@ -100,9 +100,12 @@ describe('composite Button cascade contracts', () => {
     expect(workspace).not.toContain('workspace-analysis-mode-option');
   });
 
-  it('removes Strategist important modifiers while preserving compact responsive actions', () => {
+  it('preserves compact Strategist actions and synchronizes their reveal', () => {
     const messages = readSource(
       '../strategist-tab/components/ChatMessageList.tsx'
+    );
+    const strategistHook = readSource(
+      '../../lib/hooks/useContentStrategist.ts'
     );
     const input = readSource(
       '../strategist-tab/components/ChatInputBar.tsx'
@@ -116,6 +119,12 @@ describe('composite Button cascade contracts', () => {
     expect(messages).toContain('whitespace-normal break-words');
     expect(messages).toContain('Source [{msg.payload.sources.length}]');
     expect(messages).toContain('expandedSources[msg.id] &&');
+    expect(messages).toContain("msg.payload?.lifecycle !== 'pending'");
+    expect(messages).toContain('!msg.payload?.isContentAnimating');
+    expect(messages).toContain('showMessageSupport && finalSuggestions');
+    expect(messages.match(/showMessageSupport &&/g)).toHaveLength(3);
+    expect(strategistHook).toContain('isContentAnimating: true');
+    expect(strategistHook).toContain('isContentAnimating: !complete');
     expect(messages).not.toContain('.slice(');
     expect(input).toContain('strategist-mode-select');
     expect(input).not.toContain('!rounded-full');

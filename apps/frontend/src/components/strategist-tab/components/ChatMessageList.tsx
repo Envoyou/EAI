@@ -265,6 +265,9 @@ function ChatMessageRow({
             msg.payload?.suggestions || parsedSuggestions || [];
 
           const normalizedContent = normalizeStrategistMarkdown(displayContent);
+          const showMessageSupport =
+            msg.payload?.lifecycle !== 'pending' &&
+            !msg.payload?.isContentAnimating;
 
           return (
             <div className="flex min-w-0 w-full justify-start">
@@ -428,7 +431,8 @@ function ChatMessageRow({
                     </div>
 
                     {/* Search Sources/Citations */}
-                    {msg.payload?.sources &&
+                    {showMessageSupport &&
+                      msg.payload?.sources &&
                       msg.payload.sources.length > 0 && (
                         <div className="mt-2.5 text-[10px] animate-fade-in">
                           <Button
@@ -463,7 +467,8 @@ function ChatMessageRow({
                       )}
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2 mt-2">
+                    {showMessageSupport && (
+                      <div className="flex items-center gap-2 mt-2">
                       <Tooltip>
                         <TooltipTrigger
                           render={
@@ -567,10 +572,11 @@ function ChatMessageRow({
                           Rewrite
                         </TooltipContent>
                       </Tooltip>
-                    </div>
+                      </div>
+                    )}
 
                     {/* Suggestions */}
-                    {finalSuggestions.length > 0 && (
+                    {showMessageSupport && finalSuggestions.length > 0 && (
                       <div className="flex min-w-0 w-full max-w-xl flex-col items-start gap-1.5 mt-3 pt-2.5 border-t border-[var(--border)]/20">
                         <span className="text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-0.5 select-none">
                           {t('suggestedActions')}
