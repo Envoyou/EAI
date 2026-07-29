@@ -44,7 +44,7 @@ describe('Deep Research report workspace contract', () => {
     expect(hook).toContain('extractedText: deepResearchFollowUpContent.slice(0, 250_000)');
   });
 
-  it('applies report-card hover color to the full card surface', () => {
+  it('applies the shared artifact-card hover color to the full surface', () => {
     const reportTab = readSource(
       '../strategist-tab/components/DeepResearchReportTab.tsx'
     );
@@ -55,12 +55,12 @@ describe('Deep Research report workspace contract', () => {
     expect(reportTab).toContain(
       'transition-colors hover:bg-[var(--surface-2)]'
     );
-    expect(reportTab).toContain('strategist-report-card-action');
+    expect(reportTab).toContain('strategist-artifact-card-action');
     expect(strategistStyles).toContain(
-      '.strategist-report-card-action.ui-btn-muted:hover:not(:disabled)'
+      '.strategist-artifact-card-action.ui-btn-muted:hover:not(:disabled)'
     );
     expect(strategistStyles).not.toMatch(
-      /\.strategist-report-card-action[\s\S]*?!important/
+      /\.strategist-artifact-card-action[\s\S]*?!important/
     );
   });
 });

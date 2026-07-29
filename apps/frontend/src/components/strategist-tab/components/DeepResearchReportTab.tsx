@@ -9,7 +9,6 @@ import {
   Download,
   FileSearch,
   MessageSquareText,
-  Trash2,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
@@ -18,6 +17,7 @@ import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DeleteActionIcon } from '@/components/ui/icons/actions';
 import {
   Tooltip,
   TooltipContent,
@@ -144,13 +144,13 @@ export function DeepResearchReportTab({
             {reports.map((report, index) => (
               <div
                 key={report.id}
-                className="group flex items-stretch overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--background)] shadow-sm transition-colors hover:bg-[var(--surface-2)]"
+                className="strategist-artifact-card group flex items-stretch overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--background)] shadow-sm transition-colors hover:bg-[var(--surface-2)]"
               >
                 <Button
                   type="button"
                   onClick={() => setSelectedReportId(report.id)}
                   variant="muted"
-                  className="strategist-report-card-action h-auto min-w-0 flex-1 justify-start px-3 py-3 text-left"
+                  className="strategist-artifact-card-action h-auto min-w-0 flex-1 justify-start px-3 py-3 text-left"
                 >
                   <span className="min-w-0">
                     <span className="flex items-center gap-2">
@@ -177,10 +177,10 @@ export function DeepResearchReportTab({
                         onClick={() => deleteReport(report)}
                         variant="muted"
                         size="icon-sm"
-                        className="strategist-report-card-action strategist-report-card-delete h-auto shrink-0 border-l border-[var(--border)]"
+                        className="strategist-artifact-card-action strategist-artifact-card-delete h-auto shrink-0 border-l border-[var(--border)]"
                         aria-label={t('delete')}
                       >
-                        <Trash2 className="size-3.5" />
+                        <DeleteActionIcon className="size-3.5" />
                       </Button>
                     }
                   />
@@ -277,7 +277,7 @@ export function DeepResearchReportTab({
                     className="strategist-report-toolbar-delete"
                     aria-label={t('delete')}
                   >
-                    <Trash2 className="size-3.5" />
+                    <DeleteActionIcon className="size-3.5" />
                   </Button>
                 }
               />

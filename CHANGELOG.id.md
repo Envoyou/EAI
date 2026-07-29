@@ -25,10 +25,16 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Indikator Loading Frontend dengan Identitas EAI**:
   - Mengganti Lucide `Loader2` pada 55 titik render loading di 28 modul frontend—mencakup halaman, panel, tombol, status pembayaran, dan notifikasi Sonner—dengan `EAILoaderLogo` bersama melalui token semantik `EAILoaderStatusIcon`.
   - Mengarahkan alias kompatibilitas `LoadingStatusIcon` ke loader beridentitas EAI yang sama serta menghapus kelas `animate-spin` di sisi consumer karena animasi kini dimiliki komponen bersama.
+- **Konsistensi Kartu Artefak Tersimpan Strategist**:
+  - Menyelaraskan kartu ringkasan Notes dan Deep Report pada kontrak surface, spacing, hover, aksi hapus tersegmentasi, dan ikon semantik yang sama dengan tetap mempertahankan workflow masing-masing: Notes tetap berupa accordion inline dan Deep Report tetap dibuka melalui reader khusus.
+  - Mengganti container Notes yang dapat diklik dengan trigger Button aksesibel menggunakan `aria-expanded` dan `aria-controls`, serta mempertahankan checkbox pemilihan draft sebagai kontrol sibling terpisah.
 
 ### Fixed
 - **Kemunculan Bertahap Thinking dan Jawaban Strategist**:
   - Menambahkan antrean typewriter adaptif bersama untuk reasoning Strategist, ringkasan grounding Search, teks stream, dan respons final pengganti, dengan pembatalan yang aman terhadap lifecycle, pergantian sesi, serta dukungan `prefers-reduced-motion`.
+- **Sinkronisasi Footer Respons Strategist dan Kontras Separator**:
+  - Menunda kemunculan source, aksi pesan, serta tombol saran tindak lanjut sampai stream respons dan animasi kemunculan teks sama-sama selesai, sehingga kontrol footer tidak lagi muncul mendahului jawaban.
+  - Meredupkan garis horizontal Markdown di dalam respons chat Strategist agar separator tetap menjadi elemen pendukung dan tidak lebih menonjol daripada konten.
 - **Guard Grounding Gemini yang Tidak Ambigu**:
   - Mengganti nama kill switch global Search/Deep Research dari `GEMINI_DISABLE_GROUNDING_FOR_TESTS` menjadi `GEMINI_DISABLE_GROUNDING`, memperjelas bahwa flag ini terpisah dari mock chat dan berlaku di setiap environment, serta menyelaraskan pemilihan model Strategist, mode thinking, diagnostic, dan pemotongan kredit dengan status Search yang benar-benar aktif.
 - **Notifikasi Gagal Palsu dan Duplikasi Generate Blueprint**:

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Square, X, ChevronDown, ChevronUp, Notebook, Wand2 } from 'lucide-react';
+import { Square, Notebook, Wand2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -11,6 +11,11 @@ import type { ResearchNote, Attachment } from '@/lib/hooks/useContentStrategist'
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DeleteActionIcon } from '@/components/ui/icons/actions';
+import {
+  CollapseNavigationIcon,
+  ExpandNavigationIcon,
+} from '@/components/ui/icons/navigation';
 
 interface NotesTabProps {
   researchNotes: ResearchNote[];
@@ -119,58 +124,80 @@ export default function NotesTab({
           })();
 
           return (
-            <div key={note.id} className="relative bg-background border rounded-lg p-2.5 group shadow-sm hover:shadow-md hover:bg-[var(--surface-2)]/60 transition-all">
-              {/* Delete button */}
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        const updated = researchNotes.filter(n => n.id !== note.id);
-                        onNotesChange(updated);
-                        if (expandedNoteId === note.id) setExpandedNoteId(null);
-                        toast.success('Note deleted');
-                      }}
-                      variant="muted"
-                      size="icon-xs"
-                      className="strategist-note-delete-action absolute right-2 top-2 p-1 opacity-80 transition-all md:opacity-0 md:group-hover:opacity-100"
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
-                  }
-                />
-                <TooltipContent>Delete note</TooltipContent>
-              </Tooltip>
-
-              {/* Note header */}
-              <div 
-                onClick={() => setExpandedNoteId(isExpanded ? null : note.id)}
-                className="flex items-center gap-1.5 pr-5 cursor-pointer select-none"
-              >
+            <div
+              key={note.id}
+              className="strategist-artifact-card group overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--background)] shadow-sm transition-colors hover:bg-[var(--surface-2)]"
+            >
+              <div className="flex items-stretch">
                 {onGenerateDraft && (
-                  <Checkbox
-                    checked={!unselectedNoteIds.includes(note.id)}
-                    onClick={(e) => e.stopPropagation()}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setUnselectedNoteIds(prev => prev.filter(id => id !== note.id));
-                      } else {
-                        setUnselectedNoteIds(prev => [...prev, note.id]);
-                      }
-                    }}
-                    className="size-3"
-                    aria-label={`Include note ${idx + 1} in draft generation`}
-                  />
+                  <div className="flex shrink-0 items-center border-r border-[var(--border)] px-2.5">
+                    <Checkbox
+                      checked={!unselectedNoteIds.includes(note.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setUnselectedNoteIds(prev => prev.filter(id => id !== note.id));
+                        } else {
+                          setUnselectedNoteIds(prev => [...prev, note.id]);
+                        }
+                      }}
+                      className="size-3"
+                      aria-label={`Include note ${idx + 1} in draft generation`}
+                    />
+                  </div>
                 )}
-                <div className="flex min-w-0 flex-1 items-center gap-1.5 px-1 py-0.5 rounded">
-                  <span className="text-[10px] font-semibold text-[var(--primary)] uppercase tracking-wider">Note {idx + 1}</span>
-                  {note.sources.length > 0 && (
-                    <span className="text-[10px] text-[var(--muted-foreground)]">· {note.sources.length} src</span>
+
+                <Button
+                  type="button"
+                  onClick={() => setExpandedNoteId(isExpanded ? null : note.id)}
+                  variant="muted"
+                  className="strategist-artifact-card-action h-auto min-w-0 flex-1 justify-start gap-2 px-3 py-3 text-left"
+                  aria-expanded={isExpanded}
+                  aria-controls={`research-note-content-${note.id}`}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-xs font-semibold text-[var(--foreground)]">
+                        Note {idx + 1}
+                      </span>
+                      {note.sources.length > 0 && (
+                        <Badge variant="surface" size="xs" className="shrink-0">
+                          {note.sources.length} src
+                        </Badge>
+                      )}
+                    </span>
+                    <span className="mt-1 block text-[10px] text-[var(--muted-foreground)]">
+                      {relativeTime}
+                    </span>
+                  </span>
+                  {isExpanded ? (
+                    <ExpandNavigationIcon className="size-3.5 text-[var(--muted-foreground)]" />
+                  ) : (
+                    <CollapseNavigationIcon className="size-3.5 text-[var(--muted-foreground)]" />
                   )}
-                  <span className="text-[10px] text-[var(--muted-foreground)] ml-auto">{relativeTime}</span>
-                  {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[var(--muted-foreground)] shrink-0" />}
-                </div>
+                </Button>
+
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          const updated = researchNotes.filter(n => n.id !== note.id);
+                          onNotesChange(updated);
+                          if (expandedNoteId === note.id) setExpandedNoteId(null);
+                          toast.success('Note deleted');
+                        }}
+                        variant="muted"
+                        size="icon-sm"
+                        className="strategist-artifact-card-action strategist-artifact-card-delete h-auto shrink-0 border-l border-[var(--border)]"
+                        aria-label={`Delete note ${idx + 1}`}
+                      >
+                        <DeleteActionIcon className="size-3.5" />
+                      </Button>
+                    }
+                  />
+                  <TooltipContent side="left">Delete note</TooltipContent>
+                </Tooltip>
               </div>
 
               <AnimatePresence>
@@ -180,9 +207,10 @@ export default function NotesTab({
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2, ease: 'easeInOut' }}
-                    className="overflow-hidden"
+                    id={`research-note-content-${note.id}`}
+                    className="overflow-hidden border-t border-[var(--border)] bg-[var(--background)]"
                   >
-                    <div className="pt-2 pb-1">
+                    <div className="p-3">
                       <div className="prose dark:prose-invert strategist-prose max-w-none text-[var(--foreground)] mb-2">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {note.content}

@@ -25,10 +25,16 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Branded Frontend Loading Indicators**:
   - Replaced Lucide `Loader2` across 55 loading render sites in 28 frontend modules—including pages, panels, buttons, payment status, and Sonner notifications—with the shared `EAILoaderLogo` through the semantic `EAILoaderStatusIcon`.
   - Redirected the compatibility alias `LoadingStatusIcon` to the same branded loader and removed consumer-level `animate-spin` classes because the shared component owns its animation.
+- **Consistent Strategist Saved-Artifact Cards**:
+  - Aligned the Notes and Deep Report summary cards around the same surface, spacing, hover, segmented delete action, and semantic icon contract while preserving their distinct workflows: Notes remain inline accordions and Deep Reports continue to open in the dedicated reader.
+  - Replaced the clickable Notes container with an accessible Button trigger using `aria-expanded` and `aria-controls`, and kept its draft-selection checkbox as a separate sibling control.
 
 ### Fixed
 - **Progressive Strategist Thinking and Answer Reveal**:
   - Added a shared adaptive typewriter queue for Strategist reasoning, Search grounding summaries, streamed text, and final replacement responses, with lifecycle-safe cancellation, session switching, and `prefers-reduced-motion` support.
+- **Strategist Response Footer Synchronization and Separator Contrast**:
+  - Delayed sources, message actions, and suggested follow-up buttons until both the response stream and progressive text reveal are complete, preventing the footer controls from appearing ahead of the answer.
+  - Reduced the visual intensity of Markdown horizontal rules inside Strategist chat responses so separators remain subordinate to the content.
 - **Unambiguous Gemini Grounding Guard**:
   - Renamed the global Search/Deep Research kill switch from `GEMINI_DISABLE_GROUNDING_FOR_TESTS` to `GEMINI_DISABLE_GROUNDING`, clarified that it is independent of mock chat and applies in every environment, and aligned Strategist model routing, thinking mode, diagnostics, and credit charging with whether Search is actually enabled.
 - **False Blueprint Failure and Duplicate Generation**:

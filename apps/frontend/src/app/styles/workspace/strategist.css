@@ -103,17 +103,12 @@
   }
 }
 
-.strategist-panel-icon-action.ui-btn-muted:hover:not(:disabled),
-.strategist-note-delete-action.ui-btn-muted:hover:not(:disabled) {
+.strategist-panel-icon-action.ui-btn-muted:hover:not(:disabled) {
   background: var(--surface-2);
   color: var(--foreground);
 }
 
 .strategist-session-menu-trigger.ui-btn-muted {
-  border-radius: var(--radius-xs);
-}
-
-.strategist-note-delete-action.ui-btn-muted {
   border-radius: var(--radius-xs);
 }
 
@@ -132,22 +127,22 @@
 }
 
 /*
- * Report list cards own their hover surface as one unit. These domain selectors
- * intentionally neutralize the muted Button primitive's pill hover only inside
- * this composite control; no global primitive behavior is changed.
+ * Saved artifact cards own their hover surface as one unit. These domain
+ * selectors intentionally neutralize the muted Button primitive's pill hover
+ * only inside Notes and Deep Report summary rows.
  */
-.strategist-report-card-action.ui-btn-muted,
-.strategist-report-card-action.ui-btn-muted:hover:not(:disabled) {
+.strategist-artifact-card-action.ui-btn-muted,
+.strategist-artifact-card-action.ui-btn-muted:hover:not(:disabled) {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
 }
 
-.strategist-report-card-delete.ui-btn-muted {
+.strategist-artifact-card-delete.ui-btn-muted {
   color: var(--muted-foreground);
 }
 
-.strategist-report-card-delete.ui-btn-muted:hover:not(:disabled) {
+.strategist-artifact-card-delete.ui-btn-muted:hover:not(:disabled) {
   color: var(--error);
 }
 

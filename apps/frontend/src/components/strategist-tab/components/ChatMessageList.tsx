@@ -348,7 +348,7 @@ function ChatMessageRow({
                   <>
                     <div
                       className="
-                        prose dark:prose-invert strategist-prose
+                        prose dark:prose-invert strategist-prose strategist-chat-prose
                         w-full min-w-0 max-w-full
                         text-[var(--foreground)] text-xs
                         break-words [overflow-wrap:anywhere]

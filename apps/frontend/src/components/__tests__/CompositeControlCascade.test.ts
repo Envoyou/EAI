@@ -10,6 +10,7 @@ describe('composite Button cascade contracts', () => {
   const strategistStyles = readSource(
     '../../app/styles/workspace/strategist.css'
   );
+  const proseStyles = readSource('../../app/styles/prose.css');
   const feedbackStyles = readSource(
     '../../app/styles/components/feedback.css'
   );
@@ -29,6 +30,9 @@ describe('composite Button cascade contracts', () => {
   it('keeps Copilot tabs and Notes actions responsive without important overrides', () => {
     const copilot = readSource('../AICopilotPanel.tsx');
     const notes = readSource('../NotesTab.tsx');
+    const reports = readSource(
+      '../strategist-tab/components/DeepResearchReportTab.tsx'
+    );
     const sessions = readSource(
       '../strategist-tab/components/SessionSidebar.tsx'
     );
@@ -37,7 +41,13 @@ describe('composite Button cascade contracts', () => {
     expect(copilot).toContain('strategist-copilot-tab-label');
     expect(copilot).toContain('aria-selected={activeTab === tab.key}');
     expect(notes).toContain('strategist-notes-clear-action');
-    expect(notes).toContain('strategist-note-delete-action');
+    expect(notes).toContain('strategist-artifact-card');
+    expect(reports).toContain('strategist-artifact-card');
+    expect(notes).toContain('aria-expanded={isExpanded}');
+    expect(notes).toContain('aria-controls={`research-note-content-${note.id}`}');
+    expect(notes).toContain('<DeleteActionIcon');
+    expect(reports).toContain('<DeleteActionIcon');
+    expect(notes).not.toContain('strategist-note-delete-action');
     expect(sessions).toContain('strategist-session-menu-trigger');
     expect(sessions).toContain('<AdaptiveActionMenu');
     expect(sessions).toContain('aria-label={`Actions for ${s.title}`}');
@@ -50,6 +60,13 @@ describe('composite Button cascade contracts', () => {
     expect(strategistStyles).toContain(
       '.strategist-copilot-tab.ui-btn-muted[aria-selected="true"]::after'
     );
+    expect(strategistStyles).toContain(
+      '.strategist-artifact-card-action.ui-btn-muted'
+    );
+    expect(strategistStyles).toContain(
+      '.strategist-artifact-card-delete.ui-btn-muted:hover:not(:disabled)'
+    );
+    expect(strategistStyles).not.toContain('.strategist-report-card-action');
     expect(strategistStyles).toContain('height: 1px');
     expect(copilot).not.toContain('strategist-copilot-tab -mb-px');
     expect(strategistStyles).toContain('@media (min-width: 769px)');
@@ -115,6 +132,7 @@ describe('composite Button cascade contracts', () => {
     expect(messages).toContain('strategist-transcript-item');
     expect(messages).toContain('strategist-sources-toggle');
     expect(messages).toContain('strategist-suggestion-action');
+    expect(messages).toContain('strategist-chat-prose');
     expect(messages).not.toContain('!rounded-lg');
     expect(messages).toContain('whitespace-normal break-words');
     expect(messages).toContain('Source [{msg.payload.sources.length}]');
@@ -131,6 +149,11 @@ describe('composite Button cascade contracts', () => {
     expect(strategistStyles).toContain(
       '.strategist-suggestion-action.ui-btn-surface:hover:not(:disabled)'
     );
+    expect(proseStyles).toContain(
+      '.strategist-chat-prose :where(hr):not(:where([class~="not-prose"] *))'
+    );
+    expect(proseStyles).toContain('border-color: var(--border-subtle)');
+    expect(proseStyles).toContain('opacity: 0.6');
     expect(strategistStyles).toContain(
       '[data-slot="select-trigger"].strategist-mode-select[data-size="sm"]'
     );
