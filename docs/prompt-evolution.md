@@ -212,3 +212,22 @@ Dalam masa pengembangan awal, ditemukan beberapa kendala pada respon model AI. B
     4.  Memperjelas kebijakan visual: prosa tetap default, koleksi singkat memakai list/tabel, dan Mermaid hanya untuk relasi yang benar-benar memerlukan diagram serta didukung sumber.
     5.  Menormalisasi hierarki Markdown di luar fenced code sehingga heading body pertama selalu H2 dan loncatan level dipromosikan secara aman.
     6.  Memvalidasi payload Strategist secara penuh serta mengekstrak bagian Draft ketika model mengembalikan Blueprint komposit.
+
+### T. Kontrak Actionability Feedback Final Quality Gate (Unreleased)
+*   **Kendala**: Schema Final Quality Gate sebelumnya mengizinkan `suggestion`,
+    `targetText`, dan `replacementText` semuanya kosong. Output tersebut tetap
+    valid secara struktur, tetapi Editorial Preview tidak dapat menawarkan
+    Apply, Rewrite with EAI, Copy Suggestion, ataupun keputusan editorial.
+*   **Solusi**:
+    1.  Menjadikan `suggestion` wajib pada response contract Final Quality Gate
+        dan menormalisasi output provider lama/tidak lengkap dengan langkah
+        review manual yang aman.
+    2.  Memperjelas prompt agar setiap warning/failure menyatakan next action
+        serta menyertakan kutipan `targetText` yang persis untuk masalah
+        struktural bila memungkinkan.
+    3.  Menambahkan jalur refinement Final Draft terbatas untuk temuan tanpa
+        target teks. Jalur ini menggunakan message, suggestion, dan reason
+        finding, menjaga bagian lain, lalu tetap melewati Quality Gate tanpa
+        mengulang Full Analyze.
+    4.  Membatasi acceptance generik hanya pada warning non-faktual; temuan
+        source-risk dan failure blocking tetap memerlukan revisi atau verifikasi.

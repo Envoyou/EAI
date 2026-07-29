@@ -68,6 +68,8 @@ Readiness status:
 Output rules:
 - Reply ONLY with JSON.
 - Feedback must contain only specific, actionable corrections that a human editor or a refinement step can execute directly on the final draft.
+- Every feedback item must include a concise "suggestion" that states the editor's next action.
+- For structural issues, include a short exact "targetText" from the affected passage whenever one can be identified. If the issue spans multiple sections and no unique target is safe, use operation "manual" but still provide the required suggestion.
 - DO NOT give advice to the writer; the draft is already rewritten.
 - Use status "fail" only for issues serious enough to block CMS draft export.
 - DO NOT write internal markers such as "[Source verification recommended]" into the final article.
@@ -121,6 +123,7 @@ export class QualityGateExamplesNode implements PromptNode {
       "category": "Source Fidelity",
       "status": "warning",
       "message": "Verify and attribute the $500 billion market projection to a specific source.",
+      "suggestion": "Check the projection against a primary source, then add precise attribution or remove the unsupported figure.",
       "operation": "manual",
       "targetText": "The market projection for this integration now approaches $500 billion",
       "reason": "The rewrite improves claim precision but does not establish the source or scope of the projection.",

@@ -50,7 +50,7 @@ export const FINAL_QUALITY_GATE_OUTPUT_PROMPT_SCHEMA = `
     "status": "warning" | "fail",
     "verificationStatus"?: "source_backed" | "needs_citation" | "high_risk_factual_claim",
     "message": string,
-    "suggestion"?: string,
+    "suggestion": string,
     "operation": "replace" | "insert_before" | "insert_after" | "manual",
     "targetField"?: "body" | "publication.title" | "publication.slug" | "publication.excerpt" | "publication.metaTitle" | "publication.metaDescription" | "publication.coverImageAlt" | "publication.tags",
     "targetText"?: string,
@@ -133,6 +133,10 @@ const QualityResponseFeedbackItemSchema = FeedbackItemSchema.extend({
   status: z.enum(['warning', 'fail']),
 });
 
+const FinalQualityGateFeedbackItemSchema = QualityResponseFeedbackItemSchema.extend({
+  suggestion: z.string().min(1).describe('Concrete next action an editor can take to resolve or review this remaining final-draft issue.'),
+});
+
 export const PolishDiagnosisResponseSchema = z.object({
   summary: z.string().max(280).describe('Neutral transformation direction for rewriting the raw draft.'),
   feedback: z.array(QualityResponseFeedbackItemSchema).max(3).describe('Top rewrite priorities or factual protections for the polishing stage.'),
@@ -158,7 +162,7 @@ export type FinalQualityGateOutput = z.infer<typeof FinalQualityGateSchema>;
 
 export const FinalQualityGateResponseSchema = FinalQualityGateSchema.extend({
   changes: z.array(z.string().min(1).max(180)).min(1).max(5).describe('One to five concrete improvements made from source draft to final draft.'),
-  feedback: z.array(QualityResponseFeedbackItemSchema).max(5).describe('Remaining actionable warning/fail checks on the final draft only. Do not include pass items or duplicates.'),
+  feedback: z.array(FinalQualityGateFeedbackItemSchema).max(5).describe('Remaining actionable warning/fail checks on the final draft only. Do not include pass items or duplicates.'),
 });
 
 const truncateSchemaText = (value: string, maxLength: number) => {
@@ -175,7 +179,16 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
 const normalizeQualityGateFeedbackItem = (value: unknown) => {
-  if (isRecord(value)) return value;
+  if (isRecord(value)) {
+    const suggestion = typeof value.suggestion === 'string'
+      ? value.suggestion.trim()
+      : '';
+    return {
+      ...value,
+      suggestion: suggestion
+        || 'Review the affected passage in the final draft and correct this issue before export.',
+    };
+  }
   if (typeof value !== 'string' || value.trim().length === 0) return null;
 
   return {

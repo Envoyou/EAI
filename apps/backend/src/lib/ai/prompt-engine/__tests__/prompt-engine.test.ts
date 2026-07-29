@@ -137,6 +137,8 @@ describe('Prompt Engine unit tests', () => {
     expect(composedQuality.includes('You are the editorial quality gate for TestBrand')).toBe(true);
     expect(composedQuality.includes('<output_format_contract>')).toBe(true);
     expect(composedQuality.includes('<temporal_context_rules>')).toBe(true);
+    expect(composedQuality.includes('Every feedback item must include a concise "suggestion"')).toBe(true);
+    expect(composedQuality.includes('For structural issues, include a short exact "targetText"')).toBe(true);
   });
 
   it('StrategistPromptComposer generation', () => {

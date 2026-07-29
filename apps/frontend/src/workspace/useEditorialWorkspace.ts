@@ -961,6 +961,30 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   };
 
   const handleTargetedFix = async (index: number, actionType: 'remove' | 'fix') => {
+    const item = analysis.feedback?.[index];
+    if (
+      actionType === 'fix'
+      && item
+      && !item.targetText?.trim()
+      && isTargetedFixing === null
+    ) {
+      const instruction = [
+        'Resolve only this remaining editorial finding in the current final draft.',
+        `Finding: ${item.message}`,
+        item.suggestion ? `Required next action: ${item.suggestion}` : '',
+        item.reason ? `Editorial reason: ${item.reason}` : '',
+        'Preserve unrelated wording, facts, sources, structure, and publication intent.',
+      ].filter(Boolean).join('\n');
+
+      setIsTargetedFixing(index);
+      try {
+        await handleRefineAgain(instruction, analysis.polishedDraft, true);
+      } finally {
+        setIsTargetedFixing(null);
+      }
+      return;
+    }
+
     const ctx = {
       analysis,
       isTargetedFixing,

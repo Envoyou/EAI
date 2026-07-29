@@ -22,6 +22,13 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added Phase 6 Content Intelligence with bounded tenant-scoped topic clustering, cannibalization risks, evidence-backed content gaps, freshness/consolidation recommendations, and internal-link opportunities in the bilingual Content Map.
   - Content Intelligence analyzes at most the 300 most recently updated artifacts, uses cross-language semantic pairs when current vectors exist, falls back to collaboration-safe metadata, collapses lifecycle families for pair recommendations, and does not invoke an additional LLM. The snapshot is derived at request time and requires no database migration.
 
+### Fixed
+- **Actionable Editorial Preview Feedback**:
+  - Required every Final Quality Gate warning/failure to carry a concrete next-step suggestion and instructed the model to include exact structural target text whenever it can be identified safely.
+  - Normalized incomplete provider output with a manual-review suggestion so valid feedback can no longer render as a diagnosis-only card.
+  - Added `Revise with EAI` for findings without target text and `Accept as editorial decision` for non-factual warnings. Factual/source-risk and blocking findings remain non-accepting and must be revised or verified.
+  - Routed targetless EAI revisions through the current Final Draft refinement workflow and its Quality Gate, avoiding an unnecessary Full Analyze pass.
+
 ## [3.18.0] - 2026-07-29
 
 ### Added

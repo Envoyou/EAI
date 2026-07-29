@@ -137,7 +137,11 @@
     "pendingQualityCheck": "Menunggu Quality Check",
     "pendingQualityCheckDescription": "Draft berubah setelah temuan ini ditangani. Jalankan Quality Check untuk memvalidasi body yang telah direvisi.",
     "appliedPendingQualityCheck": "Diterapkan — jalankan Quality Check",
-    "acceptedPendingQualityCheck": "Diterima — jalankan Quality Check"
+    "acceptedPendingQualityCheck": "Diterima — jalankan Quality Check",
+    "copySuggestion": "Salin saran",
+    "acceptEditorialDecision": "Terima sebagai keputusan editorial",
+    "rewriteWithEAI": "Tulis ulang dengan EAI",
+    "reviseWithEAI": "Revisi dengan EAI"
   },
   "FeedbackWorkflow": {
     "appliedPendingQualityCheck": "Saran diterapkan. Jalankan Quality Check untuk memverifikasi draft yang telah direvisi.",

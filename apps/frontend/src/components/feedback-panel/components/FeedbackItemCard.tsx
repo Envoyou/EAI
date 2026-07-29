@@ -24,7 +24,11 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { Input } from '@/components/ui/input';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { canShowAutoApply } from '../utils';
+import {
+  canAcceptEditorialDecision,
+  canRequestEAIRevision,
+  canShowAutoApply,
+} from '../utils';
 
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
@@ -157,6 +161,9 @@ export function FeedbackItemCard({
   const isAccepted = item.isAccepted;
   const isVerified = item.isVerified;
   const isResolved = isApplied || isAccepted || isVerified || item.status === 'pass';
+  const showAcceptEditorialDecision =
+    canAcceptEditorialDecision(item) && Boolean(onAcceptFeedback);
+  const showEAIRevision = canRequestEAIRevision(item) && Boolean(onFixFeedbackWithEAI);
   const sourceDisplay = item.verifiedSource
     ? getSourceDisplay(item.verifiedSource)
     : null;
@@ -406,7 +413,7 @@ export function FeedbackItemCard({
               )}
 
               {/* Interactive Actions for Post-Polish Review Loop */}
-              {!isAccepted && !isVerified && (
+              {!isResolved && (
                 <div className="mt-3 pt-3 border-t border-[var(--border)]/50 flex flex-wrap gap-2">
                   {/* Manual or incomplete suggestions remain copy-only. */}
                   {!showApplyFeature &&
@@ -421,7 +428,7 @@ export function FeedbackItemCard({
                         variant="muted"
                         size="xs"
                       >
-                        <Copy className="w-3.5 h-3.5" /> Copy Suggestion
+                        <Copy className="w-3.5 h-3.5" /> {t('copySuggestion')}
                       </Button>
                     )}
 
@@ -476,6 +483,21 @@ export function FeedbackItemCard({
                     </Button>
                   )}
 
+                  {showAcceptEditorialDecision && (
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onAcceptFeedback) onAcceptFeedback(index);
+                      }}
+                      variant="muted"
+                      size="xs"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      {t('acceptEditorialDecision')}
+                    </Button>
+                  )}
+
                   {item.verificationStatus && (
                     <>
                       <Button
@@ -520,7 +542,7 @@ export function FeedbackItemCard({
                       </Button>
                     )}
 
-                  {targetText && (
+                  {showEAIRevision && (
                     <Button
                       type="button"
                       onClick={(e) => {
@@ -536,7 +558,7 @@ export function FeedbackItemCard({
                       ) : (
                         <Wand2 className="w-3.5 h-3.5" />
                       )}
-                      Rewrite with EAI
+                      {targetText ? t('rewriteWithEAI') : t('reviseWithEAI')}
                     </Button>
                   )}
                 </div>

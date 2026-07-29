@@ -22,6 +22,13 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan Content Intelligence Phase 6 berupa clustering topik tenant-scoped yang bounded, risiko kanibalisasi, content gap berbasis bukti, rekomendasi freshness/konsolidasi, dan peluang tautan internal pada Content Map bilingual.
   - Content Intelligence menganalisis maksimal 300 artefak yang paling baru diperbarui, memakai semantic pair lintas bahasa ketika vector terkini tersedia, melakukan fallback ke metadata yang aman untuk kolaborasi, menggabungkan lifecycle family untuk rekomendasi pasangan, dan tidak memanggil LLM tambahan. Snapshot dihitung sebagai derived data saat diminta sehingga tidak membutuhkan migrasi database.
 
+### Fixed
+- **Feedback Editorial Preview yang Selalu Dapat Ditindaklanjuti**:
+  - Mewajibkan setiap warning/failure Final Quality Gate membawa saran langkah berikutnya yang konkret dan menginstruksikan model agar menyertakan target teks struktural yang persis ketika dapat diidentifikasi dengan aman.
+  - Menormalisasi output provider yang tidak lengkap dengan saran review manual sehingga feedback valid tidak lagi tampil sebagai kartu diagnosis tanpa aksi.
+  - Menambahkan `Revisi dengan EAI` untuk temuan tanpa target teks dan `Terima sebagai keputusan editorial` untuk warning non-faktual. Temuan faktual/berisiko sumber dan temuan blocking tetap tidak dapat langsung diterima serta harus direvisi atau diverifikasi.
+  - Mengarahkan revisi EAI tanpa target melalui workflow refinement Final Draft saat ini beserta Quality Gate-nya, tanpa menjalankan Full Analyze yang tidak diperlukan.
+
 ## [3.18.0] - 2026-07-29
 
 ### Added

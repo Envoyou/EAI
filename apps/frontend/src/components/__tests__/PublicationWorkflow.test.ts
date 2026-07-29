@@ -81,4 +81,18 @@ describe('revision-safe publication workflow', () => {
     expect(feedbackCard).toContain("t('appliedPendingQualityCheck')");
     expect(feedbackCard).toContain("t('acceptedPendingQualityCheck')");
   });
+
+  it('keeps targetless quality findings actionable without requiring full Analyze', () => {
+    const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
+    const feedbackCard = readFrontendSource(
+      'components/feedback-panel/components/FeedbackItemCard.tsx'
+    );
+
+    expect(feedbackCard).toContain('showAcceptEditorialDecision');
+    expect(feedbackCard).toContain('showEAIRevision');
+    expect(feedbackCard).toContain("t('reviseWithEAI')");
+    expect(workspace).toContain("!item.targetText?.trim()");
+    expect(workspace).toContain('Resolve only this remaining editorial finding');
+    expect(workspace).toContain('await handleRefineAgain(instruction, analysis.polishedDraft, true)');
+  });
 });

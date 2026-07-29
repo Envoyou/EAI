@@ -25,6 +25,7 @@ describe('Final Quality Gate response normalization', () => {
         category: 'Editorial Review',
         status: 'warning',
         message: 'Verify the unsupported market-size claim.',
+        suggestion: 'Review this issue manually before export.',
         operation: 'manual',
       }),
     ]);
@@ -52,6 +53,9 @@ describe('Final Quality Gate response normalization', () => {
 
     expect(result.changes).toEqual(['Processed draft according to editorial brief.']);
     expect(result.feedback).toHaveLength(1);
+    expect(result.feedback[0]?.suggestion).toBe(
+      'Review the affected passage in the final draft and correct this issue before export.'
+    );
     expect(result.flags).toEqual(['Structure Review']);
   });
 });

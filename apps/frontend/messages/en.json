@@ -137,7 +137,11 @@
     "pendingQualityCheck": "Pending Quality Check",
     "pendingQualityCheckDescription": "The draft changed after this finding was handled. Run Quality Check to validate the revised body.",
     "appliedPendingQualityCheck": "Applied — run Quality Check",
-    "acceptedPendingQualityCheck": "Accepted — run Quality Check"
+    "acceptedPendingQualityCheck": "Accepted — run Quality Check",
+    "copySuggestion": "Copy suggestion",
+    "acceptEditorialDecision": "Accept as editorial decision",
+    "rewriteWithEAI": "Rewrite with EAI",
+    "reviseWithEAI": "Revise with EAI"
   },
   "FeedbackWorkflow": {
     "appliedPendingQualityCheck": "Suggestion applied. Run Quality Check to verify the revised draft.",

@@ -321,3 +321,24 @@ Untuk mengatasi kebingungan pengguna mengenai urutan konsumsi kredit dan riwayat
 
 Migrasi staging yang masih harus diterapkan ke production dicatat di
 [`PRODUCTION_DATABASE_MIGRATIONS.md`](./PRODUCTION_DATABASE_MIGRATIONS.md).
+
+## Editorial Preview Actionability Contract
+
+Final Quality Gate feedback is not complete when it only describes a problem.
+Every remaining `warning` or `fail` must include a concrete `suggestion`.
+Structural findings should additionally carry a short exact `targetText` when
+the affected passage can be identified safely.
+
+The frontend selects the narrowest safe action:
+
+- complete target/replacement operations expose direct Apply;
+- findings with target text expose targeted Rewrite with EAI;
+- findings without target text expose a constrained Final Draft refinement
+  using the finding message, suggestion, and reason;
+- non-factual warnings may be accepted as an explicit editorial decision;
+- factual/source-risk warnings and all blocking failures cannot be accepted
+  without revision or verification.
+
+Any body-changing resolution returns to Quality Check semantics. It does not
+require Full Analyze, and export remains guarded by current readiness,
+publication metadata, and saved-body consistency.
