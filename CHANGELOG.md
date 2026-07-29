@@ -32,6 +32,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ### Fixed
 - **Progressive Strategist Thinking and Answer Reveal**:
   - Added a shared adaptive typewriter queue for Strategist reasoning, Search grounding summaries, streamed text, and final replacement responses, with lifecycle-safe cancellation, session switching, and `prefers-reduced-motion` support.
+  - Rendered progressive reasoning and grounding lines through bounded Markdown/GFM components so headings, emphasis, lists, quotes, inline code, and links no longer appear as raw Markdown syntax in Strategist chat.
 - **Strategist Response Footer Synchronization and Separator Contrast**:
   - Delayed sources, message actions, and suggested follow-up buttons until both the response stream and progressive text reveal are complete, preventing the footer controls from appearing ahead of the answer.
   - Reduced the visual intensity of Markdown horizontal rules inside Strategist chat responses so separators remain subordinate to the content.

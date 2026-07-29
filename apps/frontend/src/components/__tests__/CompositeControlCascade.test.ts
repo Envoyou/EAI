@@ -133,16 +133,18 @@ describe('composite Button cascade contracts', () => {
     expect(messages).toContain('strategist-sources-toggle');
     expect(messages).toContain('strategist-suggestion-action');
     expect(messages).toContain('strategist-chat-prose');
+    expect(messages).toContain('strategist-thinking-markdown');
     expect(messages).not.toContain('!rounded-lg');
     expect(messages).toContain('whitespace-normal break-words');
     expect(messages).toContain('Source [{msg.payload.sources.length}]');
     expect(messages).toContain('expandedSources[msg.id] &&');
-    expect(messages).toContain("msg.payload?.lifecycle !== 'pending'");
-    expect(messages).toContain('!msg.payload?.isContentAnimating');
+    expect(messages).toContain(
+      'shouldShowStrategistMessageSupport(msg.payload)'
+    );
     expect(messages).toContain('showMessageSupport && finalSuggestions');
     expect(messages.match(/showMessageSupport &&/g)).toHaveLength(3);
-    expect(strategistHook).toContain('isContentAnimating: true');
-    expect(strategistHook).toContain('isContentAnimating: !complete');
+    expect(strategistHook).toContain('beginStrategistContentAnimation()');
+    expect(strategistHook).toContain('completeStrategistStream(assistantMsgId)');
     expect(messages).not.toContain('.slice(');
     expect(input).toContain('strategist-mode-select');
     expect(input).not.toContain('!rounded-full');

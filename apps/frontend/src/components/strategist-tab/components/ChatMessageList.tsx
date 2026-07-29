@@ -3,7 +3,7 @@
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   Globe,
@@ -14,7 +14,10 @@ import {
   List,
 } from 'lucide-react';
 import { EAILogo } from '@/components/EAILogo';
-import { shouldShowAssistantSpinner } from '@/lib/strategist-stream';
+import {
+  shouldShowAssistantSpinner,
+  shouldShowStrategistMessageSupport,
+} from '@/lib/strategist-stream';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { extractDynamicSuggestions, normalizeStrategistMarkdown } from '@/lib/strategist-utils';
 import type { ChatMessage } from '@/lib/hooks/useContentStrategist';
@@ -30,6 +33,43 @@ import {
   useMessageScrollerVisibility,
   useMessageScrollerScrollable,
 } from '@/components/ui/message-scroller';
+
+const strategistThinkingMarkdownComponents: Components = {
+  p: ({ children }) => (
+    <span className="whitespace-normal break-words">{children}</span>
+  ),
+  h1: ({ children }) => <span className="font-semibold">{children}</span>,
+  h2: ({ children }) => <span className="font-semibold">{children}</span>,
+  h3: ({ children }) => <span className="font-semibold">{children}</span>,
+  h4: ({ children }) => <span className="font-semibold">{children}</span>,
+  ul: ({ children }) => (
+    <ul className="list-disc space-y-0.5 pl-4">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="list-decimal space-y-0.5 pl-4">{children}</ol>
+  ),
+  li: ({ children }) => <li className="pl-0.5">{children}</li>,
+  blockquote: ({ children }) => (
+    <blockquote className="border-l border-[var(--border)] pl-2 italic">
+      {children}
+    </blockquote>
+  ),
+  code: ({ children }) => (
+    <code className="rounded bg-[var(--surface-2)] px-1 py-0.5 font-mono text-[0.92em]">
+      {children}
+    </code>
+  ),
+  a: ({ children, ...props }) => (
+    <a
+      {...props}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="break-words text-[var(--editor-link)] underline underline-offset-2"
+    >
+      {children}
+    </a>
+  ),
+};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -266,8 +306,7 @@ function ChatMessageRow({
 
           const normalizedContent = normalizeStrategistMarkdown(displayContent);
           const showMessageSupport =
-            msg.payload?.lifecycle !== 'pending' &&
-            !msg.payload?.isContentAnimating;
+            shouldShowStrategistMessageSupport(msg.payload);
 
           return (
             <div className="flex min-w-0 w-full justify-start">
@@ -326,15 +365,20 @@ function ChatMessageRow({
                                           : 'bg-[var(--muted-foreground)]/40'
                                       }`}
                                     />
-                                    <span
-                                      className={`leading-relaxed transition-colors duration-200 ${
+                                    <div
+                                      className={`strategist-thinking-markdown leading-relaxed transition-colors duration-200 ${
                                         isLatest
                                           ? 'text-[var(--foreground)] font-medium'
                                           : 'text-[var(--muted-foreground)]/75'
                                       }`}
                                     >
-                                      {line}
-                                    </span>
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        components={strategistThinkingMarkdownComponents}
+                                      >
+                                        {line}
+                                      </ReactMarkdown>
+                                    </div>
                                   </div>
                                 );
                               })}

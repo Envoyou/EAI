@@ -1,8 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import {
+  beginStrategistContentAnimation,
+  completeStrategistMessageStream,
   getStrategistStreamError,
   parseStrategistSseLine,
   shouldShowAssistantSpinner,
+  shouldShowStrategistMessageSupport,
+  updateStrategistContentAnimation,
 } from '../../strategist-stream';
 
 describe('Strategist SSE error contract', () => {
@@ -47,5 +51,53 @@ describe('Strategist SSE error contract', () => {
     expect(shouldShowAssistantSpinner('error', 'Thinking...')).toBe(false);
     expect(shouldShowAssistantSpinner('cancelled', 'Thinking...')).toBe(false);
     expect(shouldShowAssistantSpinner('pending', undefined)).toBe(false);
+  });
+
+  test('reveals message support only after the stream and final animation complete', () => {
+    let state = {
+      lifecycle: 'pending',
+      isStreamComplete: false,
+      isSupportReady: false,
+      ...beginStrategistContentAnimation(),
+    };
+
+    expect(shouldShowStrategistMessageSupport(state)).toBe(false);
+
+    state = {
+      ...state,
+      ...completeStrategistMessageStream(state),
+    };
+    expect(state.lifecycle).toBe('success');
+    expect(state.isSupportReady).toBe(false);
+    expect(shouldShowStrategistMessageSupport(state)).toBe(false);
+
+    state = {
+      ...state,
+      ...updateStrategistContentAnimation(state, true),
+    };
+    expect(state.isSupportReady).toBe(true);
+    expect(shouldShowStrategistMessageSupport(state)).toBe(true);
+  });
+
+  test('reveals message support when the animation finishes before stream completion', () => {
+    let state = {
+      lifecycle: 'pending',
+      isStreamComplete: false,
+      isSupportReady: false,
+      ...beginStrategistContentAnimation(),
+    };
+
+    state = {
+      ...state,
+      ...updateStrategistContentAnimation(state, true),
+    };
+    expect(shouldShowStrategistMessageSupport(state)).toBe(false);
+
+    state = {
+      ...state,
+      ...completeStrategistMessageStream(state),
+    };
+    expect(state.isSupportReady).toBe(true);
+    expect(shouldShowStrategistMessageSupport(state)).toBe(true);
   });
 });

@@ -32,6 +32,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ### Fixed
 - **Kemunculan Bertahap Thinking dan Jawaban Strategist**:
   - Menambahkan antrean typewriter adaptif bersama untuk reasoning Strategist, ringkasan grounding Search, teks stream, dan respons final pengganti, dengan pembatalan yang aman terhadap lifecycle, pergantian sesi, serta dukungan `prefers-reduced-motion`.
+  - Merender baris reasoning dan grounding bertahap melalui komponen Markdown/GFM terbatas sehingga heading, emphasis, daftar, kutipan, kode inline, dan tautan tidak lagi tampil sebagai sintaks Markdown mentah di chat Strategist.
 - **Sinkronisasi Footer Respons Strategist dan Kontras Separator**:
   - Menunda kemunculan source, aksi pesan, serta tombol saran tindak lanjut sampai stream respons dan animasi kemunculan teks sama-sama selesai, sehingga kontrol footer tidak lagi muncul mendahului jawaban.
   - Meredupkan garis horizontal Markdown di dalam respons chat Strategist agar separator tetap menjadi elemen pendukung dan tidak lebih menonjol daripada konten.

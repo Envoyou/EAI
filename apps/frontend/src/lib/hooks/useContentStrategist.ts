@@ -15,8 +15,11 @@ import {
   RequestTimeoutError,
 } from '@/lib/fetch-utils';
 import {
+  beginStrategistContentAnimation,
+  completeStrategistMessageStream,
   getStrategistStreamError,
   parseStrategistSseLine,
+  updateStrategistContentAnimation,
 } from '@/lib/strategist-stream';
 import {
   getStrategistChatPath,
@@ -103,6 +106,8 @@ export type ChatMessage = {
     status?: string;
     lifecycle?: AssistantLifecycle;
     isContentAnimating?: boolean;
+    isStreamComplete?: boolean;
+    isSupportReady?: boolean;
     thinking?: {
       kind: StrategistThinkingKind;
       content: string;
@@ -216,7 +221,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           ...message,
           payload: {
             ...message.payload,
-            isContentAnimating: true,
+            ...beginStrategistContentAnimation(),
           },
         }
       : message));
@@ -232,7 +237,10 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
               payload: {
                 ...message.payload,
                 status: undefined,
-                isContentAnimating: !complete,
+                ...updateStrategistContentAnimation(
+                  message.payload,
+                  complete
+                ),
                 ...(complete && suggestions !== undefined
                   ? { suggestions }
                   : {}),
@@ -241,6 +249,18 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           : message));
       }
     );
+  }, []);
+  const completeStrategistStream = useCallback((messageId: string) => {
+    setMessages(prev => prev.map(message => message.id === messageId
+      ? {
+          ...message,
+          payload: {
+            ...message.payload,
+            status: undefined,
+            ...completeStrategistMessageStream(message.payload),
+          },
+        }
+      : message));
   }, []);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -562,7 +582,18 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       const messageId = deepResearchMessageIdRef.current;
       if (messageId) {
         setMessages(prev => prev.map(message => message.id === messageId
-          ? { ...message, content, payload: { ...message.payload, status: undefined, lifecycle } }
+          ? {
+              ...message,
+              content,
+              payload: {
+                ...message.payload,
+                status: undefined,
+                lifecycle,
+                isContentAnimating: false,
+                isStreamComplete: true,
+                isSupportReady: true,
+              },
+            }
           : message));
       } else {
         setMessages(prev => [...prev, {
@@ -929,6 +960,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       payload: {
         status: researchMode === 'deep' ? 'Initiating Deep Research...' : 'Thinking...',
         lifecycle: 'pending',
+        isSupportReady: false,
       }
     }]);
 
@@ -1045,11 +1077,6 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                   }
                 } else if (data.type === 'done') {
                   receivedDone = true;
-                  if (!deepResearchStarted) {
-                    setMessages(prev => prev.map(m => m.id === assistantMsgId
-                      ? { ...m, payload: { ...m.payload, status: undefined, lifecycle: 'success' } }
-                      : m));
-                  }
                 }
               } catch { /* skip */ }
             }
@@ -1093,6 +1120,9 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         }
       }
 
+      if (!deepResearchStarted) {
+        completeStrategistStream(assistantMsgId);
+      }
       fetchCredits();
     } catch (error) {
       if (controller.signal.aborted && !(error instanceof StreamIdleTimeoutError)) {
@@ -1129,9 +1159,9 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
               payload: {
                 ...item.payload,
                 status: undefined,
-                lifecycle: 'success',
                 suggestions,
                 sources: recovery.result.sources,
+                isSupportReady: false,
               },
             }
           : item));
@@ -1140,6 +1170,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           displayContent,
           suggestions
         );
+        completeStrategistStream(assistantMsgId);
         fetchCredits();
         return;
       }
@@ -1449,6 +1480,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       payload: {
         status: researchMode === 'deep' ? 'Initiating Deep Research...' : 'Thinking...',
         lifecycle: 'pending',
+        isSupportReady: false,
       }
     }]);
 
@@ -1581,11 +1613,6 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
                   }
                 } else if (data.type === 'done') {
                   receivedDone = true;
-                  if (!deepResearchStarted) {
-                    setMessages(prev => prev.map(m => m.id === assistantMsgId
-                      ? { ...m, payload: { ...m.payload, status: undefined, lifecycle: 'success' } }
-                      : m));
-                  }
                 }
               } catch { /* skip */ }
             }
@@ -1629,6 +1656,9 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         }
       }
 
+      if (!deepResearchStarted) {
+        completeStrategistStream(assistantMsgId);
+      }
       fetchCredits();
     } catch (error) {
       if (controller.signal.aborted && !(error instanceof StreamIdleTimeoutError)) {
@@ -1665,9 +1695,9 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
               payload: {
                 ...item.payload,
                 status: undefined,
-                lifecycle: 'success',
                 suggestions,
                 sources: recovery.result.sources,
+                isSupportReady: false,
               },
             }
           : item));
@@ -1676,6 +1706,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
           displayContent,
           suggestions
         );
+        completeStrategistStream(assistantMsgId);
         fetchCredits();
         return;
       }
