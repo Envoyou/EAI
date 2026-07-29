@@ -105,6 +105,12 @@ renders only the backend enforcement contract. Calibrated probable duplicates
 may expose an explicit override followed by duplicate/distinct feedback;
 canonical and reservation conflicts remain non-overridable.
 
+The same route lazy-loads a **Content Intelligence** panel. It renders the
+backend-owned topic clusters, cannibalization risks, content gaps, update work,
+and internal-link opportunities as responsive cards. The panel displays
+semantic coverage and bounded/truncated state; it never derives similarity
+thresholds or receives indexed body text.
+
 ## 4. Workspace ownership and data flow
 
 The workspace follows a facade-oriented architecture:

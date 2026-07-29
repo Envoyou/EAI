@@ -317,6 +317,79 @@
     "swipeHint": "Geser horizontal untuk melihat semua kolom",
     "untitled": "Konten tanpa judul",
     "workspaceMember": "Anggota workspace",
+    "tabs": {
+      "inventory": "Inventaris konten",
+      "intelligence": "Intelijen konten"
+    },
+    "intelligence": {
+      "title": "Content Intelligence",
+      "description": "Analisis turunan mengenai cakupan editorial, overlap, kebaruan, dan peluang tautan di seluruh workspace.",
+      "refresh": "Perbarui intelligence",
+      "retry": "Coba lagi",
+      "loadError": "Gagal membuat snapshot Content Intelligence.",
+      "empty": "Tambahkan artefak konten sebelum membuat intelligence workspace.",
+      "truncated": "Snapshot dibatasi pada 300 artefak yang paling baru diperbarui.",
+      "resultsTruncated": "Setiap bagian rekomendasi menampilkan {count} hasil teratas.",
+      "semanticCoverage": "Cakupan semantik: {coverage} dari {count} artefak yang dianalisis. Fallback metadata tetap aktif untuk artefak tanpa vector terkini.",
+      "generatedAt": "Snapshot dibuat {date}.",
+      "clusterCounts": "{artifacts, plural, one {# artefak} other {# artefak}} · {published, plural, one {# siap atau terbit} other {# siap atau terbit}}",
+      "linkFrom": "Sumber yang disarankan",
+      "linkTo": "Tujuan yang disarankan",
+      "summary": {
+        "clusters": "Cluster topik",
+        "risks": "Risiko kanibalisasi",
+        "gaps": "Celah konten",
+        "updates": "Rekomendasi pembaruan",
+        "links": "Peluang tautan internal"
+      },
+      "sections": {
+        "clusters": "Cluster topik",
+        "cannibalization": "Risiko kanibalisasi",
+        "gaps": "Celah konten",
+        "updates": "Rekomendasi pembaruan",
+        "links": "Peluang tautan internal"
+      },
+      "coverage": {
+        "established": "Mapan",
+        "growing": "Bertumbuh",
+        "emerging": "Baru"
+      },
+      "severity": {
+        "critical": "Kritis",
+        "high": "Tinggi",
+        "medium": "Sedang"
+      },
+      "priority": {
+        "high": "Prioritas tinggi",
+        "medium": "Prioritas sedang",
+        "low": "Prioritas rendah"
+      },
+      "recommendations": {
+        "consolidate": "Pertimbangkan menggabungkan kedua artikel menjadi satu tujuan yang lebih kuat.",
+        "reposition": "Reposisikan draft yang lebih baru dengan intent atau angle yang benar-benar berbeda.",
+        "set_canonical": "Tinjau konsolidasi dan canonical targeting sebelum kedua halaman bersaing di pencarian."
+      },
+      "gapRationales": {
+        "classifier_identified_open_angle": "Pemeriksaan overlap sebelumnya mengidentifikasi angle alternatif ini sebagai pembahasan yang belum tercakup.",
+        "no_published_coverage": "Cluster ini memiliki konten yang direncanakan atau sedang disusun, tetapi belum memiliki cakupan siap atau terbit."
+      },
+      "updateReasons": {
+        "stale_published": "Konten terbit belum diperbarui selama {days} hari.",
+        "archived_overlap": "Konten arsip overlap dengan artefak aktif dan perlu ditinjau untuk konsolidasi atau penanganan redirect.",
+        "cannibalization": "Artefak ini terlibat dalam risiko kanibalisasi saat ini."
+      },
+      "linkReasons": {
+        "same_topic_cluster": "Kedua artikel berada dalam cluster topik yang sama.",
+        "semantic_relationship": "Konsep keduanya terkait secara semantik tetapi tetap memiliki cakupan berbeda.",
+        "keyword_relationship": "Keluarga keyword keduanya membentuk jembatan editorial yang relevan."
+      },
+      "none": {
+        "risks": "Tidak ditemukan risiko kanibalisasi yang material.",
+        "gaps": "Belum ada celah konten berbasis bukti yang tersedia.",
+        "updates": "Tidak ada rekomendasi pembaruan saat ini.",
+        "links": "Tidak ditemukan peluang tautan internal yang kuat."
+      }
+    },
     "columns": {
       "content": "Konten",
       "stage": "Tahap",

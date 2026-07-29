@@ -317,6 +317,79 @@
     "swipeHint": "Swipe horizontally to view all columns",
     "untitled": "Untitled content",
     "workspaceMember": "Workspace member",
+    "tabs": {
+      "inventory": "Content inventory",
+      "intelligence": "Content intelligence"
+    },
+    "intelligence": {
+      "title": "Content Intelligence",
+      "description": "Derived editorial coverage, overlap, freshness, and linking opportunities across this workspace.",
+      "refresh": "Refresh intelligence",
+      "retry": "Try again",
+      "loadError": "Failed to build Content Intelligence.",
+      "empty": "Add content artifacts before generating workspace intelligence.",
+      "truncated": "The snapshot is bounded to the 300 most recently updated artifacts.",
+      "resultsTruncated": "Each recommendation section shows the top {count} results.",
+      "semanticCoverage": "Semantic coverage: {coverage} across {count} analyzed artifacts. Metadata fallback remains active for artifacts without current vectors.",
+      "generatedAt": "Snapshot generated {date}.",
+      "clusterCounts": "{artifacts, plural, one {# artifact} other {# artifacts}} · {published, plural, one {# ready or published} other {# ready or published}}",
+      "linkFrom": "Suggested source",
+      "linkTo": "Suggested destination",
+      "summary": {
+        "clusters": "Topic clusters",
+        "risks": "Cannibalization risks",
+        "gaps": "Content gaps",
+        "updates": "Update recommendations",
+        "links": "Internal-link opportunities"
+      },
+      "sections": {
+        "clusters": "Topic clusters",
+        "cannibalization": "Cannibalization risks",
+        "gaps": "Content gaps",
+        "updates": "Update recommendations",
+        "links": "Internal-link opportunities"
+      },
+      "coverage": {
+        "established": "Established",
+        "growing": "Growing",
+        "emerging": "Emerging"
+      },
+      "severity": {
+        "critical": "Critical",
+        "high": "High",
+        "medium": "Medium"
+      },
+      "priority": {
+        "high": "High priority",
+        "medium": "Medium priority",
+        "low": "Low priority"
+      },
+      "recommendations": {
+        "consolidate": "Consider consolidating both articles into one stronger destination.",
+        "reposition": "Reposition the newer draft around a clearly different intent or angle.",
+        "set_canonical": "Review consolidation and canonical targeting before both pages compete in search."
+      },
+      "gapRationales": {
+        "classifier_identified_open_angle": "An earlier overlap review identified this as an uncovered alternative angle.",
+        "no_published_coverage": "This cluster contains planned or drafted work but no ready or published coverage."
+      },
+      "updateReasons": {
+        "stale_published": "Published content has not been updated for {days} days.",
+        "archived_overlap": "Archived content overlaps an active artifact and should be reviewed for consolidation or redirect handling.",
+        "cannibalization": "This artifact participates in a current cannibalization risk."
+      },
+      "linkReasons": {
+        "same_topic_cluster": "Both articles belong to the same topic cluster.",
+        "semantic_relationship": "Their concepts are semantically related while retaining distinct coverage.",
+        "keyword_relationship": "Their keyword families create a relevant editorial bridge."
+      },
+      "none": {
+        "risks": "No material cannibalization risks were detected.",
+        "gaps": "No evidence-backed content gaps are available yet.",
+        "updates": "No current update recommendations.",
+        "links": "No strong internal-link opportunities were detected."
+      }
+    },
     "columns": {
       "content": "Content",
       "stage": "Stage",

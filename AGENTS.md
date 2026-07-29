@@ -117,6 +117,10 @@ To guarantee that all AI assistant operations (Chat, SEO Optimizer, Fact-Checker
 * The structured LLM classifier is an ambiguity adjudicator only. Its schema
   cannot return `exact_duplicate` or `block`, and related artifacts are context
   rather than factual sources.
+* Content Intelligence is a rebuildable, bounded projection. Semantic graph
+  queries must scope both sides by `organizationId`, degrade to metadata
+  clustering, avoid additional model calls, and exclude same-family lifecycle
+  derivatives from cannibalization/internal-link pair recommendations.
 
 ---
 

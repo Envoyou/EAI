@@ -15,6 +15,7 @@ import {
   getContentMemoryCalibration,
   getContentMemoryEnforcementConfig,
 } from '@/lib/content-memory-enforcement';
+import { getContentIntelligenceSnapshot } from '@/lib/content-intelligence';
 
 const router = Router();
 
@@ -229,6 +230,25 @@ router.get('/enforcement', requireAuth, async (req, res) => {
     return res
       .status(500)
       .json({ error: 'Failed to load Content Memory enforcement status' });
+  }
+});
+
+router.get('/intelligence', requireAuth, async (req, res) => {
+  try {
+    const workspace = await resolveWorkspace(req);
+    if (!workspace || workspace.needsOnboarding || !workspace.organizationId) {
+      return res.status(409).json({ error: 'Workspace onboarding required' });
+    }
+    const snapshot = await getContentIntelligenceSnapshot(
+      workspace.organizationId
+    );
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.json(snapshot);
+  } catch (error) {
+    console.error('[CONTENT_INTELLIGENCE]', error);
+    return res
+      .status(500)
+      .json({ error: 'Failed to build Content Intelligence snapshot' });
   }
 });
 

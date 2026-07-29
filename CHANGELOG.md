@@ -19,6 +19,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added Phase 5 controlled enforcement for calibrated high-confidence probable duplicates. Enforcement requires an owner-controlled feature flag, a deterministic tenant rollout cohort, at least 50 explicit human labels, and measured precision of at least 95%; otherwise decisions remain advisory or shadow-only.
   - Added explicit override and human feedback flows for Blueprint, Quick Draft, and Draft from Notes, plus tenant-scoped enforcement metrics. Canonical duplicates and reservation collisions remain non-overridable.
   - Added migration `20260729223000_add_content_memory_controlled_enforcement` for enforcement decision metadata and attributable human feedback. It was applied to the production Neon database on July 29, 2026; Prisma confirmed all 29 migrations are up to date.
+  - Added Phase 6 Content Intelligence with bounded tenant-scoped topic clustering, cannibalization risks, evidence-backed content gaps, freshness/consolidation recommendations, and internal-link opportunities in the bilingual Content Map.
+  - Content Intelligence analyzes at most the 300 most recently updated artifacts, uses cross-language semantic pairs when current vectors exist, falls back to collaboration-safe metadata, collapses lifecycle families for pair recommendations, and does not invoke an additional LLM. The snapshot is derived at request time and requires no database migration.
 
 ## [3.18.0] - 2026-07-29
 

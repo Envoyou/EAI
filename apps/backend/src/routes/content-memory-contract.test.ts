@@ -69,4 +69,31 @@ describe('Content Memory tenant contract', () => {
     expect(migration).toContain('"enforcementMetadata" JSONB');
     expect(migration).toContain('"feedbackActorUserId" TEXT');
   });
+
+  it('builds bounded Content Intelligence without weakening tenant scope', () => {
+    const route = readSource('./content-memory.ts');
+    const intelligence = readSource('../lib/content-intelligence.ts');
+    expect(route).toContain(
+      "router.get('/intelligence', requireAuth"
+    );
+    expect(route).toContain(
+      'getContentIntelligenceSnapshot(\n      workspace.organizationId'
+    );
+    expect(intelligence).toContain(
+      'const MAX_ANALYZED_ARTIFACTS = 300'
+    );
+    expect(intelligence).toContain(
+      'left_document."organizationId" = ${organizationId}'
+    );
+    expect(intelligence).toContain(
+      'right_document."organizationId" = ${organizationId}'
+    );
+    expect(intelligence).toContain(
+      'left_artifact."organizationId" = ${organizationId}'
+    );
+    expect(intelligence).toContain(
+      'right_artifact."organizationId" = ${organizationId}'
+    );
+    expect(intelligence).not.toContain('getProvider(');
+  });
 });

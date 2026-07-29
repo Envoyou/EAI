@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { useDirectFetch } from '@/lib/hooks/useDirectFetch';
 import { getResponseErrorMessage } from '@/lib/fetch-utils';
+import { ContentIntelligencePanel } from './ContentIntelligencePanel';
 
 type ContentArtifactListItem = {
   id: string;
@@ -41,6 +42,9 @@ export default function ContentMapPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<
+    'inventory' | 'intelligence'
+  >('inventory');
 
   const loadArtifacts = useCallback(
     async (query = '') => {
@@ -152,6 +156,31 @@ export default function ContentMapPage() {
       </div>
 
       <div className="settings-page-section-body space-y-6 py-6">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant={activeView === 'inventory' ? 'primary' : 'surface'}
+            size="sm"
+            aria-pressed={activeView === 'inventory'}
+            onClick={() => setActiveView('inventory')}
+          >
+            {t('tabs.inventory')}
+          </Button>
+          <Button
+            type="button"
+            variant={activeView === 'intelligence' ? 'primary' : 'surface'}
+            size="sm"
+            aria-pressed={activeView === 'intelligence'}
+            onClick={() => setActiveView('intelligence')}
+          >
+            {t('tabs.intelligence')}
+          </Button>
+        </div>
+
+        {activeView === 'intelligence' ? (
+          <ContentIntelligencePanel />
+        ) : (
+          <>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {['PLANNING', 'DRAFTING', 'REFINED', 'READY', 'PUBLISHED'].map(
             (stage) => (
@@ -266,6 +295,8 @@ export default function ContentMapPage() {
               </table>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </section>

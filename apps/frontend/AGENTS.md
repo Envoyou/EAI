@@ -70,6 +70,10 @@ npm run lint
   duplicate may expose an explicit localized override action; successful
   shadow or override flows should offer attributable duplicate/distinct
   feedback for threshold calibration.
+- **Content Intelligence**: Render only the backend snapshot contract. Show
+  semantic coverage and bounded/truncated state, keep all recommendation copy
+  localized, and do not infer new similarity thresholds or expose indexed body
+  text in the client.
 
 ## 3. Frontend Directory Structure
 

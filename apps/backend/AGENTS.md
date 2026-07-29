@@ -266,6 +266,10 @@ Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes l
   * `ContentMemoryClassifierComposer` is used only for ambiguous matches. Its
     structured output cannot produce an exact-duplicate verdict or blocking
     action, and only collaboration-safe metadata may enter its context.
+  * Content Intelligence must remain request-time derived data, analyze at most
+    300 recent artifacts, scope both sides of semantic pair queries by
+    `organizationId`, fail open to metadata similarity, and never send tenant
+    content to another model merely to render the dashboard.
 
 ---
 

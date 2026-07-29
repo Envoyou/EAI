@@ -1,5 +1,6 @@
 export * from './diff';
 export * from './content-memory';
+export * from './content-intelligence';
 export * from './ai-runtime-config';
 export * from './editorial-profile-schema';
 export * from './editorial';

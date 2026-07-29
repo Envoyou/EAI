@@ -19,6 +19,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan controlled enforcement Phase 5 untuk probable duplicate ber-confidence tinggi yang sudah terkalibrasi. Enforcement memerlukan feature flag milik owner, rollout cohort tenant yang deterministik, sedikitnya 50 label manusia eksplisit, dan precision terukur minimal 95%; selain itu keputusan tetap advisory atau shadow-only.
   - Menambahkan alur override dan feedback manusia eksplisit untuk Blueprint, Quick Draft, dan Draft from Notes, beserta metrik enforcement tenant-scoped. Canonical duplicate dan reservation collision tetap tidak dapat dioverride.
   - Menambahkan migrasi `20260729223000_add_content_memory_controlled_enforcement` untuk metadata keputusan enforcement dan feedback manusia yang dapat diatribusikan. Migrasi diterapkan ke database Neon production pada 29 Juli 2026; Prisma mengonfirmasi seluruh 29 migrasi sudah up to date.
+  - Menambahkan Content Intelligence Phase 6 berupa clustering topik tenant-scoped yang bounded, risiko kanibalisasi, content gap berbasis bukti, rekomendasi freshness/konsolidasi, dan peluang tautan internal pada Content Map bilingual.
+  - Content Intelligence menganalisis maksimal 300 artefak yang paling baru diperbarui, memakai semantic pair lintas bahasa ketika vector terkini tersedia, melakukan fallback ke metadata yang aman untuk kolaborasi, menggabungkan lifecycle family untuk rekomendasi pasangan, dan tidak memanggil LLM tambahan. Snapshot dihitung sebagai derived data saat diminta sehingga tidak membutuhkan migrasi database.
 
 ## [3.18.0] - 2026-07-29
 
