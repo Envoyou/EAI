@@ -231,3 +231,21 @@ Dalam masa pengembangan awal, ditemukan beberapa kendala pada respon model AI. B
         mengulang Full Analyze.
     4.  Membatasi acceptance generik hanya pada warning non-faktual; temuan
         source-risk dan failure blocking tetap memerlukan revisi atau verifikasi.
+
+### U. Lifecycle Cancel dan Single-Flight Workspace (Unreleased)
+*   **Kendala**: Tombol Cancel sebelumnya bergantung pada
+    `analysis.status === "loading"`. Event awal seperti score atau readiness
+    mengubah status menjadi `success` sebelum rewrite, Quality Gate, dan SEO
+    selesai, sehingga Cancel menghilang ketika request masih aktif. Analyze
+    ulang juga mengosongkan hasil lama sebelum memiliki hasil pengganti.
+*   **Solusi**:
+    1.  Menjadikan ownership AbortController sebagai sumber kebenaran lifecycle
+        request dan mempertahankan Cancel sampai cleanup terminal selesai.
+    2.  Menambahkan guard single-flight sinkron agar Analyze, Refine, targeted
+        fix, Quality Check, SEO, Prepare, dan Draft from Notes tidak dapat
+        dimulai bersamaan atau dipicu dua kali.
+    3.  Menyimpan snapshot hasil lengkap dan source draft sebelum request baru;
+        cancel pada Analyze/Refine/Quality Check/SEO memulihkan snapshot tersebut.
+    4.  Tidak mengosongkan controller pada event Cancel. Request pemilik
+        melepaskannya sendiri di `finally` setelah memverifikasi identity
+        controller, sehingga cancel/restart cepat bebas race.

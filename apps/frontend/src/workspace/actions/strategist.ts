@@ -61,6 +61,7 @@ export async function executeGenerateDraftFromNotes(
     toast.error('Select at least one note to generate');
     return;
   }
+  if (generateAbortControllerRef.current) return;
 
   setIsGeneratingDraftFromNotes(true);
   setDraft('');
@@ -205,7 +206,9 @@ export async function executeGenerateDraftFromNotes(
     console.error(error);
     toast.error(error instanceof Error ? error.message : 'Failed to generate draft.');
   } finally {
-    setIsGeneratingDraftFromNotes(false);
-    generateAbortControllerRef.current = null;
+    if (generateAbortControllerRef.current === controller) {
+      setIsGeneratingDraftFromNotes(false);
+      generateAbortControllerRef.current = null;
+    }
   }
 }

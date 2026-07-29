@@ -89,6 +89,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
     isSavingFinalDraft,
     isCheckingQuality,
     isGeneratingSeo,
+    isAiBusy,
     wordCount,
     charCount,
     MAX_TEXT_LENGTH,
@@ -353,23 +354,23 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     type="button"
                     id="titlebar-refine"
                     onClick={() => {
-                      if (analysis.status === 'loading' || isTargetedFixing !== null) {
+                      if (isAiBusy) {
                         handleCancelAnalysis();
                       } else {
                         handleAnalyze();
                       }
                     }}
-                    disabled={!draft.trim() && analysis.status !== 'loading' && isTargetedFixing === null}
+                    disabled={!draft.trim() && !isAiBusy}
                     variant="primary"
                     size="sm"
-                    className={activeTab !== 'draft' && analysis.status !== 'loading' && isTargetedFixing === null ? 'max-sm:hidden' : ''}
+                    className={activeTab !== 'draft' && !isAiBusy ? 'max-sm:hidden' : ''}
                     icon={
-                      analysis.status === 'loading' || isTargetedFixing !== null
+                      isAiBusy
                         ? CancelActionIcon
                         : RefineDraftIcon
                     }
                     label={
-                      analysis.status === 'loading' || isTargetedFixing !== null
+                      isAiBusy
                         ? 'Cancel'
                         : 'Refine Draft'
                     }
@@ -378,7 +379,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                 }
               />
               <TooltipContent side="bottom" className="text-xs">
-                {analysis.status === 'loading' || isTargetedFixing !== null ? 'Cancel current AI request' : 'Refine Draft (Ctrl+Enter)'}
+                {isAiBusy ? 'Cancel current AI request' : 'Refine Draft (Ctrl+Enter)'}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -435,6 +436,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     activeTab={activeTab}
                     onTabChange={setActiveTab}
                     isGeneratingDraft={isGeneratingDraftFromNotes}
+                    isAiBusy={isAiBusy}
                     hasResult={hasResult}
                     sidebarOpen={leftPanelOpen}
                     onToggleSidebar={() => setLeftPanelOpen(p => !p)}
@@ -520,6 +522,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     onNotesChange={handleNotesChange}
                     onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
                     isGeneratingDraft={isGeneratingDraftFromNotes}
+                    isWorkspaceAiBusy={isAiBusy}
                     onCancelGenerateDraft={handleCancelGenerateDraft}
                     onInsertToDraft={text => {
                       setDraft(prev => prev + text);
@@ -595,6 +598,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                     activeTab={activeTab}
                     onTabChange={setActiveTab}
                     isGeneratingDraft={isGeneratingDraftFromNotes}
+                    isAiBusy={isAiBusy}
                     hasResult={hasResult}
                     sidebarOpen={leftPanelOpen}
                     onToggleSidebar={() => setLeftPanelOpen(p => !p)}
@@ -681,6 +685,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                   onNotesChange={handleNotesChange}
                   onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
                   isGeneratingDraft={isGeneratingDraftFromNotes}
+                  isWorkspaceAiBusy={isAiBusy}
                   onCancelGenerateDraft={handleCancelGenerateDraft}
                   onInsertToDraft={text => {
                     setDraft(prev => prev + text);

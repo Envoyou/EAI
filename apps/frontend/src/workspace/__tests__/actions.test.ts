@@ -1,10 +1,22 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { AnalysisResult } from '@eai/shared';
 import { executeAnalyze } from '../actions/analyze';
 
-describe('executeAnalyze', () => {
-  it('should early exit if draft is empty', async () => {
-    const mockCtx = {
-      draft: '',
+const createAnalyzeContext = (
+  draft: string,
+  initialAnalysis: AnalysisResult = { status: 'idle' }
+) => {
+  let currentAnalysis = initialAnalysis;
+  const setAnalysis = vi.fn(
+    (updater: (previous: AnalysisResult) => AnalysisResult) => {
+      currentAnalysis = updater(currentAnalysis);
+    }
+  );
+
+  const context = {
+      analysis: initialAnalysis,
+      draft,
+      sourceDraft: 'Previously committed source draft.',
       metadata: {},
       researchNotes: [],
       attachments: [],
@@ -45,7 +57,7 @@ describe('executeAnalyze', () => {
       setDraft: vi.fn(),
       setDraftHistory: vi.fn(),
       setSourceDraft: vi.fn(),
-      setAnalysis: vi.fn(),
+      setAnalysis,
       setIsStreaming: vi.fn(),
       setProcessStage: vi.fn(),
       setProcessStartedAt: vi.fn(),
@@ -63,10 +75,56 @@ describe('executeAnalyze', () => {
       setMissingSources: vi.fn(),
       setPendingRefineAction: vi.fn(),
       setShowMissingSourcesModal: vi.fn(),
-    };
+  };
 
-    await executeAnalyze(mockCtx);
-    expect(mockCtx.directFetch).not.toHaveBeenCalled();
-    expect(mockCtx.setAnalysis).not.toHaveBeenCalled();
+  return {
+    context,
+    getAnalysis: () => currentAnalysis,
+  };
+};
+
+describe('executeAnalyze', () => {
+  it('should early exit if draft is empty', async () => {
+    const { context } = createAnalyzeContext('');
+
+    await executeAnalyze(context);
+    expect(context.directFetch).not.toHaveBeenCalled();
+    expect(context.setAnalysis).not.toHaveBeenCalled();
+  });
+
+  it('restores the previous completed result when a repeated analysis is cancelled', async () => {
+    const previousAnalysis: AnalysisResult = {
+      status: 'success',
+      polishedDraft: 'Previously completed final draft.',
+      summary: 'Previous complete result.',
+      feedback: [],
+      flags: [],
+    };
+    const { context, getAnalysis } = createAnalyzeContext(
+      'Draft to analyze',
+      previousAnalysis
+    );
+    context.directFetch.mockImplementation(async () => {
+      context.analyzeAbortControllerRef.current?.abort();
+      throw new DOMException('Aborted', 'AbortError');
+    });
+
+    await executeAnalyze(context);
+
+    expect(getAnalysis()).toEqual(previousAnalysis);
+    expect(context.setIsStreaming).toHaveBeenLastCalledWith(false);
+    expect(context.setSourceDraft).toHaveBeenLastCalledWith(
+      'Previously committed source draft.'
+    );
+  });
+
+  it('does not start a second analysis while an AI request owns the controller', async () => {
+    const { context } = createAnalyzeContext('Draft to analyze');
+    context.analyzeAbortControllerRef.current = new AbortController();
+
+    await executeAnalyze(context);
+
+    expect(context.directFetch).not.toHaveBeenCalled();
+    expect(context.setAnalysis).not.toHaveBeenCalled();
   });
 });

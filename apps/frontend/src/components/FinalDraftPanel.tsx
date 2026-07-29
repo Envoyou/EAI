@@ -79,6 +79,7 @@ interface FinalDraftPanelProps {
   isSavingFinalDraft?: boolean;
   isCheckingQuality?: boolean;
   isGeneratingSeo?: boolean;
+  isAiBusy?: boolean;
   hoveredFeedbackIndex: number | null;
   activeFeedbackIndex: number | null;
   onActiveFeedbackChange: (index: number | null) => void;
@@ -230,6 +231,7 @@ export default function FinalDraftPanel({
   isSavingFinalDraft = false,
   isCheckingQuality = false,
   isGeneratingSeo = false,
+  isAiBusy = false,
   hoveredFeedbackIndex,
   activeFeedbackIndex,
   feedback = [],
@@ -726,7 +728,7 @@ export default function FinalDraftPanel({
                   <ActionButton
                     type="button"
                     onClick={handleCopy}
-                    disabled={!polishedDraft.trim() || isDemoMode}
+                    disabled={!polishedDraft.trim() || isDemoMode || isAiBusy}
                     variant="muted"
                     size="sm"
                     aria-label="Copy refined draft"
@@ -754,7 +756,7 @@ export default function FinalDraftPanel({
                         if (!editingDraft) setDraftEditValue(polishedDraft);
                         setEditingDraft((current) => !current);
                       }}
-                      disabled={isGeneratingDraft}
+                      disabled={isGeneratingDraft || isAiBusy}
                       aria-pressed={editingDraft}
                       aria-label="Edit final draft"
                       icon={EditActionIcon}
@@ -779,7 +781,7 @@ export default function FinalDraftPanel({
                       variant={canExport ? 'surface' : 'primary'}
                       size="sm"
                       onClick={onPrepareForExport}
-                      disabled={isGeneratingDraft || isSavingFinalDraft}
+                      disabled={isGeneratingDraft || isSavingFinalDraft || isAiBusy}
                       aria-label="Prepare current draft for export"
                       icon={PreparePublicationIcon}
                       iconClassName="h-3.5 w-3.5 md:hidden"
@@ -799,7 +801,7 @@ export default function FinalDraftPanel({
                     <ActionButton
                       type="button"
                       onClick={handleExport}
-                      disabled={!canExport || isExporting}
+                      disabled={!canExport || isExporting || isAiBusy}
                       variant={canExport && !isExporting ? 'primary' : 'surface'}
                       size="sm"
                       aria-label={exportStatus?.blogEditUrl ? 'Update CMS Draft' : 'Export to CMS'}
@@ -831,6 +833,7 @@ export default function FinalDraftPanel({
                     iconClassName="h-4 w-4"
                     label={t('moreActions')}
                     labelClassName="sr-only"
+                    disabled={isAiBusy}
                   />
                 }
               />
@@ -856,7 +859,7 @@ export default function FinalDraftPanel({
                               setMenuOpen(false);
                               void onPrepareForExport();
                             }}
-                            disabled={isGeneratingDraft || isSavingFinalDraft}
+                            disabled={isGeneratingDraft || isSavingFinalDraft || isAiBusy}
                             variant="muted"
                             className="ui-menu-item justify-start w-full font-normal border-none"
                             icon={PreparePublicationIcon}
@@ -871,7 +874,7 @@ export default function FinalDraftPanel({
                               setMenuOpen(false);
                               void onQualityCheck();
                             }}
-                            disabled={isGeneratingDraft || isSavingFinalDraft}
+                            disabled={isGeneratingDraft || isSavingFinalDraft || isAiBusy}
                             variant="muted"
                             className="ui-menu-item justify-start w-full font-normal border-none"
                             aria-label="Run Quality Check"
@@ -889,7 +892,7 @@ export default function FinalDraftPanel({
                               setMenuOpen(false);
                               void onRegenerateSeo();
                             }}
-                            disabled={!qualityReady || isGeneratingDraft}
+                            disabled={!qualityReady || isGeneratingDraft || isAiBusy}
                             variant="muted"
                             className="ui-menu-item justify-start w-full font-normal border-none"
                             aria-label="Regenerate SEO metadata"
@@ -907,7 +910,7 @@ export default function FinalDraftPanel({
                               setMenuOpen(false);
                               onReanalyze();
                             }}
-                            disabled={!ready || isStreaming || isRefining}
+                            disabled={!ready || isAiBusy}
                             variant="muted"
                             className="ui-menu-item justify-start w-full font-normal border-none"
                           >
@@ -1240,7 +1243,7 @@ export default function FinalDraftPanel({
         )}
 
         {/* Refine Again — collapsible instruction box */}
-        {ready && !isStreaming && onRefineAgain && (
+        {ready && !isAiBusy && onRefineAgain && (
           <div className="mt-2 pt-2">
             <Tooltip>
               <TooltipTrigger
@@ -1270,19 +1273,19 @@ export default function FinalDraftPanel({
                   value={refineInstruction}
                   onChange={e => setRefineInstruction(e.target.value)}
                   placeholder="Example: Shorten the introduction, strengthen the opening, and add a business perspective…"
-                  disabled={isRefining}
+                  disabled={isAiBusy}
                   rows={3}
                 />
                 <Button
                   type="button"
                   onClick={() => {
-                    if (!refineInstruction.trim() || isRefining) return;
+                    if (!refineInstruction.trim() || isAiBusy) return;
                     onRefineAgain(refineInstruction.trim());
                     setRefineInstruction('');
                     setShowRefineBox(false);
                   }}
-                  disabled={!refineInstruction.trim() || isRefining}
-                  variant={refineInstruction.trim() && !isRefining ? 'primary' : 'surface'}
+                  disabled={!refineInstruction.trim() || isAiBusy}
+                  variant={refineInstruction.trim() && !isAiBusy ? 'primary' : 'surface'}
                   size="sm"
                   className="w-full"
                 >

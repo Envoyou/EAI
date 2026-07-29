@@ -28,6 +28,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Normalized incomplete provider output with a manual-review suggestion so valid feedback can no longer render as a diagnosis-only card.
   - Added `Revise with EAI` for findings without target text and `Accept as editorial decision` for non-factual warnings. Factual/source-risk and blocking findings remain non-accepting and must be revised or verified.
   - Routed targetless EAI revisions through the current Final Draft refinement workflow and its Quality Gate, avoiding an unnecessary Full Analyze pass.
+- **Cancelable, Single-Flight Editorial AI Lifecycle**:
+  - Kept the title-bar Cancel action visible for the complete Analyze/Refine lifecycle, including rewrite, validation, Quality Gate, SEO, and finalization, instead of tying it to the transient `analysis.status === "loading"` state.
+  - Preserved and restored the last completed analysis and source-draft snapshot when a repeated analysis, refinement, Quality Check, or SEO request is cancelled.
+  - Added AbortController-backed single-flight guards across Analyze, Refine, targeted fixes, Quality Check, SEO, Prepare, and Draft from Notes, and disabled conflicting Final Draft actions while an editorial AI request owns the workspace.
+  - Kept controller ownership until each cancelled request reaches its own `finally` block, preventing a rapid cancel/restart from letting an older request clear the newer request's lifecycle state.
 
 ## [3.18.0] - 2026-07-29
 

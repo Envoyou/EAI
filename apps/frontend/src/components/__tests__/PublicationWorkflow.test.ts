@@ -95,4 +95,20 @@ describe('revision-safe publication workflow', () => {
     expect(workspace).toContain('Resolve only this remaining editorial finding');
     expect(workspace).toContain('await handleRefineAgain(instruction, analysis.polishedDraft, true)');
   });
+
+  it('keeps cancellation available for the complete AI lifecycle and blocks overlapping actions', () => {
+    const shell = readFrontendSource('components/EditorialWorkspace.tsx');
+    const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
+    const analyze = readFrontendSource('workspace/actions/analyze.ts');
+    const finalDraft = readFrontendSource('components/FinalDraftPanel.tsx');
+
+    expect(shell).toContain('if (isAiBusy)');
+    expect(shell).toContain("isAiBusy ? 'Cancel current AI request'");
+    expect(workspace).toContain('analyzeAbortControllerRef.current');
+    expect(workspace).toContain('generateAbortControllerRef.current');
+    expect(analyze).toContain('const previousAnalysis = analysis');
+    expect(analyze).toContain('setAnalysis(() => previousAnalysis)');
+    expect(finalDraft).toContain('disabled={!ready || isAiBusy}');
+    expect(finalDraft).toContain('disabled={!qualityReady || isGeneratingDraft || isAiBusy}');
+  });
 });

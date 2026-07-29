@@ -23,6 +23,7 @@ interface NotesTabProps {
   attachments?: Attachment[];
   onGenerateDraft?: () => void;
   isGeneratingDraft?: boolean;
+  isWorkspaceAiBusy?: boolean;
   onCancelGenerateDraft?: () => void;
   onInsertToDraft?: (text: string) => void;
 }
@@ -32,6 +33,7 @@ export default function NotesTab({
   onNotesChange,
   onGenerateDraft,
   isGeneratingDraft = false,
+  isWorkspaceAiBusy = false,
   onCancelGenerateDraft,
   onInsertToDraft,
 }: NotesTabProps) {
@@ -89,6 +91,7 @@ export default function NotesTab({
           <Button
             type="button"
             onClick={isGeneratingDraft ? onCancelGenerateDraft : handleGenerateDraftFromNotes}
+            disabled={!isGeneratingDraft && isWorkspaceAiBusy}
             variant={isGeneratingDraft ? 'danger' : 'primary'}
             size="sm"
             className="w-full justify-center gap-1.5 text-xs"

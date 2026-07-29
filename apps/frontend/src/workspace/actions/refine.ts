@@ -77,6 +77,7 @@ export async function executeRefine(
 
   const currentDraft = overrideText ?? analysis.polishedDraft;
   if (!currentDraft?.trim()) return;
+  if (analyzeAbortControllerRef.current) return;
 
   if (!forceSkipCheck && !overrideText) {
     const missing = checkMissingSources(currentDraft, researchNotes);
@@ -275,8 +276,10 @@ export async function executeRefine(
       draftChunkBufferRef.current = '';
       setAnalysis(prev => ({ ...prev, polishedDraft: (prev.polishedDraft || '') + remaining }));
     }
-    setIsRefining(false);
-    setProcessStartedAt(null);
-    analyzeAbortControllerRef.current = null;
+    if (analyzeAbortControllerRef.current === controller) {
+      setIsRefining(false);
+      setProcessStartedAt(null);
+      analyzeAbortControllerRef.current = null;
+    }
   }
 }

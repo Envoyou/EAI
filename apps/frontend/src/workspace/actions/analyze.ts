@@ -9,7 +9,9 @@ import { readWithTimeout, StreamIdleTimeoutError } from '@/lib/stream-utils';
 import { getResponseErrorMessage } from '@/lib/fetch-utils';
 
 interface AnalyzeContext {
+  analysis: AnalysisResult;
   draft: string;
+  sourceDraft: string;
   metadata: ArticleMetadata;
   researchNotes: ResearchNote[];
   attachments: Attachment[];
@@ -49,7 +51,9 @@ export async function executeAnalyze(
   forceSkipCheck = false
 ) {
   const {
+    analysis,
     draft,
+    sourceDraft,
     metadata,
     researchNotes,
     attachments,
@@ -85,6 +89,7 @@ export async function executeAnalyze(
 
   const textToAnalyze = overrideDraft ?? draft;
   if (!textToAnalyze.trim()) return;
+  if (analyzeAbortControllerRef.current) return;
 
   if (!forceSkipCheck && !overrideDraft) {
     const missing = checkMissingSources(textToAnalyze, researchNotes);
@@ -99,11 +104,6 @@ export async function executeAnalyze(
   if (isDemoMode && demoRefineCount >= 2) {
     setShowDemoSignupModal(true);
     return;
-  }
-
-  if (overrideDraft) {
-    setDraftHistory(prev => [...prev, draft]);
-    setDraft(overrideDraft);
   }
 
   setSourceDraft(textToAnalyze);
@@ -129,6 +129,7 @@ export async function executeAnalyze(
 
   const controller = new AbortController();
   analyzeAbortControllerRef.current = controller;
+  const previousAnalysis = analysis;
 
   try {
     const requestMetadata: ArticleMetadata = {
@@ -263,6 +264,10 @@ export async function executeAnalyze(
     }
 
     toast.success('Refinement Complete', { description: 'Final draft and editorial quality gate are ready.' });
+    if (overrideDraft) {
+      setDraftHistory(prev => [...prev, draft]);
+      setDraft(overrideDraft);
+    }
     setRefreshTrigger(prev => prev + 1);
 
     if (isDemoMode) {
@@ -271,19 +276,29 @@ export async function executeAnalyze(
       localStorage.setItem('eai-demo-refine-count', nextCount.toString());
     }
   } catch (error) {
+    draftChunkBufferRef.current = '';
     if (controller.signal.aborted && !(error instanceof StreamIdleTimeoutError)) {
       console.log('Analysis aborted.');
+      setAnalysis(() => previousAnalysis);
+      setSourceDraft(sourceDraft);
       return;
     }
     const errorMsg = error instanceof Error ? error.message : 'An unexpected error occurred';
-    setAnalysis(prev => ({ ...prev, status: 'error', errorMessage: errorMsg }));
+    setAnalysis(prev =>
+      previousAnalysis.status === 'success'
+        ? previousAnalysis
+        : { ...prev, status: 'error', errorMessage: errorMsg }
+    );
+    if (previousAnalysis.status === 'success') {
+      setSourceDraft(sourceDraft);
+    }
     toast.error('Analysis Failed', { description: errorMsg });
   } finally {
     if (rafIdRef.current !== null) {
       cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
     }
-    if (draftChunkBufferRef.current) {
+    if (!controller.signal.aborted && draftChunkBufferRef.current) {
       const remaining = draftChunkBufferRef.current;
       draftChunkBufferRef.current = '';
       setAnalysis(prev => ({
@@ -291,8 +306,10 @@ export async function executeAnalyze(
         polishedDraft: (prev.polishedDraft || '') + remaining,
       }));
     }
-    setIsStreaming(false);
-    setProcessStartedAt(null);
-    analyzeAbortControllerRef.current = null;
+    if (analyzeAbortControllerRef.current === controller) {
+      setIsStreaming(false);
+      setProcessStartedAt(null);
+      analyzeAbortControllerRef.current = null;
+    }
   }
 }

@@ -43,6 +43,7 @@ export interface WorkspaceState {
   sourceDraft: string;
   isStreaming: boolean;
   isRefining: boolean;
+  isAiBusy: boolean;
   processStage: EditorialProcessStage;
   processStartedAt: number | null;
   appSettings: AppSettings;

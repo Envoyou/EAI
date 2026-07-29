@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -116,6 +116,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   const [isSavingFinalDraft, setIsSavingFinalDraft] = useState(false);
   const [isCheckingQuality, setIsCheckingQuality] = useState(false);
   const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
+  const workspaceMutationRef = useRef(false);
 
   // 3. Config Hook
   useWorkspaceConfig({
@@ -176,10 +177,25 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   const showFeedbackSidebar = rightPanelOpen;
   const showNotesSidebar = rightPanelOpen;
   const hasNotes = researchNotes.length > 0;
+  const isAiBusy =
+    isStreaming
+    || isRefining
+    || isGeneratingDraftFromNotes
+    || isTargetedFixing !== null
+    || isCheckingQuality
+    || isGeneratingSeo;
+  const hasActiveAiRequest = () =>
+    Boolean(
+      analyzeAbortControllerRef.current
+      || generateAbortControllerRef.current
+    );
+  const hasBlockingWorkspaceOperation = () =>
+    hasActiveAiRequest() || workspaceMutationRef.current;
 
   // Action methods
   const handleCloudSave = async () => {
-    if (isDemoMode) return;
+    if (isDemoMode || hasBlockingWorkspaceOperation()) return;
+    workspaceMutationRef.current = true;
     setIsSavingToCloud(true);
     try {
       const response = await fetchWithTimeout('/api/history', {
@@ -211,6 +227,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       console.error('Error saving to cloud:', error);
       toast.error('Failed to sync draft to cloud');
     } finally {
+      workspaceMutationRef.current = false;
       setIsSavingToCloud(false);
     }
   };
@@ -223,10 +240,13 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   };
 
   const handleAnalyze = async (overrideDraft?: string, forceSkipCheck = false) => {
+    if (hasBlockingWorkspaceOperation()) return;
     setHoveredFeedbackIndex(null);
     setActiveFeedbackIndex(null);
     const ctx = {
+      analysis,
       draft,
+      sourceDraft,
       metadata,
       researchNotes,
       attachments,
@@ -273,7 +293,12 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
 
   const handleSaveFinalDraft = async (polishedDraft: string): Promise<boolean> => {
     const logId = analysis.analysisLogId || activeHistoryId;
-    if (!logId || !polishedDraft.trim()) return false;
+    if (
+      !logId
+      || !polishedDraft.trim()
+      || hasBlockingWorkspaceOperation()
+    ) return false;
+    workspaceMutationRef.current = true;
     setIsSavingFinalDraft(true);
     try {
       const response = await fetchWithTimeout(`/api/history/${logId}/resolve`, {
@@ -302,6 +327,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       toast.error(error instanceof Error ? error.message : 'Failed to save final draft.');
       return false;
     } finally {
+      workspaceMutationRef.current = false;
       setIsSavingFinalDraft(false);
     }
   };
@@ -342,7 +368,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
 
   const handleQualityCheck = async (): Promise<EditorialReadiness | null> => {
     const logId = analysis.analysisLogId || activeHistoryId;
-    if (!logId || !analysis.polishedDraft) return null;
+    if (!logId || !analysis.polishedDraft || hasBlockingWorkspaceOperation()) return null;
+    const previousAnalysis = analysis;
     const controller = new AbortController();
     analyzeAbortControllerRef.current = controller;
     setIsCheckingQuality(true);
@@ -391,19 +418,26 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       toast.success('Quality check completed without rewriting the draft.');
       return checkedReadiness;
     } catch (error) {
+      if (controller.signal.aborted) {
+        setAnalysis(() => previousAnalysis);
+        return null;
+      }
       toast.error(error instanceof Error ? error.message : 'Quality check failed.');
       return null;
     } finally {
-      setIsCheckingQuality(false);
-      setIsStreaming(false);
-      setProcessStartedAt(null);
-      analyzeAbortControllerRef.current = null;
+      if (analyzeAbortControllerRef.current === controller) {
+        setIsCheckingQuality(false);
+        setIsStreaming(false);
+        setProcessStartedAt(null);
+        analyzeAbortControllerRef.current = null;
+      }
     }
   };
 
   const handleRegenerateSeo = async () => {
     const logId = analysis.analysisLogId || activeHistoryId;
-    if (!logId || !analysis.polishedDraft) return;
+    if (!logId || !analysis.polishedDraft || hasBlockingWorkspaceOperation()) return;
+    const previousAnalysis = analysis;
     const controller = new AbortController();
     analyzeAbortControllerRef.current = controller;
     setIsGeneratingSeo(true);
@@ -438,12 +472,18 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       }, controller);
       toast.success('SEO metadata regenerated for the current final draft.');
     } catch (error) {
+      if (controller.signal.aborted) {
+        setAnalysis(() => previousAnalysis);
+        return;
+      }
       toast.error(error instanceof Error ? error.message : 'SEO generation failed.');
     } finally {
-      setIsGeneratingSeo(false);
-      setIsStreaming(false);
-      setProcessStartedAt(null);
-      analyzeAbortControllerRef.current = null;
+      if (analyzeAbortControllerRef.current === controller) {
+        setIsGeneratingSeo(false);
+        setIsStreaming(false);
+        setProcessStartedAt(null);
+        analyzeAbortControllerRef.current = null;
+      }
     }
   };
 
@@ -451,7 +491,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     publicationPackage: PublicationPackage
   ): Promise<boolean> => {
     const logId = analysis.analysisLogId || activeHistoryId;
-    if (!logId) return false;
+    if (!logId || hasBlockingWorkspaceOperation()) return false;
+    workspaceMutationRef.current = true;
     try {
       const response = await fetchWithTimeout(`/api/history/${logId}/resolve`, {
         method: 'PATCH',
@@ -473,6 +514,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save SEO metadata.');
       return false;
+    } finally {
+      workspaceMutationRef.current = false;
     }
   };
 
@@ -481,24 +524,31 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     if (!logId) {
       throw new Error('The publication history is not ready yet.');
     }
-    const response = await fetchWithTimeout(`/api/history/${logId}/resolve`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'confirm_publication_package',
-      }),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result.error || 'Failed to confirm publication metadata.');
+    if (hasBlockingWorkspaceOperation()) return;
+    workspaceMutationRef.current = true;
+    try {
+      const response = await fetchWithTimeout(`/api/history/${logId}/resolve`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'confirm_publication_package',
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to confirm publication metadata.');
+      }
+      setAnalysis(prev => ({
+        ...prev,
+        publicationPackageStatus: 'current',
+      }));
+    } finally {
+      workspaceMutationRef.current = false;
     }
-    setAnalysis(prev => ({
-      ...prev,
-      publicationPackageStatus: 'current',
-    }));
   };
 
   const handlePrepareForExport = async () => {
+    if (hasBlockingWorkspaceOperation()) return;
     const readiness = analysis.readiness === 'ready'
       ? 'ready'
       : await handleQualityCheck();
@@ -510,6 +560,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   };
 
   const handleRefineAgain = async (instruction: string, overrideText?: string, forceSkipCheck = false) => {
+    if (hasBlockingWorkspaceOperation()) return;
     setHoveredFeedbackIndex(null);
     setActiveFeedbackIndex(null);
     const ctx = {
@@ -551,6 +602,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     operation: 'replace' | 'insert_before' | 'insert_after' | 'manual',
     index: number
   ) => {
+    if (hasBlockingWorkspaceOperation()) return false;
     const item = analysis.feedback?.[index];
     // Require a real targetText — suggestion-only items cannot be auto-applied
     if (
@@ -572,6 +624,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     const nextFeedback = markFeedbackApplied(analysis.feedback || [], index);
     const nextReadiness: EditorialReadiness = 'needs_review';
     const nextFlags = analysis.flags || [];
+    workspaceMutationRef.current = true;
     try {
       const persisted = await persistEditorialResolution(
         nextFeedback,
@@ -598,10 +651,13 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save the applied suggestion.');
       return false;
+    } finally {
+      workspaceMutationRef.current = false;
     }
   };
 
   const handleApplyAllFixes = async () => {
+    if (hasBlockingWorkspaceOperation()) return;
     const feedback = analysis.feedback || [];
     const autoApplicable = feedback.filter(canAutoApplyFeedback);
     if (autoApplicable.length === 0) {
@@ -626,6 +682,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     );
     const nextReadiness: EditorialReadiness = 'needs_review';
     const nextFlags = analysis.flags || [];
+    workspaceMutationRef.current = true;
     try {
       const persisted = await persistEditorialResolution(
         nextFeedback,
@@ -654,10 +711,13 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save applied suggestions.');
+    } finally {
+      workspaceMutationRef.current = false;
     }
   };
 
   const handleUndoLastEdit = () => {
+    if (hasBlockingWorkspaceOperation()) return;
     const previousDraft = draftHistory[draftHistory.length - 1];
     if (previousDraft === undefined) {
       toast.error('No revisions to undo');
@@ -669,6 +729,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   };
 
   const handleNewDraft = () => {
+    if (hasBlockingWorkspaceOperation()) return;
     setActiveHistoryId(null);
     setDraft('');
     setSourceDraft('');
@@ -691,6 +752,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   };
 
   const handleGenerateDraftFromNotes = () => {
+    if (hasBlockingWorkspaceOperation()) return;
     const ctx = {
       researchNotes,
       metadata,
@@ -714,8 +776,6 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   const handleCancelGenerateDraft = () => {
     if (generateAbortControllerRef.current) {
       generateAbortControllerRef.current.abort();
-      generateAbortControllerRef.current = null;
-      setIsGeneratingDraftFromNotes(false);
       toast.info('Draft generation cancelled');
     }
   };
@@ -727,15 +787,6 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
     }
-    setIsStreaming(false);
-    setIsRefining(false);
-    setProcessStartedAt(null);
-    setIsTargetedFixing(null);
-    setAnalysis((current) => ({
-      ...current,
-      status: current.feedback?.length || current.polishedDraft ? 'success' : 'idle',
-      errorMessage: undefined,
-    }));
     toast.info('AI request cancelled');
   };
 
@@ -773,6 +824,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   };
 
   const loadHistory = async (id: string) => {
+    if (hasBlockingWorkspaceOperation()) return;
     try {
       const res = await fetchWithTimeout(`/api/history/${id}`);
       if (res.ok) {
@@ -874,7 +926,10 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   };
 
   const handleAcceptFeedback = async (index: number) => {
-    if (!analysis.feedback) return;
+    if (
+      !analysis.feedback
+      || hasBlockingWorkspaceOperation()
+    ) return;
     const nextFeedback = [...analysis.feedback];
     nextFeedback[index] = {
       ...nextFeedback[index],
@@ -882,6 +937,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     };
     const nextReadiness = calculateReadiness(nextFeedback, analysis.readiness);
     const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
+    workspaceMutationRef.current = true;
     try {
       const persisted = await persistEditorialResolution(
         nextFeedback,
@@ -902,10 +958,13 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       toast.success('Editorial decision saved.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save the editorial decision.');
+    } finally {
+      workspaceMutationRef.current = false;
     }
   };
 
   const handleAddFeedbackSource = async (index: number, url: string): Promise<boolean> => {
+    if (hasBlockingWorkspaceOperation()) return false;
     const normalizedUrl = normalizeHttpSourceUrl(url);
     if (!normalizedUrl) {
       toast.error('Enter a valid HTTP or HTTPS source URL.');
@@ -931,6 +990,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       ? 'needs_review'
       : calculateReadiness(nextFeedback, analysis.readiness);
     const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
+    workspaceMutationRef.current = true;
     try {
       const persisted = await persistEditorialResolution(
         nextFeedback,
@@ -957,10 +1017,13 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save the source.');
       return false;
+    } finally {
+      workspaceMutationRef.current = false;
     }
   };
 
   const handleTargetedFix = async (index: number, actionType: 'remove' | 'fix') => {
+    if (hasBlockingWorkspaceOperation()) return;
     const item = analysis.feedback?.[index];
     if (
       actionType === 'fix'
@@ -1097,6 +1160,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     isSavingFinalDraft,
     isCheckingQuality,
     isGeneratingSeo,
+    isAiBusy,
 
     // Derived states
     wordCount,

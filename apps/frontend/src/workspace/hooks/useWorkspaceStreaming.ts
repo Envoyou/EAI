@@ -18,24 +18,20 @@ export function useWorkspaceStreaming() {
 
   // Cleanup abort controllers on unmount
   useEffect(() => {
+    const generateControllerRef = generateAbortControllerRef;
+    const analysisControllerRef = analyzeAbortControllerRef;
     return () => {
-      if (generateAbortControllerRef.current) {
-        generateAbortControllerRef.current.abort();
-      }
-      if (analyzeAbortControllerRef.current) {
-        analyzeAbortControllerRef.current.abort();
-      }
+      generateControllerRef.current?.abort();
+      analysisControllerRef.current?.abort();
     };
   }, []);
 
   const cancelPendingStreams = () => {
     if (generateAbortControllerRef.current) {
       generateAbortControllerRef.current.abort();
-      generateAbortControllerRef.current = null;
     }
     if (analyzeAbortControllerRef.current) {
       analyzeAbortControllerRef.current.abort();
-      analyzeAbortControllerRef.current = null;
     }
   };
 

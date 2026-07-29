@@ -342,3 +342,23 @@ The frontend selects the narrowest safe action:
 Any body-changing resolution returns to Quality Check semantics. It does not
 require Full Analyze, and export remains guarded by current readiness,
 publication metadata, and saved-body consistency.
+
+## Workspace Editorial AI Request Lifecycle
+
+Analyze, Refine, targeted fixes, standalone Quality Check, SEO regeneration,
+Prepare, and Draft from Notes share a single-flight workspace boundary. The
+active AbortController is the authoritative request-ownership signal; display
+states such as `analysis.status`, readiness, or the arrival of an early score
+must not decide whether cancellation remains available.
+
+The title-bar action remains Cancel until the owning request reaches terminal
+cleanup. Cancelling aborts the fetch/provider chain but does not release the
+controller reference early, preventing an older request's `finally` block from
+clearing a newer request. Conflicting Final Draft and note-generation actions
+remain disabled while this boundary is active.
+
+Analyze/Refine and standalone publication checks are transactional from the
+user's perspective. A new request may render provisional output, but the last
+completed `AnalysisResult` and source-draft snapshot remain available for
+rollback. Cancellation restores that committed snapshot; a cancelled retry
+must never erase the previously completed Final Draft.

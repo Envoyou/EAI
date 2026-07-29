@@ -28,6 +28,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menormalisasi output provider yang tidak lengkap dengan saran review manual sehingga feedback valid tidak lagi tampil sebagai kartu diagnosis tanpa aksi.
   - Menambahkan `Revisi dengan EAI` untuk temuan tanpa target teks dan `Terima sebagai keputusan editorial` untuk warning non-faktual. Temuan faktual/berisiko sumber dan temuan blocking tetap tidak dapat langsung diterima serta harus direvisi atau diverifikasi.
   - Mengarahkan revisi EAI tanpa target melalui workflow refinement Final Draft saat ini beserta Quality Gate-nya, tanpa menjalankan Full Analyze yang tidak diperlukan.
+- **Lifecycle AI Editorial yang Dapat Dibatalkan dan Single-Flight**:
+  - Mempertahankan aksi Cancel di title bar selama seluruh lifecycle Analyze/Refine, termasuk rewrite, validasi, Quality Gate, SEO, dan finalisasi, bukan lagi bergantung pada state sementara `analysis.status === "loading"`.
+  - Mempertahankan dan memulihkan snapshot hasil analisis serta source draft terakhir yang lengkap ketika analisis ulang, refinement, Quality Check, atau SEO dibatalkan.
+  - Menambahkan guard single-flight berbasis AbortController pada Analyze, Refine, targeted fix, Quality Check, SEO, Prepare, dan Draft from Notes, serta menonaktifkan aksi Final Draft yang bertabrakan selama request AI editorial masih memiliki workspace.
+  - Mempertahankan ownership controller sampai request yang dibatalkan mencapai blok `finally` miliknya sendiri, sehingga cancel lalu restart dengan cepat tidak membuat request lama menghapus lifecycle request baru.
 
 ## [3.18.0] - 2026-07-29
 

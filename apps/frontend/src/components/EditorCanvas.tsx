@@ -62,6 +62,7 @@ interface EditorCanvasProps {
   isSavingFinalDraft: boolean;
   isCheckingQuality: boolean;
   isGeneratingSeo: boolean;
+  isAiBusy: boolean;
   onAddNewMetadataOption: (type: 'category' | 'articleType', value: string) => void;
   onOpenShortcuts: () => void;
   layoutReversed?: boolean;
@@ -111,6 +112,7 @@ export default function EditorCanvas({
   isSavingFinalDraft,
   isCheckingQuality,
   isGeneratingSeo,
+  isAiBusy,
   onAddNewMetadataOption,
   onOpenShortcuts,
   layoutReversed,
@@ -195,7 +197,7 @@ export default function EditorCanvas({
                 onChange={onDraftChange}
                 metadata={metadata}
                 onMetadataChange={onMetadataChange}
-                isLoading={analysis.status === 'loading' || isGeneratingDraft}
+                isLoading={analysis.status === 'loading' || isGeneratingDraft || isAiBusy}
                 onAnalyze={onAnalyze}
                 categoryOptions={editorialOptions.categories}
                 articleTypeOptions={editorialOptions.articleTypes}
@@ -258,6 +260,7 @@ export default function EditorCanvas({
                       isSavingFinalDraft={isSavingFinalDraft}
                       isCheckingQuality={isCheckingQuality}
                       isGeneratingSeo={isGeneratingSeo}
+                      isAiBusy={isAiBusy}
                       hoveredFeedbackIndex={hoveredFeedbackIndex}
                       activeFeedbackIndex={activeFeedbackIndex}
                       onActiveFeedbackChange={onActiveFeedbackChange}

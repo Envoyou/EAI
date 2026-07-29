@@ -61,7 +61,12 @@ export async function executeTargetedFix(
   } = ctx;
 
   const item = analysis.feedback?.[index];
-  if (!item || !item.targetText || isTargetedFixing !== null) return;
+  if (
+    !item
+    || !item.targetText
+    || isTargetedFixing !== null
+    || analyzeAbortControllerRef.current
+  ) return;
   setIsTargetedFixing(index);
 
   const controller = new AbortController();
@@ -173,6 +178,9 @@ export async function executeTargetedFix(
 
     toast.success(bodyChangeSuccessMessage);
   } catch (error) {
+    if (controller.signal.aborted) {
+      return;
+    }
     const msg = error instanceof Error ? error.message : 'Targeted fix failed';
     toast.error('Fix Failed', { description: msg });
   } finally {
