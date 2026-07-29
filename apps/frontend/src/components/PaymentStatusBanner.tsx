@@ -1,10 +1,11 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CheckCircle2, Clock3, Loader2, TriangleAlert, X } from 'lucide-react';
+import { CheckCircle2, Clock3, TriangleAlert, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type PaymentStatus = {
@@ -96,7 +97,7 @@ export default function PaymentStatusBanner() {
     : isFailed || error
       ? TriangleAlert
       : checking
-        ? Loader2
+        ? EAILoaderStatusIcon
         : Clock3;
 
   const dismiss = () => {
@@ -117,11 +118,7 @@ export default function PaymentStatusBanner() {
       aria-live="polite"
     >
       <div className="flex items-start gap-3">
-        <Icon
-          className={`mt-0.5 h-5 w-5 shrink-0 ${
-            checking ? 'animate-spin' : ''
-          }`}
-        />
+        <Icon className="mt-0.5 h-5 w-5 shrink-0" />
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-bold">
             {isPaid

@@ -1,9 +1,10 @@
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { ArticleMetadata } from '@eai/shared';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Loader2, Type, Code } from 'lucide-react';
+import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Type, Code } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { useState, useRef, useEffect } from 'react';
@@ -630,7 +631,7 @@ export default function Editor({
           <div className="relative flex-1 w-full min-w-0 max-w-full overflow-y-auto overflow-x-hidden">
             {isLoading && !value && (
               <div className="absolute inset-0 z-50 bg-[var(--surface-1)]/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 select-none">
-                <Loader2 className="w-6 h-6 text-[var(--primary)] animate-spin" />
+                <EAILoaderStatusIcon className="w-6 h-6 text-[var(--primary)]" />
                 <div className="text-center">
                   <p className="text-xs font-bold text-[var(--foreground)]">EAI is Drafting...</p>
                   <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5">Synthesizing research notes and generating your content...</p>

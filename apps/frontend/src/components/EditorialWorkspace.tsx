@@ -1,9 +1,9 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { useRouter } from 'next/navigation';
 import { MotionConfig } from 'framer-motion';
 import {
-  Loader2,
   RotateCcw,
   Sparkles,
   Megaphone,
@@ -130,7 +130,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
   if (workspaceChecking) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <EAILoaderStatusIcon className="h-6 w-6 text-primary" />
       </div>
     );
   }
@@ -239,7 +239,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                       <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--muted-foreground)] bg-[var(--surface-2)]/45 border border-[var(--border)]/75 rounded-full select-none">
                         {isSavingToCloud ? (
                           <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--primary)]" />
+                            <EAILoaderStatusIcon className="w-3.5 h-3.5 text-[var(--primary)]" />
                             <span className="hidden @[640px]:inline">Saving...</span>
                           </>
                         ) : (
@@ -259,7 +259,7 @@ export default function EditorialWorkspace({ mode }: { mode: 'demo' | 'workspace
                         className="text-[var(--primary)] border-[var(--primary)]/20"
                       >
                         {isSavingToCloud ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <EAILoaderStatusIcon className="w-3.5 h-3.5" />
                         ) : (
                           <CloudUpload className="w-3.5 h-3.5" />
                         )}

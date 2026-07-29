@@ -1,11 +1,12 @@
 'use strict';
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import React, { Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Shield, QrCode, Building2, CheckCircle, XCircle, Copy, Loader2 } from 'lucide-react';
+import { Shield, QrCode, Building2, CheckCircle, XCircle, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BILLING_ENABLED } from '@eai/shared';
 
@@ -258,7 +259,7 @@ function BillingSimulatorContent() {
             className="w-full py-3.5 bg-primary hover:bg-primary/95 text-white font-bold rounded-2xl transition-all shadow-md shadow-primary/10 active:scale-98 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 border-none"
           >
             {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <EAILoaderStatusIcon className="w-4 h-4" />
             ) : (
               'Simulate Success'
             )}
@@ -335,7 +336,7 @@ export default function SimulatePaymentPage() {
       
       <Suspense fallback={
         <div className="text-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+          <EAILoaderStatusIcon className="w-8 h-8 mx-auto text-primary" />
           <p className="text-sm text-slate-500">Loading payment simulator...</p>
         </div>
       }>

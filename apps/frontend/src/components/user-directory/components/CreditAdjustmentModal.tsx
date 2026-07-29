@@ -1,12 +1,12 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import {
   CreditCard,
   PlusCircle,
   MinusCircle,
   X,
-  Loader2,
-} from 'lucide-react';
+  } from 'lucide-react';
 import type { DirectoryUser } from '../types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -178,7 +178,7 @@ export function CreditAdjustmentModal({
               size="sm"
               className="flex items-center gap-1.5"
             >
-              {submittingAdjustment && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {submittingAdjustment && <EAILoaderStatusIcon className="h-3.5 w-3.5" />}
               <span>Submit Adjustment</span>
             </Button>
           </div>

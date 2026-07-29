@@ -1,9 +1,10 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Plus, FileText, Loader2, Search, X } from 'lucide-react';
+import { Plus, FileText, Search, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -579,7 +580,7 @@ export default function DocumentHistoryPanel({
                   size="sm"
                   className="w-full rounded-full"
                 >
-                  {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {loadingMore && <EAILoaderStatusIcon className="w-3 h-3" />}
                   {loadingMore ? 'Loading…' : 'Load More'}
                 </Button>
               </div>

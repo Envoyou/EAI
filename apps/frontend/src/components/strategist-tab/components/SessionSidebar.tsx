@@ -1,9 +1,9 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { ChatSession } from '@/lib/hooks/useContentStrategist';
 import {
   Plus,
-  Loader2,
   MessageSquare,
   Pin,
 } from 'lucide-react';
@@ -56,7 +56,7 @@ export function SessionSidebar({
       <div className="flex-1 overflow-y-auto p-3 space-y-1">
         {isSessionsLoading ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--muted-foreground)]">
-            <Loader2 className="w-5 h-5 animate-spin text-[var(--primary)] mb-2" />
+            <EAILoaderStatusIcon className="w-5 h-5 text-[var(--primary)] mb-2" />
             <span className="text-[10px]">Loading history...</span>
           </div>
         ) : sessions.length === 0 ? (

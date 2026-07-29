@@ -21,6 +21,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan kode kegagalan provider yang aman untuk rate limit, layanan tidak tersedia, timeout, pembatalan, dan kegagalan chat yang tidak terklasifikasi tanpa mengekspos payload mentah provider.
   - Menambahkan migration `20260729010000_add_strategist_chat_lifecycle`, yang telah diterapkan ke database Neon production pada 29 Juli 2026.
 
+### Changed
+- **Indikator Loading Frontend dengan Identitas EAI**:
+  - Mengganti Lucide `Loader2` pada 55 titik render loading di 28 modul frontend—mencakup halaman, panel, tombol, status pembayaran, dan notifikasi Sonner—dengan `EAILoaderLogo` bersama melalui token semantik `EAILoaderStatusIcon`.
+  - Mengarahkan alias kompatibilitas `LoadingStatusIcon` ke loader beridentitas EAI yang sama serta menghapus kelas `animate-spin` di sisi consumer karena animasi kini dimiliki komponen bersama.
+
 ### Fixed
 - **Kemunculan Bertahap Thinking dan Jawaban Strategist**:
   - Menambahkan antrean typewriter adaptif bersama untuk reasoning Strategist, ringkasan grounding Search, teks stream, dan respons final pengganti, dengan pembatalan yang aman terhadap lifecycle, pergantian sesi, serta dukungan `prefers-reduced-motion`.

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { Link } from '@/i18n/routing';
 import { usePathname } from 'next/navigation';
 import {
@@ -8,7 +9,6 @@ import {
   Check,
   CircleUserRound,
   FileText,
-  Loader2,
   Workflow,
   CreditCard,
   Settings,
@@ -61,7 +61,7 @@ export function SettingsLayoutShell({ children, isAdmin, isSuperAdmin }: Setting
   if (!isMounted || !isLoaded) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <EAILoaderStatusIcon className="h-6 w-6 text-primary" />
       </div>
     );
   }
@@ -80,7 +80,7 @@ export function SettingsLayoutShell({ children, isAdmin, isSuperAdmin }: Setting
           variant="primary"
           size="sm"
         >
-          {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          {isSaving ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : null}
           <span>Save Changes</span>
         </Button>
       }

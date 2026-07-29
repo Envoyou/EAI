@@ -1,9 +1,10 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import { useEffect, useState } from 'react';
-import { FileText, CheckCircle, Activity, AlertTriangle, Loader2, ArrowLeft, Download, WalletCards } from 'lucide-react';
+import { FileText, CheckCircle, Activity, AlertTriangle, ArrowLeft, Download, WalletCards } from 'lucide-react';
 import Link from 'next/link';
 import { WorkspacePageShell } from '@/components/WorkspacePageShell';
 import { Button } from '@/components/ui/button';
@@ -189,7 +190,7 @@ export default function ValidationDashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-accent-500" />
+        <EAILoaderStatusIcon className="w-8 h-8 text-accent-500" />
       </div>
     );
   }

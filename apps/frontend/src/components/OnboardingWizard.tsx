@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable react-hooks/set-state-in-effect */
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -13,7 +14,6 @@ import {
   CheckCircle2,
   FileText,
   Globe2,
-  Loader2,
   Rocket,
   ShieldCheck,
   Sparkles,
@@ -447,7 +447,7 @@ export function OnboardingWizard() {
     return (
       <div className="flex h-screen items-center justify-center bg-[var(--background)] text-[var(--foreground)] font-sans">
         <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted-foreground)]">
-          <Loader2 className="h-4 w-4 animate-spin text-[var(--primary)]" />
+          <EAILoaderStatusIcon className="h-4 w-4 text-[var(--primary)]" />
           Preparing launch desk
         </div>
       </div>
@@ -833,7 +833,7 @@ export function OnboardingWizard() {
                       <div className="relative">
                         <div className="absolute inset-0 rounded-full bg-[var(--primary)]/20 blur-xl animate-pulse" />
                         <div className="flex size-20 items-center justify-center rounded-full border border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)] relative z-10">
-                          <Loader2 className="size-10 animate-spin text-[var(--primary)]" />
+                          <EAILoaderStatusIcon className="size-10 text-[var(--primary)]" />
                         </div>
                       </div>
 
@@ -851,7 +851,7 @@ export function OnboardingWizard() {
                         <div ref={scrollRef} className="max-h-72 overflow-y-auto space-y-2.5 pr-1 font-mono text-xs leading-relaxed text-[var(--foreground)] scrollbar-thin">
                           {streamText.trim().length === 0 ? (
                             <div className="flex items-center gap-2 text-[var(--muted-foreground)] py-4 justify-center">
-                              <Loader2 className="size-3.5 animate-spin text-[var(--primary)]" />
+                              <EAILoaderStatusIcon className="size-3.5 text-[var(--primary)]" />
                               Initializing Gemini AI Reasoning Engine...
                             </div>
                           ) : (
@@ -1227,7 +1227,7 @@ export function OnboardingWizard() {
                   size="lg"
                   className="px-6 font-sans text-sm gap-2 font-semibold"
                 >
-                  {activating ? <Loader2 className="size-4 animate-spin" /> : <Rocket className="size-4" />}
+                  {activating ? <EAILoaderStatusIcon className="size-4" /> : <Rocket className="size-4" />}
                   {activating ? t('buttons.activating') : t('buttons.activate')}
                 </Button>
               ) : step === 'activation' ? (
@@ -1258,7 +1258,7 @@ export function OnboardingWizard() {
                     size="lg"
                     className="px-6 font-sans text-sm gap-2 font-semibold"
                   >
-                    {saving ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                    {saving ? <EAILoaderStatusIcon className="size-4" /> : <Sparkles className="size-4" />}
                     {saving ? t('buttons.saving') : t('buttons.startAi')}
                   </Button>
                 )

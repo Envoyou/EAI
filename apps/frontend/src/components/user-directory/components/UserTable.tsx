@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import {
   Users,
   Search,
@@ -10,8 +11,7 @@ import {
   ChevronRight,
   Copy,
   Check,
-  Loader2,
-} from 'lucide-react';
+  } from 'lucide-react';
 import {
   Select,
   SelectTrigger,
@@ -163,7 +163,7 @@ export function UserTable({
       <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] shadow-sm overflow-hidden animate-fade-in relative min-h-[300px]">
         {loading && (
           <div className="absolute inset-0 bg-[var(--surface-1)]/50 backdrop-blur-[1px] flex items-center justify-center z-10">
-            <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+            <EAILoaderStatusIcon className="h-8 w-8 text-[var(--primary)]" />
           </div>
         )}
 

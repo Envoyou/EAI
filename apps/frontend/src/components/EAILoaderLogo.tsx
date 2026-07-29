@@ -52,7 +52,7 @@ export function EAILoaderLogo({ className }: { className?: string }) {
 
       <g className={spinnerGroupClass} mask={`url(#${maskId})`}>
         <path
-          fill="currentColor"
+          fill="#0b79c2"
           stroke="currentColor"
           strokeWidth="20"
           strokeLinejoin="round"

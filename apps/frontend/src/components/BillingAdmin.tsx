@@ -1,5 +1,6 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import {
@@ -7,7 +8,6 @@ import {
   CheckCircle2,
   CreditCard,
   ExternalLink,
-  Loader2,
   MinusCircle,
   PlusCircle,
   Search,
@@ -357,7 +357,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                 className="shrink-0"
               >
                 {searching
-                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  ? <EAILoaderStatusIcon className="h-4 w-4" />
                   : <Search className="h-4 w-4" />}
                 Search
               </Button>
@@ -400,7 +400,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
         <section className="min-w-0">
           {loadingDetail ? (
             <div className="ui-card flex min-h-96 items-center justify-center">
-              <Loader2 className="h-7 w-7 animate-spin text-[var(--primary)]" />
+              <EAILoaderStatusIcon className="h-7 w-7 text-[var(--primary)]" />
             </div>
           ) : !selected ? (
             <div className="ui-card flex min-h-96 flex-col items-center justify-center px-6 text-center">
@@ -625,7 +625,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                                   className="shrink-0"
                                 >
                                   {verifyingTicket
-                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    ? <EAILoaderStatusIcon className="h-4 w-4" />
                                     : <ShieldCheck className="h-4 w-4" />}
                                   Verify
                                 </Button>
@@ -759,7 +759,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                                   className="shrink-0"
                                 >
                                   {verifyingTicket
-                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    ? <EAILoaderStatusIcon className="h-4 w-4" />
                                     : <ShieldCheck className="h-4 w-4" />}
                                   Verify
                                 </Button>
@@ -970,7 +970,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                 disabled={submitting}
                 variant={pending.direction === 'add' ? 'primary' : 'danger'}
               >
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {submitting && <EAILoaderStatusIcon className="h-4 w-4" />}
                 Confirm {pending.direction}
               </Button>
             </div>
@@ -1036,7 +1036,7 @@ export function BillingAdmin({ zohoDeskEnabled }: { zohoDeskEnabled: boolean }) 
                 disabled={submitting}
                 variant="primary"
               >
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {submitting && <EAILoaderStatusIcon className="h-4 w-4" />}
                 Confirm override
               </Button>
             </div>

@@ -1,6 +1,7 @@
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { useEffect, useState, useRef } from 'react';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
-import { Plus, FileText, Loader2, Search, Trash2 } from 'lucide-react';
+import { Plus, FileText, Search, Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -420,7 +421,7 @@ export default function HistorySidebar({
                     size="sm"
                     className="w-full rounded-full"
                   >
-                    {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
+                    {loadingMore && <EAILoaderStatusIcon className="w-3 h-3" />}
                     {loadingMore ? 'Loading…' : 'Load More'}
                   </Button>
                 </div>

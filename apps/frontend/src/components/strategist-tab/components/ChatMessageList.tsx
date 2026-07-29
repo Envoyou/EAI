@@ -1,11 +1,11 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-  Loader2,
   Globe,
   Copy,
   Bookmark,
@@ -290,7 +290,7 @@ function ChatMessageRow({
                           {isGrounding ? (
                             <Globe className="w-3.5 h-3.5 animate-pulse text-[var(--success)]" />
                           ) : (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--primary)]" />
+                            <EAILoaderStatusIcon className="w-3.5 h-3.5 text-[var(--primary)]" />
                           )}
                           <span className="font-medium">
                             {isThinkingStatus

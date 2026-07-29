@@ -1,7 +1,7 @@
-# EAI Frontend UI Architecture — v3.15.0
+# EAI Frontend UI Architecture — v3.17.0
 
 > Status: canonical architecture snapshot
-> Snapshot date: 2026-07-24
+> Snapshot date: 2026-07-29
 > Scope: `apps/frontend`
 > Historical editor CSS investigation: [Historical Editor CSS Incident Analysis](./historical-editor-css-incident-analysis.md)
 
@@ -197,6 +197,15 @@ chunks. Standard icon-and-label actions render through `ActionButton`; tabs,
 toggles, and composite controls retain the lower-level `Button` primitive.
 Existing direct Lucide consumers are migration inventory and move to domain
 tokens in bounded, behavior-preserving batches.
+
+Loading indicators follow the same semantic-token boundary. Compact progress
+states in buttons, panels, page shells, payment status, and Sonner notifications
+render `EAILoaderStatusIcon` from `components/ui/icons/status.ts`, which delegates
+to the shared animated `EAILoaderLogo`. `LoadingStatusIcon` remains an alias for
+the same branded component. Consumers must not import Lucide `Loader2` or add
+`animate-spin` to the EAI loader because animation ownership belongs to the
+shared component. Content-shaped placeholders remain the responsibility of the
+`Skeleton` primitive.
 
 ### Layer 5: zero-specificity typography overrides (`prose.css`)
 

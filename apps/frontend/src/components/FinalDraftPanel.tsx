@@ -1,11 +1,12 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   FileDiff, CheckCircle2, PlusCircle, MinusCircle,
-  Eye, Code, SplitSquareHorizontal, Send, Loader2, Maximize2, Minimize2,
+  Eye, Code, SplitSquareHorizontal, Send, Maximize2, Minimize2,
   FileText, Download, ChevronDown, ChevronUp, AlertTriangle, RefreshCw,
   Pencil, ShieldCheck, Wand2, Save, X
 } from 'lucide-react';
@@ -876,7 +877,7 @@ export default function FinalDraftPanel({
                             aria-label="Run Quality Check"
                           >
                             {isCheckingQuality
-                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
                               : <ShieldCheck className="h-3.5 w-3.5" />}
                             <span>{t('qualityCheck')}</span>
                           </Button>
@@ -894,7 +895,7 @@ export default function FinalDraftPanel({
                             aria-label="Regenerate SEO metadata"
                           >
                             {isGeneratingSeo
-                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
                               : <Wand2 className="h-3.5 w-3.5" />}
                             <span>{t('regenerateSeo')}</span>
                           </Button>
@@ -1058,7 +1059,7 @@ export default function FinalDraftPanel({
               }}
             >
               {isSavingFinalDraft
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
                 : <Save className="h-3.5 w-3.5" />}
               Save Draft Revision
             </Button>
@@ -1206,7 +1207,7 @@ export default function FinalDraftPanel({
                   }}
                 >
                   {isConfirmingMetadata
-                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
                     : <ShieldCheck className="h-3.5 w-3.5" />}
                   {t('confirmMetadataCurrent')}
                 </Button>
@@ -1286,7 +1287,7 @@ export default function FinalDraftPanel({
                   className="w-full"
                 >
                   {isRefining
-                    ? <><Loader2 className="h-3 w-3 animate-spin" /> Refining…</>
+                    ? <><EAILoaderStatusIcon className="h-3 w-3" /> Refining…</>
                     : <>Apply</>}
                 </Button>
               </div>

@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Activity, FileText, CheckCircle, Users, Download, Loader2, ShieldAlert } from 'lucide-react';
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
+import { Activity, FileText, CheckCircle, Users, Download, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { WorkspacePageShell } from '@/components/WorkspacePageShell';
@@ -38,7 +39,7 @@ export function DashboardLayoutShell({ children, isSuperAdmin }: { children: Rea
   if (loading || !data) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-accent-500" />
+        <EAILoaderStatusIcon className="w-8 h-8 text-accent-500" />
       </div>
     );
   }

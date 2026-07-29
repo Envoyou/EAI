@@ -1,9 +1,10 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import React, { useEffect, useState } from 'react';
-import { Loader2, Search, Eye, Filter, ArrowLeft, ArrowRight, X } from 'lucide-react';
+import { Search, Eye, Filter, ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -130,7 +131,7 @@ export default function AuditLogsAdminPage() {
                 size="sm"
                 className="shrink-0"
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                {loading ? <EAILoaderStatusIcon className="h-4 w-4" /> : <Search className="h-4 w-4" />}
                 Search
               </Button>
             </div>
@@ -171,7 +172,7 @@ export default function AuditLogsAdminPage() {
         <div className="ui-card overflow-hidden">
           {loading ? (
             <div className="p-12 flex flex-col items-center justify-center text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)] mb-2" />
+              <EAILoaderStatusIcon className="h-8 w-8 text-[var(--primary)] mb-2" />
               <span className="text-xs text-[var(--muted-foreground)]">Loading audit logs...</span>
             </div>
           ) : logs.length === 0 ? (

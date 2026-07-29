@@ -1,4 +1,4 @@
-<!-- Managed by agent: keep sections and order; edit content, not structure. Last updated: 2026-02-04 -->
+<!-- Managed by agent: keep sections and order; edit content, not structure. Last updated: 2026-07-29 -->
 
 # AGENTS.md — web
 
@@ -48,7 +48,7 @@ Frontend application (TypeScript/React/Vue)
 - Follow tsconfig.json compiler options
 - Use functional components with hooks
 - Naming: `camelCase` for variables/functions, `PascalCase` for components
-- File naming: `ComponentName.tsx`, `utilityName.ts`
+- File naming: components use `PascalCase` with a `.tsx` extension; utilities use `camelCase` with a `.ts` extension
 - Imports: group and sort (external, internal, types)
 - Avoid class components
 <!-- AGENTS-GENERATED:END code-style -->

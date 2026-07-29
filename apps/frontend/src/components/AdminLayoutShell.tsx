@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { Link } from '@/i18n/routing';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -14,7 +15,6 @@ import {
   Moon,
   Sun,
   ArrowLeft,
-  Loader2,
   Cpu,
   Scroll,
   PanelLeft,
@@ -82,7 +82,7 @@ export function AdminLayoutShell({ children }: AdminLayoutShellProps) {
   if (!isLoaded) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <EAILoaderStatusIcon className="h-6 w-6 text-primary" />
       </div>
     );
   }

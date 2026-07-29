@@ -1,10 +1,11 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Loader2, ArrowRight, Check, X } from 'lucide-react';
+import { ArrowRight, Check, X } from 'lucide-react';
 import type { CheckoutDisclosure } from '@eai/shared';
 import { Button } from '@/components/ui/button';
 
@@ -178,7 +179,7 @@ export default function PricingCheckoutButton({
           <span>Downgrade Pending</span>
         ) : loading ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <EAILoaderStatusIcon className="w-4 h-4" />
             <span>Processing...</span>
           </>
         ) : current ? (
@@ -245,7 +246,7 @@ export default function PricingCheckoutButton({
 
                   {previewLoading ? (
                     <div className="flex flex-col items-center justify-center py-12 gap-3 text-sm text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <EAILoaderStatusIcon className="h-6 w-6 text-primary" />
                       <span>Calculating prorata discounts and balance...</span>
                     </div>
                   ) : isDelayedDowngrade ? (
@@ -359,7 +360,7 @@ export default function PricingCheckoutButton({
                       disabled={loading || previewLoading}
                       variant="primary"
                     >
-                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                      {loading ? <EAILoaderStatusIcon className="h-4 w-4" /> : null}
                       {isDelayedDowngrade ? 'Confirm Downgrade' : (preview && preview.finalAmountIdr === 0 ? 'Confirm & Activate' : 'Continue to payment')}
                     </Button>
                   </div>

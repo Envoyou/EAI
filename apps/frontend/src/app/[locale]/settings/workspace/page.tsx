@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { Link, useRouter } from '@/i18n/routing';
-import { SlidersHorizontal, Loader2, CreditCard } from 'lucide-react';
+import { SlidersHorizontal, CreditCard } from 'lucide-react';
 import { useSettings } from '@/components/SettingsProvider';
 import { SettingSection, SettingRow } from '@/components/SettingsUI';
 import { PRICING_ENABLED } from '@eai/shared';
@@ -21,7 +22,7 @@ export default function WorkspaceSettingsPage() {
   if (loadingWorkspace || !workspace || !workspace.isAdmin) {
     return (
       <div className="flex h-40 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-[var(--muted-foreground)]" />
+        <EAILoaderStatusIcon className="h-6 w-6 text-[var(--muted-foreground)]" />
       </div>
     );
   }
@@ -58,7 +59,7 @@ export default function WorkspaceSettingsPage() {
           description="Review the current plan and available editorial credits."
         >
           {loadingWorkspace ? (
-            <Loader2 className="h-4 w-4 animate-spin text-[var(--muted-foreground)]" />
+            <EAILoaderStatusIcon className="h-4 w-4 text-[var(--muted-foreground)]" />
           ) : (
             <div className="text-right">
               <div className="text-sm font-semibold tabular-nums">

@@ -1,6 +1,7 @@
 'use client';
 
-import { History, X, Loader2 } from 'lucide-react';
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
+import { History, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { USER_ROLE_LABELS, ACQUISITION_SOURCE_LABELS, PRIMARY_GOAL_LABELS } from '@eai/shared';
 import type { DirectoryUser, UserDetailsData } from '../types';
@@ -91,7 +92,7 @@ export function OrganizationDetailDrawer({
 
         {loadingDetails ? (
           <div className="flex-1 flex flex-col items-center justify-center min-h-[200px]">
-            <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)] mb-2" />
+            <EAILoaderStatusIcon className="h-8 w-8 text-[var(--primary)] mb-2" />
             <p className="text-xs text-[var(--muted-foreground)]">Fetching audit details...</p>
           </div>
         ) : detailsData ? (

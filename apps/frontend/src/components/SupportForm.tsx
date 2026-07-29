@@ -1,8 +1,9 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
-import { AlertCircle, CheckCircle2, LifeBuoy, Loader2, Mail, Send } from 'lucide-react';
+import { AlertCircle, CheckCircle2, LifeBuoy, Mail, Send } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import {
   Select,
@@ -206,7 +207,7 @@ export function SupportForm() {
         className="h-11 w-full"
       >
         {submitting
-          ? <Loader2 className="h-4 w-4 animate-spin" />
+          ? <EAILoaderStatusIcon className="h-4 w-4" />
           : <Send className="h-4 w-4" />}
         Submit support request
       </Button>

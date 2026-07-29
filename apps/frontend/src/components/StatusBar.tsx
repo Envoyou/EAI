@@ -1,6 +1,7 @@
 'use client';
 
-import { CheckCircle2, AlertTriangle, ShieldAlert, Loader2, Keyboard, ArrowLeftRight } from 'lucide-react';
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
+import { CheckCircle2, AlertTriangle, ShieldAlert, Keyboard, ArrowLeftRight } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditorialReadiness } from '@eai/shared';
 import packageJson from '../../package.json';
@@ -81,7 +82,7 @@ export default function StatusBar({
           aria-live="polite"
           aria-label={isRefining ? "Refining draft" : "Analyzing draft"}
         >
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          <EAILoaderStatusIcon className="w-3.5 h-3.5" />
           {isRefining ? 'Refining…' : (isStreaming ? 'Streaming…' : 'Analyzing…')}
         </Badge>
       )}

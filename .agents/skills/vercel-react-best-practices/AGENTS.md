@@ -434,7 +434,7 @@ Reducing initial bundle size improves Time to Interactive and Largest Contentful
 
 **Impact: CRITICAL (200-800ms import cost, slow builds)**
 
-Import directly from source files instead of barrel files to avoid loading thousands of unused modules. **Barrel files** are entry points that re-export multiple modules (e.g., `index.js` that does `export * from './module'`).
+Import directly from source files instead of barrel files to avoid loading thousands of unused modules. **Barrel files** are package entry modules that re-export multiple modules (for example, by using `export * from './module'`).
 
 Popular icon and component libraries can have **up to 10,000 re-exports** in their entry file. For many React packages, **it takes 200-800ms just to import them**, affecting both development speed and production cold starts.
 
@@ -3843,4 +3843,3 @@ See individual sections above and [apps/frontend/AGENTS.md](../../../apps/fronte
 ## When stuck
 
 See [apps/frontend/AGENTS.md](../../../apps/frontend/AGENTS.md) for troubleshooting guidance and [docs/architecture-notes.md](../../../docs/architecture-notes.md) for architectural context.
-

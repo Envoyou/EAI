@@ -41,7 +41,7 @@
 {{TS_STRICT_LINE}}
 {{COMPONENT_STYLE_LINE}}
 - Naming: `camelCase` for variables/functions, `PascalCase` for components
-- File naming: `ComponentName.tsx`, `utilityName.ts`
+- File naming: components use `PascalCase` with a `.tsx` extension; utilities use `camelCase` with a `.ts` extension
 - Imports: group and sort (external, internal, types)
 {{CSS_APPROACH_LINE}}
 {{FRAMEWORK_CONVENTIONS}}

@@ -21,6 +21,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added safe provider failure codes for rate limits, temporary unavailability, timeouts, cancellation, and uncategorized chat failures without exposing raw provider payloads.
   - Added migration `20260729010000_add_strategist_chat_lifecycle`, applied to the production Neon database on July 29, 2026.
 
+### Changed
+- **Branded Frontend Loading Indicators**:
+  - Replaced Lucide `Loader2` across 55 loading render sites in 28 frontend modules—including pages, panels, buttons, payment status, and Sonner notifications—with the shared `EAILoaderLogo` through the semantic `EAILoaderStatusIcon`.
+  - Redirected the compatibility alias `LoadingStatusIcon` to the same branded loader and removed consumer-level `animate-spin` classes because the shared component owns its animation.
+
 ### Fixed
 - **Progressive Strategist Thinking and Answer Reveal**:
   - Added a shared adaptive typewriter queue for Strategist reasoning, Search grounding summaries, streamed text, and final replacement responses, with lifecycle-safe cancellation, session switching, and `prefers-reduced-motion` support.

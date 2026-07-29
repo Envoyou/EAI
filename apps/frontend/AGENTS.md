@@ -1,5 +1,5 @@
 <!-- Managed by agent: workflow-architect -->
-<!-- Last updated: 2026-07-24 -->
+<!-- Last updated: 2026-07-29 -->
 # Envoyou AI (EAI) — Frontend Agent Guide
 
 ## Overview
@@ -235,7 +235,7 @@ When building administrative views that allow multiple distinct operations (such
 
 ### 🚫 RULE 9: Always Provide an Overlay Confirmation Modal for Administrative Actions
 Any high-privilege administrative operation that performs database modifications (ledger writes, subscription updates, overrides) must require a confirmation step.
-* **Solution**: Render a modal overlay using the absolute container `fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm`. Inside, provide a detailed table-like breakdown of the action using description list tags (`<dl className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-3 rounded-2xl bg-[var(--surface-2)] p-4 text-sm">`), and ensure the confirmation button shows a loading spinner (`<Loader2 className="animate-spin" />`) while `submitting` is active.
+* **Solution**: Render a modal overlay using the absolute container `fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm`. Inside, provide a detailed table-like breakdown of the action using description list tags (`<dl className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-3 rounded-2xl bg-[var(--surface-2)] p-4 text-sm">`), and ensure the confirmation button renders `<EAILoaderStatusIcon className="h-4 w-4" />` while `submitting` is active. Import it from `@/components/ui/icons/status`; do not add `animate-spin` because the branded loader owns its animation.
 
 ### 🚫 RULE 10: Do Not Let Editor Typography Style NodeView Controls
 Tiptap NodeViews render inside the ProseMirror `.prose` tree, so embedded buttons, inputs, menus, badges, and status UI must have an explicit control boundary.
@@ -256,6 +256,7 @@ New or migrated text-like fields must not combine raw `<input>`/`<textarea>` ele
 New or migrated feature controls must import intent-named icon tokens from `@/components/ui/icons/<domain>` instead of choosing a Lucide shape directly.
 * **Solution**: Add or reuse a tree-shakeable named alias such as `PreparePublicationIcon`; do not create a runtime string registry or import a global icon object.
 * **Action buttons**: Use `<ActionButton icon={Token} label={...} />` for standard icon-and-label actions. Keep `<Button>` for tabs, toggles, polymorphic triggers, or composite controls whose children are structurally richer than an icon plus label.
+* **Loading indicators**: Use `EAILoaderStatusIcon` from `@/components/ui/icons/status` for compact progress indicators. `LoadingStatusIcon` is a compatibility alias for the same component. Do not import Lucide `Loader2` or add an external `animate-spin` class to the EAI loader.
 * **Migration boundary**: Existing direct `lucide-react` imports are legacy inventory. Migrate them in bounded feature batches; do not perform shape-based global replacement because the same shape can represent different intents.
 
 ---
@@ -269,7 +270,7 @@ New or migrated feature controls must import intent-named icon tokens from `@/co
 ## 5. Caching & Feature Flags
 
 * **Feature Flags**: Managed dynamically via Vercel Edge Config. Import `getMiddlewareFeatureFlags` from `@eai/shared/server` **only** in server-side code (`proxy.ts`, Server Components, Route Handlers). Never import `@eai/shared/server` in Client Components.
-* **Loading State**: Always use the `<Skeleton className="..." />` component from `@/components/ui/skeleton` to visualize loading placeholders instead of leaving the screen blank or styling manual pulse divs.
+* **Loading State**: Use `<Skeleton className="..." />` from `@/components/ui/skeleton` for content placeholders. Use `EAILoaderStatusIcon` for compact progress states in buttons, panels, and status surfaces instead of Lucide `Loader2` or manually styled spinners.
 * **Request Lifecycle**: Frontend and server-side API calls must use `fetchWithTimeout` from `@/lib/fetch-utils`; AI streams must additionally use `readWithTimeout` and pass the originating controller abort callback. Preserve caller abort signals, provide a visible Cancel action for long requests, clear loading state in `finally`, and assign assistant placeholders an explicit `pending`, `success`, `error`, or `cancelled` lifecycle.
 
 ## Checklist
@@ -280,6 +281,7 @@ Before submitting a PR for frontend changes:
 - [ ] No raw `<select>` tags — use `<Select>` from `@/components/ui/select`
 - [ ] New or migrated buttons use `<Button>` with canonical semantic variants; no new direct `ui-btn` composition
 - [ ] New or migrated icon actions use domain semantic tokens and `<ActionButton>` where the structure is icon plus label
+- [ ] Compact loading indicators use `EAILoaderStatusIcon` without an external `animate-spin` class; no Lucide `Loader2`
 - [ ] Composite controls use a named domain selector after primitive CSS; no consumer utility or `!important` fights primitive-owned visuals
 - [ ] No `asChild` prop on `<TooltipTrigger>` — use `render` prop
 - [ ] External avatar images use `<Image />` from `next/image`
@@ -320,4 +322,4 @@ Before submitting a PR for frontend changes:
 - **Styling issues**: Check `globals.css` for the full list of `ui-btn`, `ui-badge`, and `ui-alert` classes.
 - **Clerk auth issues**: Verify `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` are set in `.env.local`.
 - **i18n missing key**: Add the key to the relevant locale JSON file under `messages/`.
-- **Architecture questions**: See [UI Architecture v3.15.0](../../docs/frontend/ui-architecture.md) for frontend boundaries and [docs/architecture-notes.md](../../docs/architecture-notes.md) for the wider system.
+- **Architecture questions**: See [UI Architecture v3.17.0](../../docs/frontend/ui-architecture.md) for frontend boundaries and [docs/architecture-notes.md](../../docs/architecture-notes.md) for the wider system.

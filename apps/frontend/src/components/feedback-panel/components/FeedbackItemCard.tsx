@@ -1,5 +1,6 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { FeedbackItem, VerificationStatus } from '@eai/shared';
 import {
   AlertCircle,
@@ -13,7 +14,6 @@ import {
   ChevronUp,
   ArrowRightCircle,
   Check,
-  Loader2,
   Trash2,
   Link,
   ExternalLink,
@@ -392,7 +392,7 @@ export function FeedbackItemCard({
                           </>
                         ) : isApplying ? (
                           <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Applying
+                            <EAILoaderStatusIcon className="w-3.5 h-3.5" /> Applying
                           </>
                         ) : (
                           <>
@@ -452,7 +452,7 @@ export function FeedbackItemCard({
                         size="xs"
                       >
                         {isTargetedFixing === index ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <EAILoaderStatusIcon className="w-3.5 h-3.5" />
                         ) : (
                           <Trash2 className="w-3.5 h-3.5" />
                         )}
@@ -512,7 +512,7 @@ export function FeedbackItemCard({
                         size="xs"
                       >
                         {isTargetedFixing === index ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <EAILoaderStatusIcon className="w-3.5 h-3.5" />
                         ) : (
                           <Trash2 className="w-3.5 h-3.5" />
                         )}
@@ -532,7 +532,7 @@ export function FeedbackItemCard({
                       size="xs"
                     >
                       {isTargetedFixing === index ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <EAILoaderStatusIcon className="w-3.5 h-3.5" />
                       ) : (
                         <Wand2 className="w-3.5 h-3.5" />
                       )}
@@ -576,7 +576,7 @@ export function FeedbackItemCard({
                       variant="primary"
                       size="xs"
                     >
-                      {isSubmittingSource && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                      {isSubmittingSource && <EAILoaderStatusIcon className="h-3.5 w-3.5" />}
                       Submit
                     </Button>
                     <Button

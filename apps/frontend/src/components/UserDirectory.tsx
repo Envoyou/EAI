@@ -1,7 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { AlertCircle, ShieldAlert, Mail, Loader2, X } from 'lucide-react';
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
+import { AlertCircle, ShieldAlert, Mail, X } from 'lucide-react';
 import { useUserDirectory } from './user-directory/hooks/useUserDirectory';
 import { UserTable } from './user-directory/components/UserTable';
 import { Input } from '@/components/ui/input';
@@ -232,7 +233,7 @@ export function UserDirectory() {
                   size="sm"
                   className="flex items-center gap-1.5"
                 >
-                  {dir.sendingInvite && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {dir.sendingInvite && <EAILoaderStatusIcon className="h-3.5 w-3.5" />}
                   <span>Send Email</span>
                 </Button>
               </div>

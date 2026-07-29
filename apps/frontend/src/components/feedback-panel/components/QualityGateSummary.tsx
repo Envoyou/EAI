@@ -1,8 +1,9 @@
 'use client';
 
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { useState } from 'react';
 import { AnalysisResult } from '@eai/shared';
-import { ShieldAlert, Wand2, Maximize2, Minimize2, Loader2 } from 'lucide-react';
+import { ShieldAlert, Wand2, Maximize2, Minimize2 } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Alert } from '@/components/ui/alert';
@@ -154,7 +155,7 @@ export function QualityGateSummary({
             size="xs"
           >
             {isApplyingAll ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <EAILoaderStatusIcon className="w-3.5 h-3.5" />
             ) : (
               <Wand2 className="w-3.5 h-3.5" />
             )}

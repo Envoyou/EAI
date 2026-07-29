@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import {
   AlertTriangle,
   Cpu,
-  Loader2,
   Save,
   Search,
   Settings2,
@@ -388,7 +388,7 @@ export default function AiConfigAdminPage() {
                 size="sm"
               >
                 {searching ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <EAILoaderStatusIcon className="h-4 w-4" />
                 ) : (
                   <Search className="h-4 w-4" />
                 )}
@@ -439,7 +439,7 @@ export default function AiConfigAdminPage() {
 
           {loadingConfig ? (
             <div className="ui-card flex flex-col items-center justify-center p-12 text-center">
-              <Loader2 className="mb-2 h-8 w-8 animate-spin text-[var(--primary)]" />
+              <EAILoaderStatusIcon className="mb-2 h-8 w-8 text-[var(--primary)]" />
               <span className="text-xs text-[var(--muted-foreground)]">
                 Loading AI configuration...
               </span>
@@ -546,7 +546,7 @@ export default function AiConfigAdminPage() {
                 disabled={saving}
                 onClick={saveConfig}
               >
-                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                {saving && <EAILoaderStatusIcon className="h-4 w-4" />}
                 Confirm and apply
               </Button>
             </div>
