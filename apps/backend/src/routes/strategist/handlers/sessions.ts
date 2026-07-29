@@ -1,18 +1,25 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { prisma } from '@/lib/db';
 import { requireAuth } from '../../../middleware/auth';
+import { resolveInternalOrgId } from '../utils/helpers';
 
 const router = Router();
+
+const resolveSessionScope = async (req: Request) => {
+  const userId = req.auth!.userId;
+  const organizationId = await resolveInternalOrgId(req.auth!.orgId, userId);
+  return { userId, organizationId };
+};
 
 // GET /api/strategist/sessions
 router.get('/sessions', requireAuth, async (req, res) => {
   try {
-    const userId = req.auth!.userId;
+    const scope = await resolveSessionScope(req);
     const limit = Math.min(Number(req.query.limit) || 50, 100);
     const offset = Number(req.query.offset) || 0;
 
     const sessions = await prisma.chatSession.findMany({
-      where: { userId },
+      where: scope,
       take: limit,
       skip: offset,
       orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
@@ -40,11 +47,11 @@ router.get('/sessions', requireAuth, async (req, res) => {
 // GET /api/strategist/sessions/:id
 router.get('/sessions/:id', requireAuth, async (req, res) => {
   try {
-    const userId = req.auth!.userId;
+    const scope = await resolveSessionScope(req);
     const sessionId = req.params.id;
 
     const session = await prisma.chatSession.findFirst({
-      where: { id: sessionId, userId },
+      where: { id: sessionId, ...scope },
       include: {
         messages: {
           orderBy: { createdAt: 'asc' },
@@ -66,12 +73,12 @@ router.get('/sessions/:id', requireAuth, async (req, res) => {
 // PATCH /api/strategist/sessions/:id
 router.patch('/sessions/:id', requireAuth, async (req, res) => {
   try {
-    const userId = req.auth!.userId;
+    const scope = await resolveSessionScope(req);
     const sessionId = req.params.id;
     const { title, isPinned } = req.body;
 
     const session = await prisma.chatSession.findFirst({
-      where: { id: sessionId, userId },
+      where: { id: sessionId, ...scope },
     });
 
     if (!session) {
@@ -96,11 +103,11 @@ router.patch('/sessions/:id', requireAuth, async (req, res) => {
 // DELETE /api/strategist/sessions/:id
 router.delete('/sessions/:id', requireAuth, async (req, res) => {
   try {
-    const userId = req.auth!.userId;
+    const scope = await resolveSessionScope(req);
     const sessionId = req.params.id;
 
     const session = await prisma.chatSession.findFirst({
-      where: { id: sessionId, userId },
+      where: { id: sessionId, ...scope },
     });
 
     if (!session) {

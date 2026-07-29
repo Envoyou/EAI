@@ -36,6 +36,12 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Sinkronisasi Footer Respons Strategist dan Kontras Separator**:
   - Menunda kemunculan source, aksi pesan, serta tombol saran tindak lanjut sampai stream respons dan animasi kemunculan teks sama-sama selesai, sehingga kontrol footer tidak lagi muncul mendahului jawaban.
   - Meredupkan garis horizontal Markdown di dalam respons chat Strategist agar separator tetap menjadi elemen pendukung dan tidak lebih menonjol daripada konten.
+- **Scope Tenant untuk Sesi Strategist dan Pemulihan Request**:
+  - Membatasi daftar sesi Strategist, pemuatan detail, rename, pin, penghapusan, kelanjutan Chat, dan kelanjutan Blueprint berdasarkan user terautentikasi sekaligus organisasi aktif, sehingga user yang sama tidak dapat membawa sesi brand sebelumnya ke tenant lain.
+  - Menambahkan `organizationId` pada record idempotency Chat dan Blueprint agar polling status, replay, claim retry, serta rekonsiliasi kegagalan tidak dapat melintasi batas tenant.
+  - Menambahkan migration `20260729143000_scope_strategist_records_to_tenant`, yang hanya melakukan backfill record request lama melalui `ChatSession` yang dapat diatribusikan; record tanpa atribusi tetap berada pada scope personal/null dan tidak ditebak berdasarkan tenant user saat ini. Migration ini telah diterapkan ke database Neon production pada 29 Juli 2026.
+- **Regresi Strict Type-Check Backend**:
+  - Memperbaiki kontrak fixture ledger Quality Resolution, memperluas fixture persistence Onboarding ke tipe input kanonisnya, membuat test source History Pinning kompatibel dengan konfigurasi CommonJS backend, dan mempersempit JSON Greeting bertipe unknown secara aman sebelum dikembalikan.
 - **Guard Grounding Gemini yang Tidak Ambigu**:
   - Mengganti nama kill switch global Search/Deep Research dari `GEMINI_DISABLE_GROUNDING_FOR_TESTS` menjadi `GEMINI_DISABLE_GROUNDING`, memperjelas bahwa flag ini terpisah dari mock chat dan berlaku di setiap environment, serta menyelaraskan pemilihan model Strategist, mode thinking, diagnostic, dan pemotongan kredit dengan status Search yang benar-benar aktif.
 - **Notifikasi Gagal Palsu dan Duplikasi Generate Blueprint**:

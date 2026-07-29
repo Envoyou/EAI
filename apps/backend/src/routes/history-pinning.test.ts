@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const readSource = (relativePath: string) =>
-  readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
+  readFileSync(resolve(process.cwd(), 'src/routes', relativePath), 'utf8');
 
 describe('history pinning contract', () => {
   const route = readSource('./history.ts');

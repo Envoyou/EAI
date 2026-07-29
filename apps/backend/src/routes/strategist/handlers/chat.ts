@@ -172,9 +172,23 @@ router.post('/greet', softAuth, async (req: Request, res: Response) => {
       temperature: 0.35,
     });
 
-    let output;
+    let output: { reply: string; suggestions: string[] };
     try {
-      output = parseJsonResponse(result.text) || {};
+      const parsed = parseJsonResponse(result.text);
+      const candidate =
+        parsed && typeof parsed === 'object'
+          ? (parsed as Record<string, unknown>)
+          : {};
+      output = {
+        reply:
+          typeof candidate.reply === 'string' ? candidate.reply : result.text,
+        suggestions: Array.isArray(candidate.suggestions)
+          ? candidate.suggestions.filter(
+              (suggestion): suggestion is string =>
+                typeof suggestion === 'string'
+            )
+          : [],
+      };
     } catch (_e) {
       output = { reply: result.text, suggestions: [] };
     }
@@ -253,10 +267,18 @@ router.get('/chat/request/:requestId', softAuth, async (req: Request, res: Respo
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const chatRequest = await prisma.strategistChatRequest.findUnique({
-      where: { id: req.params.requestId },
+    const organizationId = await resolveInternalOrgId(
+      req.auth.orgId,
+      req.auth.userId
+    );
+    const chatRequest = await prisma.strategistChatRequest.findFirst({
+      where: {
+        id: req.params.requestId,
+        userId: req.auth.userId,
+        organizationId,
+      },
     });
-    if (!chatRequest || chatRequest.userId !== req.auth.userId) {
+    if (!chatRequest) {
       return res.status(404).json({ error: 'Chat request not found' });
     }
 
@@ -306,6 +328,7 @@ router.post(
     let chatRequestClaimed = false;
     let chatRequestCompleted = false;
     let claimedRequestId: string | null = null;
+    let claimedOrganizationId: string | null | undefined;
     try {
       const parsedInput = ChatInputSchema.safeParse(req.body);
       if (!parsedInput.success) {
@@ -327,10 +350,18 @@ router.post(
       const requestId = clientRequestId ?? crypto.randomUUID();
       claimedRequestId = requestId;
       const chatInput = messages[messages.length - 1]?.content || '';
+      const resolvedOrgId = req.auth?.userId
+        ? await resolveInternalOrgId(req.auth.orgId, req.auth.userId)
+        : null;
+      claimedOrganizationId = resolvedOrgId;
 
       if (req.auth?.userId && sessionId && sessionId !== 'new') {
         const ownedSession = await prisma.chatSession.findFirst({
-          where: { id: sessionId, userId: req.auth.userId },
+          where: {
+            id: sessionId,
+            userId: req.auth.userId,
+            organizationId: resolvedOrgId,
+          },
           select: { id: true },
         });
         if (!ownedSession) {
@@ -344,6 +375,7 @@ router.post(
           data: [{
             id: requestId,
             userId: req.auth.userId,
+            organizationId: resolvedOrgId,
             sessionId:
               sessionId && sessionId !== 'new' ? sessionId : undefined,
           }],
@@ -357,7 +389,11 @@ router.post(
             await prisma.strategistChatRequest.findUnique({
               where: { id: requestId },
             });
-          if (!existingRequest || existingRequest.userId !== req.auth.userId) {
+          if (
+            !existingRequest ||
+            existingRequest.userId !== req.auth.userId ||
+            existingRequest.organizationId !== resolvedOrgId
+          ) {
             return res.status(409).json({ error: 'Chat request conflict' });
           }
 
@@ -403,6 +439,7 @@ router.post(
             where: {
               id: requestId,
               userId: req.auth.userId,
+              organizationId: resolvedOrgId,
               status: 'failed',
             },
             data: {
@@ -457,9 +494,6 @@ router.post(
       const requiredCredits =
         mode === 'deep' ? 5 : effectiveSearchEnabled ? 1 : 0;
       let creditsToDeduct = requiredCredits;
-      const resolvedOrgId = req.auth?.userId
-        ? await resolveInternalOrgId(req.auth.orgId, req.auth.userId)
-        : null;
       const selectedFunction =
         mode === 'deep'
           ? 'strategist_deep_research'
@@ -1087,6 +1121,8 @@ router.post(
           .updateMany({
             where: {
               id: claimedRequestId,
+              userId: req.auth?.userId,
+              organizationId: claimedOrganizationId,
               status: 'pending',
             },
             data: {
@@ -1123,6 +1159,8 @@ router.post(
           .updateMany({
             where: {
               id: claimedRequestId,
+              userId: req.auth?.userId,
+              organizationId: claimedOrganizationId,
               status: 'pending',
             },
             data: {

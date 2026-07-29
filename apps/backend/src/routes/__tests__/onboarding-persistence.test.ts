@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { OnboardingDataSchema } from '@eai/shared';
+import { OnboardingDataSchema, type OnboardingData } from '@eai/shared';
 
 describe('onboarding-persistence schema and data contracts', () => {
   beforeEach(() => {
@@ -64,14 +64,14 @@ describe('onboarding-persistence schema and data contracts', () => {
 
   describe('Persistence field contracts', () => {
     test('should construct explicit activation transaction update payload with nullish coalescing', () => {
-      const activationInput = {
+      const activationInput: OnboardingData['activation'] = {
         workspaceName: 'Envoyou Tech',
         website: 'https://envoyou.com',
-        userRole: 'content_writer' as const,
-        acquisitionSource: 'chatgpt' as const,
+        userRole: 'content_writer',
+        acquisitionSource: 'chatgpt',
         acquisitionSourceOther: null,
-        primaryGoal: 'research' as const,
-        defaultLanguage: 'id' as const,
+        primaryGoal: 'research',
+        defaultLanguage: 'id',
       };
 
       const organizationData = {

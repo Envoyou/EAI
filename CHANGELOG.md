@@ -36,6 +36,12 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Strategist Response Footer Synchronization and Separator Contrast**:
   - Delayed sources, message actions, and suggested follow-up buttons until both the response stream and progressive text reveal are complete, preventing the footer controls from appearing ahead of the answer.
   - Reduced the visual intensity of Markdown horizontal rules inside Strategist chat responses so separators remain subordinate to the content.
+- **Tenant-Scoped Strategist Sessions and Request Recovery**:
+  - Scoped Strategist session listing, detail loading, rename, pin, deletion, Chat continuation, and Blueprint continuation to both the authenticated user and active organization, preventing the same user from carrying a previous brand's session into another tenant.
+  - Added `organizationId` to durable Chat and Blueprint idempotency records so status polling, replay, retry claims, and failure reconciliation cannot cross tenant boundaries.
+  - Added migration `20260729143000_scope_strategist_records_to_tenant`, which backfills existing request records only through an attributable `ChatSession`; un-attributable records remain in the personal/null scope rather than being guessed from the user's current tenant. Applied it to the production Neon database on July 29, 2026.
+- **Backend Strict Type-Check Regressions**:
+  - Corrected the Quality Resolution ledger fixture contract, widened the Onboarding persistence fixture to its canonical input type, made the History Pinning source test compatible with the backend's CommonJS configuration, and safely narrowed unknown Greeting JSON before returning it.
 - **Unambiguous Gemini Grounding Guard**:
   - Renamed the global Search/Deep Research kill switch from `GEMINI_DISABLE_GROUNDING_FOR_TESTS` to `GEMINI_DISABLE_GROUNDING`, clarified that it is independent of mock chat and applies in every environment, and aligned Strategist model routing, thinking mode, diagnostics, and credit charging with whether Search is actually enabled.
 - **False Blueprint Failure and Duplicate Generation**:

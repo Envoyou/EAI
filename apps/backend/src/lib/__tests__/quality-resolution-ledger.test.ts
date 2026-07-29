@@ -8,7 +8,12 @@ import {
   reconcileQualityResolutions,
 } from '@/lib/quality-resolution-ledger';
 
-const warning = (overrides: Partial<FeedbackItem> = {}): FeedbackItem => ({
+type QualityFeedbackItem = FinalQualityGateOutput['feedback'][number] &
+  Pick<FeedbackItem, 'isAccepted' | 'isVerified' | 'verifiedSource'>;
+
+const warning = (
+  overrides: Partial<QualityFeedbackItem> = {}
+): QualityFeedbackItem => ({
   category: 'Editorial Addition',
   status: 'warning',
   message: 'Confirm whether this framing should remain.',
@@ -17,7 +22,9 @@ const warning = (overrides: Partial<FeedbackItem> = {}): FeedbackItem => ({
   ...overrides,
 });
 
-const resultWith = (feedback: FeedbackItem[]): FinalQualityGateOutput => ({
+const resultWith = (
+  feedback: QualityFeedbackItem[]
+): FinalQualityGateOutput => ({
   readiness: feedback.some((item) => item.status === 'fail')
     ? 'blocked'
     : 'needs_review',

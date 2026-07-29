@@ -38,11 +38,19 @@ router.get(
       }
 
       const requestId = req.params.requestId;
-      const planRequest = await prisma.strategistPlanRequest.findUnique({
-        where: { id: requestId },
+      const organizationId = await resolveInternalOrgId(
+        req.auth.orgId,
+        req.auth.userId
+      );
+      const planRequest = await prisma.strategistPlanRequest.findFirst({
+        where: {
+          id: requestId,
+          userId: req.auth.userId,
+          organizationId,
+        },
       });
 
-      if (!planRequest || planRequest.userId !== req.auth.userId) {
+      if (!planRequest) {
         return res.status(404).json({ error: 'Blueprint request not found' });
       }
 
@@ -84,6 +92,7 @@ router.post(
     let planRequestClaimed = false;
     let planRequestCompleted = false;
     let claimedRequestId: string | null = null;
+    let claimedOrganizationId: string | null | undefined;
     try {
       const parsedInput = GeneratePlanSchema.safeParse(req.body);
       if (!parsedInput.success) {
@@ -101,10 +110,18 @@ router.post(
       const requestId = clientRequestId ?? randomUUID();
       let recoveredSessionId: string | undefined;
       claimedRequestId = requestId;
+      const internalOrgId = req.auth?.userId
+        ? await resolveInternalOrgId(req.auth.orgId, req.auth.userId)
+        : null;
+      claimedOrganizationId = internalOrgId;
 
       if (req.auth?.userId && sessionId && sessionId !== 'new') {
         const ownedSession = await prisma.chatSession.findFirst({
-          where: { id: sessionId, userId: req.auth.userId },
+          where: {
+            id: sessionId,
+            userId: req.auth.userId,
+            organizationId: internalOrgId,
+          },
           select: { id: true },
         });
         if (!ownedSession) {
@@ -117,6 +134,7 @@ router.post(
           data: [{
               id: requestId,
               userId: req.auth.userId,
+              organizationId: internalOrgId,
               sessionId:
                 sessionId && sessionId !== 'new' ? sessionId : undefined,
           }],
@@ -130,7 +148,11 @@ router.post(
               where: { id: requestId },
             });
 
-          if (!existingRequest || existingRequest.userId !== req.auth.userId) {
+          if (
+            !existingRequest ||
+            existingRequest.userId !== req.auth.userId ||
+            existingRequest.organizationId !== internalOrgId
+          ) {
             return res.status(409).json({ error: 'Blueprint request conflict' });
           }
 
@@ -152,6 +174,7 @@ router.post(
             where: {
               id: requestId,
               userId: req.auth.userId,
+              organizationId: internalOrgId,
               status: 'failed',
             },
             data: {
@@ -227,13 +250,8 @@ router.post(
     `.trim();
 
       let profile = null;
-      let internalOrgId: string | null = null;
       if (req.auth && req.auth.userId) {
         try {
-          internalOrgId = await resolveInternalOrgId(
-            req.auth.orgId,
-            req.auth.userId
-          );
           profile = await resolveEditorialProfileForUser(
             req.auth.userId,
             internalOrgId
@@ -606,10 +624,6 @@ router.post(
           const firstMsg =
             recommendation.slice(0, 40).trim() || 'Blueprint Recommendation';
           const title = firstMsg.length >= 40 ? `${firstMsg}...` : firstMsg;
-          const internalOrgId = await resolveInternalOrgId(
-            req.auth.orgId,
-            req.auth.userId
-          );
 
           const newSession = await prisma.chatSession.create({
             data: {
@@ -727,6 +741,8 @@ router.post(
           .updateMany({
             where: {
               id: claimedRequestId,
+              userId: req.auth?.userId,
+              organizationId: claimedOrganizationId,
               status: 'pending',
             },
             data: {

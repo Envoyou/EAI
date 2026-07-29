@@ -341,6 +341,7 @@ model ChatSession {
 
   @@index([userId])
   @@index([organizationId])
+  @@index([userId, organizationId])
   @@index([createdAt])
 }
 
@@ -360,32 +361,38 @@ model ChatMessage {
 }
 
 model StrategistPlanRequest {
-  id        String   @id
-  userId    String
-  sessionId String?
-  status    String   @default("pending")
-  response  Json?
-  error     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id
+  userId         String
+  organizationId String?
+  sessionId      String?
+  status         String   @default("pending")
+  response       Json?
+  error          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([userId])
+  @@index([organizationId])
+  @@index([userId, organizationId])
   @@index([status])
   @@index([createdAt])
 }
 
 model StrategistChatRequest {
-  id           String   @id
-  userId       String
-  sessionId    String?
-  status       String   @default("pending")
-  response     Json?
-  errorCode    String?
-  errorMessage String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id
+  userId         String
+  organizationId String?
+  sessionId      String?
+  status         String   @default("pending")
+  response       Json?
+  errorCode      String?
+  errorMessage   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([userId])
+  @@index([organizationId])
+  @@index([userId, organizationId])
   @@index([status])
   @@index([createdAt])
 }
