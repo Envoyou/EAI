@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.20.0] - 2026-07-30
+
 ### Added
 - **Actionable Content Intelligence (Phase 6.1)**:
   - Added Content Map-specific CSV exports for the inventory and complete bounded intelligence snapshot; the unrelated Analytics CSV/date controls no longer appear on the Content Map route.

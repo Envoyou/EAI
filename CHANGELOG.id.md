@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.20.0] - 2026-07-30
+
 ### Added
 - **Content Intelligence yang Dapat Ditindaklanjuti (Phase 6.1)**:
   - Menambahkan ekspor CSV khusus Peta Konten untuk inventaris dan seluruh snapshot intelligence yang bounded; kontrol tanggal/CSV Analytics yang tidak terkait tidak lagi muncul pada rute Peta Konten.
