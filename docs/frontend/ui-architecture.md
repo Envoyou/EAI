@@ -100,8 +100,10 @@ artifact metadata (title/topic, source, stage, creator, and timestamps), never
 raw Strategist conversation text or indexed draft bodies. Search and refresh
 remain inside this route boundary; tenant authorization and filtering are owned
 by the backend. Strategist warnings may display one classifier-supplied
-alternative angle as advisory text; the frontend never turns that advisory
-classification into a hard block.
+alternative angle. The frontend never derives a block from confidence: it
+renders only the backend enforcement contract. Calibrated probable duplicates
+may expose an explicit override followed by duplicate/distinct feedback;
+canonical and reservation conflicts remain non-overridable.
 
 ## 4. Workspace ownership and data flow
 

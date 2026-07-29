@@ -121,6 +121,7 @@ router.post(
         recommendation,
         history,
         sessionId,
+        duplicateGuardOverride,
       } = parsedInput.data;
       const requestId = clientRequestId ?? randomUUID();
       let recoveredSessionId: string | undefined;
@@ -219,6 +220,7 @@ router.post(
             title: recommendation,
             topic: recommendation,
           },
+          allowProbableDuplicateOverride: duplicateGuardOverride,
         });
         duplicateGuardResult = guard.result;
         contentReservationId = guard.reservationId;
@@ -242,8 +244,11 @@ router.post(
             error:
               guard.result.reasons.includes('active_reservation')
                 ? 'A workspace member is already generating this topic.'
-                : 'A matching content artifact already exists in this workspace.',
+                : guard.result.enforcement?.overrideAllowed
+                  ? 'A calibrated probable duplicate was found. Confirm before continuing.'
+                  : 'A matching content artifact already exists in this workspace.',
             duplicateGuard: guard.result,
+            duplicateGuardRequestId: requestId,
           });
         }
       }

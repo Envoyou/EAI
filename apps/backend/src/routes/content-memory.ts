@@ -9,6 +9,12 @@ import {
 } from '@/lib/content-memory';
 import { classifyAmbiguousContentOverlap } from '@/lib/content-memory-classifier';
 import { ContentArtifactStatus } from '@prisma/client';
+import { getAllFeatureFlags } from '@eai/shared/server';
+import {
+  contentMemoryRolloutBucket,
+  getContentMemoryCalibration,
+  getContentMemoryEnforcementConfig,
+} from '@/lib/content-memory-enforcement';
 
 const router = Router();
 
@@ -29,6 +35,20 @@ const ContentMemoryCheckSchema = z.object({
   (input) => Boolean(input.title || input.topic || input.angle || input.content),
   'A title, topic, angle, or content is required'
 );
+
+const ContentMemoryFeedbackSchema = z.object({
+  requestId: z.uuid(),
+  laterConfirmedDuplicate: z.boolean(),
+  userAction: z
+    .enum([
+      'continued',
+      'changed_angle',
+      'opened_existing',
+      'cancelled',
+      'overrode_block',
+    ])
+    .optional(),
+});
 
 const resolveWorkspace = async (req: Request) => {
   const { userId, orgId, orgSlug, orgRole } = req.auth!;
@@ -153,6 +173,110 @@ router.post('/check', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('[CONTENT_MEMORY_CHECK]', error);
     return res.status(500).json({ error: 'Failed to check related content' });
+  }
+});
+
+router.get('/enforcement', requireAuth, async (req, res) => {
+  try {
+    const workspace = await resolveWorkspace(req);
+    if (!workspace || workspace.needsOnboarding || !workspace.organizationId) {
+      return res.status(409).json({ error: 'Workspace onboarding required' });
+    }
+    const [flags, calibration, probableEvents, overrideEvents] =
+      await Promise.all([
+        getAllFeatureFlags(),
+        getContentMemoryCalibration(workspace.organizationId),
+        prisma.duplicateGuardEvent.findMany({
+          where: {
+            organizationId: workspace.organizationId,
+            verdict: 'probable_duplicate',
+            requestId: { not: null },
+          },
+          distinct: ['requestId'],
+          select: { requestId: true },
+        }),
+        prisma.duplicateGuardEvent.findMany({
+          where: {
+            organizationId: workspace.organizationId,
+            userAction: 'overrode_block',
+            requestId: { not: null },
+          },
+          distinct: ['requestId'],
+          select: { requestId: true },
+        }),
+      ]);
+    const probableEventCount = probableEvents.length;
+    const overrideCount = overrideEvents.length;
+    const config = getContentMemoryEnforcementConfig();
+    const rolloutBucket = contentMemoryRolloutBucket(
+      workspace.organizationId
+    );
+    return res.json({
+      featureEnabled: flags.content_memory_enforcement_enabled,
+      inRollout: rolloutBucket < config.rolloutPercent,
+      rolloutBucket,
+      config,
+      calibration,
+      probableEventCount,
+      overrideCount,
+      overrideRate:
+        probableEventCount > 0
+          ? Number((overrideCount / probableEventCount).toFixed(4))
+          : null,
+    });
+  } catch (error) {
+    console.error('[CONTENT_MEMORY_ENFORCEMENT_STATUS]', error);
+    return res
+      .status(500)
+      .json({ error: 'Failed to load Content Memory enforcement status' });
+  }
+});
+
+router.post('/feedback', requireAuth, async (req, res) => {
+  try {
+    const input = ContentMemoryFeedbackSchema.safeParse(req.body);
+    if (!input.success) {
+      return res.status(400).json({
+        error: 'Invalid Content Memory feedback',
+        issues: input.error.issues,
+      });
+    }
+    const workspace = await resolveWorkspace(req);
+    if (!workspace || workspace.needsOnboarding || !workspace.organizationId) {
+      return res.status(409).json({ error: 'Workspace onboarding required' });
+    }
+    const event = await prisma.duplicateGuardEvent.findFirst({
+      where: {
+        organizationId: workspace.organizationId,
+        requestId: input.data.requestId,
+        verdict: 'probable_duplicate',
+        actorUserId: req.auth!.userId,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (!event) {
+      return res.status(404).json({
+        error: 'Eligible Duplicate Guard event not found',
+      });
+    }
+    await prisma.duplicateGuardEvent.update({
+      where: { id: event.id },
+      data: {
+        laterConfirmedDuplicate: input.data.laterConfirmedDuplicate,
+        feedbackActorUserId: req.auth!.userId,
+        feedbackAt: new Date(),
+        ...(input.data.userAction
+          ? { userAction: input.data.userAction }
+          : {}),
+      },
+    });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('[CONTENT_MEMORY_FEEDBACK]', error);
+    return res
+      .status(500)
+      .json({ error: 'Failed to record Content Memory feedback' });
   }
 });
 

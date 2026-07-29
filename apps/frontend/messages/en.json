@@ -295,7 +295,14 @@
     "probableDuplicate": "A highly similar article exists. Review the related content before continuing.",
     "highOverlap": "Related workspace content covers much of this topic. Consider repositioning the angle.",
     "relatedWarning": "Related workspace content was found and recorded by Content Memory.",
-    "suggestedAngle": "Suggested distinct angle"
+    "suggestedAngle": "Suggested distinct angle",
+    "controlledBlock": "This topic is a calibrated probable duplicate. Review the existing content or explicitly continue.",
+    "continueAnyway": "Continue anyway",
+    "feedbackQuestion": "After reviewing the result, was the flagged topic actually a duplicate?",
+    "yesDuplicate": "Yes, duplicate",
+    "notDuplicate": "No, distinct",
+    "feedbackSaved": "Content Memory feedback saved.",
+    "feedbackFailed": "Could not save Content Memory feedback."
   },
   "ContentMap": {
     "nav": "Content Map",

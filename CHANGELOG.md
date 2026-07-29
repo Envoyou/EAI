@@ -9,13 +9,16 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ### Added
 - **Tenant Content Memory and Duplicate Guard**:
   - Added a tenant-scoped canonical registry for Blueprint, Quick Draft, Draft from Notes, manual draft, and analyzed-content artifacts, with rebuildable search documents, expiring generation reservations, and duplicate-decision telemetry.
-  - Added deterministic overlap checks before AI generation. Exact content/title matches and active reservation collisions block duplicate work, while broader topical overlap remains an advisory warning until production telemetry supports stricter enforcement.
+  - Added deterministic overlap checks before AI generation. Exact content/title matches and active reservation collisions always block duplicate work, while broader topical overlap remains advisory unless the Phase 5 calibration policy explicitly enables enforcement.
   - Added authenticated Content Memory list/check APIs and the localized **Content Map** dashboard so members can discover related work without exposing raw Strategist conversations or full indexed draft bodies.
   - Added migration `20260729180000_add_content_memory_registry`, including tenant-safe indexes and backfill from attributable `AnalysisLog` and completed Blueprint records. The migration was applied to the production Neon database on July 29, 2026; Prisma confirmed all 27 migrations are up to date.
   - Added Phase 3 hybrid retrieval with tenant-filtered PostgreSQL full-text/trigram candidates and 768-dimensional pgvector cosine search. Gemini embeddings are generated asynchronously by idempotent BullMQ jobs, versioned by model/source hash, retried with bounds, and excluded when stale.
   - Added Phase 4 structured overlap classification for ambiguous candidates through a dedicated PCA composer and per-function Admin AI runtime override. The classifier reports common/different elements and alternative angles but cannot return `exact_duplicate` or hard-block a request.
   - Injected collaboration-safe related-content metadata into Blueprint, Quick Draft, and Draft from Notes prompts so generation can avoid covered angles without treating internal artifacts as factual sources.
   - Added migration `20260729210000_add_content_memory_semantic_retrieval` for pgvector, pg_trgm, HNSW/full-text indexes, embedding lifecycle fields, and classifier/retrieval telemetry. It was applied to the production Neon database on July 29, 2026; Prisma confirmed all 28 migrations are up to date.
+  - Added Phase 5 controlled enforcement for calibrated high-confidence probable duplicates. Enforcement requires an owner-controlled feature flag, a deterministic tenant rollout cohort, at least 50 explicit human labels, and measured precision of at least 95%; otherwise decisions remain advisory or shadow-only.
+  - Added explicit override and human feedback flows for Blueprint, Quick Draft, and Draft from Notes, plus tenant-scoped enforcement metrics. Canonical duplicates and reservation collisions remain non-overridable.
+  - Added migration `20260729223000_add_content_memory_controlled_enforcement` for enforcement decision metadata and attributable human feedback. It was applied to the production Neon database on July 29, 2026; Prisma confirmed all 29 migrations are up to date.
 
 ## [3.18.0] - 2026-07-29
 

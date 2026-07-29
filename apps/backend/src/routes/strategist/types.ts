@@ -37,6 +37,7 @@ export type ChatInput = z.infer<typeof ChatInputSchema>;
 
 export const GeneratePlanSchema = z.object({
   requestId: z.uuid().optional(),
+  duplicateGuardOverride: z.boolean().optional(),
   recommendation: z.string().min(1, 'Recommendation is required').max(20_000),
   history: z
     .array(
@@ -65,6 +66,8 @@ export const GeneratePlanSchema = z.object({
 export type GeneratePlanInput = z.infer<typeof GeneratePlanSchema>;
 
 export const GenerateDraftFromNotesSchema = z.object({
+  requestId: z.uuid().optional(),
+  duplicateGuardOverride: z.boolean().optional(),
   notes: z
     .array(
       z.object({
@@ -89,6 +92,8 @@ export type GenerateDraftFromNotesInput = z.infer<
 >;
 
 export const QuickDraftSchema = z.object({
+  requestId: z.uuid().optional(),
+  duplicateGuardOverride: z.boolean().optional(),
   topic: z.string().min(1, 'Topic is required').max(2_000),
   outline: z.string().max(15_000).optional(),
   referenceText: z.string().max(25_000).optional(),

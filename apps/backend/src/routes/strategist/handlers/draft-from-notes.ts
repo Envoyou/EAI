@@ -59,7 +59,6 @@ router.post(
   let heartbeatInterval: NodeJS.Timeout | undefined;
   let contentReservationId: string | null = null;
   let contentReservationKey: string | null = null;
-  const contentGuardRequestId = randomUUID();
   try {
     let userId: string | null = null;
     let orgId: string | null = null;
@@ -81,6 +80,8 @@ router.post(
       });
     }
     const { notes, metadata } = parsedInput.data;
+    const contentGuardRequestId =
+      parsedInput.data.requestId ?? randomUUID();
 
     if (!userId) {
       const cookies = Object.fromEntries(
@@ -145,6 +146,8 @@ router.post(
           content: notesPreview,
           language: metadata?.outputLanguage,
         },
+        allowProbableDuplicateOverride:
+          parsedInput.data.duplicateGuardOverride,
       });
       duplicateGuardResult = guard.result;
       contentReservationId = guard.reservationId;
@@ -154,8 +157,11 @@ router.post(
           error:
             guard.result.reasons.includes('active_reservation')
               ? 'A workspace member is already generating this topic.'
-              : 'A matching content artifact already exists in this workspace.',
+              : guard.result.enforcement?.overrideAllowed
+                ? 'A calibrated probable duplicate was found. Confirm before continuing.'
+                : 'A matching content artifact already exists in this workspace.',
           duplicateGuard: guard.result,
+          duplicateGuardRequestId: contentGuardRequestId,
         });
       }
     }

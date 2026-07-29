@@ -22,6 +22,10 @@ import {
   type HybridCandidateScore,
 } from '@/lib/content-memory-embedding';
 import { classifyAmbiguousContentOverlap } from '@/lib/content-memory-classifier';
+import {
+  applyContentMemoryEnforcement,
+  getContentMemoryEnforcementConfig,
+} from '@/lib/content-memory-enforcement';
 
 const RESERVATION_TTL_MS = 10 * 60 * 1000;
 const MAX_CANDIDATES = 100;
@@ -546,19 +550,34 @@ export const evaluateContentDuplicates = async (params: {
   };
 };
 
-const reservationCollisionResult = (): DuplicateGuardResult => ({
-  verdict: 'exact_duplicate',
-  confidence: 1,
-  reasons: ['active_reservation'],
-  matchedArtifacts: [],
-  recommendedAction: 'block',
-});
+const reservationCollisionResult = (): DuplicateGuardResult => {
+  const enforcement = getContentMemoryEnforcementConfig();
+  return {
+    verdict: 'exact_duplicate',
+    confidence: 1,
+    reasons: ['active_reservation'],
+    matchedArtifacts: [],
+    recommendedAction: 'block',
+    enforcement: {
+      mode: 'enforced',
+      reason: 'reservation_collision',
+      confidenceThreshold: enforcement.confidenceThreshold,
+      minimumLabeledSamples: enforcement.minimumLabeledSamples,
+      labeledSampleCount: 0,
+      measuredPrecision: null,
+      targetPrecision: enforcement.targetPrecision,
+      rolloutPercent: enforcement.rolloutPercent,
+      overrideAllowed: false,
+    },
+  };
+};
 
 export const beginContentGenerationGuard = async (params: {
   organizationId: string;
   userId: string;
   requestId?: string;
   input: ContentMemoryInput;
+  allowProbableDuplicateOverride?: boolean;
 }): Promise<{
   result: DuplicateGuardResult;
   reservationId: string | null;
@@ -576,6 +595,48 @@ export const beginContentGenerationGuard = async (params: {
     input: params.input,
     result,
   });
+  try {
+    result = await applyContentMemoryEnforcement({
+      organizationId: params.organizationId,
+      result,
+      allowOverride: params.allowProbableDuplicateOverride,
+    });
+  } catch (enforcementError) {
+    console.error(
+      '[CONTENT_MEMORY_ENFORCEMENT] Falling back to advisory mode:',
+      enforcementError
+    );
+    const config = getContentMemoryEnforcementConfig();
+    result = {
+      ...result,
+      enforcement: {
+        mode: 'shadow',
+        reason: 'calibration_unavailable',
+        confidenceThreshold: config.confidenceThreshold,
+        minimumLabeledSamples: config.minimumLabeledSamples,
+        labeledSampleCount: 0,
+        measuredPrecision: null,
+        targetPrecision: config.targetPrecision,
+        rolloutPercent: config.rolloutPercent,
+        overrideAllowed: false,
+      },
+    };
+  }
+
+  if (result.enforcement?.reason === 'explicit_override') {
+    await prisma.duplicateGuardEvent.updateMany({
+      where: {
+        organizationId: params.organizationId,
+        requestId,
+        enforcementMetadata: {
+          path: ['reason'],
+          equals: 'calibrated_probable_duplicate',
+        },
+      },
+      data: { userAction: 'overrode_block' },
+    });
+  }
+  result = { ...result, requestId };
 
   await recordDuplicateGuardEvent({
     organizationId: params.organizationId,
@@ -583,6 +644,10 @@ export const beginContentGenerationGuard = async (params: {
     requestId,
     input: params.input,
     result,
+    userAction:
+      result.enforcement?.reason === 'explicit_override'
+        ? 'overrode_block'
+        : undefined,
   }).catch((eventError) => {
     console.error(
       '[CONTENT_MEMORY] Failed to record duplicate guard event:',
@@ -830,6 +895,7 @@ export const recordDuplicateGuardEvent = async (params: {
             alternativeAngles: params.result.alternativeAngles,
           }
         : undefined,
+      enforcementMetadata: params.result.enforcement,
       userAction: params.userAction,
     },
   });

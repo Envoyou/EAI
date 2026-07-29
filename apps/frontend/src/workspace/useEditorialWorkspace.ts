@@ -700,6 +700,13 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       generateAbortControllerRef,
       duplicateGuardWarning: tContentMemory('relatedWarning'),
       suggestedAngleLabel: tContentMemory('suggestedAngle'),
+      controlledBlockWarning: tContentMemory('controlledBlock'),
+      continueAnywayLabel: tContentMemory('continueAnyway'),
+      feedbackQuestion: tContentMemory('feedbackQuestion'),
+      yesDuplicateLabel: tContentMemory('yesDuplicate'),
+      notDuplicateLabel: tContentMemory('notDuplicate'),
+      feedbackSaved: tContentMemory('feedbackSaved'),
+      feedbackFailed: tContentMemory('feedbackFailed'),
     };
     executeGenerateDraftFromNotes(ctx);
   };

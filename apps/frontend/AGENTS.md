@@ -64,10 +64,12 @@ npm run lint
 - **Design Tokens**: Always use canonical CSS design tokens (`var(--primary)`, `var(--surface-1)`, `var(--surface-2)`, `var(--error)`) instead of raw utility colors like `bg-primary/10` or `text-red-500`.
 - **Imports**: Use `@/` path alias. Never use relative `../../../` chains.
 - **i18n**: All user-facing strings must go through `next-intl`; never hardcode English strings in components.
-- **Content Memory warnings**: Duplicate Guard and classifier output remains
-  advisory except for backend-declared exact/reservation conflicts. The UI may
-  show a localized warning and one returned alternative angle, but must not
-  convert semantic/classifier confidence into a client-side hard block.
+- **Content Memory warnings**: The frontend must trust the backend enforcement
+  contract and must never derive a block from semantic/classifier confidence.
+  Exact/reservation conflicts are non-overridable. A calibrated probable
+  duplicate may expose an explicit localized override action; successful
+  shadow or override flows should offer attributable duplicate/distinct
+  feedback for threshold calibration.
 
 ## 3. Frontend Directory Structure
 

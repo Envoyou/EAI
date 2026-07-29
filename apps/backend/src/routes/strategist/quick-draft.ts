@@ -187,7 +187,7 @@ router.post(
   };
 
   const requestAbort = bindResponseAbort(res, 'Quick draft');
-  const contentGuardRequestId = randomUUID();
+  const contentGuardRequestId = parsedInput.data.requestId ?? randomUUID();
   let contentReservationId: string | null = null;
   let contentReservationKey: string | null = null;
   let duplicateGuardResult: DuplicateGuardResult | null = null;
@@ -221,6 +221,8 @@ router.post(
           summary: metadata?.brief,
           language: metadata?.outputLanguage,
         },
+        allowProbableDuplicateOverride:
+          parsedInput.data.duplicateGuardOverride,
       });
       contentReservationId = guard.reservationId;
       contentReservationKey = guard.reservationKey;
@@ -230,8 +232,11 @@ router.post(
           error:
             guard.result.reasons.includes('active_reservation')
               ? 'A workspace member is already generating this topic.'
-              : 'A matching content artifact already exists in this workspace.',
+              : guard.result.enforcement?.overrideAllowed
+                ? 'A calibrated probable duplicate was found. Confirm before continuing.'
+                : 'A matching content artifact already exists in this workspace.',
           duplicateGuard: guard.result,
+          duplicateGuardRequestId: contentGuardRequestId,
         });
       }
     }

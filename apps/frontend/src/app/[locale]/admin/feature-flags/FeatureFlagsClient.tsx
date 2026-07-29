@@ -3,7 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { toggleFeatureFlag } from './actions';
-import { Power, Settings, Globe, AlertTriangle, type LucideIcon } from 'lucide-react';
+import { Power, Settings, Globe, AlertTriangle, ShieldAlert, type LucideIcon } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { SettingSection } from '@/components/SettingsUI';
 import type { FeatureFlagKey } from '@eai/shared/server';
@@ -94,6 +94,11 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
         title: 'Pricing Page',
         desc: 'Make the public plans and pricing page available.',
         icon: Globe,
+      },
+      content_memory_enforcement_enabled: {
+        title: 'Content Memory Enforcement',
+        desc: 'Allow calibrated probable-duplicate blocking for eligible rollout cohorts. Exact and reservation conflicts remain enforced independently.',
+        icon: ShieldAlert,
       },
     };
 

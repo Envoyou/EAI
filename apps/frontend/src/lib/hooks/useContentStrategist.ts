@@ -36,6 +36,7 @@ import {
   StrategistTypewriterQueue,
   type StrategistTypewriterMode,
 } from '@/lib/strategist-typewriter';
+import { promptContentMemoryFeedback } from '@/lib/content-memory-feedback';
 
 export type SignalData = {
   topic: string;
@@ -887,15 +888,89 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     };
 
     try {
+      const runPlanAttempt = async (duplicateGuardOverride: boolean) => {
       const res = await directFetch('/api/strategist/generate-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         timeoutMs: REQUEST_TIMEOUT_MS.aiFlex,
-        body: JSON.stringify({ requestId, recommendation: recommendationText, history, sessionId: currentSessionId }),
+        body: JSON.stringify({
+          requestId,
+          duplicateGuardOverride,
+          recommendation: recommendationText,
+          history,
+          sessionId: currentSessionId,
+        }),
       });
 
       if (!res.ok) {
+        const conflict = await res.clone().json().catch(() => null) as {
+          duplicateGuard?: DuplicateGuardResult;
+        } | null;
+        if (
+          res.status === 409 &&
+          !duplicateGuardOverride &&
+          conflict?.duplicateGuard?.enforcement?.overrideAllowed
+        ) {
+          const suggestedAngle =
+            conflict.duplicateGuard.alternativeAngles?.[0];
+          setMessages(prev => prev.map(message =>
+            message.id === assistantMsgId
+              ? {
+                  ...message,
+                  content: tContentMemory('controlledBlock'),
+                  payload: { lifecycle: 'error' },
+                }
+              : message
+          ));
+          toast.warning(tContentMemory('controlledBlock'), {
+            description: suggestedAngle
+              ? `${tContentMemory('suggestedAngle')}: ${suggestedAngle}`
+              : undefined,
+            duration: 15_000,
+            action: {
+              label: tContentMemory('continueAnyway'),
+              onClick: () => {
+                setIsTyping(true);
+                chatAbortControllerRef.current = controller;
+                setMessages(prev => prev.map(message =>
+                  message.id === assistantMsgId
+                    ? {
+                        ...message,
+                        content: '',
+                        payload: {
+                          status: 'Generating Editorial Blueprint...',
+                          lifecycle: 'pending',
+                        },
+                      }
+                    : message
+                ));
+                void runPlanAttempt(true)
+                  .catch((retryError: unknown) => {
+                    const message =
+                      retryError instanceof Error
+                        ? retryError.message
+                        : 'Failed to generate draft plan';
+                    toast.error(message);
+                    setMessages(prev => prev.map(item =>
+                      item.id === assistantMsgId
+                        ? {
+                            ...item,
+                            content: `I failed to generate the plan. ${message}`,
+                            payload: { lifecycle: 'error' },
+                          }
+                        : item
+                    ));
+                  })
+                  .finally(() => {
+                    setIsTyping(false);
+                    chatAbortControllerRef.current = null;
+                  });
+              },
+            },
+          });
+          return;
+        }
         throw new Error(await getResponseErrorMessage(res, `Plan generation failed (${res.status})`));
       }
       if (res.status === 202) {
@@ -903,6 +978,27 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       }
       const data = await res.json() as StrategistPlanResult<PreEditorPlan>;
       applyPlanResult(data);
+      const feedbackRequestId =
+        data.duplicateGuard?.requestId ?? requestId;
+      if (
+        duplicateGuardOverride ||
+        data.duplicateGuard?.enforcement?.mode === 'shadow'
+      ) {
+        promptContentMemoryFeedback({
+          directFetch,
+          requestId: feedbackRequestId,
+          question: tContentMemory('feedbackQuestion'),
+          duplicateLabel: tContentMemory('yesDuplicate'),
+          distinctLabel: tContentMemory('notDuplicate'),
+          savedMessage: tContentMemory('feedbackSaved'),
+          failedMessage: tContentMemory('feedbackFailed'),
+          userAction: duplicateGuardOverride
+            ? 'overrode_block'
+            : 'continued',
+        });
+      }
+      };
+      await runPlanAttempt(false);
     } catch (error) {
       if (controller.signal.aborted) {
         setMessages(prev => prev.filter(message => message.id !== assistantMsgId));
@@ -1233,17 +1329,62 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     }
     const controller = new AbortController();
     quickDraftAbortControllerRef.current = controller;
+    const requestId = crypto.randomUUID();
 
     try {
+      const runAttempt = async (duplicateGuardOverride: boolean) => {
       const res = await directFetch('/api/strategist/quick-draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          ...body,
+          requestId,
+          duplicateGuardOverride,
+        }),
       });
 
       if (!res.ok) {
-        const result = await res.json().catch(() => null);
+        const result = await res.json().catch(() => null) as {
+          error?: string;
+          duplicateGuard?: DuplicateGuardResult;
+          duplicateGuardRequestId?: string;
+        } | null;
+        if (
+          res.status === 409 &&
+          !duplicateGuardOverride &&
+          result?.duplicateGuard?.enforcement?.overrideAllowed
+        ) {
+          const suggestedAngle =
+            result.duplicateGuard.alternativeAngles?.[0];
+          toast.warning(tContentMemory('controlledBlock'), {
+            description: suggestedAngle
+              ? `${tContentMemory('suggestedAngle')}: ${suggestedAngle}`
+              : undefined,
+            duration: 15_000,
+            action: {
+              label: tContentMemory('continueAnyway'),
+              onClick: () => {
+                setIsGeneratingQuickDraft(true);
+                quickDraftAbortControllerRef.current = controller;
+                void runAttempt(true)
+                  .catch((retryError: unknown) => {
+                    const message =
+                      retryError instanceof Error
+                        ? retryError.message
+                        : 'Quick draft failed';
+                    setQuickDraftError(message);
+                    toast.error(message);
+                  })
+                  .finally(() => {
+                    setIsGeneratingQuickDraft(false);
+                    quickDraftAbortControllerRef.current = null;
+                  });
+              },
+            },
+          });
+          return;
+        }
         throw new Error(result?.error || `Quick draft failed (${res.status})`);
       }
 
@@ -1254,6 +1395,9 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       let buf = '';
       let output = '';
       let receivedComplete = false;
+      let duplicateGuardFeedbackCandidate:
+        | DuplicateGuardResult
+        | null = null;
 
       while (true) {
         const { done: rd, value } = await readWithTimeout(
@@ -1275,6 +1419,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
             setQuickDraftOutput(output);
           } else if (event.type === 'duplicate_guard') {
             const result = event.data as DuplicateGuardResult;
+            duplicateGuardFeedbackCandidate = result;
             const warningKey =
               result.verdict === 'probable_duplicate'
                 ? 'probableDuplicate'
@@ -1324,6 +1469,26 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       });
 
       closeQuickDraft();
+      if (
+        duplicateGuardOverride ||
+        duplicateGuardFeedbackCandidate?.enforcement?.mode === 'shadow'
+      ) {
+        promptContentMemoryFeedback({
+          directFetch,
+          requestId:
+            duplicateGuardFeedbackCandidate?.requestId ?? requestId,
+          question: tContentMemory('feedbackQuestion'),
+          duplicateLabel: tContentMemory('yesDuplicate'),
+          distinctLabel: tContentMemory('notDuplicate'),
+          savedMessage: tContentMemory('feedbackSaved'),
+          failedMessage: tContentMemory('feedbackFailed'),
+          userAction: duplicateGuardOverride
+            ? 'overrode_block'
+            : 'continued',
+        });
+      }
+      };
+      await runAttempt(false);
     } catch (err: unknown) {
       if (controller.signal.aborted && !(err instanceof StreamIdleTimeoutError)) {
         console.log('Quick draft aborted.');

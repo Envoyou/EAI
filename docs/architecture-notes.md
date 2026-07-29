@@ -195,7 +195,7 @@ Setiap kali analisis draf dijalankan, sistem akan menyimpan log ke tabel `Analys
 *   **`ContentArtifact`**: Sumber kebenaran lifecycle konten per organization. `sourceType` dan `sourceId` menghubungkan artefak ke workflow asal secara idempoten, sementara `rootArtifactId` mempertahankan garis keturunan Blueprint ke draf berikutnya.
 *   **`ContentSearchDocument`**: Proyeksi pencarian yang dapat dibangun ulang dari artefak. Record ini bukan sumber kebenaran dan selalu dibatasi dengan `organizationId`. Vector `embedding(768)` memiliki `embeddingModel`, source hash, timestamp, attempt, dan error state agar perubahan model atau search text memicu reindex yang aman.
 *   **`ContentReservation`**: Claim topik sementara per request untuk menutup race condition ketika beberapa member memulai generasi yang sama secara bersamaan.
-*   **`DuplicateGuardEvent`**: Telemetry verdict, confidence, alasan overlap, rekomendasi, retrieval mode, model/latency classifier, dan tindakan lanjutan. Data ini menjadi dasar kalibrasi threshold sebelum hard-block tambahan diaktifkan.
+*   **`DuplicateGuardEvent`**: Telemetry verdict, confidence, alasan overlap, rekomendasi, retrieval mode, model/latency classifier, keputusan enforcement, tindakan lanjutan, dan label manusia yang dapat diatribusikan. Probable duplicate hanya menjadi hard block ketika feature flag aktif, organization berada dalam cohort rollout, tersedia minimal 50 label, dan precision terukur minimal 95%. Kegagalan membaca flag atau kalibrasi selalu kembali ke shadow/advisory.
 
 ---
 

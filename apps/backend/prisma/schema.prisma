@@ -23,17 +23,18 @@ model User {
   organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   onboardingDraft OnboardingDraft?
 
-  aiProviderOverride   String?
-  trialUsed            Boolean               @default(false)
-  balanceIdr           Int                   @default(0)
-  subscriptions        Subscription[]
-  transactions         CreditTransaction[]
-  usages               CreditUsage[]
-  paymentOrders        PaymentOrder[]
-  chatSessions         ChatSession[]
-  contentArtifacts     ContentArtifact[]     @relation("ContentArtifactCreator")
-  contentReservations  ContentReservation[]  @relation("ContentReservationCreator")
-  duplicateGuardEvents DuplicateGuardEvent[] @relation("DuplicateGuardEventActor")
+  aiProviderOverride     String?
+  trialUsed              Boolean               @default(false)
+  balanceIdr             Int                   @default(0)
+  subscriptions          Subscription[]
+  transactions           CreditTransaction[]
+  usages                 CreditUsage[]
+  paymentOrders          PaymentOrder[]
+  chatSessions           ChatSession[]
+  contentArtifacts       ContentArtifact[]     @relation("ContentArtifactCreator")
+  contentReservations    ContentReservation[]  @relation("ContentReservationCreator")
+  duplicateGuardEvents   DuplicateGuardEvent[] @relation("DuplicateGuardEventActor")
+  duplicateGuardFeedback DuplicateGuardEvent[] @relation("DuplicateGuardEventFeedbackActor")
 
   @@index([organizationId])
 }
@@ -480,21 +481,21 @@ model ContentArtifact {
 }
 
 model ContentSearchDocument {
-  id                     String    @id @default(cuid())
+  id                     String                      @id @default(cuid())
   organizationId         String
-  artifactId             String    @unique
-  searchText             String    @db.Text
+  artifactId             String                      @unique
+  searchText             String                      @db.Text
   searchMetadata         Json?
   contentHash            String?
   embedding              Unsupported("vector(768)")?
   embeddingModel         String?
   embeddingSourceHash    String?
   embeddingError         String?
-  embeddingAttempts      Int       @default(0)
+  embeddingAttempts      Int                         @default(0)
   lastEmbeddingAttemptAt DateTime?
   embeddedAt             DateTime?
-  indexedAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  indexedAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
 
   organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   artifact     ContentArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
@@ -522,7 +523,7 @@ model ContentReservation {
 }
 
 model DuplicateGuardEvent {
-  id                      String   @id @default(cuid())
+  id                      String    @id @default(cuid())
   organizationId          String
   actorUserId             String?
   artifactId              String?
@@ -535,17 +536,22 @@ model DuplicateGuardEvent {
   matchedArtifactIds      Json
   retrievalMetadata       Json?
   classifierMetadata      Json?
+  enforcementMetadata     Json?
   userAction              String?
   laterConfirmedDuplicate Boolean?
-  createdAt               DateTime @default(now())
+  feedbackActorUserId     String?
+  feedbackAt              DateTime?
+  createdAt               DateTime  @default(now())
 
-  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  actor        User?            @relation("DuplicateGuardEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
-  artifact     ContentArtifact? @relation(fields: [artifactId], references: [id], onDelete: SetNull)
+  organization  Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor         User?            @relation("DuplicateGuardEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  feedbackActor User?            @relation("DuplicateGuardEventFeedbackActor", fields: [feedbackActorUserId], references: [id], onDelete: SetNull)
+  artifact      ContentArtifact? @relation(fields: [artifactId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, createdAt])
   @@index([organizationId, verdict])
   @@index([artifactId])
+  @@index([organizationId, verdict, laterConfirmedDuplicate])
 }
 
 model AuditLog {

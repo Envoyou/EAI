@@ -1,10 +1,15 @@
 'use client';
 
 import { toast } from 'sonner';
-import type { ArticleMetadata, ResearchNote } from '@eai/shared';
+import type {
+  ArticleMetadata,
+  DuplicateGuardResult,
+  ResearchNote,
+} from '@eai/shared';
 import type { DirectFetchType } from '../types';
 import { readWithTimeout, StreamIdleTimeoutError } from '@/lib/stream-utils';
 import { getResponseErrorMessage } from '@/lib/fetch-utils';
+import { promptContentMemoryFeedback } from '@/lib/content-memory-feedback';
 
 interface StrategistContext {
   researchNotes: ResearchNote[];
@@ -15,9 +20,24 @@ interface StrategistContext {
   generateAbortControllerRef: React.MutableRefObject<AbortController | null>;
   duplicateGuardWarning: string;
   suggestedAngleLabel: string;
+  controlledBlockWarning: string;
+  continueAnywayLabel: string;
+  feedbackQuestion: string;
+  yesDuplicateLabel: string;
+  notDuplicateLabel: string;
+  feedbackSaved: string;
+  feedbackFailed: string;
 }
 
-export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
+type DuplicateGuardRetry = {
+  requestId: string;
+  override: true;
+};
+
+export async function executeGenerateDraftFromNotes(
+  ctx: StrategistContext,
+  retry?: DuplicateGuardRetry
+) {
   const {
     researchNotes,
     metadata,
@@ -27,6 +47,13 @@ export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
     generateAbortControllerRef,
     duplicateGuardWarning,
     suggestedAngleLabel,
+    controlledBlockWarning,
+    continueAnywayLabel,
+    feedbackQuestion,
+    yesDuplicateLabel,
+    notDuplicateLabel,
+    feedbackSaved,
+    feedbackFailed,
   } = ctx;
 
   const notesToGenerate = researchNotes.filter(n => n.content.length > 0);
@@ -39,19 +66,58 @@ export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
   setDraft('');
   let currentDraft = '';
   let receivedDone = false;
+  let duplicateGuardFeedbackCandidate: DuplicateGuardResult | null = null;
 
   const controller = new AbortController();
   generateAbortControllerRef.current = controller;
 
   try {
+    const requestId = retry?.requestId ?? crypto.randomUUID();
     const response = await directFetch('/api/strategist/generate-draft-from-notes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
-      body: JSON.stringify({ notes: notesToGenerate, metadata }),
+      body: JSON.stringify({
+        requestId,
+        duplicateGuardOverride: retry?.override,
+        notes: notesToGenerate,
+        metadata,
+      }),
     });
 
     if (!response.ok) {
+      const conflict = await response.clone().json().catch(() => null) as {
+        duplicateGuard?: {
+          enforcement?: { overrideAllowed?: boolean };
+          alternativeAngles?: string[];
+        };
+        duplicateGuardRequestId?: string;
+      } | null;
+      if (
+        response.status === 409 &&
+        !retry &&
+        conflict?.duplicateGuard?.enforcement?.overrideAllowed
+      ) {
+        const suggestedAngle =
+          conflict.duplicateGuard.alternativeAngles?.[0];
+        toast.warning(controlledBlockWarning, {
+          description: suggestedAngle
+            ? `${suggestedAngleLabel}: ${suggestedAngle}`
+            : undefined,
+          duration: 15_000,
+          action: {
+            label: continueAnywayLabel,
+            onClick: () => {
+              void executeGenerateDraftFromNotes(ctx, {
+                requestId:
+                  conflict.duplicateGuardRequestId ?? requestId,
+                override: true,
+              });
+            },
+          },
+        });
+        return;
+      }
       throw new Error(
         await getResponseErrorMessage(
           response,
@@ -87,6 +153,8 @@ export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
           } else if (data.type === 'blueprint_detected') {
             toast.info(data.message || 'Multiple topics detected — generating draft from the first topic.');
           } else if (data.type === 'duplicate_guard') {
+            duplicateGuardFeedbackCandidate =
+              data.result as DuplicateGuardResult;
             const suggestedAngle = data.result?.alternativeAngles?.[0];
             toast.warning(duplicateGuardWarning, {
               description: suggestedAngle
@@ -111,6 +179,24 @@ export async function executeGenerateDraftFromNotes(ctx: StrategistContext) {
     }
 
     toast.success('Draft generated successfully!');
+    if (
+      retry?.override ||
+      duplicateGuardFeedbackCandidate?.enforcement?.mode === 'shadow'
+    ) {
+      promptContentMemoryFeedback({
+        directFetch,
+        requestId:
+          duplicateGuardFeedbackCandidate?.requestId ??
+          retry?.requestId ??
+          requestId,
+        question: feedbackQuestion,
+        duplicateLabel: yesDuplicateLabel,
+        distinctLabel: notDuplicateLabel,
+        savedMessage: feedbackSaved,
+        failedMessage: feedbackFailed,
+        userAction: retry?.override ? 'overrode_block' : 'continued',
+      });
+    }
   } catch (error) {
     if (controller.signal.aborted && !(error instanceof StreamIdleTimeoutError)) {
       console.log('Draft generation aborted by user.');

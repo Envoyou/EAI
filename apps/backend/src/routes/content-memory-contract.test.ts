@@ -53,4 +53,20 @@ describe('Content Memory tenant contract', () => {
       'artifact."organizationId" = ${params.organizationId}'
     );
   });
+
+  it('scopes enforcement feedback and calibration to the active workspace', () => {
+    const route = readSource('./content-memory.ts');
+    const migration = readSource(
+      '../../prisma/migrations/20260729223000_add_content_memory_controlled_enforcement/migration.sql'
+    );
+    expect(route).toContain("router.post('/feedback', requireAuth");
+    expect(route).toContain("router.get('/enforcement', requireAuth");
+    expect(route).toContain(
+      'organizationId: workspace.organizationId,\n        requestId: input.data.requestId'
+    );
+    expect(route).not.toContain('organizationId: input.data.organizationId');
+    expect(route).toContain('actorUserId: req.auth!.userId');
+    expect(migration).toContain('"enforcementMetadata" JSONB');
+    expect(migration).toContain('"feedbackActorUserId" TEXT');
+  });
 });

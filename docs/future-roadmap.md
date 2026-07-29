@@ -81,13 +81,14 @@ Fase ini mendukung standar editorial tenant dan kolaborasi tim dalam skala lebih
 3.  ~~**Profil user dan organization berbasis akun**~~ (Diimplementasikan hingga v0.22.2):
     *   Clerk menyimpan identitas akun dan keanggotaan organization.
     *   Database EAI menyimpan workspace, peran, paket, kredit, profil editorial, serta riwayat analisis per tenant.
-4.  ~~**Shared Content Memory dan pencegahan topik duplikat**~~ (Phase 1–4 diimplementasikan pada Unreleased setelah v3.18.0):
+4.  ~~**Shared Content Memory dan pencegahan topik duplikat**~~ (Phase 1–5 diimplementasikan pada Unreleased setelah v3.18.0):
     *   Registry `ContentArtifact` per organization kini menyatukan Blueprint, Quick Draft, Draft from Notes, draf manual, dan hasil Analyze agar pekerjaan antar-member dapat ditemukan melalui Content Map.
-    *   Duplicate Guard memakai exact fingerprint, metadata overlap, dan reservasi sementara sebelum generasi. Exact match dan benturan request paralel diblokir; kemiripan non-eksak masih berupa warning agar false positive tidak menghentikan workflow editorial.
+    *   Duplicate Guard memakai exact fingerprint, metadata overlap, dan reservasi sementara sebelum generasi. Exact match serta benturan request paralel selalu diblokir dan tidak dapat dioverride.
     *   Phase 3 menambahkan embedding Gemini yang diproses worker, pgvector tenant-scoped, full-text/trigram retrieval, dan hybrid ranking. Phase 4 menambahkan classifier terstruktur untuk kasus ambigu, injeksi related-content, serta rekomendasi angle alternatif tanpa memperluas hard blocking.
-    *   Clustering lintas bahasa, kalibrasi threshold otomatis dari feedback event, dan controlled enforcement untuk probable duplicate tetap menjadi fase Content Intelligence berikutnya.
-5.  **Pelatihan AI berkelanjutan melalui feedback loop**:
-    *   Menambahkan tombol "Setujui / Sangkal Penilaian AI" bagi editor manusia. Data sanggahan ini akan disimpan ke database untuk disajikan sebagai bahan *fine-tuning* prompt sistem masa depan guna meminimalisir kesalahan evaluasi AI (*false positives*).
+    *   Phase 5 menambahkan controlled enforcement untuk probable duplicate ber-confidence tinggi. Hard block hanya aktif melalui feature flag dan cohort rollout ketika workspace memiliki minimal 50 label eksplisit dengan precision minimal 95%; pengguna dapat melakukan override eksplisit dan memberi label sesudah meninjau hasil.
+    *   Clustering lintas bahasa, optimasi threshold lanjutan, cannibalization detection, dan rekomendasi content gap tetap menjadi fase Content Intelligence berikutnya.
+5.  **Pelatihan AI berkelanjutan melalui feedback loop** (Sebagian diimplementasikan untuk Content Memory):
+    *   Content Memory kini mengumpulkan label "duplikat / berbeda" yang tenant-scoped dan dapat diatribusikan untuk kalibrasi precision enforcement. Pemanfaatan feedback lintas tahap AI dan fine-tuning prompt tetap direncanakan.
 6.  **Sistem Multi-bahasa (Bilingual Platform)** (Sebagian diimplementasikan pada v0.37.0):
     *   Dukungan dwi-bahasa (default EN dan ID dengan prefiks `/id`) sudah berjalan menggunakan **`next-intl`** dengan sistem *locale routing* di App Router dan kamus terjemahan JSON (`messages/en.json` & `messages/id.json`).
     *   Integrasi Translation Management System (TMS) seperti **Tolgee** dan pipeline lokalisasi otomatis untuk sinkronisasi teks antarmuka (*UI copy*) baru masih direncanakan.

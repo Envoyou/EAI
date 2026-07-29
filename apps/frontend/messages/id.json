@@ -295,7 +295,14 @@
     "probableDuplicate": "Artikel yang sangat mirip ditemukan. Tinjau konten terkait sebelum melanjutkan.",
     "highOverlap": "Konten workspace yang terkait sudah banyak membahas topik ini. Pertimbangkan angle lain.",
     "relatedWarning": "Content Memory menemukan dan mencatat konten workspace yang terkait.",
-    "suggestedAngle": "Saran angle yang berbeda"
+    "suggestedAngle": "Saran angle yang berbeda",
+    "controlledBlock": "Topik ini terkalibrasi sebagai kemungkinan duplikat. Tinjau konten yang ada atau lanjutkan secara eksplisit.",
+    "continueAnyway": "Tetap lanjutkan",
+    "feedbackQuestion": "Setelah meninjau hasilnya, apakah topik yang ditandai memang duplikat?",
+    "yesDuplicate": "Ya, duplikat",
+    "notDuplicate": "Tidak, berbeda",
+    "feedbackSaved": "Feedback Content Memory tersimpan.",
+    "feedbackFailed": "Feedback Content Memory gagal disimpan."
   },
   "ContentMap": {
     "nav": "Peta Konten",

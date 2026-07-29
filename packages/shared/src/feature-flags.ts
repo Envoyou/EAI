@@ -37,6 +37,7 @@ export const FEATURE_FLAG_KEYS = [
   'demo_enabled',
   'signup_enabled',
   'pricing_enabled',
+  'content_memory_enforcement_enabled',
 ] as const;
 
 export type FeatureFlagKey = (typeof FEATURE_FLAG_KEYS)[number];
@@ -49,6 +50,7 @@ export const DEFAULT_FLAGS: Record<FeatureFlagKey, boolean> = {
   demo_enabled: DEMO_ENABLED,
   signup_enabled: SIGNUP_ENABLED,
   pricing_enabled: PRICING_ENABLED,
+  content_memory_enforcement_enabled: false,
 };
 
 export const isFeatureFlagKey = (key: string): key is FeatureFlagKey =>

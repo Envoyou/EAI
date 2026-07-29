@@ -258,6 +258,11 @@ Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes l
     must not roll back the canonical artifact.
   * Hybrid SQL must scope both `ContentSearchDocument` and joined
     `ContentArtifact` rows by the internal `organizationId`.
+  * Probable-duplicate enforcement must use the shared calibration policy:
+    feature flag, deterministic organization rollout cohort, minimum labeled
+    sample count, and target precision. Missing flag/telemetry state is
+    fail-open to shadow/advisory; exact and reservation blocks are never
+    overridable.
   * `ContentMemoryClassifierComposer` is used only for ambiguous matches. Its
     structured output cannot produce an exact-duplicate verdict or blocking
     action, and only collaboration-safe metadata may enter its context.
