@@ -10,7 +10,11 @@ import type { RefineContext } from '../types';
 import { getProvider } from '@/lib/ai/providers/registry';
 import { resolveModel } from '@/lib/ai/model-router';
 import { executeStream } from '@/lib/ai/runtime/execute-stream';
-import { buildEditorialUserContent } from '@/lib/ai/prompt-context';
+import {
+  buildEditorialUserContent,
+  buildResearchNotesSummary,
+} from '@/lib/ai/prompt-context';
+import { composeWorkspaceContext } from '@/lib/ai/workspace-context';
 import { runFinalQualityGateSafely } from '@/lib/ai/quality-gate-stage';
 import { runSeoStage } from '@/lib/ai/seo-stage';
 import { SeoPromptComposer } from '@/lib/ai/prompt-engine/composer/seo-composer';
@@ -29,6 +33,7 @@ import {
   preparePublicationDraft,
 } from '../utils/text';
 import { resolveAiFunctionConfig } from '@/lib/ai-provider-resolver';
+import { getCurrentEditorialDate } from '@/lib/prompts';
 
 export async function handleRefine(ctx: RefineContext): Promise<void> {
   const {
@@ -63,14 +68,26 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
     sanitizeSuppressiveFeedbackItem(item, text)
   );
   const protectedFeedback = getProtectedVerificationClaims(normalizedPreviousFeedback);
+  const refineResearchNotes =
+    ((metadata as Record<string, unknown>)?.researchNotes as ResearchNote[] | undefined) || [];
+  const refineTimezone = editorialProfile.config.timezone || 'Asia/Jakarta';
+  const {
+    xml: refineWorkspaceXml,
+    agentInstruction: refineAgentInstruction,
+  } = composeWorkspaceContext({
+    today: getCurrentEditorialDate(refineTimezone),
+    timezone: refineTimezone,
+    profileConfig: editorialProfile.config,
+    notesSummary: buildResearchNotesSummary(refineResearchNotes) || null,
+  });
 
   sendEvent('status', 'rewriting');
 
-  const refinePrompt = new RefinementPromptComposer(
+  const refinePrompt = `${new RefinementPromptComposer(
     'iterative',
     editorialProfile.config,
     { sourceOnly: analysisSpeed === 'fast' }
-  ).compose('xml');
+  ).compose('xml')}\n\n${refineAgentInstruction}`;
 
   let refinedText = '';
   const lockedRefineInput = applyVerificationLocks(text, protectedFeedback);
@@ -83,7 +100,7 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
     request: {
       signal: state.signal,
       systemInstruction: refinePrompt,
-      userContent: buildEditorialUserContent({
+      userContent: `${refineWorkspaceXml}\n\n${buildEditorialUserContent({
         metadata,
         data: {
           editorInstruction: userInstruction,
@@ -91,7 +108,7 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
           article: lockedRefineInput,
         },
         task: 'Refine the article according to editorInstruction. Use previousFeedback as operational constraints and output only the final article.',
-      }),
+      })}`,
       model: refineModelName,
       maxOutputTokens: getRewriteOutputTokens(text, true),
       temperature: 0.35,
@@ -169,7 +186,7 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
     editorialProfile,
     sanitizeFeedback: sanitizeSuppressiveFeedbackItem,
     sanitizeSummary: sanitizeFactualSummary,
-    researchNotes: ((metadata as Record<string, unknown>)?.researchNotes as ResearchNote[] | undefined) || [],
+    researchNotes: refineResearchNotes,
     publicationMode: analysisSpeed === 'fast' ? 'fast' : 'publish_ready',
     workingTitle: typeof refineSeo?.title === 'string' ? refineSeo.title : workingTitle,
     publicationPackage: refineSeo,

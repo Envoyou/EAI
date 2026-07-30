@@ -12,7 +12,11 @@ import type { AnalyzeContext } from '../types';
 import { getProvider } from '@/lib/ai/providers/registry';
 import { resolveModel } from '@/lib/ai/model-router';
 import { executeStream } from '@/lib/ai/runtime/execute-stream';
-import { buildEditorialUserContent } from '@/lib/ai/prompt-context';
+import {
+  buildEditorialUserContent,
+  buildResearchNotesSummary,
+} from '@/lib/ai/prompt-context';
+import { composeWorkspaceContext } from '@/lib/ai/workspace-context';
 import { runEditorialReviewStage } from '@/lib/ai/review-stage';
 import { runFinalQualityGateSafely } from '@/lib/ai/quality-gate-stage';
 import { runSeoStage } from '@/lib/ai/seo-stage';
@@ -40,6 +44,7 @@ import {
 } from '../utils/text';
 import { preparePublicationDraft } from '../utils/text';
 import { resolveAiFunctionConfig } from '@/lib/ai-provider-resolver';
+import { getCurrentEditorialDate } from '@/lib/prompts';
 
 export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
   const {
@@ -163,12 +168,24 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
     const chunks = splitDraftIntoRewriteChunks(sourceTextToPolish);
     const isSingleChunk = chunks.length === 1;
     const protectedClaims = getProtectedVerificationClaims(validatedData.feedback);
+    const rewriteResearchNotes =
+      ((metadata as Record<string, unknown>)?.researchNotes as ResearchNote[] | undefined) || [];
+    const rewriteTimezone = editorialProfile.config.timezone || 'Asia/Jakarta';
+    const {
+      xml: rewriteWorkspaceXml,
+      agentInstruction: rewriteAgentInstruction,
+    } = composeWorkspaceContext({
+      today: getCurrentEditorialDate(rewriteTimezone),
+      timezone: rewriteTimezone,
+      profileConfig: editorialProfile.config,
+      notesSummary: buildResearchNotesSummary(rewriteResearchNotes) || null,
+    });
 
-    const rewriteSystemInstruction = new RewritePromptComposer(editorialProfile.config, {
+    const rewriteSystemInstruction = `${new RewritePromptComposer(editorialProfile.config, {
       isChunkMode: !isSingleChunk,
       publishedPosts,
       sourceOnly: analysisSpeed === 'fast',
-    }).compose('xml');
+    }).compose('xml')}\n\n${rewriteAgentInstruction}`;
 
     const rewriteConfig = resolveAiFunctionConfig(
       aiConfig,
@@ -203,7 +220,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
         request: {
           signal: state.signal,
           systemInstruction: rewriteSystemInstruction,
-          userContent: buildEditorialUserContent({
+          userContent: `${rewriteWorkspaceXml}\n\n${buildEditorialUserContent({
             metadata,
             data: {
               chunkLabel: draftLabel,
@@ -215,7 +232,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
                 : `This is segment ${i + 1} of ${chunks.length}. Rewrite only this segment. Connect its flow with the previous draft.`,
             },
             task: 'Polish only the provided article. Apply editorNotes and preserve protectedClaimsNotes.',
-          }),
+          })}`,
           model: rewriteModelName,
           maxOutputTokens: getRewriteOutputTokens(chunkText, isSingleChunk),
           thinkingLevel:
@@ -298,8 +315,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
       editorialProfile,
       sanitizeFeedback: sanitizeSuppressiveFeedbackItem,
       sanitizeSummary: sanitizeFactualSummary,
-      researchNotes:
-        ((metadata as Record<string, unknown>)?.researchNotes as ResearchNote[] | undefined) || [],
+      researchNotes: rewriteResearchNotes,
       publicationMode: analysisSpeed === 'fast' ? 'fast' : 'publish_ready',
       workingTitle,
       publicationPackage: seo,

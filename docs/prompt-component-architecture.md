@@ -58,7 +58,7 @@ Berada di `@eai/shared/src/prompt-engine/`. Lapisan ini murni merupakan abstraks
 ### Lapisan 2: Prompt Components (Granular AST Nodes)
 Berada di `apps/backend/src/lib/ai/prompt-engine/`. Terdiri dari kelas-kelas node terisolasi yang mengimplementasikan antarmuka `PromptNode`:
 *   **`Core Nodes`** (Statis/Platform-wide):
-    *   `EditorialMissionNode`: Visi dasar dan misi editorial platform.
+    *   `EditorialMissionNode`: Visi dasar dan misi editorial platform yang netral terhadap brand, audience, tone, serta tujuan publikasi tenant.
     *   `LanguagePolicyNode`: Aturan rigid translasi dan bahasa output berdasarkan keinginan editor.
     *   `StrictnessConstraintNode`: Batasan toleransi kebebasan AI dalam berkreasi.
     *   `VerificationLockNode`: Penguncian verbatim teks di dalam tanda `[[VERIFICATION_LOCK]]`.
@@ -66,8 +66,13 @@ Berada di `apps/backend/src/lib/ai/prompt-engine/`. Terdiri dari kelas-kelas nod
     *   `VisualFormatSelectionPolicyNode`: Menjadikan prosa sebagai default dan memilih Mermaid, tabel, numbered list, atau bullet hanya ketika format tersebut meningkatkan pemahaman serta seluruh detailnya didukung sumber.
     *   `OutputSchemaNode`: Struktur format kontrak JSON yang wajib dipatuhi oleh LLM.
 *   **`Tenant Nodes`** (Dinamis/Tenant-specific):
-    *   `BrandIdentityNode`: Profil bisnis, target pembaca, dan kategori tenant.
+    *   `BrandIdentityNode`: Profil bisnis, target pembaca, kategori, primary goal, bahasa default, struktur, serta custom instruction tenant.
     *   `ToneCalibrationNode`: Pola nada bahasa (*tone of voice*) yang boleh dan dilarang digunakan.
+
+Node dengan `isStatic: true` tidak boleh merender nilai dari `EditorialProfileConfig`
+atau `RenderContext` yang berubah antar-tenant. Persona core hanya mendefinisikan
+fungsi tahap dan guardrail platform; nama brand, positioning, audience, tone,
+primary goal, bahasa default, dan contoh brand wajib berada di node dinamis.
 
 ### Lapisan 3: Workflow Composer (Stage Assembly)
 Berada di `apps/backend/src/lib/ai/prompt-engine/composer/`. Kelas-kelas komposer bertugas merakit AST Prompt sesuai dengan alur kerja tahapan (*stage*) pipeline EAI:
@@ -107,6 +112,19 @@ LLM modern seperti Google Gemini mendukung fitur *prompt caching* (Context Cachi
 ```
 
 Dengan struktur di atas, seluruh porsi **Core Nodes** yang menempati ~80% ukuran total prompt dapat disimpan di dalam cache secara permanen oleh penyedia LLM. Hanya porsi kecil di bagian bawah yang diproses secara dinamis.
+
+### Kontrak konteks Rewrite dan Iterative Refinement
+
+Tahap rewrite pada **Refine Draft** dan tahap iterative refinement menggunakan
+`composeWorkspaceContext` yang sama dengan SEO, Quality Gate, dan Targeted Fix.
+`<agent_instruction>` ditempatkan pada system instruction, sedangkan
+`<workspace_context>` dan data artikel ditempatkan pada user content.
+
+Editorial Profile adalah default untuk positioning, struktur, tone, dan audience.
+Jika `articleContext.targetAudience` bernilai non-null, nilai tersebut dianggap
+sebagai target eksplisit untuk artikel aktif dan mengoverride audience profile
+hanya pada request tersebut. Core factual guardrails, role, dan output contract
+tidak dapat dioverride oleh metadata artikel maupun custom instruction tenant.
 
 ---
 

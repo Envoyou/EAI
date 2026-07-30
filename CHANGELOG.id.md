@@ -6,6 +6,14 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Changed
+- **Persona Refine Draft yang aman untuk multi-tenant**:
+  - Menaikkan `PROMPT_VERSION` ke `2.6.0`.
+  - Menjadikan mission editorial bersama, role rewrite, prioritas rewrite, dan role iterative refinement benar-benar netral terhadap tenant; default bergaya Envoyou seperti kesan premium, audiens profesional, dan strategic projection tidak lagi berada di core node yang cacheable.
+  - Memindahkan arahan spesifik publikasi ke konteks Editorial Profile dinamis, termasuk primary goal dan bahasa default tenant. Target audiens artikel yang eksplisit kini hanya mengoverride audiens profile untuk artikel tersebut.
+  - Menambahkan workspace context, agent instruction, dan ringkasan research notes standar ke request rewrite **Refine Draft** utama maupun iterative refinement berikutnya.
+  - Menambahkan cakupan regresi untuk static prompt prefix yang independen dari tenant, kebocoran persona non-Envoyou, precedence audiens, dan wiring workspace context.
+
 ## [3.20.0] - 2026-07-30
 
 ### Added

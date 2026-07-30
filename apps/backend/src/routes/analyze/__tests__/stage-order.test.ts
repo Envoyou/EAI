@@ -60,4 +60,16 @@ describe('analyze pipeline stage order', () => {
     expect(stage).toContain('detectSourceFidelitySignals');
     expect(stage).toContain('<retry_correction>');
   });
+
+  it('supplies workspace profile and research context to both rewrite paths', () => {
+    const analyze = readHandler('analyze.ts');
+    const refine = readHandler('refine.ts');
+
+    for (const source of [analyze, refine]) {
+      expect(source).toContain('composeWorkspaceContext({');
+      expect(source).toContain('buildResearchNotesSummary(');
+      expect(source).toContain('agentInstruction:');
+      expect(source).toMatch(/userContent: `\\?\$\{.*WorkspaceXml\}/);
+    }
+  });
 });

@@ -17,36 +17,21 @@ export class RewriteRoleNode implements PromptNode {
   type = 'core' as const;
   isStatic = true;
 
-  constructor(
-    private brandName: string,
-    private positioning: string,
-    private tone: string[],
-    private audience: string
-  ) {}
-
   render(context: RenderContext): string {
     const instructions = `
-You are a senior ${this.brandName} editor responsible for rewriting article drafts into publish-ready articles.
-
-${this.brandName} Editorial Positioning:
-"${this.positioning}"
-Every article must provide insight, have a clear perspective, remain accessible to a broad professional audience, and still feel premium. Articles must not read like copied news, SEO spam, generic AI content, or empty clickbait.
+You are a senior editorial rewrite specialist responsible for transforming article drafts into publication-quality article bodies.
 
 Task:
-Polish the article so it reflects the editorial positioning above and ${this.brandName}'s identity.
-
-${this.brandName} Standards:
-- Tone: ${this.tone.join(', ')}.
-- Audience: ${this.audience}.
-- Short paragraphs, 2-4 sentences each, for comfortable mobile reading.
-- Avoid stale introductions and generic AI styling.
-- If the draft contains important data, facts, or claims, preserve their substance accurately.
-- Strengthen the opening hook so it immediately targets reader curiosity or urgency.
-- Make headings insight-driven, not generic noun labels.
+- Rewrite the draft according to the active editorial profile and the explicit per-article context.
+- Treat the editorial profile as the default for positioning, tone, structure, and audience.
+- If articleContext.targetAudience is present, treat it as the explicit audience for this article; otherwise use the profile audience.
+- Match the opening, headings, paragraph rhythm, and conclusion to the article type, editorial brief, and publication primary goal instead of forcing a single magazine or marketing style.
+- Preserve important data, facts, claims, uncertainty, and source attribution accurately.
+- Avoid copied-news phrasing, SEO spam, generic AI filler, and empty clickbait.
 `.trim();
 
     if (context.format === 'xml') {
-      return `<rewrite_role_instructions brand="${this.brandName}">\n${instructions}\n</rewrite_role_instructions>`;
+      return `<rewrite_role_instructions>\n${instructions}\n</rewrite_role_instructions>`;
     }
     return `## Rewrite Role Instructions\n${instructions}`;
   }
@@ -62,15 +47,10 @@ export class RewriteFewShotDemoNode implements PromptNode {
     const demo = `
 === REWRITE DEMONSTRATION ===
 [INPUT DRAFT]
-"In today's rapidly evolving digital era, artificial intelligence technology like ChatGPT is widely used by the general public. Many people consider this technology to be very helpful for their daily work."
+"In today's rapidly changing environment, the survey found that 62% of respondents review the report every week. This result is very important for the team."
 
-[REASONING]
-1. Input Analysis: The opening uses a strictly prohibited AI cliché ("In today's rapidly evolving digital era..."). The text is too generic ("general public", "very helpful") and lacks a sharp, strategic perspective.
-2. Tone Calibration: Shift to a more conversational yet insightful tone suitable for a professional and decision-maker audience.
-3. Refinement: Remove fluff and academic jargon. Shift the focus from AI merely being a "helpful tool" to a "fundamental shift in workflow and productivity."
-
-[POLISHED CMS-READY OUTPUT]
-"The question is no longer how advanced AI is today, but how quickly it integrates into existing workflows. AI has transitioned from a sandbox experiment to the primary driver of productivity across sectors."
+[POLISHED ARTICLE OUTPUT]
+"The survey found that **62% of respondents review the report every week**. That recurring use makes the finding directly relevant to the team's next decision."
 `.trim();
 
     if (context.format === 'xml') {
@@ -86,24 +66,21 @@ export class RewritePrioritiesNode implements PromptNode {
   type = 'core' as const;
   isStatic = true;
 
-  constructor(private audience: string, private brandName: string) {}
-
   render(context: RenderContext): string {
     const content = `
 REWRITE PRIORITIES (highest first):
 1. Data and factual integrity - never compromised.
-2. Hook and closing quality - always strengthened without changing factual substance.
+2. Opening and closing quality - improve them in a way that fits the article type and editorial brief.
 3. Argument clarity per section - fix weak, repetitive, or context-jumping sections.
 4. Density - reduce redundancies and wordiness only when it does not compromise priorities 1-3.
 
 Mandatory Editorial Guardrails:
 - Establish one main thesis from the original draft. Every heading and section must reinforce that same thesis.
 - DO NOT jump to a new topic without a clear cause-and-effect transition from the previous paragraph.
-- Use a sharp, objective, rational editorial voice.
+- Use the voice defined by the active editorial profile and per-article context.
 - Avoid hyperbolic, sensational, or excessive metaphors such as "brutal", "doomsday", "black hole", "kiamat", or "lubang hitam" unless factually necessary.
-- Write for this audience: ${this.audience}.
 - Track numbers, statistics, and important entities already mentioned. DO NOT repeat the same data within 3 paragraphs unless adding a clearly new implication.
-- The conclusion must not be a summary or generic call to action. End with 1-2 strategic implications or asymmetric projections that make readers rethink their strategy.
+- The conclusion must serve the article's purpose and publication primary goal. Avoid a generic summary or unrelated call to action.
 - DO NOT change numbers, entity names, quotes, or factual claims from the draft except to fix obviously wrong formatting.
 - The editorial date may be used only as neutral time orientation when truly needed. DO NOT automatically insert months, quarters, semesters, beginning/mid/end-of-year framing, or other calendar phases into the opening.
 - DO NOT use the editorial date to create new trend status, outcomes, developments, or data absent from the draft, for example claiming 2026 sales increased or a prediction has been proven merely because the current year is 2026.
@@ -112,7 +89,7 @@ Mandatory Editorial Guardrails:
 - DO NOT invent motives, personal interests, or psychological reasons for people/organizations that sources DO NOT state.
 - DO NOT increase source certainty. Wording such as "may", "estimated", or probability language must not become "almost certainly", "certainly", or a new certainty claim.
 - DO NOT add country, region, market, regulatory, or geographic audience context unless requested by the draft, brief, or target audience.
-- If geographic implications are requested, frame analysis not present in sources as ${this.brandName} editorial analysis, not as fact or source conclusion.
+- If geographic implications are requested, label analysis not present in sources as editorial analysis, not as fact or a source conclusion.
 - Preserve as much of the draft's logical structure and core facts as possible. Rewrite only as needed to improve cohesion, tone, clarity, and argument quality.
 - Each section must have one main function: build context, show evidence, explain implications, or draw strategic consequences.
 - Connect business or career impact to a specific geography only if that context already exists in the draft, brief, or target audience; DO NOT localize automatically.
@@ -227,11 +204,6 @@ export class RewritePromptComposer {
   ) {}
 
   compile(_format: 'xml' | 'markdown' | 'text' = 'xml'): CompositePromptNode {
-    const brandName = this.profile?.brandName || 'Envoyou';
-    const positioning = this.profile?.positioning || 'Modern tech editorial.';
-    const tone = this.profile?.tone || ['professional', 'insightful'];
-    const audience = this.profile?.audience || 'professionals';
-
     // Inisialisasi Core Nodes (Static)
     const missionNode = new EditorialMissionNode();
     const langPolicyNode = new LanguagePolicyNode();
@@ -247,9 +219,9 @@ export class RewritePromptComposer {
     const sourcePolicyNode = new SourcePolicyNode(this.profile?.sourcePolicy);
 
     // Rewrite-Specific Static Nodes
-    const roleNode = new RewriteRoleNode(brandName, positioning, tone, audience);
+    const roleNode = new RewriteRoleNode();
     const fewShotNode = new RewriteFewShotDemoNode();
-    const prioritiesNode = new RewritePrioritiesNode(audience, brandName);
+    const prioritiesNode = new RewritePrioritiesNode();
     const fastSourceFidelityNode = this.options?.sourceOnly
       ? new FastSourceFidelityNode()
       : null;

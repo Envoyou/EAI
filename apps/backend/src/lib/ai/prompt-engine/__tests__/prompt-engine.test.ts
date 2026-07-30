@@ -53,6 +53,8 @@ describe('Prompt Engine unit tests', () => {
     },
     internalLinkDomains: ['test.com'],
     internalLinkBaseUrl: 'https://test.com',
+    primaryGoal: 'documentation' as const,
+    defaultLanguage: 'en' as const,
   };
 
   it('CompositePromptNode ordering (Static first, Dynamic last)', () => {
@@ -107,13 +109,44 @@ describe('Prompt Engine unit tests', () => {
     });
     const composedRewrite = rewriteComposer.compose('xml');
 
-    expect(composedRewrite.includes('<rewrite_role_instructions brand="TestBrand">')).toBe(true);
-    expect(composedRewrite.includes('You are a senior TestBrand editor')).toBe(true);
+    expect(composedRewrite.includes('<rewrite_role_instructions>')).toBe(true);
+    expect(composedRewrite.includes('You are a senior editorial rewrite specialist')).toBe(true);
     expect(composedRewrite.includes('<rewrite_few_shot_demonstration>')).toBe(true);
     expect(composedRewrite.includes('<rewrite_priorities_and_guardrails>')).toBe(true);
     expect(composedRewrite.includes('<internal_linking_rules>')).toBe(true);
     expect(composedRewrite.includes('- "Existing Post" (slug: existing-post)')).toBe(true);
     expect(composedRewrite.includes('- Output must process ONLY content from this input chunk')).toBe(true);
+    expect(composedRewrite.includes('<primary_goal>documentation</primary_goal>')).toBe(true);
+    expect(composedRewrite.includes('<default_language>en</default_language>')).toBe(true);
+    expect(composedRewrite).not.toContain('broad professional audience');
+    expect(composedRewrite).not.toContain('asymmetric projections');
+    expect(composedRewrite).not.toContain('professional and decision-maker audience');
+
+    const staticRewriteText = rewriteComposer
+      .compile('xml')
+      .getChildren()
+      .filter((node) => node.isStatic)
+      .map((node) => node.render({ format: 'xml' }))
+      .join('\n');
+    expect(staticRewriteText).not.toContain('TestBrand');
+    expect(staticRewriteText).not.toContain('Testers');
+    expect(staticRewriteText).not.toContain('Leading test positioning.');
+
+    const alternateProfile = {
+      ...mockProfile,
+      brandName: 'DocumentationBrand',
+      positioning: 'Reference documentation.',
+      audience: 'API integrators',
+      tone: ['technical'],
+    };
+    const alternateRewrite = new RewritePromptComposer(alternateProfile, {
+      isChunkMode: true,
+      publishedPosts: [{ title: 'Existing Post', slug: 'existing-post' }],
+    }).compose('xml');
+    const dynamicBoundary = '<!-- DYNAMIC CONTEXT & CONSTRAINTS -->';
+    expect(composedRewrite.split(dynamicBoundary)[0]).toBe(
+      alternateRewrite.split(dynamicBoundary)[0]
+    );
   });
 
   it('RefinementPromptComposer generation', () => {
@@ -121,12 +154,20 @@ describe('Prompt Engine unit tests', () => {
     const composedRefineIterative = refineComposerIterative.compose('xml');
 
     expect(composedRefineIterative.includes('<refinement_role_instructions type="iterative">')).toBe(true);
-    expect(composedRefineIterative.includes('You are a senior TestBrand editor performing iterative refinement')).toBe(true);
+    expect(composedRefineIterative.includes('You are a senior editor performing iterative refinement')).toBe(true);
     expect(composedRefineIterative.includes('<factual_refinement_guardrail>')).toBe(true);
+    const staticRefinementText = refineComposerIterative
+      .compile('xml')
+      .getChildren()
+      .filter((node) => node.isStatic)
+      .map((node) => node.render({ format: 'xml' }))
+      .join('\n');
+    expect(staticRefinementText).not.toContain('TestBrand');
+    expect(staticRefinementText).not.toContain('Testers');
 
     const refineComposerTargeted = new RefinementPromptComposer('targeted_fix', mockProfile);
     const composedRefineTargeted = refineComposerTargeted.compose('xml');
-    expect(composedRefineTargeted.includes('You are a senior TestBrand editor performing one targeted text repair.')).toBe(true);
+    expect(composedRefineTargeted.includes('You are a senior editor performing one targeted text repair.')).toBe(true);
   });
 
   it('QualityGatePromptComposer generation', () => {

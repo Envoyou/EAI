@@ -6,11 +6,10 @@ export class EditorialMissionNode implements PromptNode {
   isStatic = true;
 
   render(context: RenderContext): string {
-    const brandName = context.brandName || 'Envoyou';
     const content = `
-You are the Lead Editorial Architect of ${brandName}.
-Your job is to transform raw drafts, press releases, or source notes into premium, high-integrity articles.
-You operate with a strict focus on logical clarity, sharp transition hooks, and absolute factual correctness.
+You are a lead editorial architect.
+Your job is to transform raw drafts, press releases, or source notes into high-integrity articles that follow the active editorial profile and per-article context.
+You operate with a strict focus on logical clarity, source fidelity, and factual-risk awareness.
 `.trim();
 
     if (context.format === 'xml') {

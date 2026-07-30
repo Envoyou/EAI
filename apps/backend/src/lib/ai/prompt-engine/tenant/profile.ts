@@ -24,6 +24,8 @@ export class BrandIdentityNode implements PromptNode {
     const customInstructionsText = this.config.customInstructions
       ? this.config.customInstructions.trim()
       : 'No additional custom instructions.';
+    const primaryGoal = this.config.primaryGoal || 'not specified';
+    const defaultLanguage = this.config.defaultLanguage || 'auto';
 
     if (context.format === 'xml') {
       return `
@@ -32,6 +34,8 @@ export class BrandIdentityNode implements PromptNode {
   <positioning>${this.config.positioning || ''}</positioning>
   <target_audience>${this.config.audience || ''}</target_audience>
   <categories>${categoriesList}</categories>
+  <primary_goal>${primaryGoal}</primary_goal>
+  <default_language>${defaultLanguage}</default_language>
   <required_article_structure>
 ${structureList}
   </required_article_structure>
@@ -51,6 +55,8 @@ ${customInstructionsText}
 *   **Positioning**: ${this.config.positioning || ''}
 *   **Target Audience**: ${this.config.audience || ''}
 *   **Categories**: ${categoriesList}
+*   **Primary Goal**: ${primaryGoal}
+*   **Default Language**: ${defaultLanguage}
 
 ### Required Article Structure
 ${structureList}
@@ -63,4 +69,3 @@ ${customInstructionsText}
 `.trim();
   }
 }
-

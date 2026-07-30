@@ -213,6 +213,18 @@ Dalam masa pengembangan awal, ditemukan beberapa kendala pada respon model AI. B
     5.  Menormalisasi hierarki Markdown di luar fenced code sehingga heading body pertama selalu H2 dan loncatan level dipromosikan secara aman.
     6.  Memvalidasi payload Strategist secara penuh serta mengekstrak bagian Draft ketika model mengembalikan Blueprint komposit.
 
+### T. Persona Rewrite Multi-Tenant dan Workspace Context (v2.6.0)
+*   **Kendala**:
+    1.  `EditorialMissionNode`, `RewriteRoleNode`, `RewritePrioritiesNode`, dan `RefinementRoleNode` diberi status core/statis tetapi masih merender brand, positioning, tone, atau audience tenant.
+    2.  Persona rewrite universal memaksakan gaya premium, audiens profesional, hook berbasis urgensi, dan penutup strategic projection meskipun tenant memiliki primary goal dokumentasi atau knowledge base.
+    3.  Rewrite utama dan iterative refinement belum memakai kontrak `<workspace_context>` serta `<agent_instruction>` yang sudah digunakan SEO, Quality Gate, dan Targeted Fix.
+*   **Solusi**:
+    1.  Menjadikan mission dan role core netral terhadap tenant serta memindahkan seluruh identitas, tone, audience, primary goal, bahasa default, struktur, dan custom instruction ke node dinamis.
+    2.  Mengganti few-shot Envoyou-centric dengan pasangan input-output netral yang menunjukkan penghapusan klise sekaligus mempertahankan fakta tanpa meminta reasoning manual.
+    3.  Menetapkan Editorial Profile sebagai default dan `articleContext.targetAudience` non-null sebagai override eksplisit hanya untuk artikel aktif.
+    4.  Menyertakan workspace context, agent instruction, serta ringkasan research notes pada system/user contract kedua jalur rewrite.
+    5.  Menambahkan regresi yang membuktikan static prefix identik untuk dua tenant berbeda dan tidak memuat brand, audience, atau positioning tenant.
+
 ### T. Kontrak Actionability Feedback Final Quality Gate (Unreleased)
 *   **Kendala**: Schema Final Quality Gate sebelumnya mengizinkan `suggestion`,
     `targetText`, dan `replacementText` semuanya kosong. Output tersebut tetap

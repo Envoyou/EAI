@@ -1,4 +1,4 @@
-import type { ArticleMetadata } from '@eai/shared';
+import type { ArticleMetadata, ResearchNote } from '@eai/shared';
 import { getCurrentEditorialDate } from '../prompts';
 
 const INPUT_BOUNDARY_POLICY = `
@@ -25,7 +25,7 @@ export const buildEditorialUserContent = ({
   const articleContext = {
     category: metadata?.category ?? 'unknown',
     articleType: metadata?.type ?? 'unknown',
-    targetAudience: metadata?.targetAudience ?? 'general tech-savvy reader',
+    targetAudience: metadata?.targetAudience ?? null,
     targetLength: metadata?.targetLength ?? '800-1200 words',
     strictness: metadata?.strictness ?? 'balanced',
     outputLanguage: metadata?.outputLanguage ?? 'en',
@@ -41,6 +41,17 @@ export const buildEditorialUserContent = ({
     task,
   ].join('\n');
 };
+
+export const buildResearchNotesSummary = (notes: ResearchNote[] = []) =>
+  notes
+    .map((note, index) => {
+      const sourceUrls = note.sources?.map((source) => source.url).join(', ');
+      return [
+        `Note ${index + 1}: ${note.content}`,
+        sourceUrls ? `Sources: ${sourceUrls}` : '',
+      ].filter(Boolean).join('\n');
+    })
+    .join('\n\n');
 
 export const buildCompactReviewInstruction = (basePrompt: string) => `${basePrompt}
 

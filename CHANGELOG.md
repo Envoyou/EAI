@@ -6,6 +6,14 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Changed
+- **Tenant-safe Refine Draft personas**:
+  - Incremented `PROMPT_VERSION` to `2.6.0`.
+  - Made the shared editorial mission, rewrite role, rewrite priorities, and iterative-refinement role genuinely tenant-neutral; Envoyou-style premium, professional-audience, and strategic-projection defaults no longer live in cacheable core nodes.
+  - Moved publication-specific direction to dynamic editorial-profile context, including the tenant primary goal and default language. An explicit article target audience now overrides the profile audience only for that article.
+  - Added the standardized workspace context, agent instruction, and research-note summary to both the primary **Refine Draft** rewrite and subsequent iterative refinement requests.
+  - Added regression coverage for tenant-independent static prompt prefixes, non-Envoyou persona leakage, audience precedence, and workspace-context wiring.
+
 ## [3.20.0] - 2026-07-30
 
 ### Added
