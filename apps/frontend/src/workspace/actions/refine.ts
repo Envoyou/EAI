@@ -1,7 +1,7 @@
 'use client';
 
 import { toast } from 'sonner';
-import type { ArticleMetadata, ResearchNote, EditorialProcessStage, AnalysisResult, EditorialReadiness } from '@eai/shared';
+import type { ArticleMetadata, Attachment, ResearchNote, EditorialProcessStage, AnalysisResult, EditorialReadiness } from '@eai/shared';
 import type { EditorialOptions, AnalysisSpeed, PendingRefineAction, DirectFetchType } from '../types';
 import type { AppSettings } from '@/lib/preferences';
 import { readWithTimeout, StreamIdleTimeoutError } from '@/lib/stream-utils';
@@ -12,6 +12,7 @@ interface RefineContext {
   draft: string;
   metadata: ArticleMetadata;
   researchNotes: ResearchNote[];
+  attachments: Attachment[];
   editorialOptions: EditorialOptions;
   appSettings: AppSettings;
   analysisSpeed: AnalysisSpeed;
@@ -48,6 +49,7 @@ export async function executeRefine(
   const {
     metadata,
     researchNotes,
+    attachments,
     editorialOptions,
     appSettings,
     analysisSpeed,
@@ -137,12 +139,21 @@ export async function executeRefine(
       outputLanguage: appSettings.outputLanguage,
       workingTitle: analysis.workingTitle || analysis.generatedMetadata?.title,
       publicationPackageStatus: analysis.publicationPackageStatus,
+      researchNotes: researchNotes.slice(0, 10).map(note => ({
+        ...note,
+        content: note.content.slice(0, 5_000),
+      })),
+      attachments: attachments.slice(0, 5).map(attachment => ({
+        ...attachment,
+        extractedText: attachment.extractedText.slice(0, 2_000),
+      })),
     };
     const response = await directFetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
       body: JSON.stringify({
+        requestId: crypto.randomUUID(),
         text: currentDraft,
         mode: 'refine',
         userInstruction: instruction,

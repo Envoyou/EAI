@@ -8,6 +8,10 @@ import type { AiProvider } from './provider-runtime';
 import { getProvider } from './providers/registry';
 import { executeGenerate } from './runtime/execute-generate';
 import { composeWorkspaceContext } from './workspace-context';
+import {
+  buildAttachmentContext,
+  buildResearchNotesSummary,
+} from './prompt-context';
 
 export const runSeoStage = async ({
   provider,
@@ -45,6 +49,8 @@ export const runSeoStage = async ({
     today: currentDate,
     timezone,
     profileConfig: editorialProfile.config,
+    notesSummary: buildResearchNotesSummary(metadata?.researchNotes) || null,
+    attachment: buildAttachmentContext(metadata?.attachments),
   });
 
   const systemInstruction = `${baseSystemInstruction}\n\n${agentInstruction}`;

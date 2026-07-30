@@ -23,7 +23,7 @@ describe('AIProvider contract compliance', () => {
     const geminiProv = getProvider('gemini');
     const capabilities = geminiProv.getCapabilities();
     expect(capabilities).toEqual({
-      structuredOutput: false,
+      structuredOutput: true,
       grounding: true,
       thinking: true,
       caching: true,

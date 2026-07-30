@@ -39,6 +39,18 @@ describe('analyze pipeline stage order', () => {
     expect(source).not.toContain("ctx.sendEvent('status', 'rewriting')");
   });
 
+  it('rechecks the complete publication package after standalone SEO generation', () => {
+    const source = readHandler('publication.ts');
+    const seoEvent = source.indexOf("ctx.sendEvent('seo_metadata', seo)");
+    const packageQualityGate = source.indexOf("publicationMode: 'publish_ready'", seoEvent);
+
+    expect(seoEvent).toBeGreaterThan(-1);
+    expect(packageQualityGate).toBeGreaterThan(seoEvent);
+    expect(source).toContain('publicationPackage: seo');
+    expect(source).toContain('verdict: qualityGate.readiness');
+    expect(source).toContain('readiness: qualityGate.readiness');
+  });
+
   it('reuses saved editorial decisions and research context in standalone Quality Gate', () => {
     const source = readHandler('publication.ts');
 
@@ -71,5 +83,45 @@ describe('analyze pipeline stage order', () => {
       expect(source).toContain('agentInstruction:');
       expect(source).toMatch(/userContent: `\\?\$\{.*WorkspaceXml\}/);
     }
+  });
+
+  it('supplies workspace profile and research context to the review stage', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/lib/ai/review-stage.ts'),
+      'utf8'
+    );
+
+    expect(source).toContain('composeWorkspaceContext({');
+    expect(source).toContain('buildResearchNotesSummary(metadata?.researchNotes)');
+    expect(source).toContain('workspaceContextXml');
+    expect(source).toContain('agentInstruction');
+  });
+
+  it('guards authenticated analyze requests against duplicate execution and debit', () => {
+    const controller = readFileSync(
+      resolve(process.cwd(), 'src/routes/analyze/controller.ts'),
+      'utf8'
+    );
+    const service = readFileSync(
+      resolve(process.cwd(), 'src/lib/services/analysis-log.service.ts'),
+      'utf8'
+    );
+
+    expect(controller).toContain("acquireRequestLease(");
+    expect(controller).toContain("where: { userId, requestId }");
+    expect(service).toContain('`analysis:${data.userId}:${data.requestId}`');
+  });
+
+  it('persists the canonical prompt version and forwards cancellation into Gemini retry', () => {
+    const analyze = readHandler('analyze.ts');
+    const refine = readHandler('refine.ts');
+    const geminiProvider = readFileSync(
+      resolve(process.cwd(), 'src/lib/ai/providers/gemini/provider.ts'),
+      'utf8'
+    );
+
+    expect(analyze).toContain('promptVersion: PROMPT_VERSION');
+    expect(refine).toContain('promptVersion: PROMPT_VERSION');
+    expect(geminiProvider.match(/signal: request\.signal/g)).toHaveLength(2);
   });
 });

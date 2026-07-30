@@ -8,11 +8,19 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ### Changed
 - **Tenant-safe Refine Draft personas**:
-  - Incremented `PROMPT_VERSION` to `2.6.0`.
+  - Incremented `PROMPT_VERSION` to `2.7.0`.
   - Made the shared editorial mission, rewrite role, rewrite priorities, and iterative-refinement role genuinely tenant-neutral; Envoyou-style premium, professional-audience, and strategic-projection defaults no longer live in cacheable core nodes.
   - Moved publication-specific direction to dynamic editorial-profile context, including the tenant primary goal and default language. An explicit article target audience now overrides the profile audience only for that article.
   - Added the standardized workspace context, agent instruction, and research-note summary to both the primary **Refine Draft** rewrite and subsequent iterative refinement requests.
   - Added regression coverage for tenant-independent static prompt prefixes, non-Envoyou persona leakage, audience precedence, and workspace-context wiring.
+
+### Fixed
+- **Analyze-to-publication prompt and workflow contract**:
+  - Re-audit the generated SEO package with the Final Quality Gate in `publish_ready` mode before persisting the latest readiness, so CMS export cannot rely on a body-only Quality Check.
+  - Removed a fabricated citation from the review few-shot, aligned `needs_review` with the strict export guard, made Review/SEO/Quality Gate core personas tenant-neutral, and aligned the SEO example with the shared five-tag limit.
+  - Added bounded shared schemas for Analyze metadata, research notes, and attachments; Review and Fact-Checker now receive the same workspace context, agent instruction, research notes, and attachment context as downstream stages.
+  - Added Redis-backed demo enforcement and authenticated request leases, persisted UUID request IDs for idempotent analysis debit, propagated cancellation through Gemini Flex retry delays, shared Targeted Fix telemetry, and persisted the canonical prompt version.
+  - Added migration `20260730093000_add_analysis_request_id`; it was applied to the production Neon database on July 30, 2026, and Prisma confirmed all 31 migrations are up to date.
 
 ## [3.20.0] - 2026-07-30
 

@@ -1,4 +1,4 @@
-import type { ArticleMetadata, ResearchNote } from '@eai/shared';
+import type { ArticleMetadata, Attachment, ResearchNote } from '@eai/shared';
 import { getCurrentEditorialDate } from '../prompts';
 
 const INPUT_BOUNDARY_POLICY = `
@@ -52,6 +52,20 @@ export const buildResearchNotesSummary = (notes: ResearchNote[] = []) =>
       ].filter(Boolean).join('\n');
     })
     .join('\n\n');
+
+export const buildAttachmentContext = (attachments: Attachment[] = []) =>
+  attachments.length > 0
+    ? {
+        filename: `${attachments.length} workspace attachment(s)`,
+        contentType: 'text/plain',
+        content: attachments
+          .map((attachment) => [
+            `File: ${attachment.filename}`,
+            attachment.extractedText,
+          ].join('\n'))
+          .join('\n\n'),
+      }
+    : null;
 
 export const buildCompactReviewInstruction = (basePrompt: string) => `${basePrompt}
 

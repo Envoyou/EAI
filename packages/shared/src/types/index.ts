@@ -35,6 +35,8 @@ export interface ArticleMetadata {
   outputLanguage?: 'follow_draft' | 'id' | 'en';
   sourceRef?: string;
   workingTitle?: string;
+  researchNotes?: ResearchNote[];
+  attachments?: Attachment[];
   publicationPackageStatus?: PublicationPackageStatus;
   exportStatus?: {
     blogPostId?: string;

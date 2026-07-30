@@ -16,11 +16,9 @@ export class SeoRoleNode implements PromptNode {
   type = 'core' as const;
   isStatic = true;
 
-  constructor(private brandName: string) {}
-
   render(context: RenderContext): string {
     const roleContent = `
-You are the ${this.brandName} SEO Specialist.
+You are the SEO metadata specialist for the active editorial profile.
 Create optimal, production-ready SEO metadata for the editorial dashboard.
 `.trim();
 
@@ -41,17 +39,17 @@ export class SeoExamplesNode implements PromptNode {
     const examples = `
 === SEO METADATA GENERATION DEMONSTRATION ===
 [INPUT ARTICLE EXCERPT]
-"The wealthtech landscape is shifting rapidly. With the rise of Agentic OS, traditional asset management firms are facing disruption. Mass-affluent young investors are moving to autonomous platforms that promise institutional-grade financial plans for a fraction of the cost."
+"A regional publisher redesigned its editorial review process. The new workflow separates source verification, structural editing, and publication metadata so editors can resolve issues before export."
 
 [POLISHED SEO METADATA OUTPUT]
 {
-  "title": "The WealthTech Paradigm Shift: How Agentic OS is Democratizing Elite Asset Management",
-  "slug": "wealthtech-paradigm-shift-agentic-os-democratization",
-  "excerpt": "Traditional asset management is facing a radical disruption. Autonomous Agentic OS platforms are democratizing elite wealth planning for a new generation of investors.",
-  "metaTitle": "Agentic OS Is Reshaping WealthTech",
-  "metaDescription": "Explore how autonomous financial planners are reshaping wealth management and widening access for a new generation of investors.",
-  "coverImageAltText": "A conceptual illustration of interconnected digital nodes forming a modern network on a sleek dark interface representing financial assets.",
-  "tags": ["Technology", "WealthTech", "Asset Management", "Agentic OS", "Financial Planning", "Investment Platforms"]
+  "title": "How a Staged Editorial Review Improves Publication Readiness",
+  "slug": "staged-editorial-review-publication-readiness",
+  "excerpt": "A practical look at separating verification, editing, and metadata checks before publication.",
+  "metaTitle": "A Better Editorial Review Workflow",
+  "metaDescription": "Learn how staged verification, structural editing, and metadata checks help editorial teams prepare consistent publication packages.",
+  "coverImageAltText": "Editors reviewing an article through several publication workflow stages.",
+  "tags": ["Editorial Workflow", "Quality Review", "Publishing", "Content Operations"]
 }
 `.trim();
 
@@ -97,15 +95,13 @@ export class SeoPromptComposer {
   ) {}
 
   compile(_format: 'xml' | 'markdown' | 'text' = 'xml'): CompositePromptNode {
-    const brandName = this.profile?.brandName || 'Envoyou';
-
     // Inisialisasi Core Nodes (Static)
     const missionNode = new EditorialMissionNode();
     const langPolicyNode = new LanguagePolicyNode();
     const strictnessNode = new StrictnessConstraintNode();
     const inputBoundaryNode = new InputBoundaryNode();
     const schemaNode = new OutputSchemaNode(SEO_METADATA_OUTPUT_PROMPT_SCHEMA, this.options);
-    const seoRoleNode = new SeoRoleNode(brandName);
+    const seoRoleNode = new SeoRoleNode();
     const seoExamplesNode = new SeoExamplesNode();
     const lengthContractNode = this.profile
       ? new SeoLengthContractNode(this.profile)

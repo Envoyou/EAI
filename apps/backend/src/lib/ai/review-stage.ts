@@ -1,5 +1,5 @@
 import type { AiTelemetryCollector } from '@/lib/ai-telemetry';
-import { FeedbackOutputSchema, PolishDiagnosisSchema, getFeedbackResponseJsonSchema, type FeedbackOutput, type PolishDiagnosisOutput } from '@eai/shared';
+import { FeedbackItemSchema, FeedbackOutputSchema, PolishDiagnosisSchema, getFeedbackResponseJsonSchema, type FeedbackOutput, type PolishDiagnosisOutput } from '@eai/shared';
 import { extractCompleteObjectsFromJsonArray, extractJsonFromText, extractJsonNumberValue, extractJsonStringValue, parseJsonResponse } from '@eai/shared';
 import type { ArticleMetadata, FeedbackItem, ResponseMode, Role } from '@eai/shared';
 import type { AiProvider } from './provider-runtime';
@@ -7,10 +7,15 @@ import { getProvider } from './providers/registry';
 import { resolveOutputLimit } from './model-router';
 import {
   buildCompactReviewInstruction,
+  buildAttachmentContext,
   buildEditorialUserContent,
+  buildResearchNotesSummary,
   buildManualReviewInstruction,
 } from './prompt-context';
 import { resolveGeminiServiceTier } from './gemini-request-policy';
+import { composeWorkspaceContext } from './workspace-context';
+import { getCurrentEditorialDate } from '@/lib/prompts';
+import type { EditorialProfileSnapshot } from '@eai/shared/server';
 
 export type ReviewOutput = FeedbackOutput | PolishDiagnosisOutput;
 type SendEvent = (type: string, data: unknown) => void;
@@ -77,6 +82,7 @@ const getAttemptConfig = (basePrompt: string, attempt: number) => {
 const emitIncrementalReview = ({
   rawBuffer,
   isPolishMode,
+  role,
   draftText,
   sendEvent,
   sanitizeFeedback,
@@ -84,6 +90,7 @@ const emitIncrementalReview = ({
 }: {
   rawBuffer: string;
   isPolishMode: boolean;
+  role: Role;
   draftText: string;
   sendEvent: SendEvent;
   sanitizeFeedback: FeedbackSanitizer;
@@ -96,7 +103,7 @@ const emitIncrementalReview = ({
 }) => {
   if (!emitted.score) {
     const score = extractJsonNumberValue(rawBuffer, 'score');
-    if (score !== null) {
+    if (score !== null && Number.isInteger(score) && score >= 0 && score <= 100) {
       if (!isPolishMode) sendEvent('score', score);
       emitted.score = true;
     }
@@ -104,7 +111,11 @@ const emitIncrementalReview = ({
 
   if (!emitted.verdict) {
     const verdict = extractJsonStringValue(rawBuffer, 'verdict');
-    if (verdict !== null) {
+    const allowedVerdicts =
+      role === 'author' || role === 'seo'
+        ? ['approve', 'revise']
+        : ['approve', 'revise', 'reject'];
+    if (verdict !== null && allowedVerdicts.includes(verdict)) {
       if (!isPolishMode) sendEvent('verdict', verdict);
       emitted.verdict = true;
     }
@@ -122,7 +133,8 @@ const emitIncrementalReview = ({
   foundObjects.forEach((rawItem, index) => {
     if (emitted.feedbackIndices.has(index)) return;
     try {
-      const item = sanitizeFeedback(JSON.parse(rawItem) as FeedbackItem, draftText);
+      const parsedItem = FeedbackItemSchema.parse(JSON.parse(rawItem));
+      const item = sanitizeFeedback(parsedItem, draftText);
       if (!isPolishMode) sendEvent('feedback_item', { item, index });
       emitted.feedbackIndices.add(index);
     } catch {
@@ -136,6 +148,7 @@ export const runEditorialReviewStage = async ({
   modelName,
   role,
   metadata,
+  editorialProfile,
   draftText,
   reviewPrompt,
   telemetry,
@@ -148,6 +161,7 @@ export const runEditorialReviewStage = async ({
   modelName: string;
   role: Role;
   metadata?: ArticleMetadata;
+  editorialProfile: EditorialProfileSnapshot;
   draftText: string;
   reviewPrompt: string;
   telemetry: AiTelemetryCollector;
@@ -161,17 +175,29 @@ export const runEditorialReviewStage = async ({
   ) => string;
 }): Promise<{ data: ReviewOutput; responseMode: ResponseMode }> => {
   const isPolishMode = role === 'polish';
-  const contents = buildEditorialUserContent({
+  const timezone = editorialProfile.config.timezone || 'Asia/Jakarta';
+  const {
+    xml: workspaceContextXml,
+    agentInstruction,
+  } = composeWorkspaceContext({
+    today: getCurrentEditorialDate(timezone),
+    timezone,
+    profileConfig: editorialProfile.config,
+    notesSummary: buildResearchNotesSummary(metadata?.researchNotes) || null,
+    attachment: buildAttachmentContext(metadata?.attachments),
+  });
+  const contents = `${workspaceContextXml}\n\n${buildEditorialUserContent({
     metadata,
     data: { article: draftText },
     task: isPolishMode
       ? 'Diagnose the raw draft to determine transformation priorities. Do not give a score or verdict. Return only JSON matching the schema.'
       : 'Evaluate the article according to the role and return only JSON matching the schema.',
-  });
+  })}`;
+  const groundedReviewPrompt = `${reviewPrompt}\n\n${agentInstruction}`;
 
   for (let attempt = 0; attempt < 3; attempt++) {
     signal?.throwIfAborted();
-    const { prompt, mode } = getAttemptConfig(reviewPrompt, attempt);
+    const { prompt, mode } = getAttemptConfig(groundedReviewPrompt, attempt);
     sendEvent('status', 'evaluating');
 
     const emitted = {
@@ -216,6 +242,7 @@ export const runEditorialReviewStage = async ({
       emitIncrementalReview({
         rawBuffer,
         isPolishMode,
+        role,
         draftText,
         sendEvent,
         sanitizeFeedback,

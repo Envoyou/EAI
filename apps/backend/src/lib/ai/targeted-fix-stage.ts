@@ -6,9 +6,10 @@ import { getProvider } from './providers/registry';
 import { resolveModel } from './model-router';
 import { executeGenerate } from './runtime/execute-generate';
 import { composeWorkspaceContext } from './workspace-context';
-import { AiTelemetryCollector } from '@/lib/ai-telemetry';
+import type { AiTelemetryCollector } from '@/lib/ai-telemetry';
 import { detectSourceFidelitySignals } from '@/lib/final-quality';
 import { replaceFirstTargetMatch, ResearchNotesArraySchema } from '@eai/shared';
+import { buildAttachmentContext } from './prompt-context';
 
 export const runTargetedFixStage = async ({
   provider,
@@ -20,6 +21,7 @@ export const runTargetedFixStage = async ({
   editorInstruction,
   metadata: _metadata,
   editorialProfile,
+  telemetry,
   modelOverride,
   signal,
 }: {
@@ -32,6 +34,7 @@ export const runTargetedFixStage = async ({
   editorInstruction: string;
   metadata?: ArticleMetadata;
   editorialProfile: EditorialProfileSnapshot;
+  telemetry: AiTelemetryCollector;
   modelOverride?: string | null;
   signal?: AbortSignal;
 }): Promise<{ replacementText: string; modelName: string }> => {
@@ -49,7 +52,7 @@ export const runTargetedFixStage = async ({
   const currentDate = `${currentYear}-${month}-${day}`;
 
   const parsedNotes = ResearchNotesArraySchema.safeParse(
-    (_metadata as Record<string, unknown> | undefined)?.researchNotes
+    _metadata?.researchNotes
   );
   const researchNotes = parsedNotes.success ? parsedNotes.data : [];
   const notesSummary = researchNotes
@@ -74,6 +77,7 @@ export const runTargetedFixStage = async ({
     timezone,
     profileConfig: editorialProfile.config,
     notesSummary: notesSummary || null,
+    attachment: buildAttachmentContext(_metadata?.attachments),
   });
 
   const baseSystemInstruction = `${new RefinementPromptComposer(
@@ -129,7 +133,6 @@ export const runTargetedFixStage = async ({
     entities: new Set(baselineSignals.novelEntities),
     urls: new Set(baselineSignals.novelUrls),
   };
-  const telemetry = new AiTelemetryCollector();
   let correction = '';
 
   for (let attempt = 1; attempt <= 2; attempt++) {

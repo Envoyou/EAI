@@ -73,6 +73,8 @@ Node dengan `isStatic: true` tidak boleh merender nilai dari `EditorialProfileCo
 atau `RenderContext` yang berubah antar-tenant. Persona core hanya mendefinisikan
 fungsi tahap dan guardrail platform; nama brand, positioning, audience, tone,
 primary goal, bahasa default, dan contoh brand wajib berada di node dinamis.
+Few-shot core juga harus lintas-domain, mematuhi schema runtime yang sama, dan
+tidak boleh menciptakan atribusi, URL, angka, atau bukti faktual sebagai contoh.
 
 ### Lapisan 3: Workflow Composer (Stage Assembly)
 Berada di `apps/backend/src/lib/ai/prompt-engine/composer/`. Kelas-kelas komposer bertugas merakit AST Prompt sesuai dengan alur kerja tahapan (*stage*) pipeline EAI:
@@ -83,6 +85,12 @@ Berada di `apps/backend/src/lib/ai/prompt-engine/composer/`. Kelas-kelas kompose
 *   `QualityGatePromptComposer` (Tahap Final Quality Gate)
 *   `StrategistPromptComposer` (Tahap Draft & Outline Strategist)
 *   `ContentMemoryClassifierComposer` (Tahap klasifikasi overlap ambigu; tidak memiliki kewenangan hard-block)
+
+Review, Rewrite, Refinement, SEO, Targeted Fix, dan Quality Gate menerima
+`<workspace_context>` sebagai data dan `<agent_instruction>` sebagai instruksi
+sistem dinamis. Untuk workflow publikasi mandiri, SEO harus diikuti Quality Gate
+`publish_ready` yang menilai body dan paket metadata secara bersamaan; status
+`needs_review` atau `blocked` tidak memenuhi kontrak export.
 
 ---
 

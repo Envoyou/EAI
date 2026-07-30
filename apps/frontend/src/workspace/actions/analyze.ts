@@ -142,12 +142,19 @@ export async function executeAnalyze(
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
       body: JSON.stringify({
+        requestId: crypto.randomUUID(),
         text: textToAnalyze,
         role: 'polish',
         metadata: {
           ...requestMetadata,
-          researchNotes,
-          attachments,
+          researchNotes: researchNotes.slice(0, 10).map(note => ({
+            ...note,
+            content: note.content.slice(0, 5_000),
+          })),
+          attachments: attachments.slice(0, 5).map(attachment => ({
+            ...attachment,
+            extractedText: attachment.extractedText.slice(0, 2_000),
+          })),
         },
         analysisSpeed: analysisSpeed === 'publish' ? 'deep' : 'fast',
       }),

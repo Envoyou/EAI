@@ -49,6 +49,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   const router = useRouter();
   const tFeedbackWorkflow = useTranslations('FeedbackWorkflow');
   const tContentMemory = useTranslations('ContentMemory');
+  const tFinalDraftPanel = useTranslations('FinalDraftPanel');
   const directFetch = useDirectFetch();
 
   // 1. Storage State Management
@@ -388,7 +389,17 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           text: analysis.polishedDraft,
           originalDraft: sourceDraft,
           analysisLogId: logId,
-          metadata,
+          metadata: {
+            ...metadata,
+            researchNotes: researchNotes.slice(0, 10).map(note => ({
+              ...note,
+              content: note.content.slice(0, 5_000),
+            })),
+            attachments: attachments.slice(0, 5).map(attachment => ({
+              ...attachment,
+              extractedText: attachment.extractedText.slice(0, 2_000),
+            })),
+          },
           analysisSpeed: 'deep',
         }),
       });
@@ -415,7 +426,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           setAnalysis(prev => ({ ...prev, flags: event.data as string[] }));
         }
       }, controller);
-      toast.success('Quality check completed without rewriting the draft.');
+      toast.success(tFinalDraftPanel('qualityCheckSuccess'));
       return checkedReadiness;
     } catch (error) {
       if (controller.signal.aborted) {
@@ -444,6 +455,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     setIsStreaming(true);
     setProcessStage('seo');
     setProcessStartedAt(Date.now());
+    let packageReadiness: EditorialReadiness | null = null;
     try {
       const response = await directFetch('/api/analyze', {
         method: 'POST',
@@ -453,7 +465,17 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           mode: 'generate_seo',
           text: analysis.polishedDraft,
           analysisLogId: logId,
-          metadata,
+          metadata: {
+            ...metadata,
+            researchNotes: researchNotes.slice(0, 10).map(note => ({
+              ...note,
+              content: note.content.slice(0, 5_000),
+            })),
+            attachments: attachments.slice(0, 5).map(attachment => ({
+              ...attachment,
+              extractedText: attachment.extractedText.slice(0, 2_000),
+            })),
+          },
           analysisSpeed: 'deep',
         }),
       });
@@ -468,9 +490,35 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
             ...prev,
             publicationPackageStatus: event.data as AnalysisResult['publicationPackageStatus'],
           }));
+        } else if (event.type === 'feedback_reset') {
+          setAnalysis(prev => ({ ...prev, feedback: [], flags: [] }));
+        } else if (event.type === 'readiness') {
+          packageReadiness = event.data as EditorialReadiness;
+          setAnalysis(prev => ({
+            ...prev,
+            readiness: event.data as EditorialReadiness,
+            verdict: event.data as EditorialReadiness,
+          }));
+        } else if (event.type === 'summary') {
+          setAnalysis(prev => ({ ...prev, summary: event.data as string }));
+        } else if (event.type === 'changes') {
+          setAnalysis(prev => ({ ...prev, changes: event.data as string[] }));
+        } else if (event.type === 'feedback_item') {
+          const { item, index } = event.data as { item: FeedbackItem; index: number };
+          setAnalysis(prev => {
+            const feedback = [...(prev.feedback || [])];
+            feedback[index] = item;
+            return { ...prev, feedback };
+          });
+        } else if (event.type === 'flags') {
+          setAnalysis(prev => ({ ...prev, flags: event.data as string[] }));
         }
       }, controller);
-      toast.success('SEO metadata regenerated for the current final draft.');
+      if (packageReadiness === 'ready') {
+        toast.success(tFinalDraftPanel('seoQualityReady'));
+      } else {
+        toast.warning(tFinalDraftPanel('seoQualityNeedsReview'));
+      }
     } catch (error) {
       if (controller.signal.aborted) {
         setAnalysis(() => previousAnalysis);
@@ -567,6 +615,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       draft,
       metadata,
       researchNotes,
+      attachments,
       editorialOptions,
       appSettings,
       analysisSpeed,
@@ -755,6 +804,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     if (hasBlockingWorkspaceOperation()) return;
     const ctx = {
       researchNotes,
+      attachments,
       metadata,
       directFetch,
       setDraft,
@@ -1057,6 +1107,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       metadata,
       originalDraft: sourceDraft,
       researchNotes,
+      attachments,
       persistEditorialResolution,
       bodyChangeSuccessMessage: actionType === 'remove'
         ? tFeedbackWorkflow('removedPendingQualityCheck')

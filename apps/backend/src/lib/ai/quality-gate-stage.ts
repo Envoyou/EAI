@@ -13,6 +13,7 @@ import { getProvider } from './providers/registry';
 import { resolveModel } from './model-router';
 import { executeGenerate } from './runtime/execute-generate';
 import { composeWorkspaceContext } from './workspace-context';
+import { buildAttachmentContext } from './prompt-context';
 import {
   reconcileQualityResolutions,
   type QualityResolution,
@@ -113,6 +114,7 @@ const runFinalQualityGate = async ({
     timezone,
     profileConfig: editorialProfile.config,
     notesSummary: notesSummary || null,
+    attachment: buildAttachmentContext(metadata?.attachments),
   });
 
   const contents = [

@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 import type Redis from 'ioredis';
 import {
@@ -17,6 +17,13 @@ if ttl < 0 then
   ttl = tonumber(ARGV[1])
 end
 return { count, ttl }
+`;
+
+const RELEASE_LEASE_SCRIPT = `
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+  return redis.call('DEL', KEYS[1])
+end
+return 0
 `;
 
 type RateLimitRedis = Pick<Redis, 'eval'>;
@@ -91,16 +98,45 @@ async function withRateLimitTimeout<T>(operation: Promise<T>): Promise<T> {
   }
 }
 
+export async function consumeRequestRateLimit(
+  options: RateLimitOptions,
+  identity: string
+): Promise<RateLimitResult> {
+  await withRateLimitTimeout(ensureRequestRedisConnection());
+  return withRateLimitTimeout(
+    consumeRateLimit(requestRedisConnection, options, identity)
+  );
+}
+
+export async function acquireRequestLease(
+  namespace: string,
+  identity: string,
+  ttlMs: number
+): Promise<{ release: () => Promise<void> } | null> {
+  await withRateLimitTimeout(ensureRequestRedisConnection());
+  const prefix = process.env.RATE_LIMIT_REDIS_PREFIX || 'eai:rate-limit';
+  const key = `${prefix}:lease:${namespace}:${hashIdentity(identity)}`;
+  const token = randomUUID();
+  const acquired = await withRateLimitTimeout(
+    requestRedisConnection.set(key, token, 'PX', ttlMs, 'NX')
+  );
+  if (acquired !== 'OK') return null;
+
+  return {
+    release: async () => {
+      await withRateLimitTimeout(
+        requestRedisConnection.eval(RELEASE_LEASE_SCRIPT, 1, key, token)
+      );
+    },
+  };
+}
+
 export function redisRateLimiter(options: RateLimitOptions) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await withRateLimitTimeout(ensureRequestRedisConnection());
-      const result = await withRateLimitTimeout(
-        consumeRateLimit(
-          requestRedisConnection,
-          options,
-          getRequestIdentity(req)
-        )
+      const result = await consumeRequestRateLimit(
+        options,
+        getRequestIdentity(req)
       );
 
       res.setHeader('RateLimit-Limit', String(options.max));

@@ -18,11 +18,9 @@ export class QualityGateRoleNode implements PromptNode {
   type = 'core' as const;
   isStatic = true;
 
-  constructor(private brandName: string) {}
-
   render(context: RenderContext): string {
     const roleInstructions = `
-You are the editorial quality gate for ${this.brandName} 
+You are the editorial quality gate for the active editorial profile.
 
 Structural integrity checks:
 - Detect malformed paragraph boundaries, including missing whitespace or
@@ -62,7 +60,7 @@ Final-draft format checks:
 
 Readiness status:
 - "ready": the final draft can be exported to the CMS without any required correction. A human editor may still make optional stylistic edits before publication.
-- "needs_review": the final draft can be exported, but one or more identified issues require an explicit human editorial decision or correction before publication.
+- "needs_review": the final draft must not be exported until every warning receives an explicit human editorial decision or correction and the readiness state is reconciled to "ready".
 - "blocked": the final draft must not be exported because it contains a serious factual, structural, completeness, or source-fidelity failure.
 
 Output rules:
@@ -90,7 +88,7 @@ Consistency rules:
 `.trim();
 
     if (context.format === 'xml') {
-      return `<quality_gate_role_instructions brand="${this.brandName}">\n${roleInstructions}\n</quality_gate_role_instructions>`;
+      return `<quality_gate_role_instructions>\n${roleInstructions}\n</quality_gate_role_instructions>`;
     }
     return `## Quality Gate Role Instructions\n${roleInstructions}`;
   }
@@ -151,8 +149,6 @@ export class QualityGatePromptComposer {
   ) {}
 
   compile(_format: 'xml' | 'markdown' | 'text' = 'xml'): CompositePromptNode {
-    const brandName = this.profile?.brandName || 'Envoyou';
-
     // Inisialisasi Core Nodes (Static)
     const missionNode = new EditorialMissionNode();
     const langPolicyNode = new LanguagePolicyNode();
@@ -167,7 +163,7 @@ export class QualityGatePromptComposer {
     const sourcePolicyNode = new SourcePolicyNode(this.profile?.sourcePolicy);
 
     // Quality Gate Role Node & Output Format
-    const roleNode = new QualityGateRoleNode(brandName);
+    const roleNode = new QualityGateRoleNode();
     const schemaNode = new OutputSchemaNode(FINAL_QUALITY_GATE_OUTPUT_PROMPT_SCHEMA, this.options);
     const qgExamplesNode = new QualityGateExamplesNode();
 

@@ -97,6 +97,7 @@ export type EditorialLogFields = {
  * during pre-flight and passes them down — handlers must not re-fetch them.
  */
 export type BaseHandlerContext = {
+  requestId?: string;
   sendEvent: SendEvent;
   state: AnalyzeState;
   analysisSpeed: 'fast' | 'balanced' | 'deep';

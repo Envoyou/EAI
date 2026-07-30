@@ -23,6 +23,7 @@ export async function handleFixTargeted(ctx: FixTargetedContext): Promise<void> 
     modelOverride,
     workspace,
     editorialProfile,
+    telemetry,
   } = ctx;
 
   if (!targetText?.trim()) {
@@ -57,7 +58,9 @@ export async function handleFixTargeted(ctx: FixTargetedContext): Promise<void> 
     (effectiveProvider === 'groq' && missingGroqKey) ||
     (effectiveProvider === 'openrouter' && missingOpenRouterKey)
   ) {
-    replacementText = targetText.trim();
+    throw new Error(
+      'The configured AI provider is unavailable. No targeted fix was applied.'
+    );
   } else {
     const targetedResult = await runTargetedFixStage({
       signal: state.signal,
@@ -70,6 +73,7 @@ export async function handleFixTargeted(ctx: FixTargetedContext): Promise<void> 
       editorInstruction: instruction || 'Fix and simplify the text',
       metadata,
       editorialProfile,
+      telemetry,
       modelOverride,
     });
     state.usedModels.push(`${targetedResult.modelName}(fix_targeted)`);

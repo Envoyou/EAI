@@ -3,6 +3,7 @@ import { runEditorialReviewStage } from '../review-stage';
 import { getProvider } from '../providers/registry';
 import { AiTelemetryCollector } from '@/lib/ai-telemetry';
 import type { AIProvider, StreamChunk, StreamRequest, ProviderCapabilities } from '../providers/interface';
+import { ENVOYOU_EDITORIAL_PROFILE } from '@eai/shared/server';
 
 // Mock registry so getProvider returns our fake provider
 vi.mock('../providers/registry', () => {
@@ -13,6 +14,7 @@ vi.mock('../providers/registry', () => {
 
 class FakeAIProvider implements AIProvider {
   readonly name = 'gemini' as const;
+  readonly requests: StreamRequest[] = [];
   
   constructor(
     private chunkLists: StreamChunk[][],
@@ -21,7 +23,8 @@ class FakeAIProvider implements AIProvider {
 
   private callCount = 0;
 
-  async stream(_request: StreamRequest): Promise<AsyncIterable<StreamChunk>> {
+  async stream(request: StreamRequest): Promise<AsyncIterable<StreamChunk>> {
+    this.requests.push(request);
     const list = this.chunkLists[this.callCount] || this.chunkLists[this.chunkLists.length - 1] || [];
     this.callCount++;
 
@@ -73,6 +76,15 @@ describe('runEditorialReviewStage with FakeAIProvider', () => {
       provider: 'gemini',
       modelName: 'gemini-3.5-flash',
       role: 'author',
+      editorialProfile: ENVOYOU_EDITORIAL_PROFILE,
+      metadata: {
+        researchNotes: [{
+          id: 'note-1',
+          content: 'The supplied source confirms the workflow order.',
+          sources: [{ url: 'https://example.com/source', domain: 'example.com' }],
+          savedAt: '2026-07-30T00:00:00.000Z',
+        }],
+      },
       draftText: 'Valid article draft content.',
       reviewPrompt: 'system prompt',
       telemetry,
@@ -90,6 +102,11 @@ describe('runEditorialReviewStage with FakeAIProvider', () => {
     );
     expect(sendEvent).toHaveBeenCalledWith('verdict', 'approve');
     expect(sendEvent).toHaveBeenCalledWith('summary', 'Well written draft.');
+    expect(fakeProvider.requests[0]?.userContent).toContain('<workspace_context>');
+    expect(fakeProvider.requests[0]?.userContent).toContain(
+      'The supplied source confirms the workflow order.'
+    );
+    expect(fakeProvider.requests[0]?.systemInstruction).toContain('<agent_instruction>');
   });
 
   test('should retry with compact prompt on truncated JSON and succeed on second attempt', async () => {
@@ -116,6 +133,7 @@ describe('runEditorialReviewStage with FakeAIProvider', () => {
       provider: 'gemini',
       modelName: 'gemini-3.5-flash',
       role: 'author',
+      editorialProfile: ENVOYOU_EDITORIAL_PROFILE,
       draftText: 'Valid article draft content.',
       reviewPrompt: 'system prompt',
       telemetry,

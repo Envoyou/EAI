@@ -315,27 +315,66 @@ export const getFeedbackResponseJsonSchema = (role: Role) => {
 };
 
 export const ResearchNoteSchema = z.object({
-  id: z.string(),
-  content: z.string(),
+  id: z.string().min(1).max(200),
+  content: z.string().min(1).max(15_000),
   sources: z.array(
     z.object({
-      url: z.string(),
-      domain: z.string(),
+      url: z.string().max(2_048),
+      domain: z.string().min(1).max(253),
     })
-  ),
-  savedAt: z.string(),
+  ).max(20),
+  savedAt: z.string().datetime(),
 });
 
-export const ResearchNotesArraySchema = z.array(ResearchNoteSchema);
+export const ResearchNotesArraySchema = z.array(ResearchNoteSchema).max(20);
 
 export const AttachmentSchema = z.object({
-  id: z.string(),
-  filename: z.string(),
-  r2Key: z.string(),
-  publicUrl: z.string(),
-  contentType: z.string(),
-  extractedText: z.string(),
-  uploadedAt: z.string(),
+  id: z.string().min(1).max(200),
+  filename: z.string().min(1).max(255),
+  r2Key: z.string().max(1_024),
+  publicUrl: z.string().max(2_048),
+  contentType: z.string().min(1).max(200),
+  extractedText: z.string().max(15_000),
+  uploadedAt: z.string().datetime(),
 });
 
-export const AttachmentsArraySchema = z.array(AttachmentSchema);
+export const AttachmentsArraySchema = z.array(AttachmentSchema).max(5);
+
+export const AnalyzeMetadataSchema = z.object({
+  category: z.string().max(120).optional(),
+  type: z.string().max(120).optional(),
+  targetAudience: z.string().max(500).optional(),
+  targetLength: z.string().max(120).optional(),
+  brief: z.string().max(5_000).optional(),
+  strictness: z.enum(['balanced', 'strict']).optional(),
+  outputLanguage: z.enum(['follow_draft', 'id', 'en']).optional(),
+  sourceRef: z.string().max(200).optional(),
+  workingTitle: z.string().max(200).optional(),
+  researchNotes: ResearchNotesArraySchema.optional(),
+  attachments: AttachmentsArraySchema.optional(),
+  publicationPackageStatus: z.enum(['not_generated', 'current', 'stale']).optional(),
+  exportStatus: z.object({
+    blogPostId: z.string().max(200).optional(),
+    blogEditUrl: z.string().max(2_048).optional(),
+    lastExportedAt: z.string().datetime().optional(),
+    lastExportStatus: z.enum(['success', 'failed']).optional(),
+    lastExportError: z.string().max(2_000).optional(),
+  }).optional(),
+}).strict().superRefine((metadata, ctx) => {
+  const contextCharacters =
+    (metadata.researchNotes ?? []).reduce(
+      (total, note) => total + note.content.length,
+      0
+    ) +
+    (metadata.attachments ?? []).reduce(
+      (total, attachment) => total + attachment.extractedText.length,
+      0
+    );
+  if (contextCharacters > 60_000) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['researchNotes'],
+      message: 'Combined research-note and attachment context exceeds 60,000 characters.',
+    });
+  }
+});

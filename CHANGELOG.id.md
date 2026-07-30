@@ -8,11 +8,19 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ### Changed
 - **Persona Refine Draft yang aman untuk multi-tenant**:
-  - Menaikkan `PROMPT_VERSION` ke `2.6.0`.
+  - Menaikkan `PROMPT_VERSION` ke `2.7.0`.
   - Menjadikan mission editorial bersama, role rewrite, prioritas rewrite, dan role iterative refinement benar-benar netral terhadap tenant; default bergaya Envoyou seperti kesan premium, audiens profesional, dan strategic projection tidak lagi berada di core node yang cacheable.
   - Memindahkan arahan spesifik publikasi ke konteks Editorial Profile dinamis, termasuk primary goal dan bahasa default tenant. Target audiens artikel yang eksplisit kini hanya mengoverride audiens profile untuk artikel tersebut.
   - Menambahkan workspace context, agent instruction, dan ringkasan research notes standar ke request rewrite **Refine Draft** utama maupun iterative refinement berikutnya.
   - Menambahkan cakupan regresi untuk static prompt prefix yang independen dari tenant, kebocoran persona non-Envoyou, precedence audiens, dan wiring workspace context.
+
+### Fixed
+- **Kontrak prompt dan workflow Analyze hingga publikasi**:
+  - Mengaudit ulang paket SEO yang baru dibuat melalui Final Quality Gate dalam mode `publish_ready` sebelum menyimpan readiness terbaru, sehingga ekspor CMS tidak dapat bergantung pada Quality Check body saja.
+  - Menghapus contoh sitasi palsu dari few-shot review, menyelaraskan `needs_review` dengan export guard yang ketat, menjadikan persona core Review/SEO/Quality Gate netral terhadap tenant, dan menyelaraskan contoh SEO dengan batas lima tag pada schema bersama.
+  - Menambahkan schema bersama yang bounded untuk metadata Analyze, research notes, dan attachment; Review serta Fact-Checker kini menerima workspace context, agent instruction, research notes, dan konteks attachment yang sama dengan tahap berikutnya.
+  - Menambahkan enforcement demo berbasis Redis dan lease request terautentikasi, menyimpan UUID request untuk debit analisis idempoten, meneruskan cancellation ke jeda retry Gemini Flex, menyatukan telemetry Targeted Fix, dan menyimpan versi prompt kanonis.
+  - Menambahkan migrasi `20260730093000_add_analysis_request_id`; migrasi diterapkan ke database Neon production pada 30 Juli 2026 dan Prisma mengonfirmasi seluruh 31 migrasi sudah up to date.
 
 ## [3.20.0] - 2026-07-30
 

@@ -84,22 +84,22 @@ export const buildFallbackSeoMetadata = (
     ...title.split(/[\s:-]+/).filter((token) => token.length > 3).slice(0, 3),
     editorialProfile.config.brandName,
     ...editorialProfile.config.categories,
-    'Editorial',
-    'Insight',
+    'Article',
+    'Insights',
   ].filter((value): value is string => typeof value === 'string' && value.trim().length >= 2)));
   const tags = tagCandidates.slice(0, seoRules.tagCountMax);
-  for (const fallbackTag of ['Analysis', 'Technology', 'Business']) {
+  for (const fallbackTag of ['Feature', 'Explainer', 'Topic Guide']) {
     if (tags.length >= seoRules.tagCountMin) break;
     if (!tags.includes(fallbackTag)) tags.push(fallbackTag);
   }
 
   let safeMetaDescription = truncateAtSentenceBoundary((
     metaDescription ||
-    `${title} for ${editorialProfile.config.brandName} readers seeking sharp and relevant insights.`
+    `${title} for ${editorialProfile.config.brandName} readers seeking clear and relevant context.`
   ), seoRules.metaDescriptionMaxLength, 50);
   if (safeMetaDescription.length < 50) {
     safeMetaDescription = truncateAtSentenceBoundary(
-      `${safeMetaDescription} Editorial analysis with context, impact, and practical implications.`,
+      `${safeMetaDescription} In-depth coverage with context and practical implications.`,
       seoRules.metaDescriptionMaxLength,
       50
     );

@@ -14,6 +14,7 @@ import { resolveModel } from '@/lib/ai/model-router';
 import { executeStream } from '@/lib/ai/runtime/execute-stream';
 import {
   buildEditorialUserContent,
+  buildAttachmentContext,
   buildResearchNotesSummary,
 } from '@/lib/ai/prompt-context';
 import { composeWorkspaceContext } from '@/lib/ai/workspace-context';
@@ -44,10 +45,11 @@ import {
 } from '../utils/text';
 import { preparePublicationDraft } from '../utils/text';
 import { resolveAiFunctionConfig } from '@/lib/ai-provider-resolver';
-import { getCurrentEditorialDate } from '@/lib/prompts';
+import { getCurrentEditorialDate, PROMPT_VERSION } from '@/lib/prompts';
 
 export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
   const {
+    requestId,
     sendEvent,
     state,
     text,
@@ -89,6 +91,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
     modelName: reviewModelName,
     role: role!,
     metadata,
+    editorialProfile,
     draftText: text,
     reviewPrompt,
     telemetry,
@@ -168,8 +171,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
     const chunks = splitDraftIntoRewriteChunks(sourceTextToPolish);
     const isSingleChunk = chunks.length === 1;
     const protectedClaims = getProtectedVerificationClaims(validatedData.feedback);
-    const rewriteResearchNotes =
-      ((metadata as Record<string, unknown>)?.researchNotes as ResearchNote[] | undefined) || [];
+    const rewriteResearchNotes: ResearchNote[] = metadata?.researchNotes ?? [];
     const rewriteTimezone = editorialProfile.config.timezone || 'Asia/Jakarta';
     const {
       xml: rewriteWorkspaceXml,
@@ -179,6 +181,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
       timezone: rewriteTimezone,
       profileConfig: editorialProfile.config,
       notesSummary: buildResearchNotesSummary(rewriteResearchNotes) || null,
+      attachment: buildAttachmentContext(metadata?.attachments),
     });
 
     const rewriteSystemInstruction = `${new RewritePromptComposer(editorialProfile.config, {
@@ -379,6 +382,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
         : undefined;
       const savedLog = await createAnalysisLogAndDebitCredit({
         userId,
+        requestId,
         organizationId: workspace.organizationId,
         role: state.roleToLog,
         content: text,
@@ -399,7 +403,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
             )
           )
         ),
-        promptVersion: process.env.PROMPT_VERSION ?? 'unknown',
+        promptVersion: PROMPT_VERSION,
         modelName:
           state.usedModels.length > 0
             ? state.usedModels.join(' + ')

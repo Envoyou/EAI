@@ -171,6 +171,16 @@ export async function handleGenerateSeo(
 
   ctx.sendEvent('status', 'generating_seo');
   const telemetry = new AiTelemetryCollector();
+  const confirmedInternalUrls = mergeConfirmedInternalUrls(
+    readConfirmedInternalUrls(system),
+    log.feedback
+  );
+  const resolvedQualityFindings = mergeQualityResolutions(
+    readQualityResolutions(system),
+    log.feedback
+  );
+  const trustedSourceUrls = readTrustedSourceUrls(resolvedQualityFindings);
+  const storedResearchNotes = ResearchNotesArraySchema.safeParse(metadata.researchNotes);
   const missingKey = isMockMode(ctx.effectiveProvider);
   const seo = missingKey
     ? {
@@ -200,22 +210,74 @@ export async function handleGenerateSeo(
         telemetry,
       });
 
+  ctx.sendEvent('seo_metadata', seo);
+  ctx.sendEvent('status', 'quality_gate');
+  const qualityGateResponse = missingKey
+    ? {
+        modelName: 'dev-mock-quality-gate',
+        result: {
+          readiness: 'ready' as const,
+          summary: '[DEV MODE] The final draft and publication metadata passed the quality check.',
+          changes: ['Checked the final draft and publication metadata together.'],
+          feedback: [],
+          flags: [],
+        },
+      }
+    : await runFinalQualityGateSafely({
+        signal: ctx.state.signal,
+        provider: ctx.effectiveProvider,
+        modelOverride: ctx.modelOverride,
+        originalDraft: log.content || finalDraft,
+        finalDraft,
+        metadata: ctx.metadata,
+        analysisSpeed: ctx.analysisSpeed,
+        trustedInternalUrls: confirmedInternalUrls,
+        trustedSourceUrls,
+        trustedInternalDomains: ctx.editorialProfile.config.internalLinkDomains,
+        resolvedQualityFindings,
+        telemetry,
+        editorialProfile: ctx.editorialProfile,
+        sanitizeFeedback: sanitizeSuppressiveFeedbackItem,
+        sanitizeSummary: sanitizeFactualSummary,
+        researchNotes: storedResearchNotes.success ? storedResearchNotes.data : [],
+        publicationMode: 'publish_ready',
+        workingTitle: seo.title,
+        publicationPackage: seo,
+      });
+  const qualityGate = qualityGateResponse.result;
+
   await prisma.analysisLog.update({
     where: { id: log.id },
     data: {
+      verdict: qualityGate.readiness,
+      summary: qualityGate.summary,
+      feedback: qualityGate.feedback as Prisma.InputJsonValue,
+      flags: qualityGate.flags as Prisma.InputJsonValue,
       metadata: {
         ...metadata,
         generatedMetadata: seo,
         publicationPackageStatus: 'current',
         _system: {
           ...system,
+          readiness: qualityGate.readiness,
+          refinementChanges: qualityGate.changes,
           publicationPackageStatus: 'current',
           seoGeneratedAt: new Date().toISOString(),
+          qualityGateCheckedAt: new Date().toISOString(),
+          confirmedInternalUrls,
+          resolvedQualityFindings,
         },
       } as Prisma.InputJsonValue,
     },
   });
-  ctx.sendEvent('seo_metadata', seo);
+  ctx.sendEvent('feedback_reset', null);
+  ctx.sendEvent('readiness', qualityGate.readiness);
+  ctx.sendEvent('summary', qualityGate.summary);
+  ctx.sendEvent('changes', qualityGate.changes);
+  qualityGate.feedback.forEach((item, index) =>
+    ctx.sendEvent('feedback_item', { item, index })
+  );
+  ctx.sendEvent('flags', qualityGate.flags);
   ctx.sendEvent('publication_package_status', 'current');
   ctx.sendEvent('complete', {});
 }

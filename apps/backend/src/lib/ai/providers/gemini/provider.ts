@@ -60,6 +60,7 @@ export class GeminiProvider implements AIProvider {
       }),
       {
         serviceTier,
+        signal: request.signal,
         onRetry: ({ attempt, delayMs }) => console.warn(
           `[Gemini Flex] Stream open failed with capacity pressure; retry ${attempt} in ${delayMs}ms.`
         ),
@@ -100,6 +101,7 @@ export class GeminiProvider implements AIProvider {
       }),
       {
         serviceTier,
+        signal: request.signal,
         onRetry: ({ attempt, delayMs }) => console.warn(
           `[Gemini Flex] Generate request failed with capacity pressure; retry ${attempt} in ${delayMs}ms.`
         ),
@@ -118,7 +120,7 @@ export class GeminiProvider implements AIProvider {
 
   getCapabilities(): ProviderCapabilities {
     return {
-      structuredOutput: false, // Gemini uses schema in config, not response_format
+      structuredOutput: true,
       grounding: true,
       thinking: true,
       caching: true,

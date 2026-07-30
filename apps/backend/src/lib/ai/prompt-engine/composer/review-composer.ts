@@ -30,10 +30,10 @@ Scoring Rubric (0-100):
 - 0-39: Reject. Generic AI content, no insight, or violates editorial guidelines.
 
 Mandatory FAIL indicators (score must be below 50):
-- Opening with "In today's digital era..." / "Amid rapid developments..." / "Dalam era..." / "Di tengah perkembangan..."
-- More than 3 passive sentences in a row
-- Claims using "many", "some", "experts say", "banyak", "beberapa", or "para ahli" without specific sourcing
-- School-essay structure: Definition -> Benefits -> Conclusion / Pengertian -> Manfaat -> Kesimpulan
+- A material violation of the active editorial profile's prohibited patterns or required structure
+- High-risk factual claims presented as established truth without usable attribution
+- Generic or repetitive content that does not deliver the stated article purpose
+- Structural failure severe enough that the intended reader cannot follow or use the article
 `.trim();
 
     if (context.format === 'xml') {
@@ -48,8 +48,6 @@ export class OneClickApplyRuleNode implements PromptNode {
   id = 'core:one_click_apply_rule';
   type = 'core' as const;
   isStatic = true;
-
-  constructor(private brandName: string) {}
 
   render(context: RenderContext): string {
     const rules = `
@@ -102,16 +100,16 @@ Example 'insert_after':
 {
   "category": "Factual Accuracy",
   "status": "warning",
-  "message": "Add a citation to clarify the source of the market cap number.",
+  "message": "The market valuation needs a direct, verifiable source.",
   "operation": "insert_after",
   "targetText": "reaches a valuation of $10 billion",
-  "replacementText": " [according to the latest Gartner report](https://gartner.com/report-123)",
-  "reason": "Sensitive financial claims require direct source attributions."
+  "replacementText": " [Source verification required before publication.]",
+  "reason": "Do not invent a publisher, report title, URL, or replacement figure."
 }
 `.trim();
 
     if (context.format === 'xml') {
-      return `<one_click_apply_rules brand="${this.brandName}">\n${rules}\n</one_click_apply_rules>`;
+      return `<one_click_apply_rules>\n${rules}\n</one_click_apply_rules>`;
     }
     return `## 1-Click Apply Rules\n${rules}`;
   }
@@ -124,8 +122,7 @@ export class ReviewRoleNode implements PromptNode {
   isStatic = true;
 
   constructor(
-    private role: Role | 'polish',
-    private brandName: string
+    private role: Role | 'polish'
   ) {}
 
   render(context: RenderContext): string {
@@ -140,7 +137,7 @@ Focus on:
 - Is the opening strong enough to pull readers in?
 - Does the article deliver the insight promised by the headline?
 - Are there sentences or paragraphs that can be cut without losing meaning?
-- Does the tone match ${this.brandName}'s standards?
+- Does the tone match the active editorial profile?
 
 Note: the "verdict" for the author role must always be "approve" or "revise" (never "reject").
 Include at least 4 feedback categories. Include "suggestion" on every item with status "fail" or "warning".
@@ -159,7 +156,7 @@ Actively detect:
 - AI-spam patterns: generic phrasing, rigid structure, filler sentences
 - Claims without substance or data
 - "Obvious" insights that add little beyond common knowledge
-- Tone inconsistency with ${this.brandName}'s standards
+- Tone inconsistency with the active editorial profile
 - Potential factual risks that should be flagged based on draft evidence, not model memory
 
 ROLE-SPECIFIC FACTUAL RULES:
@@ -198,9 +195,15 @@ Include at least 4 SEO-specific feedback categories. Include "suggestion" on eve
 YOUR ROLE: Fact-Checker & Skeptic - critical, precise, and focused on data accuracy and logical coherence.
 GOAL: Identify unsupported claims, unsourced statistics, internal conflicts between claims, and logical fallacies in the article.
 
+WORKING PRINCIPLES:
+- You are a factual-risk detector, not an external source of truth.
+- Judge whether attribution is present, specific, internally consistent, and supported by supplied workspace context.
+- Never declare a name, institution, study, date, quote, or number valid or invalid from model memory.
+- If supplied sources are insufficient, request primary-source verification instead of inventing a correction.
+
 Focus on:
 - Numbers, percentages, and statistics: is the source clearly identified?
-- Names of institutions, studies, or public figures: are they valid and verifiable?
+- Names of institutions, studies, or public figures: are they clearly attributed and verifiable from supplied sources?
 - Superlative claims, for example "largest", "first", "only", "terbesar", "pertama", "satu-satunya", when unsupported by data.
 - Logical flaws, for example correlation treated as causation or excessive generalization.
 
@@ -254,8 +257,6 @@ export class ReviewPromptComposer {
   ) {}
 
   compile(_format: 'xml' | 'markdown' | 'text' = 'xml'): CompositePromptNode {
-    const brandName = this.profile?.brandName || 'Envoyou';
-
     // Inisialisasi Core Nodes (Static)
     const missionNode = new EditorialMissionNode();
     const langPolicyNode = new LanguagePolicyNode();
@@ -269,10 +270,10 @@ export class ReviewPromptComposer {
 
     // Scoring Rubric & 1-Click Apply
     const scoringRubricNode = new ScoringRubricNode();
-    const oneClickNode = new OneClickApplyRuleNode(brandName);
+    const oneClickNode = new OneClickApplyRuleNode();
 
     // Role-specific Node
-    const roleNode = new ReviewRoleNode(this.role, brandName);
+    const roleNode = new ReviewRoleNode(this.role);
 
     // Output Schema Contract Node
     const targetSchema = this.role === 'polish'

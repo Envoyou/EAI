@@ -7,6 +7,7 @@
 import type { DevMockContext } from '../types';
 import { buildStoredMetadata, delay } from '../utils/text';
 import { createAnalysisLogAndDebitCredit } from '@/lib/services/analysis-log.service';
+import { PROMPT_VERSION } from '@/lib/prompts';
 
 /**
  * Returns true if the effective provider is missing its API key.
@@ -41,6 +42,7 @@ export const isMockMode = (
 
 export async function handleDevMock(ctx: DevMockContext): Promise<void> {
   const {
+    requestId,
     sendEvent,
     state,
     mode,
@@ -164,6 +166,7 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
     try {
       const savedLog = await createAnalysisLogAndDebitCredit({
         userId,
+        requestId,
         organizationId: workspace.organizationId,
         role: state.roleToLog,
         content: state.textToLog,
@@ -182,7 +185,7 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
             )
           )
         ),
-        promptVersion: process.env.PROMPT_VERSION ?? 'unknown',
+        promptVersion: PROMPT_VERSION,
         modelName: 'dev-mock-model',
         score: producesDraft ? undefined : mockScore,
         verdict: producesDraft ? 'needs_review' : mockVerdict,

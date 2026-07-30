@@ -85,6 +85,16 @@ describe('Prompt Engine unit tests', () => {
     expect(composedPrompt.includes('<brand_identity>')).toBe(true);
     expect(composedPrompt.includes('<brand_name>TestBrand</brand_name>')).toBe(true);
     expect(composedPrompt.includes('<tone_calibration>')).toBe(true);
+    expect(composedPrompt).toContain(
+      '"tags": ["Editorial Workflow", "Quality Review", "Publishing", "Content Operations"]'
+    );
+    const staticSeoText = seoComposer
+      .compile('xml')
+      .getChildren()
+      .filter((node) => node.isStatic)
+      .map((node) => node.render({ format: 'xml' }))
+      .join('\n');
+    expect(staticSeoText).not.toContain('TestBrand');
   });
 
   it('ReviewPromptComposer generation', () => {
@@ -96,6 +106,14 @@ describe('Prompt Engine unit tests', () => {
     expect(composedAuthor.includes('<output_format_contract>')).toBe(true);
     expect(composedAuthor.includes('<temporal_context_rules>')).toBe(true);
     expect(composedAuthor.includes('<source_policy>')).toBe(true);
+    expect(composedAuthor).not.toContain('gartner.com/report-123');
+    const staticReviewText = reviewComposerAuthor
+      .compile('xml')
+      .getChildren()
+      .filter((node) => node.isStatic)
+      .map((node) => node.render({ format: 'xml' }))
+      .join('\n');
+    expect(staticReviewText).not.toContain('TestBrand');
 
     const reviewComposerPolish = new ReviewPromptComposer('polish', mockProfile);
     const composedPolish = reviewComposerPolish.compose('xml');
@@ -174,12 +192,21 @@ describe('Prompt Engine unit tests', () => {
     const qualityComposer = new QualityGatePromptComposer(mockProfile);
     const composedQuality = qualityComposer.compose('xml');
 
-    expect(composedQuality.includes('<quality_gate_role_instructions brand="TestBrand">')).toBe(true);
-    expect(composedQuality.includes('You are the editorial quality gate for TestBrand')).toBe(true);
+    expect(composedQuality.includes('<quality_gate_role_instructions>')).toBe(true);
+    expect(composedQuality.includes('You are the editorial quality gate for the active editorial profile.')).toBe(true);
+    expect(composedQuality.includes('<brand_name>TestBrand</brand_name>')).toBe(true);
     expect(composedQuality.includes('<output_format_contract>')).toBe(true);
     expect(composedQuality.includes('<temporal_context_rules>')).toBe(true);
     expect(composedQuality.includes('Every feedback item must include a concise "suggestion"')).toBe(true);
     expect(composedQuality.includes('For structural issues, include a short exact "targetText"')).toBe(true);
+    expect(composedQuality).toContain('must not be exported until every warning');
+    const staticQualityText = qualityComposer
+      .compile('xml')
+      .getChildren()
+      .filter((node) => node.isStatic)
+      .map((node) => node.render({ format: 'xml' }))
+      .join('\n');
+    expect(staticQualityText).not.toContain('TestBrand');
   });
 
   it('StrategistPromptComposer generation', () => {

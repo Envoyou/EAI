@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import type {
   AnalysisResult,
   ArticleMetadata,
+  Attachment,
   FeedbackItem,
   EditorialReadiness,
   PublicationPackageStatus,
@@ -29,6 +30,7 @@ interface TargetedFixContext {
   metadata: ArticleMetadata;
   originalDraft: string;
   researchNotes: ResearchNote[];
+  attachments: Attachment[];
   persistEditorialResolution: (
     feedback: FeedbackItem[],
     readiness: EditorialReadiness,
@@ -54,6 +56,7 @@ export async function executeTargetedFix(
     metadata,
     originalDraft,
     researchNotes,
+    attachments,
     persistEditorialResolution,
     bodyChangeSuccessMessage,
     setAnalysis,
@@ -90,7 +93,14 @@ export async function executeTargetedFix(
         originalDraft,
         metadata: {
           ...metadata,
-          researchNotes,
+          researchNotes: researchNotes.slice(0, 10).map(note => ({
+            ...note,
+            content: note.content.slice(0, 5_000),
+          })),
+          attachments: attachments.slice(0, 5).map(attachment => ({
+            ...attachment,
+            extractedText: attachment.extractedText.slice(0, 2_000),
+          })),
         },
         analysisSpeed: analysisSpeed === 'publish' ? 'deep' : 'fast',
       }),

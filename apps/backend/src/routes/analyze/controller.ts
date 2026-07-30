@@ -7,7 +7,7 @@
 
 import { Router, Request } from 'express';
 import { PROMPT_VERSION } from '@/lib/prompts';
-import { FeedbackItemSchema } from '@eai/shared';
+import { AnalyzeMetadataSchema, FeedbackItemSchema } from '@eai/shared';
 import type { AiFunctionKey, AiRuntimeConfig, AnalyzeMode } from '@eai/shared';
 import { AiTelemetryCollector } from '@/lib/ai-telemetry';
 import { buildEditorialAuditContext, ENVOYOU_EDITORIAL_PROFILE, getAllFeatureFlags } from '@eai/shared/server';
@@ -21,6 +21,11 @@ import {
 import { ReviewPromptComposer } from '@/lib/ai/prompt-engine/composer/review-composer';
 import { verifyToken } from '@clerk/backend';
 import { z } from 'zod';
+import {
+  acquireRequestLease,
+  consumeRequestRateLimit,
+} from '@/middleware/rate-limit';
+import { prisma } from '@/lib/db';
 
 import type { AnalyzeState } from './types';
 import { parseCookies } from './utils/text';
@@ -39,7 +44,7 @@ const AnalyzeRequestSchema = z
   .object({
     text: z.string().max(100_000).optional(),
     role: z.enum(['polish', 'author', 'editor', 'seo', 'fact-checker']).optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
+    metadata: AnalyzeMetadataSchema.optional(),
     mode: z.enum(['analyze', 'refine', 'fix_targeted', 'quality_gate', 'generate_seo']).optional(),
     analysisLogId: z.string().max(100).optional(),
     originalDraft: z.string().max(100_000).optional(),
@@ -49,6 +54,7 @@ const AnalyzeRequestSchema = z
     targetText: z.string().max(25_000).optional(),
     feedbackMessage: z.string().max(5_000).optional(),
     instruction: z.string().max(5_000).optional(),
+    requestId: z.string().uuid().optional(),
   })
   .superRefine((value, ctx) => {
     const mode = value.mode ?? (value.targetText ? 'fix_targeted' : 'analyze');
@@ -121,6 +127,8 @@ router.post('/', async (req: Request, res) => {
       orgRole = (payload.org_role as string) || null;
     } catch (authError) {
       console.warn('[Analyze Auth] Token verification failed:', authError);
+      res.status(401).json({ error: 'Invalid authentication token.' });
+      return;
     }
   }
 
@@ -133,7 +141,47 @@ router.post('/', async (req: Request, res) => {
       return;
     }
 
-    // Guest / Demo Mode rate limiting — check AND set cookie BEFORE SSE opens
+    const demoIdentity = [
+      req.ip || req.socket.remoteAddress || 'unknown',
+      req.headers['user-agent'] || 'unknown',
+    ].join('|');
+    try {
+      const distributedLimit = await consumeRequestRateLimit(
+        {
+          namespace: 'analyze-demo',
+          windowMs: 1000 * 60 * 60 * 24 * 7,
+          max: 2,
+          message: 'Create a free account to continue.',
+        },
+        demoIdentity
+      );
+      res.setHeader('RateLimit-Limit', '2');
+      res.setHeader('RateLimit-Remaining', String(distributedLimit.remaining));
+      res.setHeader(
+        'RateLimit-Reset',
+        String(Math.ceil((Date.now() + distributedLimit.retryAfterMs) / 1000))
+      );
+      if (!distributedLimit.allowed) {
+        res.setHeader(
+          'Retry-After',
+          String(Math.max(Math.ceil(distributedLimit.retryAfterMs / 1000), 1))
+        );
+        res.status(429).json({
+          error: 'Create a free account to continue. Get 10 free Editorial Credits.',
+        });
+        return;
+      }
+    } catch (rateLimitError) {
+      console.error('[Analyze Demo Rate Limit] Redis unavailable:', rateLimitError);
+      if (process.env.NODE_ENV === 'production' || process.env.RATE_LIMIT_FAIL_OPEN !== 'true') {
+        res.status(503).json({
+          error: 'Request protection is temporarily unavailable. Please try again later.',
+        });
+        return;
+      }
+    }
+
+    // The cookie preserves the UX across page loads; Redis above is authoritative.
     const cookies = parseCookies(req.headers.cookie);
     const demoCountStr = cookies['eai_demo_count'];
     const demoCount = demoCountStr ? parseInt(demoCountStr, 10) : 0;
@@ -215,6 +263,51 @@ router.post('/', async (req: Request, res) => {
     }
   }
 
+  const requestId = parsedRequest.data.requestId;
+  const requestedMode =
+    parsedRequest.data.mode ??
+    (parsedRequest.data.targetText ? 'fix_targeted' : 'analyze');
+  let requestLease: Awaited<ReturnType<typeof acquireRequestLease>> = null;
+  if (
+    userId &&
+    requestId &&
+    (requestedMode === 'analyze' || requestedMode === 'refine')
+  ) {
+    const existingLog = await prisma.analysisLog.findFirst({
+      where: { userId, requestId },
+      select: { id: true },
+    });
+    if (existingLog) {
+      res.status(409).json({
+        error: 'This analysis request has already completed.',
+        analysisLogId: existingLog.id,
+      });
+      return;
+    }
+
+    try {
+      requestLease = await acquireRequestLease(
+        'analyze-request',
+        `${userId}:${requestId}`,
+        1000 * 60 * 15
+      );
+    } catch (leaseError) {
+      console.error('[Analyze Idempotency] Redis unavailable:', leaseError);
+      if (process.env.NODE_ENV === 'production' || process.env.RATE_LIMIT_FAIL_OPEN !== 'true') {
+        res.status(503).json({
+          error: 'Request coordination is temporarily unavailable. Please try again later.',
+        });
+        return;
+      }
+    }
+    if (!requestLease && (process.env.NODE_ENV === 'production' || process.env.RATE_LIMIT_FAIL_OPEN !== 'true')) {
+      res.status(409).json({
+        error: 'This analysis request is already in progress.',
+      });
+      return;
+    }
+  }
+
   // ── All pre-flight checks passed — now open SSE stream ──────────────────────
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -287,6 +380,7 @@ router.post('/', async (req: Request, res) => {
       instruction,
       analysisLogId,
       originalDraft,
+      requestId: parsedRequestId,
     } = parsedRequest.data;
 
     const analysisSpeed = userId ? (requestedAnalysisSpeed ?? 'deep') : 'fast';
@@ -326,6 +420,7 @@ router.post('/', async (req: Request, res) => {
     // ── TARGETED FIX ──────────────────────────────────────────────────────────
     if (effectiveMode === 'fix_targeted') {
       await handleFixTargeted({
+        requestId: parsedRequestId,
         sendEvent,
         state,
         text: text ?? '',
@@ -369,6 +464,7 @@ router.post('/', async (req: Request, res) => {
 
     if (effectiveMode === 'quality_gate' || effectiveMode === 'generate_seo') {
       const publicationContext = {
+        requestId: parsedRequestId,
         sendEvent,
         state,
         text,
@@ -406,6 +502,7 @@ router.post('/', async (req: Request, res) => {
     // ── DEV MOCK (missing API key) ─────────────────────────────────────────────
     if (isMockMode(effectiveProvider)) {
       await handleDevMock({
+        requestId: parsedRequestId,
         sendEvent,
         state,
         mode: effectiveMode,
@@ -431,6 +528,7 @@ router.post('/', async (req: Request, res) => {
     // ── REFINE MODE ───────────────────────────────────────────────────────────
     if (effectiveMode === 'refine') {
       await handleRefine({
+        requestId: parsedRequestId,
         sendEvent,
         state,
         text,
@@ -454,6 +552,7 @@ router.post('/', async (req: Request, res) => {
 
     // ── ANALYZE / POLISH MODE ─────────────────────────────────────────────────
     await handleAnalyze({
+      requestId: parsedRequestId,
       sendEvent,
       state,
       text,
@@ -480,6 +579,11 @@ router.post('/', async (req: Request, res) => {
       error instanceof Error ? error.message : 'An unexpected error occurred during analysis.'
     );
   } finally {
+    if (requestLease) {
+      await requestLease.release().catch((releaseError) => {
+        console.error('[Analyze Idempotency] Failed to release request lease:', releaseError);
+      });
+    }
     res.end();
   }
 });
