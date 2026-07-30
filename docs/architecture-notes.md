@@ -72,6 +72,7 @@ Rute `/api/analyze` di *backend* didekomposisi ke dalam subfolder modular `src/r
 *   **Strategist Search Recovery**: Jika stream Interactions berhenti sebelum menghasilkan teks (misalnya hanya mengirim thought summary dengan status terakhir masih `in_progress`), fallback Search berpindah ke native `models.generateContent` dengan `googleSearch` grounding. Kegagalan grounding kedua tidak mengulang tool-call yang sama: sistem menghasilkan jawaban aman tanpa Search, menyatakan keterbatasan verifikasi informasi terkini, dan tidak memotong kredit Search.
 *   **Orkestrasi Prompt**: Prompt dibangun secara dinamis dengan bantuan *utility* dari `@eai/shared/server`.
 *   **H1 & Publication Package Contract**: Draft mentah dari Strategist boleh membawa H1 sebagai working title. Rute `routes/analyze/` mengekstraknya melalui `stripLeadingH1`, mempertahankan nilainya sebagai `workingTitle`, dan memastikan publication body selalu tanpa H1. Pada Publish Ready, `PublicationPackage.title` menjadi field title CMS/H1 halaman; `metaTitle` tetap field SERP terpisah.
+*   **Blog Admin Metadata Contract**: Default Envoyou memakai meta title 30–70 karakter, meta description 50–160 karakter yang berakhir lengkap, excerpt minimal 50 karakter, rekomendasi body minimal 300 kata, dan slug ideal maksimal enam kata. Normalisasi metadata boleh memendekkan pada batas kata/kalimat tetapi tidak boleh menghasilkan elipsis yang kemudian ditolak Quality Gate.
 *   **Four-Stage Pipeline**:
     1.  **Review Stage**: menghasilkan skor, verdict, ringkasan, flags, dan catatan editorial singkat (`ThinkingLevel.LOW`).
     2.  **Rewrite Stage**: menulis ulang draft final per chunk untuk mengurangi risiko truncation.
@@ -121,6 +122,12 @@ Pipeline mempertahankan dua representasi setelah rewrite:
 2.  **Publication Draft** telah melalui normalisasi tabel, cleanup artefak rewrite, dan penghapusan marker internal sebelum ditampilkan, disimpan, atau diekspor ke CMS.
 
 Publication Package memiliki status `not_generated`, `current`, atau `stale`. Setiap mutasi body setelah package dibuat—termasuk targeted fix, apply feedback, dan penambahan source link—mengubah status menjadi `stale`. Export CMS hanya menerima package `current` dengan body yang sama dengan publication draft tersimpan.
+
+Iterative Refine membandingkan output yang sudah dinormalisasi dengan input
+publication draft. Output identik memicu satu corrective retry dengan instruksi
+yang berubah. Jika retry tetap no-op, handler berhenti sebelum SEO, Quality
+Gate, penyimpanan AnalysisLog, dan debit kredit; perubahan model juga tidak
+boleh ditampilkan ketika diff draft kosong.
 
 Editor dapat mengonfirmasi bahwa Publication Package yang berstatus `stale` masih relevan melalui action `confirm_publication_package` pada `PATCH /api/history/:id/resolve`. Action ini hanya tersedia jika generated metadata dan polished draft telah tersimpan. Backend mengubah `publicationPackageStatus` menjadi `current` untuk body aktif serta mencatat `metadata._system.seoConfirmedAt`, tanpa mengubah nilai metadata. Konfirmasi ini tidak melewati Quality Gate; perubahan body berikutnya kembali membuat package `stale`, dan guard ekspor tetap mensyaratkan package `current`, body yang cocok, serta keputusan kualitas `ready`.
 

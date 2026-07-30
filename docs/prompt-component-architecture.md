@@ -92,6 +92,13 @@ sistem dinamis. Untuk workflow publikasi mandiri, SEO harus diikuti Quality Gate
 `publish_ready` yang menilai body dan paket metadata secara bersamaan; status
 `needs_review` atau `blocked` tidak memenuhi kontrak export.
 
+`SeoLengthContractNode` merender batas tenant sekaligus target kompatibilitas
+CMS untuk excerpt, panjang body, dan slug. Normalizer shared tetap menjadi
+boundary deterministik: output yang terlalu panjang harus diubah menjadi frasa
+lengkap tanpa elipsis. `RefinementPromptComposer` juga dipasangkan dengan guard
+runtime no-op; finding yang belum selesai memicu maksimal satu corrective retry,
+dan output kedua yang identik tidak boleh diteruskan sebagai refinement sukses.
+
 ---
 
 ## 4. Struktur Pohon Caching (Gemini Prompt Caching Optimization)

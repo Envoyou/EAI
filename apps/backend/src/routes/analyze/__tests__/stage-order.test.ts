@@ -22,6 +22,18 @@ describe('analyze pipeline stage order', () => {
     expectSeoBeforeQualityGate(readHandler('refine.ts'));
   });
 
+  it('retries an unchanged refinement once and refuses to persist a second no-op', () => {
+    const source = readHandler('refine.ts');
+    const retry = source.indexOf('await runRefineAttempt(2, true, false)');
+    const noOpError = source.indexOf('Refinement did not change the draft after one corrective retry');
+    const persistence = source.indexOf('const savedLog = await createAnalysisLogAndDebitCredit');
+
+    expect(source).toContain('<corrective_retry>');
+    expect(retry).toBeGreaterThan(-1);
+    expect(noOpError).toBeGreaterThan(retry);
+    expect(persistence).toBeGreaterThan(noOpError);
+  });
+
   it('keeps the dev mock aligned with draft-producing production modes', () => {
     const source = readHandler('dev-mock.ts');
 
@@ -81,7 +93,8 @@ describe('analyze pipeline stage order', () => {
       expect(source).toContain('composeWorkspaceContext({');
       expect(source).toContain('buildResearchNotesSummary(');
       expect(source).toContain('agentInstruction:');
-      expect(source).toMatch(/userContent: `\\?\$\{.*WorkspaceXml\}/);
+      expect(source).toMatch(/\$\{(?:rewrite|refine)WorkspaceXml\}/);
+      expect(source).toContain('buildEditorialUserContent({');
     }
   });
 

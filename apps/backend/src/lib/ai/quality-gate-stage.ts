@@ -201,6 +201,7 @@ The previous response failed structural validation. Return one JSON object only.
     publicationMode,
     documentTitle: publicationPackage?.title || workingTitle,
     publicationPackage,
+    seoRules: editorialProfile.config.seoRules,
   });
   result = reconcileQualityResolutions(
     result,

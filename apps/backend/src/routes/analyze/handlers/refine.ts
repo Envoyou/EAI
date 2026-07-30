@@ -27,9 +27,11 @@ import { getProtectedVerificationClaims } from '../utils/factual';
 import {
   applyVerificationLocks,
   applyVerificationAnnotations,
+  removeDisallowedRefineTargets,
 } from '../utils/verification';
 import {
   buildStoredMetadata,
+  ensureTitleAndOpening,
   getRewriteOutputTokens,
   preparePublicationDraft,
 } from '../utils/text';
@@ -85,58 +87,108 @@ export async function handleRefine(ctx: RefineContext): Promise<void> {
 
   sendEvent('status', 'rewriting');
 
-  const refinePrompt = `${new RefinementPromptComposer(
+  const baseRefinePrompt = `${new RefinementPromptComposer(
     'iterative',
     editorialProfile.config,
     { sourceOnly: analysisSpeed === 'fast' }
   ).compose('xml')}\n\n${refineAgentInstruction}`;
 
-  let refinedText = '';
   const lockedRefineInput = applyVerificationLocks(text, protectedFeedback);
 
   const refineModelName = resolveModelName('editor');
   state.usedModels.push(`${refineModelName}(refine)`);
 
-  for await (const chunk of executeStream({
-    provider,
-    request: {
-      signal: state.signal,
-      systemInstruction: refinePrompt,
-      userContent: `${refineWorkspaceXml}\n\n${buildEditorialUserContent({
-        metadata,
-        data: {
-          editorInstruction: userInstruction,
-          previousFeedback: normalizedPreviousFeedback.slice(0, 5),
-          article: lockedRefineInput,
-        },
-        task: 'Refine the article according to editorInstruction. Use previousFeedback as operational constraints and output only the final article.',
-      })}`,
-      model: refineModelName,
-      maxOutputTokens: getRewriteOutputTokens(text, true),
-      temperature: 0.35,
-      thinkingLevel: effectiveProvider === 'gemini' ? 'medium' : undefined,
-    },
-    telemetry,
-    stage: 'refine',
-  })) {
-    if (state.isDisconnected) break;
-    refinedText += chunk;
-    sendEvent('draft_chunk', chunk);
-  }
+  const buildRefineUserContent = (correctiveRetry: boolean) =>
+    `${refineWorkspaceXml}\n\n${buildEditorialUserContent({
+      metadata,
+      data: {
+        editorInstruction: userInstruction,
+        previousFeedback: normalizedPreviousFeedback.slice(0, 5),
+        article: lockedRefineInput,
+      },
+      task: correctiveRetry
+        ? 'Correct the previous no-op response. Materially resolve editorInstruction and the listed previousFeedback, then output only the revised final article.'
+        : 'Refine the article according to editorInstruction. Use previousFeedback as operational constraints and output only the final article.',
+    })}`;
+
+  const runRefineAttempt = async (
+    attempt: number,
+    correctiveRetry: boolean,
+    streamChunks: boolean
+  ) => {
+    const systemInstruction = correctiveRetry
+      ? `${baseRefinePrompt}
+
+<corrective_retry>
+The previous attempt returned the source article unchanged even though an unresolved editorial finding remains.
+Apply the requested structural or editorial correction materially. Do not return the source unchanged, do not merely restate the instruction, and do not change unrelated facts or sections.
+</corrective_retry>`
+      : baseRefinePrompt;
+    let output = '';
+
+    for await (const chunk of executeStream({
+      provider,
+      request: {
+        signal: state.signal,
+        systemInstruction,
+        userContent: buildRefineUserContent(correctiveRetry),
+        model: refineModelName,
+        maxOutputTokens: getRewriteOutputTokens(text, true),
+        temperature: 0.35,
+        thinkingLevel: effectiveProvider === 'gemini' ? 'medium' : undefined,
+      },
+      telemetry,
+      stage: 'refine',
+      attempt,
+    })) {
+      if (state.isDisconnected) break;
+      output += chunk;
+      if (streamChunks) sendEvent('draft_chunk', chunk);
+    }
+
+    return output;
+  };
+
+  const finalizeRefinedText = (output: string) => {
+    let finalized = ensureTitleAndOpening(output, text);
+    finalized = removeDisallowedRefineTargets(finalized, normalizedPreviousFeedback);
+    const normalized = stripLeadingH1(finalized);
+    const comparisonText = preparePublicationDraft(normalized.body);
+    return {
+      text: preparePublicationDraft(applyVerificationAnnotations(
+        normalized.body,
+        normalizedPreviousFeedback
+      )),
+      comparisonText,
+      workingTitle: normalized.title || metadata?.workingTitle,
+    };
+  };
+
+  const comparableDraft = (value: string) =>
+    value.replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, '').trim();
+
+  let finalizedRefine = finalizeRefinedText(
+    await runRefineAttempt(1, false, true)
+  );
   if (state.isDisconnected) return;
 
-  // Import ensureTitleAndOpening and removeDisallowedRefineTargets inline/locally to match existing behavior
-  const { ensureTitleAndOpening } = await import('../utils/text');
-  const { removeDisallowedRefineTargets } = await import('../utils/verification');
+  const preparedInput = preparePublicationDraft(stripLeadingH1(text).body);
+  if (comparableDraft(finalizedRefine.comparisonText) === comparableDraft(preparedInput)) {
+    finalizedRefine = finalizeRefinedText(
+      await runRefineAttempt(2, true, false)
+    );
+    if (state.isDisconnected) return;
+  }
 
-  refinedText = ensureTitleAndOpening(refinedText, text);
-  refinedText = removeDisallowedRefineTargets(refinedText, normalizedPreviousFeedback);
-  const normalizedRefine = stripLeadingH1(refinedText);
-  const workingTitle = normalizedRefine.title || metadata?.workingTitle;
-  refinedText = normalizedRefine.body;
+  if (comparableDraft(finalizedRefine.comparisonText) === comparableDraft(preparedInput)) {
+    throw new Error(
+      'Refinement did not change the draft after one corrective retry. No refined result was saved; revise the instruction or apply the structural edit manually.'
+    );
+  }
+
+  const refinedText = finalizedRefine.text;
+  const workingTitle = finalizedRefine.workingTitle;
   if (workingTitle) sendEvent('working_title', workingTitle);
-  const refineQualityGateDraft = applyVerificationAnnotations(refinedText, normalizedPreviousFeedback);
-  refinedText = preparePublicationDraft(refineQualityGateDraft);
   sendEvent('draft_final', refinedText);
 
   let refineSeo: PublicationPackage | null = null;

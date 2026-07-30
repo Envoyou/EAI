@@ -4,7 +4,7 @@ Dokumen ini mencatat rancangan, riwayat iterasi, kendala teknis, serta solusi re
 
 ---
 
-## 1. Versi Saat Ini: v3.3.0 / Analyze Prompt Contract v2.7.0
+## 1. Versi Saat Ini: v3.3.0 / Analyze Prompt Contract v2.8.0
 
 Prompt utama dikelola secara modular menggunakan **Composable Prompt Component Architecture (PCA)** di `src/lib/ai/prompt-engine/` dan memanfaatkan modul pembangun konteks bersama `src/lib/ai/workspace-context.ts`. Berkas `src/lib/prompts.ts` disederhanakan murni sebagai pembantu utilitas bersama.
 
@@ -22,13 +22,21 @@ Prompt yang dikirim ke model kini dibagi ke lima jalur:
 
 Semua jalur prompt kini telah dimigrasikan untuk menggunakan skema perakitan konteks terpadu (Workspace Context XML) dan penyuntikan instruksi kepatuhan brand dinamis (Agent Instruction).
 
-Untuk kontrak Analyze v2.7.0, tahap Review dan Fact-Checker juga menerima
+Untuk kontrak Analyze v2.8.0, tahap Review dan Fact-Checker juga menerima
 Workspace Context, research notes, serta attachment context. Persona core
 Review, SEO, dan Quality Gate tidak lagi merender nama tenant di static prefix.
 Few-shot tidak boleh membuat nama penerbit, laporan, URL, atau angka pengganti
 yang tidak berasal dari sumber. Setelah SEO dibuat secara mandiri, paket body
 dan metadata selalu dinilai ulang bersama dalam Quality Gate
 `publish_ready` sebelum readiness terbaru dapat dipakai oleh export.
+
+Kontrak v2.8.0 juga menyelaraskan SEO Envoyou dengan Blog Admin: meta title
+menargetkan 30–70 karakter, meta description maksimal 160 karakter dan harus
+berakhir lengkap, excerpt minimal 50 karakter, body disarankan minimal 300 kata,
+serta slug idealnya maksimal enam kata. Normalizer tidak lagi menghasilkan
+elipsis sebagai fallback. Iterative Refine wajib menghasilkan perubahan ketika
+masih ada finding; satu corrective retry dijalankan untuk no-op dan hasil kedua
+yang tetap identik tidak disimpan sebagai refinement sukses.
 
 ### Optimasi Gemini 3.x Native Thinking & Caching
 Sejak transisi ke model Gemini 3.x, sistem prompt dan penanganan obrolan diperbarui secara radikal:

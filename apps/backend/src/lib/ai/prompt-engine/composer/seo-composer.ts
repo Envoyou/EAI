@@ -72,13 +72,15 @@ export class SeoLengthContractNode implements PromptNode {
     const contract = `
 Active publication limits for this tenant:
 - title: maximum ${seoRules.titleMaxLength} characters.
-- metaTitle: maximum ${seoRules.metaTitleMaxLength} characters.
+- metaTitle: aim for ${Math.min(30, seoRules.metaTitleMaxLength)}-${seoRules.metaTitleMaxLength} characters.
 - metaDescription: ${Math.min(50, seoRules.metaDescriptionMaxLength)}-${seoRules.metaDescriptionMaxLength} characters.
-- excerpt: maximum 300 characters.
+- excerpt: 50-300 characters and must summarize the article.
+- slug: keep it short and descriptive; 6 words or fewer is ideal.
+- article body: the CMS recommends at least 300 words. Metadata must accurately describe the supplied body and must not invent missing substance.
 - coverImageAltText: maximum 120 characters.
 - tags: ${seoRules.tagCountMin}-${seoRules.tagCountMax} items.
 
-Write every field as a complete phrase or sentence inside its active limit. Shorten and rephrase before returning JSON. Never rely on downstream truncation, never cut a word, and never end a description with a dangling conjunction or preposition.
+Write every field as a complete phrase or sentence inside its active limit. Shorten and rephrase before returning JSON. Never rely on downstream truncation, never cut a word, never use an ellipsis as a truncation marker, and never end a description with a dangling conjunction or preposition.
 `.trim();
 
     if (context.format === 'xml') {

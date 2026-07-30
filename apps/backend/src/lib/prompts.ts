@@ -1,4 +1,4 @@
-export const PROMPT_VERSION = '2.7.0';
+export const PROMPT_VERSION = '2.8.0';
 
 export const EDITORIAL_TIME_ZONE = 'Asia/Jakarta';
 

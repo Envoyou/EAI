@@ -8,6 +8,20 @@ import type { ArticleMetadata } from './types/index';
 const normalizeMetadataText = (value: string): string =>
   value.trim().replace(/\s+/g, ' ');
 
+const DANGLING_METADATA_WORD_PATTERN =
+  /\b(?:a|an|the|and|or|but|of|to|in|on|for|with|from|through|by|as|at|dan|atau|serta|yang|di|ke|dari|untuk|dengan|melalui|pada)$/i;
+
+export const hasIncompleteMetadataEnding = (value: string): boolean => {
+  const normalized = value.trim();
+  if (!normalized) return true;
+  if (/\u2026$/.test(normalized)) return true;
+  if (/[,;:/\-\u2013\u2014]$/u.test(normalized)) return true;
+  if (DANGLING_METADATA_WORD_PATTERN.test(normalized)) return true;
+  const terminalWord = normalized.match(/([\p{L}]+)$/u)?.[1] ?? '';
+  if (/^[A-Z]{2,}$/.test(terminalWord)) return false;
+  return terminalWord.length > 0 && terminalWord.length <= 2;
+};
+
 /** Keeps a metadata safety limit without leaving a partial word at the boundary. */
 export const truncateAtWordBoundary = (value: string, maxLength: number): string => {
   const normalized = normalizeMetadataText(value);
@@ -22,14 +36,44 @@ export const truncateAtWordBoundary = (value: string, maxLength: number): string
   return candidate.trim().replace(/[,:;/\-\u2013\u2014]+$/u, '').trim();
 };
 
-/** Prefers a complete sentence, then falls back to an intentional word-boundary ellipsis. */
+const finishMetadataSentence = (value: string, maxLength: number): string => {
+  let candidate = value
+    .trim()
+    .replace(/[,:;/\-\u2013\u2014\u2026]+$/u, '')
+    .trim();
+
+  while (candidate && DANGLING_METADATA_WORD_PATTERN.test(candidate)) {
+    candidate = candidate.replace(/\s+\S+$/u, '').trim();
+  }
+
+  const trailingCoordination = candidate.match(
+    /\s+(?:and|or|but|dan|atau|serta)\s+\S+(?:\s+\S+){0,2}$/iu
+  );
+  if (trailingCoordination?.index && trailingCoordination.index >= 50) {
+    candidate = candidate.slice(0, trailingCoordination.index).trim();
+  }
+
+  if (!candidate) return '';
+  if (/[.!?]$/.test(candidate)) return candidate;
+
+  const sentence = `${candidate}.`;
+  return sentence.length <= maxLength
+    ? sentence
+    : `${truncateAtWordBoundary(candidate, Math.max(1, maxLength - 1))}.`;
+};
+
+/** Prefers a complete sentence and repairs an over-limit phrase without emitting an ellipsis. */
 export const truncateAtSentenceBoundary = (
   value: string,
   maxLength: number,
   minSentenceLength = 0
 ): string => {
   const normalized = normalizeMetadataText(value);
-  if (normalized.length <= maxLength) return normalized;
+  if (normalized.length <= maxLength) {
+    return hasIncompleteMetadataEnding(normalized)
+      ? finishMetadataSentence(normalized, maxLength)
+      : normalized;
+  }
 
   const window = normalized.slice(0, maxLength + 1);
   let sentenceEnd = -1;
@@ -40,7 +84,7 @@ export const truncateAtSentenceBoundary = (
   if (sentenceEnd > 0) return window.slice(0, sentenceEnd).trim();
 
   const shortened = truncateAtWordBoundary(normalized, Math.max(1, maxLength - 1));
-  return `${shortened}\u2026`;
+  return finishMetadataSentence(shortened, maxLength);
 };
 
 const slugify = (value: string) =>
@@ -145,9 +189,10 @@ export const normalizeSeoMetadata = (
         .slice(0, seoRules.tagCountMax)
     : fallback.tags;
 
+  const fallbackExcerpt = fallback.excerpt ?? fallback.metaDescription;
   const excerpt = typeof source.excerpt === 'string' && source.excerpt.trim()
     ? truncateAtSentenceBoundary(source.excerpt, 300)
-    : fallback.excerpt;
+    : fallbackExcerpt;
   const metaTitle = typeof source.metaTitle === 'string' && source.metaTitle.trim()
     ? truncateAtWordBoundary(source.metaTitle, seoRules.metaTitleMaxLength)
     : fallback.metaTitle;
@@ -159,7 +204,7 @@ export const normalizeSeoMetadata = (
     title: title.length >= 10 ? title : fallback.title,
     metaDescription: metaDescription.length >= 50 ? metaDescription : fallback.metaDescription,
     slug: slug.length >= 3 ? slug : fallback.slug,
-    excerpt,
+    excerpt: excerpt.length >= 50 ? excerpt : fallbackExcerpt,
     metaTitle,
     coverImageAltText,
     tags: tags.length >= seoRules.tagCountMin ? tags : fallback.tags,

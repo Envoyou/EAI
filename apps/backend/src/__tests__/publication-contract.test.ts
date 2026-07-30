@@ -87,18 +87,24 @@ describe('publication title contract', () => {
   });
 
   test('Publish Ready cannot be ready with a dangling metadata ending', () => {
+    const article = Array.from(
+      { length: 300 },
+      (_, index) => `word${index + 1}`
+    ).join(' ');
     const result = applyDeterministicQualityChecks(
       { ...missingH1Result(), readiness: 'ready', feedback: [], flags: [] },
-      'Opening paragraph.',
-      'Opening paragraph.',
+      article,
+      article,
       {
         publicationMode: 'publish_ready',
         documentTitle: 'Canonical CMS Article Title',
         language: 'en',
+        seoRules: ENVOYOU_EDITORIAL_PROFILE.config.seoRules,
         publicationPackage: {
           title: 'Canonical CMS Article Title',
           slug: 'canonical-cms-article-title',
-          metaTitle: 'A complete search title',
+          excerpt: 'A complete excerpt that summarizes the article for CMS readers.',
+          metaTitle: 'A Complete Search Title for Editorial Teams',
           metaDescription: 'Learn how teams improve publication metadata through',
           tags: ['Editorial', 'SEO', 'Publishing'],
         },
@@ -107,6 +113,48 @@ describe('publication title contract', () => {
 
     expect(result.readiness).toBe('blocked');
     expect(result.feedback[0]?.targetField).toBe('publication.metaDescription');
+  });
+
+  test('audits the Blog Admin publication recommendations deterministically', () => {
+    const result = applyDeterministicQualityChecks(
+      { ...missingH1Result(), readiness: 'ready', feedback: [], flags: [] },
+      'Short article body.',
+      'Different source body.',
+      {
+        publicationMode: 'publish_ready',
+        documentTitle: 'Canonical CMS Article Title',
+        language: 'en',
+        seoRules: ENVOYOU_EDITORIAL_PROFILE.config.seoRules,
+        publicationPackage: {
+          title: 'Canonical CMS Article Title',
+          slug: 'an-overly-long-slug-for-the-current-cms-article',
+          excerpt: 'Too short.',
+          metaTitle: 'Short search title',
+          metaDescription: 'A complete meta description that accurately summarizes the current article.',
+          tags: ['Editorial', 'SEO', 'Publishing'],
+        },
+      }
+    );
+
+    expect(result.readiness).toBe('blocked');
+    expect(result.feedback).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        status: 'fail',
+        targetField: 'publication.excerpt',
+      }),
+      expect.objectContaining({
+        status: 'warning',
+        targetField: 'publication.metaTitle',
+      }),
+      expect.objectContaining({
+        status: 'warning',
+        targetField: 'publication.slug',
+      }),
+      expect.objectContaining({
+        status: 'warning',
+        targetField: 'body',
+      }),
+    ]));
   });
 
   test('publication-field feedback cannot become a body text operation', () => {
@@ -154,7 +202,7 @@ describe('publication title contract', () => {
       { publicationMode: 'fast', language: 'en' }
     );
 
-    expect(result.changes).toEqual(['Improved the opening hook.']);
+    expect(result.changes).toEqual([]);
   });
 });
 
@@ -314,16 +362,39 @@ describe('SEO metadata boundaries', () => {
       tags: ['SEO', 'Artificial Intelligence', 'Publishing'],
     }, 'Opening paragraph.\n\nA sufficiently long article description for fallback metadata generation.');
 
-    expect(metadata.metaTitle).toBe('Generative Engine Optimization (GEO): The Future of AI');
-    expect(metadata.metaTitle).not.toContain('Citat');
-    expect(metadata.metaDescription).toBe('Discover why traditional SEO is shifting to Generative Engine Optimization.');
+    expect(metadata.metaTitle).toBe('Generative Engine Optimization (GEO): The Future of AI Citation');
+    expect(metadata.metaTitle).not.toContain('Authority');
+    expect(metadata.metaDescription).toBe('Discover why traditional SEO is shifting to Generative Engine Optimization. Learn how to secure your brand authority through entity signals and structured data.');
+  });
+
+  test('repairs a long single-sentence description instead of emitting an ellipsis', () => {
+    const metadata = normalizeSeoMetadata({
+      title: 'Disciplined Adaptability for Modern Enterprise Leadership',
+      slug: 'disciplined-adaptability-modern-enterprise-leadership',
+      excerpt: 'A complete summary of disciplined adaptability for modern enterprise leadership teams.',
+      metaTitle: 'Disciplined Adaptability in Modern Enterprise Leadership',
+      metaDescription: 'Learn how modern organizations balance technological integration, stewardship, and disciplined adaptability to navigate operational complexity and improve resilient leadership execution across distributed enterprise teams',
+      coverImageAltText: 'Enterprise leaders reviewing an adaptive operating strategy.',
+      tags: ['Leadership', 'Enterprise', 'Artificial Intelligence'],
+    }, 'Opening paragraph.\n\nA sufficiently long article description for fallback metadata generation.');
+
+    expect(metadata.metaDescription.length).toBeLessThanOrEqual(160);
+    expect(metadata.metaDescription).toMatch(/\.$/);
+    expect(metadata.metaDescription).not.toContain('\u2026');
+    expect(metadata.metaDescription).not.toMatch(/\band improve\.$/);
+    expect(metadata.metaDescription).toContain('navigate operational complexity.');
+    expect(hasIncompleteMetadataEnding(metadata.metaDescription)).toBe(false);
   });
 
   test('publishes active tenant limits in the SEO prompt', () => {
     const prompt = new SeoPromptComposer(ENVOYOU_EDITORIAL_PROFILE.config).compose('xml');
-    expect(prompt).toContain('metaTitle: maximum 60 characters');
-    expect(prompt).toContain('metaDescription: 50-155 characters');
+    expect(prompt).toContain('metaTitle: aim for 30-70 characters');
+    expect(prompt).toContain('metaDescription: 50-160 characters');
+    expect(prompt).toContain('excerpt: 50-300 characters');
+    expect(prompt).toContain('6 words or fewer is ideal');
+    expect(prompt).toContain('at least 300 words');
     expect(prompt).toContain('never cut a word');
+    expect(prompt).toContain('never use an ellipsis');
   });
 
   test('detects dangling metadata connectors', () => {

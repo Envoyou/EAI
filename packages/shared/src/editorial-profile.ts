@@ -105,8 +105,8 @@ export const ENVOYOU_PROFILE_CONFIG: EditorialProfileConfig = {
   sourcePolicy: 'strict',
   seoRules: {
     titleMaxLength: 120,
-    metaTitleMaxLength: 60,
-    metaDescriptionMaxLength: 155,
+    metaTitleMaxLength: 70,
+    metaDescriptionMaxLength: 160,
     tagCountMin: 3,
     tagCountMax: 5,
   },
@@ -240,10 +240,10 @@ export const normalizeProfileConfig = (value: unknown): EditorialProfileConfig |
     sourcePolicy: source.sourcePolicy === 'strict' ? 'strict' : 'standard',
     seoRules: {
       titleMaxLength: clampInteger(source.seoRules.titleMaxLength, 120, 10, 120),
-      metaTitleMaxLength: clampInteger(source.seoRules.metaTitleMaxLength, 60, 10, 80),
+      metaTitleMaxLength: clampInteger(source.seoRules.metaTitleMaxLength, 70, 10, 80),
       metaDescriptionMaxLength: clampInteger(
         source.seoRules.metaDescriptionMaxLength,
-        155,
+        160,
         50,
         160
       ),

@@ -8,13 +8,20 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ### Changed
 - **Persona Refine Draft yang aman untuk multi-tenant**:
-  - Menaikkan `PROMPT_VERSION` ke `2.7.0`.
+  - Menaikkan `PROMPT_VERSION` ke `2.8.0`.
   - Menjadikan mission editorial bersama, role rewrite, prioritas rewrite, dan role iterative refinement benar-benar netral terhadap tenant; default bergaya Envoyou seperti kesan premium, audiens profesional, dan strategic projection tidak lagi berada di core node yang cacheable.
   - Memindahkan arahan spesifik publikasi ke konteks Editorial Profile dinamis, termasuk primary goal dan bahasa default tenant. Target audiens artikel yang eksplisit kini hanya mengoverride audiens profile untuk artikel tersebut.
   - Menambahkan workspace context, agent instruction, dan ringkasan research notes standar ke request rewrite **Refine Draft** utama maupun iterative refinement berikutnya.
   - Menambahkan cakupan regresi untuk static prompt prefix yang independen dari tenant, kebocoran persona non-Envoyou, precedence audiens, dan wiring workspace context.
 
 ### Fixed
+- **Kesiapan SEO Blog Admin dan penyelesaian Refine**:
+  - Menyelaraskan default Envoyou dan profil onboarding dengan batas Blog Admin: meta title menargetkan 30–70 karakter, meta description maksimal 160 karakter, excerpt minimal 50 karakter, artikel direkomendasikan minimal 300 kata, dan slug ringkas menargetkan maksimal enam kata.
+  - Mengganti pemotongan dengan elipsis pada batas kata menjadi perbaikan kalimat lengkap yang deterministik, sehingga metadata hasil generate tidak lagi dinormalisasi ke bentuk yang pasti ditolak Final Quality Gate.
+  - Menambahkan pemeriksaan deterministik Publish Ready untuk metadata yang hilang atau melewati batas, beserta rekomendasi panjang konten dan slug.
+  - Menambahkan satu corrective retry ketika Refine mengembalikan source draft tanpa perubahan; no-op kedua kini berhenti tanpa menyimpan atau mendebit refinement sukses.
+  - Menghapus klaim perubahan hasil model ketika source dan final draft identik.
+  - Menambahkan dan menerapkan migrasi profil Envoyou immutable `20260730120000_align_envoyou_blog_seo_limits` ke Neon production; Prisma mengonfirmasi seluruh 32 migrasi sudah up to date. Workspace artikel yang terdampak juga menerima versi profil immutable baru dengan batas 70/160.
 - **Kontrak prompt dan workflow Analyze hingga publikasi**:
   - Mengaudit ulang paket SEO yang baru dibuat melalui Final Quality Gate dalam mode `publish_ready` sebelum menyimpan readiness terbaru, sehingga ekspor CMS tidak dapat bergantung pada Quality Check body saja.
   - Menghapus contoh sitasi palsu dari few-shot review, menyelaraskan `needs_review` dengan export guard yang ketat, menjadikan persona core Review/SEO/Quality Gate netral terhadap tenant, dan menyelaraskan contoh SEO dengan batas lima tag pada schema bersama.

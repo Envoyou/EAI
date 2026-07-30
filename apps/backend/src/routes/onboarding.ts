@@ -160,8 +160,8 @@ function getFallbackProfile(workspaceName: string, primaryGoal: string, defaultL
     sourcePolicy: 'strict' as const,
     seoRules: {
       titleMaxLength: 120,
-      metaTitleMaxLength: 60,
-      metaDescriptionMaxLength: 155,
+      metaTitleMaxLength: 70,
+      metaDescriptionMaxLength: 160,
       tagCountMin: 3,
       tagCountMax: 5,
     },
@@ -449,8 +449,8 @@ ${scrapedText ? `Scraped Website Content:\n${scrapedText}` : 'No website provide
         sourcePolicy: 'strict' as const,
         seoRules: {
           titleMaxLength: 120,
-          metaTitleMaxLength: 60,
-          metaDescriptionMaxLength: 155,
+          metaTitleMaxLength: 70,
+          metaDescriptionMaxLength: 160,
           tagCountMin: 3,
           tagCountMax: 5,
         },

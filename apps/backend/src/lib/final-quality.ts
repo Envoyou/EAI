@@ -1,5 +1,6 @@
-import type { FinalQualityGateOutput } from '@eai/shared';
+import { hasIncompleteMetadataEnding, type FinalQualityGateOutput } from '@eai/shared';
 import type { AllowedEditorialTerm, PublicationPackage } from '@eai/shared';
+import type { EditorialProfileConfig } from '@eai/shared/server';
 import { normalizeUrl } from '@/routes/analyze/utils/text';
 
 type QualityFeedbackItem = FinalQualityGateOutput['feedback'][number];
@@ -138,20 +139,19 @@ export interface SourceFidelityOptions {
   publicationMode?: 'fast' | 'publish_ready';
   documentTitle?: string;
   publicationPackage?: PublicationPackage | null;
+  seoRules?: EditorialProfileConfig['seoRules'];
 }
 
-const DANGLING_METADATA_WORD_PATTERN = /\b(?:a|an|the|and|or|but|of|to|in|on|for|with|from|through|by|as|at|dan|atau|serta|yang|di|ke|dari|untuk|dengan|melalui|pada)$/i;
+export { hasIncompleteMetadataEnding };
 
-export const hasIncompleteMetadataEnding = (value: string): boolean => {
-  const normalized = value.trim();
-  if (!normalized) return true;
-  if (/\u2026$/.test(normalized)) return true;
-  if (/[,;:/\-\u2013\u2014]$/u.test(normalized)) return true;
-  if (DANGLING_METADATA_WORD_PATTERN.test(normalized)) return true;
-  const terminalWord = normalized.match(/([\p{L}]+)$/u)?.[1] ?? '';
-  if (/^[A-Z]{2,}$/.test(terminalWord)) return false;
-  return terminalWord.length > 0 && terminalWord.length <= 2;
-};
+const countEditorialWords = (value: string): number =>
+  value
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/https?:\/\/\S+/g, ' ')
+    .match(/[\p{L}\p{N}]+(?:['’.-][\p{L}\p{N}]+)*/gu)?.length ?? 0;
+
+const countSlugWords = (value: string): number =>
+  value.split(/[-\s]+/).filter(Boolean).length;
 
 const getCurrentEditorialYear = () => {
   const year = new Intl.DateTimeFormat('en-US', {
@@ -797,6 +797,13 @@ export const applyDeterministicQualityChecks = (
   }
 
   if (options.publicationMode === 'publish_ready' && options.publicationPackage) {
+    const seoRules = options.seoRules ?? {
+      titleMaxLength: 120,
+      metaTitleMaxLength: 70,
+      metaDescriptionMaxLength: 160,
+      tagCountMin: 3,
+      tagCountMax: 5,
+    };
     const incompleteFields = [
       {
         label: 'meta title',
@@ -824,6 +831,119 @@ export const applyDeterministicQualityChecks = (
         targetField: field.targetField,
       });
       flags.push('Incomplete Publication Metadata');
+    }
+
+    const metaTitle = options.publicationPackage.metaTitle?.trim() ?? '';
+    if (!metaTitle) {
+      feedback.unshift({
+        category: 'Publication Metadata',
+        status: 'fail',
+        message: isEn
+          ? 'The CMS meta title is missing.'
+          : 'Meta title CMS belum diisi.',
+        suggestion: isEn
+          ? `Write a complete meta title between 30 and ${seoRules.metaTitleMaxLength} characters.`
+          : `Tulis meta title lengkap sepanjang 30-${seoRules.metaTitleMaxLength} karakter.`,
+        operation: 'manual',
+        targetField: 'publication.metaTitle',
+      });
+      flags.push('Incomplete Publication Metadata');
+    } else if (metaTitle.length > seoRules.metaTitleMaxLength) {
+      feedback.unshift({
+        category: 'Publication Metadata',
+        status: 'fail',
+        message: isEn
+          ? `The meta title exceeds the CMS limit of ${seoRules.metaTitleMaxLength} characters.`
+          : `Meta title melewati batas CMS ${seoRules.metaTitleMaxLength} karakter.`,
+        suggestion: isEn
+          ? `Shorten the meta title to no more than ${seoRules.metaTitleMaxLength} characters.`
+          : `Pendekkan meta title menjadi maksimal ${seoRules.metaTitleMaxLength} karakter.`,
+        operation: 'manual',
+        targetField: 'publication.metaTitle',
+      });
+      flags.push('Publication Metadata Length');
+    } else if (metaTitle.length < Math.min(30, seoRules.metaTitleMaxLength)) {
+      feedback.push({
+        category: 'Publication Metadata',
+        status: 'warning',
+        message: isEn
+          ? 'The meta title is shorter than the CMS recommendation of 30 characters.'
+          : 'Meta title lebih pendek dari rekomendasi CMS 30 karakter.',
+        suggestion: isEn
+          ? `Expand it to 30-${seoRules.metaTitleMaxLength} characters without adding unsupported claims.`
+          : `Perjelas menjadi 30-${seoRules.metaTitleMaxLength} karakter tanpa menambah klaim yang tidak didukung.`,
+        operation: 'manual',
+        targetField: 'publication.metaTitle',
+      });
+      flags.push('Publication Metadata Length');
+    }
+
+    const metaDescription = options.publicationPackage.metaDescription?.trim() ?? '';
+    if (metaDescription.length > seoRules.metaDescriptionMaxLength) {
+      feedback.unshift({
+        category: 'Publication Metadata',
+        status: 'fail',
+        message: isEn
+          ? `The meta description exceeds the CMS limit of ${seoRules.metaDescriptionMaxLength} characters.`
+          : `Meta description melewati batas CMS ${seoRules.metaDescriptionMaxLength} karakter.`,
+        suggestion: isEn
+          ? `Rewrite it as a complete sentence within ${seoRules.metaDescriptionMaxLength} characters.`
+          : `Tulis ulang sebagai kalimat lengkap dalam batas ${seoRules.metaDescriptionMaxLength} karakter.`,
+        operation: 'manual',
+        targetField: 'publication.metaDescription',
+      });
+      flags.push('Publication Metadata Length');
+    }
+
+    const excerpt = options.publicationPackage.excerpt?.trim() ?? '';
+    if (excerpt.length < 50) {
+      feedback.unshift({
+        category: 'Publication Metadata',
+        status: 'fail',
+        message: isEn
+          ? 'The CMS excerpt is missing or shorter than 50 characters.'
+          : 'Excerpt CMS belum diisi atau lebih pendek dari 50 karakter.',
+        suggestion: isEn
+          ? 'Write a concise article summary of at least 50 characters.'
+          : 'Tulis ringkasan artikel yang singkat dengan panjang minimal 50 karakter.',
+        operation: 'manual',
+        targetField: 'publication.excerpt',
+      });
+      flags.push('Incomplete Publication Metadata');
+    }
+
+    const bodyWordCount = countEditorialWords(finalDraft);
+    if (bodyWordCount < 300) {
+      feedback.push({
+        category: 'CMS Content Length',
+        status: 'warning',
+        message: isEn
+          ? `The article contains about ${bodyWordCount} words; the CMS recommends at least 300.`
+          : `Artikel berisi sekitar ${bodyWordCount} kata; CMS merekomendasikan minimal 300 kata.`,
+        suggestion: isEn
+          ? 'Confirm the short format is intentional or expand the article using supported source material.'
+          : 'Konfirmasikan bahwa format pendek memang disengaja atau perluas artikel memakai materi sumber yang didukung.',
+        operation: 'manual',
+        targetField: 'body',
+      });
+      flags.push('CMS Content Length');
+    }
+
+    const slugWordCount = countSlugWords(options.publicationPackage.slug);
+    if (slugWordCount > 6) {
+      feedback.push({
+        category: 'Publication Metadata',
+        status: 'warning',
+        message: isEn
+          ? `The slug contains ${slugWordCount} words; six or fewer is the CMS recommendation.`
+          : `Slug berisi ${slugWordCount} kata; rekomendasi CMS adalah maksimal enam kata.`,
+        suggestion: isEn
+          ? 'Shorten the slug while keeping it descriptive and unambiguous.'
+          : 'Pendekkan slug sambil mempertahankan deskripsi yang jelas dan tidak ambigu.',
+        operation: 'manual',
+        targetField: 'publication.slug',
+      });
+      flags.push('Publication Metadata Length');
     }
   }
 
@@ -1114,6 +1234,10 @@ export const applyDeterministicQualityChecks = (
   const reconciledChanges = hasUnsafeVisualFinding
     ? result.changes.filter((change) => !/mermaid|diagram|table|tabel|visual|workflow|flowchart|kpi/i.test(change))
     : result.changes;
+  const normalizedOriginalDraft = originalDraft.replace(/\s+/g, ' ').trim();
+  const normalizedFinalDraft = finalDraft.replace(/\s+/g, ' ').trim();
+  const draftIsUnchanged = Boolean(normalizedOriginalDraft)
+    && normalizedOriginalDraft === normalizedFinalDraft;
 
   return {
     ...result,
@@ -1129,7 +1253,9 @@ export const applyDeterministicQualityChecks = (
             : 'Draft final sudah terbentuk, tetapi masih memerlukan review editor pada format atau verifikasi sumber sebelum diekspor.'),
     feedback: finalFeedback,
     flags: finalFlags,
-    changes: reconciledChanges.length > 0
+    changes: draftIsUnchanged
+      ? []
+      : reconciledChanges.length > 0
       ? reconciledChanges
       : [isEn
           ? 'Reworked the draft for clearer structure and editorial review.'

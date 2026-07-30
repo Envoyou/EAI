@@ -8,13 +8,20 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ### Changed
 - **Tenant-safe Refine Draft personas**:
-  - Incremented `PROMPT_VERSION` to `2.7.0`.
+  - Incremented `PROMPT_VERSION` to `2.8.0`.
   - Made the shared editorial mission, rewrite role, rewrite priorities, and iterative-refinement role genuinely tenant-neutral; Envoyou-style premium, professional-audience, and strategic-projection defaults no longer live in cacheable core nodes.
   - Moved publication-specific direction to dynamic editorial-profile context, including the tenant primary goal and default language. An explicit article target audience now overrides the profile audience only for that article.
   - Added the standardized workspace context, agent instruction, and research-note summary to both the primary **Refine Draft** rewrite and subsequent iterative refinement requests.
   - Added regression coverage for tenant-independent static prompt prefixes, non-Envoyou persona leakage, audience precedence, and workspace-context wiring.
 
 ### Fixed
+- **Blog Admin SEO readiness and Refine completion**:
+  - Aligned the Envoyou defaults and onboarding profile with Blog Admin limits: meta titles target 30–70 characters, meta descriptions allow up to 160 characters, excerpts require at least 50 characters, articles recommend at least 300 words, and concise slugs target six words or fewer.
+  - Replaced word-boundary ellipsis truncation with deterministic complete-sentence repair, preventing generated metadata from being normalized into a form that the Final Quality Gate always rejects.
+  - Added deterministic publish-ready checks for missing or out-of-range metadata plus advisory content/slug targets.
+  - Added one corrective retry when Refine returns the source draft unchanged; a second no-op now exits without saving or debiting a successful refinement.
+  - Suppressed generated change claims when the source and final draft are identical.
+  - Added and applied immutable Envoyou profile migration `20260730120000_align_envoyou_blog_seo_limits` to production Neon; Prisma confirmed all 32 migrations are up to date. The affected article workspace also received a new immutable profile version with the 70/160 limits.
 - **Analyze-to-publication prompt and workflow contract**:
   - Re-audit the generated SEO package with the Final Quality Gate in `publish_ready` mode before persisting the latest readiness, so CMS export cannot rely on a body-only Quality Check.
   - Removed a fabricated citation from the review few-shot, aligned `needs_review` with the strict export guard, made Review/SEO/Quality Gate core personas tenant-neutral, and aligned the SEO example with the shared five-tag limit.
