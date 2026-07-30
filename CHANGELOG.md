@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.21.0] - 2026-07-30
+
 ### Changed
 - **Tenant-safe Refine Draft personas**:
   - Incremented `PROMPT_VERSION` to `2.8.0`.

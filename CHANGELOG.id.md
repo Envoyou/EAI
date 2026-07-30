@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.21.0] - 2026-07-30
+
 ### Changed
 - **Persona Refine Draft yang aman untuk multi-tenant**:
   - Menaikkan `PROMPT_VERSION` ke `2.8.0`.
