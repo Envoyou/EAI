@@ -10,6 +10,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Decision-oriented pre-final review**:
   - Kept unresolved Refine output behind a Draft Review queue and labeled explicit manual access as Candidate Draft; the normal Final Draft surface now appears only after the saved revision reaches `ready`.
   - Replaced technical feedback controls with editorial outcomes such as Accept change, Keep current text, Add source manually, and Remove unsupported detail; applying a decision continues to trigger automatic validation.
+  - Made prepared Before/After patches apply optimistically in the editor before persistence. Persistence failures restore the prior snapshot, revision conflicts reload the latest saved revision, and validation warnings keep the accepted edit.
+  - Split AI generation from approval: findings without a concrete replacement now expose Generate suggestion, which creates a non-persisted preview; Accept change appears only after that patch is ready and applies without another model call.
 - **Source-fidelity target accuracy**:
   - Matched acronym findings as complete Unicode tokens when locating their affected sentence, preventing `ERP` from highlighting an unrelated sentence containing the word `enterprises`.
 - **In-place Final Draft editing**:

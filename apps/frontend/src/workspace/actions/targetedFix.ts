@@ -5,30 +5,16 @@ import type {
   AnalysisResult,
   ArticleMetadata,
   Attachment,
-  FeedbackItem,
-  EditorialReadiness,
-  PublicationPackageStatus,
   ResearchNote,
-  RevisionValidationState,
-  SeoReviewState,
-  DraftRevisionIdentity,
 } from '@eai/shared';
 import type { AnalysisSpeed, DirectFetchType } from '../types';
 import { replaceFirstTargetMatch } from '@eai/shared';
 import { readWithTimeout } from '@/lib/stream-utils';
 import { getResponseErrorMessage } from '@/lib/fetch-utils';
-import { markFeedbackApplied } from '../utils';
-
-type EditorialResolutionResult = {
-  readiness: EditorialReadiness;
-  publicationPackageStatus?: PublicationPackageStatus;
-  qualityGateState?: RevisionValidationState;
-  seoReviewState?: SeoReviewState;
-  draftRevision?: DraftRevisionIdentity;
-};
-
-export type TargetedFixResult = EditorialResolutionResult & {
-  polishedDraft: string;
+export type TargetedFixPreviewResult = {
+  targetText: string;
+  replacementText: string;
+  operation: 'replace';
 };
 
 interface TargetedFixContext {
@@ -41,14 +27,7 @@ interface TargetedFixContext {
   originalDraft: string;
   researchNotes: ResearchNote[];
   attachments: Attachment[];
-  persistEditorialResolution: (
-    feedback: FeedbackItem[],
-    readiness: EditorialReadiness,
-    polishedDraft: string,
-    flags: string[],
-    origin: 'targeted_fix' | 'remove_content'
-  ) => Promise<EditorialResolutionResult>;
-  bodyChangeSuccessMessage: string;
+  suggestionReadyMessage: string;
   setAnalysis: (updater: (prev: AnalysisResult) => AnalysisResult) => void;
   analyzeAbortControllerRef: React.MutableRefObject<AbortController | null>;
 }
@@ -57,7 +36,7 @@ export async function executeTargetedFix(
   ctx: TargetedFixContext,
   index: number,
   actionType: 'remove' | 'fix'
-): Promise<TargetedFixResult | null> {
+): Promise<TargetedFixPreviewResult | null> {
   const {
     analysis,
     isTargetedFixing,
@@ -68,8 +47,7 @@ export async function executeTargetedFix(
     originalDraft,
     researchNotes,
     attachments,
-    persistEditorialResolution,
-    bodyChangeSuccessMessage,
+    suggestionReadyMessage,
     setAnalysis,
     analyzeAbortControllerRef,
   } = ctx;
@@ -171,49 +149,34 @@ export async function executeTargetedFix(
       throw new Error('No replacement text returned by the AI.');
     }
 
-    const finalDraft = fullDraft;
-    const result = replaceFirstTargetMatch(finalDraft, effectiveTargetText, replacementText);
-    
-    let nextDraft = finalDraft;
-    if (result.success) {
-      nextDraft = result.nextText;
-    } else {
+    const result = replaceFirstTargetMatch(fullDraft, effectiveTargetText, replacementText);
+    if (!result.success) {
       toast.info('Target text was already modified or removed. Refresh the analysis before retrying.');
       return null;
     }
 
-    const nextFeedback = markFeedbackApplied(analysis.feedback || [], index);
-    const nextReadiness: EditorialReadiness = 'needs_review';
-    const nextFlags = analysis.flags || [];
-    const persisted = await persistEditorialResolution(
-      nextFeedback,
-      nextReadiness,
-      nextDraft,
-      nextFlags,
-      actionType === 'remove' ? 'remove_content' : 'targeted_fix'
-    );
-    const persistedFlags = persisted.readiness === 'ready' ? [] : nextFlags;
     setAnalysis(prev => ({
       ...prev,
-      polishedDraft: nextDraft,
-      feedback: nextFeedback,
-      readiness: persisted.readiness,
-      verdict: persisted.readiness,
-      flags: persistedFlags,
-      publicationPackageStatus:
-        persisted.publicationPackageStatus
-        ?? (prev.publicationPackageStatus === 'current'
-          ? 'stale'
-          : prev.publicationPackageStatus),
-      qualityGateState: persisted.qualityGateState ?? 'stale',
-      seoReviewState: persisted.seoReviewState ?? prev.seoReviewState,
-      draftRevision: persisted.draftRevision ?? prev.draftRevision,
+      feedback: (prev.feedback || []).map((feedbackItem, feedbackIndex) =>
+        feedbackIndex === index
+          ? {
+              ...feedbackItem,
+              targetText: effectiveTargetText,
+              replacementText,
+              operation: 'replace',
+              isApplied: false,
+              isAccepted: false,
+              isVerified: false,
+            }
+          : feedbackItem
+      ),
     }));
 
-    toast.success(bodyChangeSuccessMessage);
+    toast.success(suggestionReadyMessage);
     return {
-      ...persisted,
-      polishedDraft: nextDraft,
+      targetText: effectiveTargetText,
+      replacementText,
+      operation: 'replace',
     };
   } catch (error) {
     if (controller.signal.aborted) {

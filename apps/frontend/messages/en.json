@@ -218,6 +218,9 @@
     "acceptEditorialDecision": "Accept as editorial decision",
     "acceptAndApplySuggestion": "Accept and apply suggestion",
     "applySuggestedFix": "Apply suggested fix",
+    "generateSuggestion": "Generate suggestion",
+    "generatingSuggestion": "Generating suggestion",
+    "generateRemovalSuggestion": "Generate removal suggestion",
     "rewriteWithEAI": "Rewrite with EAI",
     "reviseWithEAI": "Revise with EAI",
     "removeUnsupportedDetail": "Remove unsupported detail",
@@ -240,6 +243,8 @@
     "validatingDescription": "EAI is applying your decisions and validating the saved revision automatically."
   },
   "FeedbackWorkflow": {
+    "suggestionReady": "Suggestion ready. Review the proposed change before accepting it.",
+    "revisionConflictReconciled": "The draft changed elsewhere. EAI restored the latest saved revision; review the suggestion again.",
     "appliedAutomaticQualityCheck": "Suggestion applied. EAI is checking the affected content.",
     "removedAutomaticQualityCheck": "Addition removed. EAI is checking the affected content.",
     "fixedAutomaticQualityCheck": "Sentence fixed. EAI is checking the affected content.",

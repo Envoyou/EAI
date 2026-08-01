@@ -10,6 +10,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Tinjauan Pra-final Berbasis Keputusan**:
   - Menahan hasil Refine yang masih memiliki keputusan blocking di antrean Tinjauan Draft dan memberi label Draft Kandidat pada akses edit manual; tampilan Draft Final normal baru muncul setelah revisi tersimpan berstatus `ready`.
   - Mengganti kontrol feedback teknis dengan hasil editorial seperti Terima perubahan, Pertahankan teks, Tambah sumber manual, dan Hapus detail tanpa dukungan; penerapan keputusan tetap memicu validasi otomatis.
+  - Menerapkan patch Before/After yang sudah siap secara optimistis di editor sebelum persistence. Kegagalan penyimpanan memulihkan snapshot sebelumnya, konflik revisi memuat revisi tersimpan terbaru, sedangkan warning validasi mempertahankan edit yang sudah diterima.
+  - Memisahkan generasi AI dari persetujuan: temuan tanpa replacement konkret kini menampilkan Buat usulan perbaikan yang hanya menghasilkan preview tanpa menyimpan; Terima perubahan baru muncul setelah patch siap dan tidak memanggil model kembali.
 - **Akurasi target source-fidelity**:
   - Mencocokkan temuan akronim sebagai token Unicode utuh ketika mencari kalimat terdampak, sehingga `ERP` tidak lagi menyorot kalimat tak terkait hanya karena memuat kata `enterprises`.
 - **Pengeditan Final Draft langsung di tempat**:

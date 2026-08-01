@@ -139,7 +139,6 @@ export const canAutoApplyFeedback = (item: FeedbackItem) => {
   if (
     item.status === 'pass'
     || (item.targetField !== undefined && item.targetField !== 'body')
-    || item.verificationStatus
     || item.isApplied
     || item.isAccepted
     || item.isVerified

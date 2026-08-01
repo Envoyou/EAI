@@ -218,6 +218,9 @@
     "acceptEditorialDecision": "Terima sebagai keputusan editorial",
     "acceptAndApplySuggestion": "Terima dan terapkan saran",
     "applySuggestedFix": "Terapkan saran perbaikan",
+    "generateSuggestion": "Buat usulan perbaikan",
+    "generatingSuggestion": "Membuat usulan",
+    "generateRemovalSuggestion": "Buat usulan penghapusan",
     "rewriteWithEAI": "Tulis ulang dengan EAI",
     "reviseWithEAI": "Revisi dengan EAI",
     "removeUnsupportedDetail": "Hapus detail tanpa dukungan",
@@ -240,6 +243,8 @@
     "validatingDescription": "EAI sedang menerapkan keputusan Anda dan memvalidasi revisi tersimpan secara otomatis."
   },
   "FeedbackWorkflow": {
+    "suggestionReady": "Usulan siap. Tinjau perubahan yang diajukan sebelum menerimanya.",
+    "revisionConflictReconciled": "Draft telah berubah di tempat lain. EAI memulihkan revisi tersimpan terbaru; tinjau kembali usulannya.",
     "appliedAutomaticQualityCheck": "Saran diterapkan. EAI sedang memeriksa konten yang terdampak.",
     "removedAutomaticQualityCheck": "Tambahan dihapus. EAI sedang memeriksa konten yang terdampak.",
     "fixedAutomaticQualityCheck": "Kalimat diperbaiki. EAI sedang memeriksa konten yang terdampak.",

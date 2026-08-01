@@ -99,6 +99,17 @@ type EditorialMutationOrigin =
   | 'add_source'
   | 'accept_feedback';
 
+class EditorialResolutionPersistenceError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string
+  ) {
+    super(message);
+    this.name = 'EditorialResolutionPersistenceError';
+  }
+}
+
 export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) {
   const router = useRouter();
   const tFeedbackWorkflow = useTranslations('FeedbackWorkflow');
@@ -1043,6 +1054,20 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     const nextReadiness: EditorialReadiness = 'needs_review';
     const nextFlags = analysis.flags || [];
     let automaticValidation: AutomaticValidationContext | null = null;
+    const previousAnalysis = analysis;
+    setAnalysis(prev => ({
+      ...prev,
+      polishedDraft: result.nextText,
+      feedback: nextFeedback,
+      readiness: nextReadiness,
+      verdict: nextReadiness,
+      flags: nextFlags,
+      publicationPackageStatus:
+        prev.publicationPackageStatus === 'current'
+          ? 'stale'
+          : prev.publicationPackageStatus,
+      qualityGateState: 'stale',
+    }));
     workspaceMutationRef.current = true;
     try {
       const persisted = await persistEditorialResolution(
@@ -1076,6 +1101,22 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       };
       toast.success(tFeedbackWorkflow('appliedAutomaticQualityCheck'));
     } catch (error) {
+      if (
+        error instanceof EditorialResolutionPersistenceError
+        && error.code === 'DRAFT_REVISION_MISMATCH'
+      ) {
+        setAnalysis(prev =>
+          prev.polishedDraft === result.nextText ? previousAnalysis : prev
+        );
+        workspaceMutationRef.current = false;
+        const logId = analysis.analysisLogId || activeHistoryId;
+        if (logId) await loadHistory(logId);
+        toast.error(tFeedbackWorkflow('revisionConflictReconciled'));
+        return false;
+      }
+      setAnalysis(prev =>
+        prev.polishedDraft === result.nextText ? previousAnalysis : prev
+      );
       toast.error(error instanceof Error ? error.message : 'Failed to save the applied suggestion.');
       return false;
     } finally {
@@ -1114,6 +1155,20 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     const nextReadiness: EditorialReadiness = 'needs_review';
     const nextFlags = analysis.flags || [];
     let automaticValidation: AutomaticValidationContext | null = null;
+    const previousAnalysis = analysis;
+    setAnalysis(prev => ({
+      ...prev,
+      polishedDraft: result.nextText,
+      feedback: nextFeedback,
+      readiness: nextReadiness,
+      verdict: nextReadiness,
+      flags: nextFlags,
+      publicationPackageStatus:
+        prev.publicationPackageStatus === 'current'
+          ? 'stale'
+          : prev.publicationPackageStatus,
+      qualityGateState: 'stale',
+    }));
     workspaceMutationRef.current = true;
     try {
       const persisted = await persistEditorialResolution(
@@ -1156,6 +1211,22 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         }));
       }
     } catch (error) {
+      if (
+        error instanceof EditorialResolutionPersistenceError
+        && error.code === 'DRAFT_REVISION_MISMATCH'
+      ) {
+        setAnalysis(prev =>
+          prev.polishedDraft === result.nextText ? previousAnalysis : prev
+        );
+        workspaceMutationRef.current = false;
+        const logId = analysis.analysisLogId || activeHistoryId;
+        if (logId) await loadHistory(logId);
+        toast.error(tFeedbackWorkflow('revisionConflictReconciled'));
+        return;
+      }
+      setAnalysis(prev =>
+        prev.polishedDraft === result.nextText ? previousAnalysis : prev
+      );
       toast.error(error instanceof Error ? error.message : 'Failed to save applied suggestions.');
     } finally {
       workspaceMutationRef.current = false;
@@ -1363,7 +1434,11 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     });
     const result = await response.json();
     if (!response.ok) {
-      throw new Error(result.error || 'Failed to save the editorial decision.');
+      throw new EditorialResolutionPersistenceError(
+        result.error || 'Failed to save the editorial decision.',
+        response.status,
+        typeof result.code === 'string' ? result.code : undefined
+      );
     }
     const persistedReadiness: EditorialReadiness =
       result.readiness === 'ready'
@@ -1537,17 +1612,11 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       originalDraft: sourceDraft,
       researchNotes,
       attachments,
-      persistEditorialResolution,
-      bodyChangeSuccessMessage: actionType === 'remove'
-        ? tFeedbackWorkflow('removedAutomaticQualityCheck')
-        : tFeedbackWorkflow('fixedAutomaticQualityCheck'),
+      suggestionReadyMessage: tFeedbackWorkflow('suggestionReady'),
       setAnalysis,
       analyzeAbortControllerRef,
     };
-    const result = await executeTargetedFix(ctx, index, actionType);
-    if (result) {
-      await runAutomaticPublicationValidation(result);
-    }
+    await executeTargetedFix(ctx, index, actionType);
   };
 
   const handleProceedRefinement = (resolution: { restore: boolean }) => {

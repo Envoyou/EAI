@@ -165,14 +165,16 @@ export function FeedbackItemCard({
   const isAccepted = item.isAccepted;
   const isVerified = item.isVerified;
   const isResolved = isApplied || isAccepted || isVerified || item.status === 'pass';
+  const requiresGeneratedPreview = canRequestEAIRevision(item)
+    && Boolean(onFixFeedbackWithEAI)
+    && !showApplyFeature;
   const showAcceptEditorialDecision =
-    canAcceptEditorialDecision(item) && Boolean(onAcceptFeedback);
-  const applySuggestionOnAccept = showAcceptEditorialDecision
-    && canRequestEAIRevision(item)
-    && Boolean(onFixFeedbackWithEAI);
+    canAcceptEditorialDecision(item)
+    && !requiresGeneratedPreview
+    && Boolean(onAcceptFeedback);
   const showEAIRevision = canRequestEAIRevision(item)
     && Boolean(onFixFeedbackWithEAI)
-    && !showAcceptEditorialDecision;
+    && !showApplyFeature;
   const sourceDisplay = item.verifiedSource
     ? getSourceDisplay(item.verifiedSource)
     : null;
@@ -457,7 +459,7 @@ export function FeedbackItemCard({
               {/* Interactive Actions for Post-Polish Review Loop */}
               {!isResolved && (
                 <div className="mt-3 pt-3 border-t border-[var(--border)]/50 flex flex-wrap gap-2">
-                  {item.category === 'Editorial Addition' && (
+                  {item.category === 'Editorial Addition' && !showApplyFeature && (
                     <>
                       <Button
                         type="button"
@@ -487,12 +489,12 @@ export function FeedbackItemCard({
                         ) : (
                           <Trash2 className="w-3.5 h-3.5" />
                         )}
-                        Remove Addition
+                        {t('generateRemovalSuggestion')}
                       </Button>
                     </>
                   )}
 
-                  {item.category === 'Internal Linking' && (
+                  {item.category === 'Internal Linking' && !showApplyFeature && (
                     <Button
                       type="button"
                       onClick={(e) => {
@@ -512,11 +514,7 @@ export function FeedbackItemCard({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (applySuggestionOnAccept && onFixFeedbackWithEAI) {
-                          onFixFeedbackWithEAI(index);
-                        } else if (onAcceptFeedback) {
-                          onAcceptFeedback(index);
-                        }
+                        if (onAcceptFeedback) onAcceptFeedback(index);
                       }}
                       disabled={isTargetedFixing !== null}
                       variant="muted"
@@ -527,9 +525,7 @@ export function FeedbackItemCard({
                       ) : (
                         <Check className="w-3.5 h-3.5" />
                       )}
-                      {applySuggestionOnAccept
-                        ? t('acceptAndApplySuggestion')
-                        : t('acceptEditorialDecision')}
+                      {t('acceptEditorialDecision')}
                     </Button>
                   )}
 
@@ -574,7 +570,8 @@ export function FeedbackItemCard({
 
                   {targetText &&
                     (item.category === 'Source Fidelity' ||
-                      item.category === 'Internal Linking') && (
+                      item.category === 'Internal Linking') &&
+                    !showApplyFeature && (
                       <Button
                         type="button"
                         onClick={(e) => {
@@ -591,7 +588,7 @@ export function FeedbackItemCard({
                         ) : (
                           <Trash2 className="w-3.5 h-3.5" />
                         )}
-                        {t('removeUnsupportedDetail')}
+                        {t('generateRemovalSuggestion')}
                       </Button>
                     )}
 
@@ -611,7 +608,9 @@ export function FeedbackItemCard({
                       ) : (
                         <Wand2 className="w-3.5 h-3.5" />
                       )}
-                      {t('applySuggestedFix')}
+                      {isTargetedFixing === index
+                        ? t('generatingSuggestion')
+                        : t('generateSuggestion')}
                     </Button>
                   )}
                 </div>

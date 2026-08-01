@@ -362,13 +362,26 @@ the affected passage can be identified safely.
 
 The frontend selects the narrowest safe action:
 
-- complete target/replacement operations expose direct Apply;
-- residual non-source editorial findings expose one approval action that applies the proposed targeted correction and starts automatic validation;
+- complete target/replacement operations expose direct Accept change and apply
+  optimistically before persistence;
+- residual findings without a complete operation expose Generate suggestion;
+  Targeted Fix returns a local Before/After preview without mutating or
+  persisting the draft;
 - source-fidelity and verification findings expose source, deterministic remove/neutralize, or manual-decision actions instead of open-ended generative rewrite;
-- findings without target text expose the same approval action backed by constrained Final Draft refinement using the finding message, suggestion, and reason;
+- findings without target text may generate a constrained whole-draft preview
+  using the finding message, suggestion, and reason, but still require a
+  separate Accept change action;
 - non-factual warnings may be accepted without mutation only when no draft correction is proposed;
 - factual/source-risk warnings and all blocking failures cannot be accepted
   without revision or verification.
+
+Prepared-patch acceptance follows explicit failure semantics:
+
+- persistence failure restores the previous local snapshot;
+- revision conflict restores the snapshot and reloads the server-authoritative
+  saved revision; and
+- validation that still returns warnings keeps the accepted edit and presents
+  only the remaining decision.
 
 Any body-changing resolution returns to Quality Check semantics. It does not
 require Full Analyze, and export remains guarded by current readiness,

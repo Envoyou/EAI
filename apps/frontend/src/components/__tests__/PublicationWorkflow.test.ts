@@ -107,7 +107,8 @@ describe('revision-safe publication workflow', () => {
       'components/feedback-panel/components/FeedbackItemCard.tsx'
     );
 
-    expect(targetedFix).toContain('markFeedbackApplied');
+    expect(targetedFix).not.toContain('markFeedbackApplied');
+    expect(targetedFix).toContain("operation: 'replace'");
     expect(targetedFix).not.toContain("isAccepted: actionType === 'remove'");
     expect(workspace).toContain('persisted.readiness');
     expect(workspace).toContain('persisted.publicationPackageStatus');
@@ -130,12 +131,12 @@ describe('revision-safe publication workflow', () => {
     expect(workspace).toContain("mode: 'refresh_seo_fields'");
     expect(workspace).toContain('getSafeStaleSeoFields(context.seoFieldStates)');
     expect(workspace).toContain('await handleRefreshSeoFields({');
-    expect(workspace).toContain('const result = await executeTargetedFix');
+    expect(workspace).toContain('await executeTargetedFix');
     expect(workspace).toContain('sourceAddedAutomaticQualityCheck');
     expect(workspace).toContain('revisionId: draftRevision?.revisionId');
     expect(workspace).toContain('bodyHash: draftRevision?.bodyHash');
     expect(workspace).toContain("event.type === 'revision_identity'");
-    expect(targetedFix).toContain('Promise<TargetedFixResult | null>');
+    expect(targetedFix).toContain('Promise<TargetedFixPreviewResult | null>');
     expect(summary).toContain("t('applyAndVerify')");
   });
 
@@ -161,11 +162,27 @@ describe('revision-safe publication workflow', () => {
 
     expect(feedbackCard).toContain('showAcceptEditorialDecision');
     expect(feedbackCard).toContain('showEAIRevision');
-    expect(feedbackCard).toContain("t('applySuggestedFix')");
-    expect(feedbackCard).toContain("t('acceptAndApplySuggestion')");
+    expect(feedbackCard).toContain("t('generateSuggestion')");
+    expect(feedbackCard).toContain('requiresGeneratedPreview');
     expect(targetedFix).toContain("item?.targetText?.trim() || fullDraft");
     expect(targetedFix).toContain("mode: 'fix_targeted'");
     expect(workspace).not.toContain('Resolve only this remaining editorial finding');
+  });
+
+  it('applies prepared patches optimistically and separates persistence failures from validation warnings', () => {
+    const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
+    const targetedFix = readFrontendSource('workspace/actions/targetedFix.ts');
+
+    const optimisticUpdate = workspace.indexOf('polishedDraft: result.nextText');
+    const persistence = workspace.indexOf('await persistEditorialResolution(', optimisticUpdate);
+    expect(optimisticUpdate).toBeGreaterThan(-1);
+    expect(persistence).toBeGreaterThan(optimisticUpdate);
+    expect(workspace).toContain('prev.polishedDraft === result.nextText ? previousAnalysis : prev');
+    expect(workspace).toContain("error.code === 'DRAFT_REVISION_MISMATCH'");
+    expect(workspace).toContain('if (logId) await loadHistory(logId);');
+    expect(workspace).toContain('await runAutomaticPublicationValidation(automaticValidation);');
+    expect(targetedFix).toContain('replacementText,');
+    expect(targetedFix).not.toContain('persistEditorialResolution');
   });
 
   it('keeps unresolved candidates behind an editorial review queue', () => {

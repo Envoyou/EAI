@@ -32,9 +32,14 @@ describe('feedback preview auto-apply contract', () => {
     expect(canShowAutoApply(suggestionOnly, false)).toBe(false);
   });
 
-  it('rejects manual, verification, accepted, and applied items', () => {
+  it('rejects manual, accepted, and applied items while allowing a prepared verification patch', () => {
     expect(canShowAutoApply({ ...autoFix, operation: 'manual' }, false)).toBe(false);
-    expect(canShowAutoApply({ ...autoFix, verificationStatus: 'needs_citation' }, false)).toBe(false);
+    expect(canShowAutoApply({ ...autoFix, verificationStatus: 'needs_citation' }, false)).toBe(true);
+    expect(canShowAutoApply({
+      ...autoFix,
+      verificationStatus: 'needs_citation',
+      replacementText: undefined,
+    }, false)).toBe(false);
     expect(canShowAutoApply({ ...autoFix, isAccepted: true }, false)).toBe(false);
     expect(canShowAutoApply({ ...autoFix, isApplied: true }, false)).toBe(false);
   });
