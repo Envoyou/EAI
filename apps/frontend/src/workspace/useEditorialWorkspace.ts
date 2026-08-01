@@ -312,17 +312,40 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Failed to save final draft.');
+      const persistedReadiness: EditorialReadiness =
+        result.readiness === 'ready'
+        || result.readiness === 'needs_review'
+        || result.readiness === 'blocked'
+          ? result.readiness
+          : 'needs_review';
+      const persistedPackageStatus: PublicationPackageStatus =
+        result.publicationPackageStatus === 'current'
+        || result.publicationPackageStatus === 'stale'
+        || result.publicationPackageStatus === 'not_generated'
+          ? result.publicationPackageStatus
+          : 'not_generated';
+      const invalidated = result.qualityCheckInvalidated === true;
       setAnalysis(prev => ({
         ...prev,
         polishedDraft: result.polishedDraft,
-        readiness: 'needs_review',
-        verdict: 'needs_review',
-        feedback: [],
-        flags: [],
-        summary: 'The final draft was edited and needs a content quality check.',
-        publicationPackageStatus: result.publicationPackageStatus,
+        readiness: persistedReadiness,
+        ...(invalidated
+          ? {
+              verdict: 'needs_review' as const,
+              feedback: [],
+              flags: [],
+              summary: 'The final draft changed substantively and needs a content quality check.',
+            }
+          : {}),
+        publicationPackageStatus: persistedPackageStatus,
       }));
-      toast.success('Final draft saved. Run Quality Check before export.');
+      toast.success(
+        result.revisionImpact === 'formatting_only'
+          ? tFinalDraftPanel('formattingEditSaved')
+          : result.revisionImpact === 'minor_copy_edit'
+            ? tFinalDraftPanel('minorEditSaved')
+            : tFinalDraftPanel('substantiveEditSaved')
+      );
       return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save final draft.');

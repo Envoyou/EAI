@@ -1344,6 +1344,9 @@ export default function FinalDraftPanel({
                           <p className="text-[11px] text-[var(--muted-foreground)]">
                             {t('saveInvalidatesReview')}
                           </p>
+                          <p className="mt-1 text-[10px] text-[var(--muted-foreground)]">
+                            {t('revisionImpactPolicy')}
+                          </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
                           <Button

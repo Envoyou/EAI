@@ -9,7 +9,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ### Changed
 - **In-place Final Draft editing**:
   - Replaced the detached raw-Markdown edit card with a rich-text editor in the existing Preview surface, so a visible typo can be corrected without finding it again in a separate representation.
-  - Kept Markdown as the persisted interchange format and retained the existing revision-save contract that invalidates stale Quality Check and SEO metadata.
+  - Kept Markdown as the persisted interchange format and added server-authoritative revision-impact classification: whitespace-only corrections retain the current Quality Check and SEO status, as do low-risk edits within 1% of a draft of at least 100 words, capped at two word edits.
+  - Substantive edits still invalidate publication readiness. Heading, fact/number, link, protected language, SEO-term, proper-name, structural, and broader content changes remain on the strict revalidation path.
   - Added a sticky Save/Cancel bar and temporarily holds Preview-adjacent workflow, export, copy, and view actions while an unsaved revision is open.
 
 ## [3.21.0] - 2026-07-30

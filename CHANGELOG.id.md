@@ -9,7 +9,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ### Changed
 - **Pengeditan Final Draft langsung di tempat**:
   - Mengganti kartu edit Markdown mentah yang terpisah dengan editor rich-text pada area Preview yang sama, sehingga typo yang terlihat dapat langsung diperbaiki tanpa mencarinya lagi dalam representasi lain.
-  - Mempertahankan Markdown sebagai format pertukaran yang disimpan dan tetap memakai kontrak penyimpanan revisi yang menginvalidasi Quality Check serta metadata SEO lama.
+  - Mempertahankan Markdown sebagai format pertukaran yang disimpan dan menambahkan klasifikasi dampak revisi yang ditentukan backend: koreksi spasi mempertahankan status Quality Check dan SEO saat ini, demikian juga edit berisiko rendah hingga 1% dari draft minimal 100 kata dengan batas maksimal dua perubahan kata.
+  - Perubahan substantif tetap menginvalidasi kesiapan publikasi. Perubahan heading, fakta/angka, tautan, bahasa terlindungi, istilah SEO, proper name, struktur, dan konten yang lebih luas tetap wajib divalidasi ulang.
   - Menambahkan bar Save/Cancel yang sticky dan menahan sementara aksi workflow, ekspor, salin, serta perpindahan tampilan selama revisi belum disimpan.
 
 ## [3.21.0] - 2026-07-30

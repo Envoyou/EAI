@@ -18,6 +18,7 @@ describe('revision-safe publication workflow', () => {
     expect(panel).toContain('saveDraftRevision');
     expect(panel).toContain('cancelDraftEditing');
     expect(panel).toContain("t('saveInvalidatesReview')");
+    expect(panel).toContain("t('revisionImpactPolicy')");
     expect(panel).not.toContain('final-draft-editor-textarea');
     expect(inlineEditor).toContain('useEditor({');
     expect(inlineEditor).toContain('Markdown.configure({');
@@ -38,6 +39,15 @@ describe('revision-safe publication workflow', () => {
     expect(panel).toContain(
       'labelClassName="hidden md:inline"'
     );
+  });
+
+  it('retains publication readiness for backend-classified safe edits', () => {
+    const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
+
+    expect(workspace).toContain('result.qualityCheckInvalidated === true');
+    expect(workspace).toContain("result.revisionImpact === 'formatting_only'");
+    expect(workspace).toContain("result.revisionImpact === 'minor_copy_edit'");
+    expect(workspace).toContain("tFinalDraftPanel('substantiveEditSaved')");
   });
 
   it('keeps secondary final-draft actions in an adaptive portalled menu', () => {

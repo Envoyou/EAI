@@ -20,6 +20,7 @@ import {
   ContentSourceType,
 } from '@prisma/client';
 import { upsertContentArtifact } from '@/lib/content-memory';
+import { classifyDraftRevisionImpact } from '@/lib/draft-revision-impact';
 
 const router = Router();
 
@@ -471,27 +472,54 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
 
     if (resolution.data.action === 'update_final_draft') {
       const nextPolishedDraft = preparePublicationDraft(resolution.data.polishedDraft);
+      const previousPolishedDraft = typeof systemMetadata.polishedDraft === 'string'
+        ? systemMetadata.polishedDraft
+        : '';
+      const revisionImpact = classifyDraftRevisionImpact({
+        previousDraft: previousPolishedDraft,
+        nextDraft: nextPolishedDraft,
+        publicationMetadata:
+          metadata.generatedMetadata && typeof metadata.generatedMetadata === 'object'
+            ? metadata.generatedMetadata
+            : null,
+      });
+      const invalidatesPublicationReview = revisionImpact === 'substantive';
+      const previousReadiness =
+        systemMetadata.readiness === 'ready'
+        || systemMetadata.readiness === 'needs_review'
+        || systemMetadata.readiness === 'blocked'
+          ? systemMetadata.readiness
+          : 'needs_review';
+      const readiness = invalidatesPublicationReview ? 'needs_review' : previousReadiness;
       const publicationPackageStatus = resolvePublicationPackageStatus({
         storedStatus: metadata.publicationPackageStatus,
         hasPackage: Boolean(metadata.generatedMetadata),
-        bodyChanged: true,
+        bodyChanged: invalidatesPublicationReview,
       });
       await prisma.analysisLog.update({
         where: { id },
         data: {
-          feedback: [] as Prisma.InputJsonValue,
-          flags: [] as Prisma.InputJsonValue,
-          verdict: 'needs_review',
-          summary: 'The final draft was edited and needs a content quality check.',
+          ...(invalidatesPublicationReview
+            ? {
+                feedback: [] as Prisma.InputJsonValue,
+                flags: [] as Prisma.InputJsonValue,
+                verdict: 'needs_review',
+                summary: 'The final draft changed substantively and needs a content quality check.',
+              }
+            : {}),
           metadata: {
             ...metadata,
             publicationPackageStatus,
             _system: {
               ...systemMetadata,
               polishedDraft: nextPolishedDraft,
-              readiness: 'needs_review',
+              readiness,
               publicationPackageStatus,
-              qualityGateCheckedAt: null,
+              revisionImpact,
+              finalDraftEditedAt: new Date().toISOString(),
+              qualityGateCheckedAt: invalidatesPublicationReview
+                ? null
+                : systemMetadata.qualityGateCheckedAt,
             },
           } as Prisma.InputJsonValue,
         },
@@ -499,8 +527,11 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       return res.json({
         success: true,
         polishedDraft: nextPolishedDraft,
-        readiness: 'needs_review',
+        readiness,
         publicationPackageStatus,
+        revisionImpact,
+        qualityCheckInvalidated: invalidatesPublicationReview,
+        seoInvalidated: invalidatesPublicationReview && publicationPackageStatus === 'stale',
       });
     }
 
