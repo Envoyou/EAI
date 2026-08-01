@@ -4,6 +4,11 @@ const MAX_RESOLVED_FINDINGS = 100;
 const MAX_SOURCE_URLS = 100;
 
 export type QualityResolution = {
+  feedbackId?: string;
+  ruleId?: string;
+  claimId?: string;
+  blockId?: string;
+  sourceIds?: string[];
   category: string;
   message: string;
   targetText?: string;
@@ -60,8 +65,22 @@ const readResolution = (value: unknown): QualityResolution | null => {
       ? candidate.verifiedSource
       : undefined
   );
+  const readId = (key: 'feedbackId' | 'ruleId' | 'claimId' | 'blockId') =>
+    typeof candidate[key] === 'string' && candidate[key].trim().length > 0
+      ? candidate[key].trim()
+      : undefined;
+  const sourceIds = Array.isArray(candidate.sourceIds)
+    ? candidate.sourceIds.filter(
+        (value): value is string => typeof value === 'string' && value.trim().length > 0
+      ).slice(0, 20)
+    : [];
 
   return {
+    ...(readId('feedbackId') ? { feedbackId: readId('feedbackId') } : {}),
+    ...(readId('ruleId') ? { ruleId: readId('ruleId') } : {}),
+    ...(readId('claimId') ? { claimId: readId('claimId') } : {}),
+    ...(readId('blockId') ? { blockId: readId('blockId') } : {}),
+    ...(sourceIds.length > 0 ? { sourceIds } : {}),
     category,
     message,
     ...(targetText ? { targetText } : {}),
@@ -70,11 +89,15 @@ const readResolution = (value: unknown): QualityResolution | null => {
   };
 };
 
-const resolutionKey = (item: QualityResolution) => [
-  normalizeText(item.category),
-  normalizeText(item.targetText) || normalizeText(item.message),
-  item.verifiedSource ?? '',
-].join('::');
+const resolutionKey = (item: QualityResolution) => item.feedbackId
+  ? `feedback::${item.feedbackId}`
+  : item.claimId && item.ruleId
+    ? `claim::${item.claimId}::${item.ruleId}`
+    : [
+        normalizeText(item.category),
+        normalizeText(item.targetText) || normalizeText(item.message),
+        item.verifiedSource ?? '',
+      ].join('::');
 
 const feedbackResolution = (item: FeedbackItem): QualityResolution | null => {
   const resolution = item.isVerified
@@ -87,6 +110,11 @@ const feedbackResolution = (item: FeedbackItem): QualityResolution | null => {
   if (!resolution || item.status === 'fail') return null;
 
   return readResolution({
+    feedbackId: item.feedbackId,
+    ruleId: item.ruleId,
+    claimId: item.claimId,
+    blockId: item.blockId,
+    sourceIds: item.sourceIds,
     category: item.category,
     message: item.message,
     targetText: item.targetText,
@@ -149,6 +177,16 @@ const resolutionApplies = (
   finalDraft: string
 ) => {
   if (finding.status !== 'warning') return false;
+  if (finding.feedbackId && resolution.feedbackId) {
+    return finding.feedbackId === resolution.feedbackId;
+  }
+  if (finding.claimId && finding.ruleId && resolution.claimId && resolution.ruleId) {
+    return finding.claimId === resolution.claimId && finding.ruleId === resolution.ruleId;
+  }
+  if (
+    (finding.feedbackId || finding.claimId)
+    && (resolution.feedbackId || resolution.claimId)
+  ) return false;
   if (normalizeText(finding.category) !== normalizeText(resolution.category)) {
     return false;
   }

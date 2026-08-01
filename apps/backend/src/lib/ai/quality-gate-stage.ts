@@ -18,6 +18,10 @@ import {
   reconcileQualityResolutions,
   type QualityResolution,
 } from '@/lib/quality-resolution-ledger';
+import {
+  assignPersistentEditorialIdentities,
+  type EditorialIdentityState,
+} from '@/lib/editorial-identity';
 
 const detectLanguage = (text: string): 'id' | 'en' => {
   const clean = text.toLowerCase();
@@ -60,6 +64,8 @@ const runFinalQualityGate = async ({
   modelOverride,
   signal,
   attempt = 1,
+  identitySystem,
+  identityFallbackCreatedAt,
 }: {
   provider: AiProvider;
   originalDraft: string;
@@ -85,7 +91,13 @@ const runFinalQualityGate = async ({
   modelOverride?: string | null;
   signal?: AbortSignal;
   attempt?: number;
-}): Promise<{ result: FinalQualityGateOutput; modelName: string }> => {
+  identitySystem?: Record<string, unknown>;
+  identityFallbackCreatedAt?: Date | string;
+}): Promise<{
+  result: FinalQualityGateOutput;
+  modelName: string;
+  editorialIdentities?: EditorialIdentityState;
+}> => {
   const timezone = editorialProfile.config.timezone || 'Asia/Jakarta';
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
@@ -203,6 +215,16 @@ The previous response failed structural validation. Return one JSON object only.
     publicationPackage,
     seoRules: editorialProfile.config.seoRules,
   });
+  const identified = identitySystem
+    ? assignPersistentEditorialIdentities({
+        feedback: result.feedback,
+        finalDraft,
+        system: identitySystem,
+        researchNotes,
+        fallbackCreatedAt: identityFallbackCreatedAt,
+      })
+    : null;
+  if (identified) result = { ...result, feedback: identified.feedback };
   result = reconcileQualityResolutions(
     result,
     finalDraft,
@@ -210,7 +232,11 @@ The previous response failed structural validation. Return one JSON object only.
     language
   );
 
-  return { result, modelName };
+  return {
+    result,
+    modelName,
+    ...(identified ? { editorialIdentities: identified.editorialIdentities } : {}),
+  };
 };
 
 export const runFinalQualityGateSafely = async (

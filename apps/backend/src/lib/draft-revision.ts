@@ -65,6 +65,7 @@ type ParsedBlock = {
   type: ContentBlockType;
   contentHash: string;
   index: number;
+  content: string;
 };
 
 export const computeDraftBodyHash = (body: string): string =>
@@ -92,15 +93,40 @@ const parseContentBlocks = (body: string): ParsedBlock[] =>
       type: classifyBlock(block),
       contentHash: computeDraftBodyHash(block),
       index,
+      content: block,
     }));
 
 const createBlockId = (): string => `blk_${randomUUID()}`;
 
 const createBlocks = (body: string): StoredContentBlock[] =>
-  parseContentBlocks(body).map((block) => ({
+  parseContentBlocks(body).map(({ content: _content, ...block }) => ({
     ...block,
     blockId: createBlockId(),
   }));
+
+const normalizeBlockSearchText = (value: string): string =>
+  value.normalize('NFKC').replace(/\s+/gu, ' ').trim().toLowerCase();
+
+export const findStoredContentBlockForText = ({
+  body,
+  storedBlocks,
+  targetText,
+}: {
+  body: string;
+  storedBlocks: StoredContentBlock[];
+  targetText?: string;
+}): StoredContentBlock | undefined => {
+  const normalizedTarget = normalizeBlockSearchText(targetText ?? '');
+  if (!normalizedTarget) return undefined;
+  const parsed = parseContentBlocks(body);
+  const aligned = alignPreviousBlocks(body, storedBlocks);
+  const match = parsed.find((block) => {
+    const normalizedContent = normalizeBlockSearchText(block.content);
+    return normalizedContent.includes(normalizedTarget)
+      || (normalizedTarget.length >= 24 && normalizedTarget.includes(normalizedContent));
+  });
+  return match ? aligned[match.index] : undefined;
+};
 
 export const readStoredContentBlocks = (
   system: Record<string, unknown>
@@ -120,7 +146,7 @@ const alignPreviousBlocks = (
       return stored?.contentHash === block.contentHash && stored.type === block.type;
     });
   if (storedMatches) return storedBlocks;
-  return parsed.map((block) => ({
+  return parsed.map(({ content: _content, ...block }) => ({
     ...block,
     blockId: `legacy_blk_${block.contentHash.slice(0, 20)}_${block.index}`,
   }));
@@ -159,7 +185,10 @@ const reconcileContentBlocks = ({
 
   const contentBlocks = nextParsed.map((block, index) => {
     const exact = assignments[index];
-    if (exact) return { ...block, blockId: exact.blockId };
+    if (exact) {
+      const { content: _content, ...storedBlock } = block;
+      return { ...storedBlock, blockId: exact.blockId };
+    }
     const nearest = previousBlocks
       .filter((candidate) =>
         candidate.type === block.type && !claimedPreviousIds.has(candidate.blockId)
@@ -169,9 +198,11 @@ const reconcileContentBlocks = ({
       )[0];
     if (nearest && Math.abs(nearest.index - block.index) <= 2) {
       claimedPreviousIds.add(nearest.blockId);
-      return { ...block, blockId: nearest.blockId };
+      const { content: _content, ...storedBlock } = block;
+      return { ...storedBlock, blockId: nearest.blockId };
     }
-    return { ...block, blockId: createBlockId() };
+    const { content: _content, ...storedBlock } = block;
+    return { ...storedBlock, blockId: createBlockId() };
   });
 
   const previousById = new Map(previousBlocks.map((block) => [block.blockId, block]));

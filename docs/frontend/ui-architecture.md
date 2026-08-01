@@ -124,6 +124,13 @@ client must never merge that response into the current draft. Block identity
 and change-scope derivation remain backend-owned metadata and are not inferred
 from rendered editor positions.
 
+Quality Gate cards use the backend-issued `feedbackId` as their UI identity.
+The older category/message/target/index key remains only as a compatibility
+fallback for saved feedback created before persistent editorial identities.
+Client code may transport these identifiers but must not mint them or treat
+them as authorization for acceptance, verification, or suppression; the
+History API restores trusted identifiers from persisted server findings.
+
 While a revision is open, Save and Cancel remain visible in a sticky local
 toolbar. Other draft views and actions that operate on the persisted article
 are held until the user saves or cancels, preventing a visible unsaved revision

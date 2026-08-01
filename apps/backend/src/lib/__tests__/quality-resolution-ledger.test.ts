@@ -79,6 +79,29 @@ describe('quality resolution ledger', () => {
     expect(nextResult.feedback).toEqual([failedFinding]);
   });
 
+  test('prefers persistent finding identity and does not reuse a different modern claim', () => {
+    const accepted = warning({
+      isAccepted: true,
+      feedbackId: 'feedback_original',
+      ruleId: 'rule_source',
+      claimId: 'claim_original',
+    });
+    const ledger = mergeQualityResolutions([], [accepted]);
+    const changedFinding = warning({
+      feedbackId: 'feedback_changed',
+      ruleId: 'rule_source',
+      claimId: 'claim_changed',
+    });
+    const nextResult = reconcileQualityResolutions(
+      resultWith([changedFinding]),
+      changedFinding.targetText!,
+      ledger
+    );
+
+    expect(nextResult.feedback).toEqual([changedFinding]);
+    expect(nextResult.readiness).toBe('needs_review');
+  });
+
   test('persists verified source URLs and excludes them from novel URL findings', () => {
     const sourceUrl = 'https://example.com/research/source';
     const ledger = mergeQualityResolutions([], [

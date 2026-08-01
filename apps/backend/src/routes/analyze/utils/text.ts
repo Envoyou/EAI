@@ -16,6 +16,7 @@ import {
   createInitialDraftRevision,
   type DraftChangeOrigin,
 } from '@/lib/draft-revision';
+import type { EditorialIdentityState } from '@/lib/editorial-identity';
 
 // ── Async helpers ─────────────────────────────────────────────────────────────
 
@@ -53,11 +54,17 @@ export const buildStoredMetadata = (
   editorialAudit?: EditorialAuditContext,
   workingTitle?: string,
   publicationPackageStatus?: PublicationPackageStatus,
-  revisionOrigin: Extract<DraftChangeOrigin, 'initial_analysis' | 'refine'> = 'initial_analysis'
+  revisionOrigin: Extract<DraftChangeOrigin, 'initial_analysis' | 'refine'> = 'initial_analysis',
+  persistedIdentityState?: {
+    draftRevision: ReturnType<typeof createInitialDraftRevision>['draftRevision'];
+    contentBlocks: ReturnType<typeof createInitialDraftRevision>['contentBlocks'];
+    revisionOrigin: DraftChangeOrigin;
+    editorialIdentities: EditorialIdentityState;
+  }
 ) => {
-  const revisionState = polishedDraft
+  const revisionState = persistedIdentityState ?? (polishedDraft
     ? createInitialDraftRevision({ body: polishedDraft, origin: revisionOrigin })
-    : null;
+    : null);
   return {
     ...(metadata ?? {}),
     sourceRef: sourceRef || metadata?.sourceRef,

@@ -28,9 +28,14 @@ import { CmsAdapterError, listPublishedPostsForProfile } from '@/lib/cms-adapter
 import { stripLeadingH1 } from '@/lib/text-utils';
 import { createAnalysisLogAndDebitCredit } from '@/lib/services/analysis-log.service';
 import {
+  createInitialDraftRevision,
   readDraftRevisionFromMetadata,
   type DraftRevisionIdentity,
 } from '@/lib/draft-revision';
+import {
+  assignPersistentEditorialIdentities,
+  type EditorialIdentityState,
+} from '@/lib/editorial-identity';
 import type { ReviewOutput } from '../types';
 import { sanitizeSuppressiveFeedbackItem, sanitizeFactualSummary } from '../utils/factual';
 import { getProtectedVerificationClaims } from '../utils/factual';
@@ -113,6 +118,12 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
   let polishedText = '';
   let seo: PublicationPackage | null = null;
   let workingTitle = metadata?.workingTitle;
+  let persistedIdentityState: {
+    draftRevision: ReturnType<typeof createInitialDraftRevision>['draftRevision'];
+    contentBlocks: ReturnType<typeof createInitialDraftRevision>['contentBlocks'];
+    revisionOrigin: 'initial_analysis';
+    editorialIdentities: EditorialIdentityState;
+  } | undefined;
 
   if (role === 'polish') {
     sendEvent('status', 'rewriting');
@@ -333,16 +344,33 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
 
     qualityGateDraft = applyVerificationAnnotations(publicationBaseText, finalQualityGate.feedback);
     const publicationPolishedDraft = preparePublicationDraft(qualityGateDraft);
+    const initialRevision = createInitialDraftRevision({
+      body: publicationPolishedDraft,
+      origin: 'initial_analysis',
+    });
+    const identified = assignPersistentEditorialIdentities({
+      feedback: finalQualityGate.feedback,
+      finalDraft: publicationPolishedDraft,
+      system: initialRevision,
+      researchNotes: rewriteResearchNotes,
+    });
+    finalQualityGate = { ...finalQualityGate, feedback: identified.feedback };
+    persistedIdentityState = {
+      ...initialRevision,
+      revisionOrigin: 'initial_analysis',
+      editorialIdentities: identified.editorialIdentities,
+    };
 
+    const identifiedQualityGate = finalQualityGate;
     sendEvent('draft_final', publicationPolishedDraft);
     sendEvent('feedback_reset', null);
-    sendEvent('readiness', finalQualityGate.readiness);
-    sendEvent('summary', finalQualityGate.summary);
-    sendEvent('changes', finalQualityGate.changes);
-    finalQualityGate.feedback.forEach((item, index) => {
+    sendEvent('readiness', identifiedQualityGate.readiness);
+    sendEvent('summary', identifiedQualityGate.summary);
+    sendEvent('changes', identifiedQualityGate.changes);
+    identifiedQualityGate.feedback.forEach((item, index) => {
       sendEvent('feedback_item', { item, index });
     });
-    sendEvent('flags', finalQualityGate.flags);
+    sendEvent('flags', identifiedQualityGate.flags);
   }
 
   // Non-polish roles still use the standalone metadata stage.
@@ -404,7 +432,9 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
               telemetry.snapshot(),
               editorialAudit,
               workingTitle,
-              seo ? 'current' : 'not_generated'
+              seo ? 'current' : 'not_generated',
+              'initial_analysis',
+              persistedIdentityState
             )
           )
         ),

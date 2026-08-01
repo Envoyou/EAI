@@ -5,6 +5,7 @@ import {
   canRequestEAIRevision,
   canShowAutoApply,
   countAutoApplicableFeedback,
+  getFeedbackIdentity,
 } from '../utils';
 
 const autoFix: FeedbackItem = {
@@ -88,5 +89,12 @@ describe('feedback preview auto-apply contract', () => {
 
     expect(canRequestEAIRevision(appliedFinding)).toBe(false);
     expect(canAcceptEditorialDecision(appliedFinding)).toBe(false);
+  });
+
+  it('uses the persistent backend identity across list reordering', () => {
+    const identified = { ...autoFix, feedbackId: 'feedback_server_123' };
+
+    expect(getFeedbackIdentity(identified, 0)).toBe('feedback_server_123');
+    expect(getFeedbackIdentity(identified, 4)).toBe('feedback_server_123');
   });
 });

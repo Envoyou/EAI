@@ -29,6 +29,10 @@ import {
   DraftChangeOriginSchema,
   readDraftRevisionIdentity,
 } from '@/lib/draft-revision';
+import {
+  assignPersistentEditorialIdentities,
+  restoreTrustedFeedbackIdentities,
+} from '@/lib/editorial-identity';
 
 const router = Router();
 
@@ -38,6 +42,11 @@ const HttpSourceUrlSchema = z.string().max(2000).url().refine((value) => {
 }, 'Source URL must use HTTP or HTTPS');
 
 const EditorialFeedbackSchema = z.object({
+  feedbackId: z.string().min(1).max(100).nullable().optional(),
+  ruleId: z.string().min(1).max(100).nullable().optional(),
+  claimId: z.string().min(1).max(100).nullable().optional(),
+  blockId: z.string().min(1).max(100).nullable().optional(),
+  sourceIds: z.array(z.string().min(1).max(100)).max(20).nullable().optional(),
   category: z.string().nullable().optional(),
   status: z.string().nullable().optional(),
   verificationStatus: z.string().nullable().optional(),
@@ -769,12 +778,40 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       });
     }
 
-    const unresolved = resolution.data.feedback.filter(
-      (item) => item.status !== 'pass' && !item.isApplied && !item.isAccepted && !item.isVerified
-    );
+    const storedFeedback = Array.isArray(log.feedback)
+      ? log.feedback.filter(
+          (item) => Boolean(item) && typeof item === 'object' && !Array.isArray(item)
+        ) as unknown as import('@eai/shared').FeedbackItem[]
+      : [];
+    const trustedFeedback = restoreTrustedFeedbackIdentities({
+      submitted: resolution.data.feedback as import('@eai/shared').FeedbackItem[],
+      stored: storedFeedback,
+    });
+    const resolvedFeedback = trustedFeedback.feedback;
     const previousPolishedDraft = typeof systemMetadata.polishedDraft === 'string'
       ? preparePublicationDraft(systemMetadata.polishedDraft)
       : '';
+    const parsedResearchNotes = ResearchNotesArraySchema.safeParse(metadata.researchNotes);
+    const trustedIdentityUpdate = assignPersistentEditorialIdentities({
+      feedback: trustedFeedback.trustedResolutions,
+      finalDraft: previousPolishedDraft,
+      system: systemMetadata,
+      researchNotes: parsedResearchNotes.success ? parsedResearchNotes.data : [],
+      fallbackCreatedAt: log.createdAt,
+    });
+    const trustedResolutionByLegacyKey = new Map(
+      trustedFeedback.trustedResolutions.map((item, index) => [
+        `${item.category}\u001f${item.targetText ?? item.message}`,
+        trustedIdentityUpdate.feedback[index],
+      ])
+    );
+    const identifiedResolvedFeedback = resolvedFeedback.map((item) =>
+      trustedResolutionByLegacyKey.get(`${item.category}\u001f${item.targetText ?? item.message}`)
+      ?? item
+    );
+    const unresolved = identifiedResolvedFeedback.filter(
+      (item) => item.status !== 'pass' && !item.isApplied && !item.isAccepted && !item.isVerified
+    );
     const nextPolishedDraft = preparePublicationDraft(resolution.data.polishedDraft);
     const bodyChanged = previousPolishedDraft !== nextPolishedDraft;
     const bodyChangeAssessment = bodyChanged
@@ -785,7 +822,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
             metadata.generatedMetadata && typeof metadata.generatedMetadata === 'object'
               ? metadata.generatedMetadata
               : null,
-          protectedTargets: resolution.data.feedback
+          protectedTargets: identifiedResolvedFeedback
             .map((item) => item.targetText)
             .filter((target): target is string => typeof target === 'string'),
         })
@@ -830,11 +867,11 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
           : 'needs_review';
     const confirmedInternalUrls = mergeConfirmedInternalUrls(
       readConfirmedInternalUrls(systemMetadata),
-      resolution.data.feedback
+      identifiedResolvedFeedback
     );
     const resolvedQualityFindings = mergeQualityResolutions(
       readQualityResolutions(systemMetadata),
-      resolution.data.feedback
+      trustedIdentityUpdate.feedback
     );
 
     await updateAnalysisLogIfRevisionCurrent({
@@ -842,7 +879,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       expectedRevisionId: currentDraftRevision.revisionId,
       expectedBodyHash: currentDraftRevision.bodyHash,
       data: {
-        feedback: resolution.data.feedback as Prisma.InputJsonValue,
+        feedback: identifiedResolvedFeedback as unknown as Prisma.InputJsonValue,
         flags: (readiness === 'ready' ? [] : resolution.data.flags ?? []) as Prisma.InputJsonValue,
         verdict: readiness,
         metadata: {
@@ -857,6 +894,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
             seoReviewState,
             confirmedInternalUrls,
             resolvedQualityFindings,
+            editorialIdentities: trustedIdentityUpdate.editorialIdentities,
             draftRevision: nextDraftRevision,
             ...(revisionState
               ? {

@@ -56,6 +56,16 @@ export interface ArticleMetadata {
 }
 
 export interface FeedbackItem {
+  /** Backend-issued identity for this finding. Never use client-supplied values as authority. */
+  feedbackId?: string;
+  /** Stable deterministic identity for the validator rule that produced the finding. */
+  ruleId?: string;
+  /** Identity of the factual/source-sensitive claim associated with this finding. */
+  claimId?: string;
+  /** Stable identity of the draft block targeted by this finding. */
+  blockId?: string;
+  /** Canonical backend-issued identities for sources linked to the claim. */
+  sourceIds?: string[];
   category: string;
   status: 'pass' | 'warning' | 'fail';
   verificationStatus?: VerificationStatus;

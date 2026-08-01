@@ -23,9 +23,11 @@ import { RefinementPromptComposer } from '@/lib/ai/prompt-engine/composer/refine
 import { stripLeadingH1 } from '@/lib/text-utils';
 import { createAnalysisLogAndDebitCredit } from '@/lib/services/analysis-log.service';
 import {
+  createInitialDraftRevision,
   readDraftRevisionFromMetadata,
   type DraftRevisionIdentity,
 } from '@/lib/draft-revision';
+import { assignPersistentEditorialIdentities } from '@/lib/editorial-identity';
 import { sanitizeSuppressiveFeedbackItem, sanitizeFactualSummary } from '../utils/factual';
 import { getProtectedVerificationClaims } from '../utils/factual';
 import {
@@ -250,7 +252,22 @@ Apply the requested structural or editorial correction materially. Do not return
     publicationPackage: refineSeo,
   });
   if (state.isDisconnected) return;
-  const refineQualityGate = refineQualityGateResponse.result;
+  let refineQualityGate = refineQualityGateResponse.result;
+  const initialRevision = createInitialDraftRevision({
+    body: refinedText,
+    origin: 'refine',
+  });
+  const identified = assignPersistentEditorialIdentities({
+    feedback: refineQualityGate.feedback,
+    finalDraft: refinedText,
+    system: initialRevision,
+    researchNotes: refineResearchNotes,
+  });
+  refineQualityGate = { ...refineQualityGate, feedback: identified.feedback };
+  const persistedIdentityState = {
+    ...initialRevision,
+    editorialIdentities: identified.editorialIdentities,
+  };
   state.usedModels.push(`${refineQualityGateResponse.modelName}(quality-gate)`);
   sendEvent('feedback_reset', null);
   sendEvent('readiness', refineQualityGate.readiness);
@@ -290,7 +307,8 @@ Apply the requested structural or editorial correction materially. Do not return
               editorialAudit,
               typeof refineSeo?.title === 'string' ? refineSeo.title : workingTitle,
               refineSeo ? 'current' : 'not_generated',
-              'refine'
+              'refine',
+              persistedIdentityState
             )
           )
         ),

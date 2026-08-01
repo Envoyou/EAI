@@ -74,6 +74,11 @@ export const SEO_METADATA_OUTPUT_PROMPT_SCHEMA = `
 `;
 
 export const FeedbackItemSchema = z.object({
+  feedbackId: z.string().min(1).max(100).optional(),
+  ruleId: z.string().min(1).max(100).optional(),
+  claimId: z.string().min(1).max(100).optional(),
+  blockId: z.string().min(1).max(100).optional(),
+  sourceIds: z.array(z.string().min(1).max(100)).max(20).optional(),
   category: z.string().min(1).describe('Short editorial issue category, for example Source Verification, Source Fidelity, Structure, Tone, SEO, or CMS Formatting.'),
   status: z.enum(['pass', 'warning', 'fail']).describe('Severity of the finding. Use warning for editor decisions and fail for blockers or high-risk issues.'),
   verificationStatus: z.enum(['source_backed', 'needs_citation', 'high_risk_factual_claim'])

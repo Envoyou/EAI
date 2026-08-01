@@ -28,6 +28,7 @@ import {
   type DraftRevisionIdentity,
 } from '@/lib/draft-revision';
 import { runSerializableTransaction } from '@/lib/serializable-transaction';
+import { assignPersistentEditorialIdentities } from '@/lib/editorial-identity';
 
 const loadOwnedLog = async (ctx: PublicationStageContext) => {
   if (!ctx.userId) {
@@ -211,16 +212,25 @@ export async function handleQualityGateOnly(
             ? metadata.workingTitle
             : undefined,
         publicationPackage: null,
+        identitySystem: system,
+        identityFallbackCreatedAt: log.createdAt,
       });
 
-  const result = response.result;
+  const identified = assignPersistentEditorialIdentities({
+    feedback: response.result.feedback,
+    finalDraft,
+    system,
+    researchNotes: storedResearchNotes.success ? storedResearchNotes.data : [],
+    fallbackCreatedAt: log.createdAt,
+  });
+  const result = { ...response.result, feedback: identified.feedback };
   await updatePublicationIfRevisionCurrent({
     logId: log.id,
     expectedRevision: draftRevision,
     data: {
       verdict: result.readiness,
       summary: result.summary,
-      feedback: result.feedback as Prisma.InputJsonValue,
+      feedback: result.feedback as unknown as Prisma.InputJsonValue,
       flags: result.flags as Prisma.InputJsonValue,
       metadata: {
         ...metadata,
@@ -234,6 +244,7 @@ export async function handleQualityGateOnly(
           confirmedInternalUrls,
           resolvedQualityFindings,
           draftRevision,
+          editorialIdentities: identified.editorialIdentities,
         },
       } as Prisma.InputJsonValue,
     },
@@ -341,8 +352,20 @@ export async function handleGenerateSeo(
         publicationMode: 'publish_ready',
         workingTitle: seo.title,
         publicationPackage: seo,
+        identitySystem: system,
+        identityFallbackCreatedAt: log.createdAt,
       });
-  const qualityGate = qualityGateResponse.result;
+  const identified = assignPersistentEditorialIdentities({
+    feedback: qualityGateResponse.result.feedback,
+    finalDraft,
+    system,
+    researchNotes: storedResearchNotes.success ? storedResearchNotes.data : [],
+    fallbackCreatedAt: log.createdAt,
+  });
+  const qualityGate = {
+    ...qualityGateResponse.result,
+    feedback: identified.feedback,
+  };
 
   await updatePublicationIfRevisionCurrent({
     logId: log.id,
@@ -350,7 +373,7 @@ export async function handleGenerateSeo(
     data: {
       verdict: qualityGate.readiness,
       summary: qualityGate.summary,
-      feedback: qualityGate.feedback as Prisma.InputJsonValue,
+      feedback: qualityGate.feedback as unknown as Prisma.InputJsonValue,
       flags: qualityGate.flags as Prisma.InputJsonValue,
       metadata: {
         ...metadata,
@@ -368,6 +391,7 @@ export async function handleGenerateSeo(
           confirmedInternalUrls,
           resolvedQualityFindings,
           draftRevision,
+          editorialIdentities: identified.editorialIdentities,
         },
       } as Prisma.InputJsonValue,
     },

@@ -10,7 +10,8 @@ const SENSITIVE_EDITORIAL_DECISION_PATTERN =
   /source|citation|factual|fact[- ]?check|verification|internal link|claim|evidence|attribution|unsupported|accuracy|provenance|tautan internal|sumber|sitasi|verifikasi|fakta|klaim|bukti|atribusi|akurasi|provenans/i;
 
 export const getFeedbackIdentity = (item: FeedbackItem, index: number) =>
-  [item.category, item.message, item.targetText ?? '', item.operation ?? '', index]
+  item.feedbackId
+  ?? [item.category, item.message, item.targetText ?? '', item.operation ?? '', index]
     .join('\u001f');
 
 export const canShowAutoApply = (
