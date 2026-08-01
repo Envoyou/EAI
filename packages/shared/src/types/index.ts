@@ -11,6 +11,12 @@ export type EditorialReadiness = 'ready' | 'needs_review' | 'blocked';
 export type PublicationPackageStatus = 'not_generated' | 'current' | 'stale';
 export type RevisionValidationState = 'valid' | 'validation_recommended' | 'stale';
 export type SeoReviewState = 'valid' | 'possibly_stale' | 'stale';
+export interface DraftRevisionIdentity {
+  revisionId: string;
+  previousRevisionId?: string;
+  bodyHash: string;
+  createdAt: string;
+}
 export type FindingTarget =
   | 'body'
   | 'publication.title'
@@ -97,6 +103,7 @@ export interface AnalysisResult {
   publicationPackageStatus?: PublicationPackageStatus;
   qualityGateState?: RevisionValidationState;
   seoReviewState?: SeoReviewState;
+  draftRevision?: DraftRevisionIdentity;
   /** @deprecated Prefer the PublicationPackage domain name. Kept for stored-data compatibility. */
   generatedMetadata?: PublicationPackage;
   sourceRef?: string;

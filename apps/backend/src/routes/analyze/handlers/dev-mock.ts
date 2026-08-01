@@ -8,6 +8,10 @@ import type { DevMockContext } from '../types';
 import { buildStoredMetadata, delay } from '../utils/text';
 import { createAnalysisLogAndDebitCredit } from '@/lib/services/analysis-log.service';
 import { PROMPT_VERSION } from '@/lib/prompts';
+import {
+  readDraftRevisionFromMetadata,
+  type DraftRevisionIdentity,
+} from '@/lib/draft-revision';
 
 /**
  * Returns true if the effective provider is missing its API key.
@@ -162,6 +166,7 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
   }
 
   let savedLogId: string | undefined;
+  let savedDraftRevision: DraftRevisionIdentity | undefined;
   if (userId) {
     try {
       const savedLog = await createAnalysisLogAndDebitCredit({
@@ -181,7 +186,10 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
               analysisSpeed,
               undefined,
               telemetry.snapshot(),
-              editorialAudit
+              editorialAudit,
+              undefined,
+              undefined,
+              state.roleToLog === 'refine' ? 'refine' : 'initial_analysis'
             )
           )
         ),
@@ -204,10 +212,21 @@ export async function handleDevMock(ctx: DevMockContext): Promise<void> {
         telemetrySnapshot: telemetry.snapshot(),
       });
       savedLogId = savedLog.id;
+      if (mockPolishedDraft) {
+        savedDraftRevision = readDraftRevisionFromMetadata({
+          metadata: savedLog.metadata,
+          body: mockPolishedDraft,
+          fallbackCreatedAt: savedLog.createdAt,
+        });
+      }
     } catch (dbError) {
       console.error('Failed to log success to database:', dbError);
     }
   }
 
-  sendEvent('complete', { analysisLogId: savedLogId, sourceRef: 'mock-ref' });
+  sendEvent('complete', {
+    analysisLogId: savedLogId,
+    sourceRef: 'mock-ref',
+    draftRevision: savedDraftRevision,
+  });
 }

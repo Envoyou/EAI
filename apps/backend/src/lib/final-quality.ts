@@ -929,7 +929,7 @@ export const applyDeterministicQualityChecks = (
       flags.push('CMS Content Length');
     }
 
-    const slugWordCount = countSlugWords(options.publicationPackage.slug);
+    const slugWordCount = countSlugWords(options.publicationPackage.slug ?? '');
     if (slugWordCount > 6) {
       feedback.push({
         category: 'Publication Metadata',

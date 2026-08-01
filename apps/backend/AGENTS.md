@@ -83,6 +83,7 @@ apps/backend/
 │   │   ├── redis.ts          # Shared BullMQ and fail-fast request Redis clients
 │   │   ├── prompts.ts        # Timezone, date, and prompt version helpers (no prompt bodies)
 │   │   ├── text-utils.ts     # Text utilities (stripLeadingH1, joinRewrittenChunks — boundary-aware chunk joiner)
+│   │   ├── draft-revision.ts # Revision/body-hash invariants, sidecar block identity, and DraftChangeSet lineage
 │   │   ├── final-quality.ts  # Final quality gate pipeline — deterministic source-fidelity checks & structural integrity audits (detectMissingSentenceBoundaries, detectContentAfterReferences)
 │   │   ├── admin-billing.ts  # Subscription + credit ledger admin helpers
 │   │   ├── admin-billing-core.ts  # Core billing primitives

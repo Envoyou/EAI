@@ -15,6 +15,7 @@ import type {
   PublicationPackageStatus,
   RevisionValidationState,
   SeoReviewState,
+  DraftRevisionIdentity,
 } from '@eai/shared';
 import {
   applyAllFeedbackOperations,
@@ -61,6 +62,7 @@ type EditorialResolutionResult = {
   publicationPackageStatus?: PublicationPackageStatus;
   qualityGateState?: RevisionValidationState;
   seoReviewState?: SeoReviewState;
+  draftRevision?: DraftRevisionIdentity;
 };
 
 type AutomaticValidationContext = EditorialResolutionResult & {
@@ -71,7 +73,16 @@ type PublicationOperationOptions = {
   polishedDraft?: string;
   automatic?: boolean;
   preserveCurrentStateOnFailure?: boolean;
+  draftRevision?: DraftRevisionIdentity;
 };
+
+type EditorialMutationOrigin =
+  | 'apply_feedback'
+  | 'bulk_feedback'
+  | 'targeted_fix'
+  | 'remove_content'
+  | 'add_source'
+  | 'accept_feedback';
 
 export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) {
   const router = useRouter();
@@ -336,6 +347,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         body: JSON.stringify({
           action: 'update_final_draft',
           polishedDraft,
+          revisionId: analysis.draftRevision?.revisionId,
+          bodyHash: analysis.draftRevision?.bodyHash,
         }),
       });
       const result = await response.json();
@@ -378,6 +391,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           || result.seoReviewState === 'stale'
             ? result.seoReviewState
             : prev.seoReviewState,
+        draftRevision: result.draftRevision ?? prev.draftRevision,
       }));
       toast.success(
         result.revisionImpact === 'formatting_only'
@@ -437,6 +451,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   ): Promise<EditorialReadiness | null> => {
     const logId = analysis.analysisLogId || activeHistoryId;
     const polishedDraft = options.polishedDraft ?? analysis.polishedDraft;
+    const draftRevision = options.draftRevision ?? analysis.draftRevision;
     if (!logId || !polishedDraft || hasBlockingWorkspaceOperation()) return null;
     const previousAnalysis = analysis;
     const controller = new AbortController();
@@ -456,6 +471,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           text: polishedDraft,
           originalDraft: sourceDraft,
           analysisLogId: logId,
+          revisionId: draftRevision?.revisionId,
+          bodyHash: draftRevision?.bodyHash,
           metadata: {
             ...metadata,
             researchNotes: researchNotes.slice(0, 10).map(note => ({
@@ -493,6 +510,11 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           });
         } else if (event.type === 'flags') {
           setAnalysis(prev => ({ ...prev, flags: event.data as string[] }));
+        } else if (event.type === 'revision_identity') {
+          setAnalysis(prev => ({
+            ...prev,
+            draftRevision: event.data as DraftRevisionIdentity,
+          }));
         }
       }, controller);
       setAnalysis(prev => ({
@@ -531,6 +553,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   ) => {
     const logId = analysis.analysisLogId || activeHistoryId;
     const polishedDraft = options.polishedDraft ?? analysis.polishedDraft;
+    const draftRevision = options.draftRevision ?? analysis.draftRevision;
     if (!logId || !polishedDraft || hasBlockingWorkspaceOperation()) return;
     const previousAnalysis = analysis;
     const controller = new AbortController();
@@ -549,6 +572,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           mode: 'generate_seo',
           text: polishedDraft,
           analysisLogId: logId,
+          revisionId: draftRevision?.revisionId,
+          bodyHash: draftRevision?.bodyHash,
           metadata: {
             ...metadata,
             researchNotes: researchNotes.slice(0, 10).map(note => ({
@@ -596,6 +621,11 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           });
         } else if (event.type === 'flags') {
           setAnalysis(prev => ({ ...prev, flags: event.data as string[] }));
+        } else if (event.type === 'revision_identity') {
+          setAnalysis(prev => ({
+            ...prev,
+            draftRevision: event.data as DraftRevisionIdentity,
+          }));
         }
       }, controller);
       if (packageReadiness === 'ready') {
@@ -644,6 +674,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       polishedDraft: context.polishedDraft,
       automatic: true,
       preserveCurrentStateOnFailure: true,
+      draftRevision: context.draftRevision,
     });
     if (readiness !== 'ready') return;
 
@@ -656,6 +687,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       polishedDraft: context.polishedDraft,
       automatic: true,
       preserveCurrentStateOnFailure: true,
+      draftRevision: context.draftRevision,
     });
   };
 
@@ -672,6 +704,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         body: JSON.stringify({
           action: 'update_publication_package',
           publicationPackage,
+          revisionId: analysis.draftRevision?.revisionId,
+          bodyHash: analysis.draftRevision?.bodyHash,
         }),
       });
       const result = await response.json();
@@ -681,6 +715,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         generatedMetadata: result.generatedMetadata,
         publicationPackageStatus: 'current',
         seoReviewState: 'valid',
+        draftRevision: result.draftRevision ?? prev.draftRevision,
       }));
       toast.success('SEO metadata saved for the current final draft.');
       return true;
@@ -705,6 +740,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'confirm_publication_package',
+          revisionId: analysis.draftRevision?.revisionId,
+          bodyHash: analysis.draftRevision?.bodyHash,
         }),
       });
       const result = await response.json();
@@ -715,6 +752,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         ...prev,
         publicationPackageStatus: 'current',
         seoReviewState: 'valid',
+        draftRevision: result.draftRevision ?? prev.draftRevision,
       }));
     } finally {
       workspaceMutationRef.current = false;
@@ -814,7 +852,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         nextFeedback,
         nextReadiness,
         result.nextText,
-        nextFlags
+        nextFlags,
+        'apply_feedback'
       );
       const persistedFlags = persisted.readiness === 'ready' ? [] : nextFlags;
       setAnalysis(prev => ({
@@ -831,6 +870,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
             : prev.publicationPackageStatus),
         qualityGateState: persisted.qualityGateState ?? 'stale',
         seoReviewState: persisted.seoReviewState ?? prev.seoReviewState,
+        draftRevision: persisted.draftRevision ?? prev.draftRevision,
       }));
       automaticValidation = {
         ...persisted,
@@ -882,7 +922,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         nextFeedback,
         nextReadiness,
         result.nextText,
-        nextFlags
+        nextFlags,
+        'bulk_feedback'
       );
       const persistedFlags = persisted.readiness === 'ready' ? [] : nextFlags;
       setAnalysis(prev => ({
@@ -899,6 +940,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
             : prev.publicationPackageStatus),
         qualityGateState: persisted.qualityGateState ?? 'stale',
         seoReviewState: persisted.seoReviewState ?? prev.seoReviewState,
+        draftRevision: persisted.draftRevision ?? prev.draftRevision,
       }));
       automaticValidation = {
         ...persisted,
@@ -1079,6 +1121,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           publicationPackageStatus: publicationState.publicationPackageStatus,
           qualityGateState: publicationState.qualityGateState,
           seoReviewState: publicationState.seoReviewState,
+          draftRevision: publicationState.draftRevision,
           editorStatus: log.editorStatus,
         });
         if (log.status === 'success') setActiveTab('refined');
@@ -1094,7 +1137,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     feedback: FeedbackItem[],
     readiness: EditorialReadiness,
     polishedDraft: string,
-    flags: string[]
+    flags: string[],
+    origin: EditorialMutationOrigin
   ): Promise<EditorialResolutionResult> => {
     const logId = analysis.analysisLogId || activeHistoryId;
     if (!logId) {
@@ -1109,6 +1153,9 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         feedback,
         polishedDraft,
         flags: readiness === 'ready' ? [] : flags,
+        origin,
+        revisionId: analysis.draftRevision?.revisionId,
+        bodyHash: analysis.draftRevision?.bodyHash,
       }),
     });
     const result = await response.json();
@@ -1139,11 +1186,19 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       || result.seoReviewState === 'stale'
         ? result.seoReviewState
         : undefined;
+    const persistedDraftRevision: DraftRevisionIdentity | undefined =
+      result.draftRevision
+      && typeof result.draftRevision.revisionId === 'string'
+      && typeof result.draftRevision.bodyHash === 'string'
+      && typeof result.draftRevision.createdAt === 'string'
+        ? result.draftRevision as DraftRevisionIdentity
+        : undefined;
     return {
       readiness: persistedReadiness,
       publicationPackageStatus: persistedPublicationPackageStatus,
       qualityGateState: persistedQualityGateState,
       seoReviewState: persistedSeoReviewState,
+      draftRevision: persistedDraftRevision,
     };
   };
 
@@ -1165,7 +1220,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         nextFeedback,
         nextReadiness,
         analysis.polishedDraft || '',
-        nextFlags
+        nextFlags,
+        'accept_feedback'
       );
       const persistedFlags = persisted.readiness === 'ready' ? [] : nextFlags;
       setAnalysis(prev => ({
@@ -1176,6 +1232,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         flags: persistedFlags,
         publicationPackageStatus:
           persisted.publicationPackageStatus ?? prev.publicationPackageStatus,
+        draftRevision: persisted.draftRevision ?? prev.draftRevision,
       }));
       toast.success('Editorial decision saved.');
     } catch (error) {
@@ -1219,7 +1276,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         nextFeedback,
         nextReadiness,
         nextDraft,
-        nextFlags
+        nextFlags,
+        'add_source'
       );
       const persistedFlags = persisted.readiness === 'ready' ? [] : nextFlags;
       setAnalysis(prev => ({
@@ -1236,6 +1294,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
             : prev.publicationPackageStatus),
         qualityGateState: persisted.qualityGateState ?? prev.qualityGateState,
         seoReviewState: persisted.seoReviewState ?? prev.seoReviewState,
+        draftRevision: persisted.draftRevision ?? prev.draftRevision,
       }));
       if (linked) {
         automaticValidation = {

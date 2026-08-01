@@ -21,6 +21,14 @@ import {
 } from '@prisma/client';
 import { upsertContentArtifact } from '@/lib/content-memory';
 import { assessDraftRevision } from '@/lib/draft-revision-impact';
+import { runSerializableTransaction } from '@/lib/serializable-transaction';
+import {
+  assertDraftRevisionMatches,
+  createDraftChangeSet,
+  DraftRevisionMismatchError,
+  DraftChangeOriginSchema,
+  readDraftRevisionIdentity,
+} from '@/lib/draft-revision';
 
 const router = Router();
 
@@ -45,16 +53,24 @@ const EditorialFeedbackSchema = z.object({
   verifiedSource: HttpSourceUrlSchema.nullable().optional(),
 }).passthrough();
 
+const RevisionExpectationFields = {
+  revisionId: z.string().min(1).max(100).optional(),
+  bodyHash: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
+};
+
 const EditorialResolutionSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('resolve_editorial_feedback'),
     feedback: z.array(EditorialFeedbackSchema),
     polishedDraft: z.string().max(100000),
     flags: z.array(z.string()).optional(),
+    origin: DraftChangeOriginSchema.optional(),
+    ...RevisionExpectationFields,
   }),
   z.object({
     action: z.literal('update_final_draft'),
     polishedDraft: z.string().min(1).max(100000),
+    ...RevisionExpectationFields,
   }),
   z.object({
     action: z.literal('update_publication_package'),
@@ -62,9 +78,11 @@ const EditorialResolutionSchema = z.discriminatedUnion('action', [
       excerpt: z.string().min(1).max(300),
       metaTitle: z.string().min(1).max(80),
     }),
+    ...RevisionExpectationFields,
   }),
   z.object({
     action: z.literal('confirm_publication_package'),
+    ...RevisionExpectationFields,
   }),
 ]);
 
@@ -82,6 +100,71 @@ const canAccessLog = (
   userId: string
 ) => Boolean(workspaceOrganizationId && log.organizationId === workspaceOrganizationId)
   || (!log.organizationId && log.userId === userId);
+
+const updateAnalysisLogIfRevisionCurrent = async ({
+  id,
+  expectedRevisionId,
+  expectedBodyHash,
+  data,
+}: {
+  id: string;
+  expectedRevisionId: string;
+  expectedBodyHash: string;
+  data: Prisma.AnalysisLogUpdateArgs['data'];
+}): Promise<void> => {
+  await runSerializableTransaction(async (tx) => {
+    const current = await tx.analysisLog.findUnique({ where: { id } });
+    if (!current) throw new Error('History not found');
+    const metadata = current.metadata
+      && typeof current.metadata === 'object'
+      && !Array.isArray(current.metadata)
+        ? current.metadata as Record<string, unknown>
+        : {};
+    const system = metadata._system
+      && typeof metadata._system === 'object'
+      && !Array.isArray(metadata._system)
+        ? metadata._system as Record<string, unknown>
+        : {};
+    const currentBody = typeof system.polishedDraft === 'string'
+      ? preparePublicationDraft(system.polishedDraft)
+      : '';
+    const currentRevision = readDraftRevisionIdentity({
+      system,
+      body: currentBody,
+      fallbackCreatedAt: current.createdAt,
+    });
+    assertDraftRevisionMatches({
+      current: currentRevision,
+      expectedRevisionId,
+      expectedBodyHash,
+    });
+    const requestedMetadata = data.metadata
+      && typeof data.metadata === 'object'
+      && !Array.isArray(data.metadata)
+        ? data.metadata as Record<string, unknown>
+        : null;
+    const currentSystem = system;
+    const requestedSystem = requestedMetadata?._system
+      && typeof requestedMetadata._system === 'object'
+      && !Array.isArray(requestedMetadata._system)
+        ? requestedMetadata._system as Record<string, unknown>
+        : {};
+    const nextData: Prisma.AnalysisLogUpdateArgs['data'] = requestedMetadata
+      ? {
+          ...data,
+          metadata: {
+            ...metadata,
+            ...requestedMetadata,
+            _system: {
+              ...currentSystem,
+              ...requestedSystem,
+            },
+          } as Prisma.InputJsonValue,
+        }
+      : data;
+    await tx.analysisLog.update({ where: { id }, data: nextData });
+  });
+};
 
 // POST /api/history
 router.post('/', requireAuth, async (req, res) => {
@@ -469,6 +552,19 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       metadata._system && typeof metadata._system === 'object' && !Array.isArray(metadata._system)
         ? (metadata._system as Record<string, unknown>)
         : {};
+    const storedPolishedDraft = typeof systemMetadata.polishedDraft === 'string'
+      ? preparePublicationDraft(systemMetadata.polishedDraft)
+      : '';
+    const currentDraftRevision = readDraftRevisionIdentity({
+      system: systemMetadata,
+      body: storedPolishedDraft,
+      fallbackCreatedAt: log.createdAt,
+    });
+    assertDraftRevisionMatches({
+      current: currentDraftRevision,
+      expectedRevisionId: resolution.data.revisionId,
+      expectedBodyHash: resolution.data.bodyHash,
+    });
 
     if (resolution.data.action === 'update_final_draft') {
       const nextPolishedDraft = preparePublicationDraft(resolution.data.polishedDraft);
@@ -492,6 +588,14 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
             ? metadata.generatedMetadata
             : null,
         protectedTargets,
+      });
+      const revisionState = createDraftChangeSet({
+        previousBody: previousPolishedDraft,
+        nextBody: nextPolishedDraft,
+        origin: 'manual_edit',
+        assessment,
+        system: systemMetadata,
+        fallbackCreatedAt: log.createdAt,
       });
       const invalidatesPublicationReview = assessment.validationLevel === 'full';
       const previousReadiness =
@@ -536,8 +640,10 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         hasPackage: Boolean(metadata.generatedMetadata),
         bodyChanged: assessment.seoReviewState === 'stale',
       });
-      await prisma.analysisLog.update({
-        where: { id },
+      await updateAnalysisLogIfRevisionCurrent({
+        id,
+        expectedRevisionId: currentDraftRevision.revisionId,
+        expectedBodyHash: currentDraftRevision.bodyHash,
         data: {
           ...(invalidatesPublicationReview
             ? {
@@ -560,6 +666,9 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
               revisionValidationReasons: assessment.reasons,
               qualityGateState,
               seoReviewState,
+              draftRevision: revisionState.draftRevision,
+              contentBlocks: revisionState.contentBlocks,
+              lastDraftChangeSet: revisionState.changeSet,
               finalDraftEditedAt: new Date().toISOString(),
               qualityGateCheckedAt: invalidatesPublicationReview
                 ? null
@@ -578,6 +687,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         revisionValidationReasons: assessment.reasons,
         qualityGateState,
         seoReviewState,
+        draftRevision: revisionState.draftRevision,
         qualityCheckInvalidated: invalidatesPublicationReview,
         seoInvalidated: assessment.seoReviewState === 'stale' && publicationPackageStatus === 'stale',
       });
@@ -589,8 +699,10 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
           error: 'Complete or approve the current quality findings before saving publication metadata.',
         });
       }
-      await prisma.analysisLog.update({
-        where: { id },
+      await updateAnalysisLogIfRevisionCurrent({
+        id,
+        expectedRevisionId: currentDraftRevision.revisionId,
+        expectedBodyHash: currentDraftRevision.bodyHash,
         data: {
           metadata: {
             ...metadata,
@@ -600,6 +712,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
               ...systemMetadata,
               publicationPackageStatus: 'current',
               seoReviewState: 'valid',
+              draftRevision: currentDraftRevision,
               seoEditedAt: new Date().toISOString(),
             },
           } as Prisma.InputJsonValue,
@@ -610,6 +723,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         generatedMetadata: resolution.data.publicationPackage,
         publicationPackageStatus: 'current',
         seoReviewState: 'valid',
+        draftRevision: currentDraftRevision,
       });
     }
 
@@ -628,8 +742,10 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       }
 
       const confirmedAt = new Date().toISOString();
-      await prisma.analysisLog.update({
-        where: { id },
+      await updateAnalysisLogIfRevisionCurrent({
+        id,
+        expectedRevisionId: currentDraftRevision.revisionId,
+        expectedBodyHash: currentDraftRevision.bodyHash,
         data: {
           metadata: {
             ...metadata,
@@ -638,6 +754,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
               ...systemMetadata,
               publicationPackageStatus: 'current',
               seoReviewState: 'valid',
+              draftRevision: currentDraftRevision,
               seoConfirmedAt: confirmedAt,
             },
           } as Prisma.InputJsonValue,
@@ -647,6 +764,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         success: true,
         publicationPackageStatus: 'current',
         seoReviewState: 'valid',
+        draftRevision: currentDraftRevision,
         confirmedAt,
       });
     }
@@ -672,6 +790,17 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
             .filter((target): target is string => typeof target === 'string'),
         })
       : null;
+    const revisionState = bodyChanged && bodyChangeAssessment
+      ? createDraftChangeSet({
+          previousBody: previousPolishedDraft,
+          nextBody: nextPolishedDraft,
+          origin: resolution.data.origin ?? 'apply_feedback',
+          assessment: bodyChangeAssessment,
+          system: systemMetadata,
+          fallbackCreatedAt: log.createdAt,
+        })
+      : null;
+    const nextDraftRevision = revisionState?.draftRevision ?? currentDraftRevision;
     const publicationPackageStatus = resolvePublicationPackageStatus({
       storedStatus: metadata.publicationPackageStatus,
       hasPackage: Boolean(metadata.generatedMetadata),
@@ -708,8 +837,10 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       resolution.data.feedback
     );
 
-    await prisma.analysisLog.update({
-      where: { id },
+    await updateAnalysisLogIfRevisionCurrent({
+      id,
+      expectedRevisionId: currentDraftRevision.revisionId,
+      expectedBodyHash: currentDraftRevision.bodyHash,
       data: {
         feedback: resolution.data.feedback as Prisma.InputJsonValue,
         flags: (readiness === 'ready' ? [] : resolution.data.flags ?? []) as Prisma.InputJsonValue,
@@ -726,6 +857,13 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
             seoReviewState,
             confirmedInternalUrls,
             resolvedQualityFindings,
+            draftRevision: nextDraftRevision,
+            ...(revisionState
+              ? {
+                  contentBlocks: revisionState.contentBlocks,
+                  lastDraftChangeSet: revisionState.changeSet,
+                }
+              : {}),
           },
         } as Prisma.InputJsonValue,
       },
@@ -737,8 +875,15 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       publicationPackageStatus,
       qualityGateState: readiness === 'ready' ? 'valid' : 'stale',
       seoReviewState,
+      draftRevision: nextDraftRevision,
     });
   } catch (error) {
+    if (error instanceof DraftRevisionMismatchError) {
+      return res.status(409).json({
+        error: error.message,
+        code: 'DRAFT_REVISION_MISMATCH',
+      });
+    }
     console.error('[HISTORY_ID_RESOLVE_PATCH]', error);
     return res.status(500).json({ error: 'Failed to resolve editorial feedback' });
   }

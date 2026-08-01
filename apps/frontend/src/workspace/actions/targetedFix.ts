@@ -11,6 +11,7 @@ import type {
   ResearchNote,
   RevisionValidationState,
   SeoReviewState,
+  DraftRevisionIdentity,
 } from '@eai/shared';
 import type { AnalysisSpeed, DirectFetchType } from '../types';
 import { replaceFirstTargetMatch } from '@eai/shared';
@@ -23,6 +24,7 @@ type EditorialResolutionResult = {
   publicationPackageStatus?: PublicationPackageStatus;
   qualityGateState?: RevisionValidationState;
   seoReviewState?: SeoReviewState;
+  draftRevision?: DraftRevisionIdentity;
 };
 
 export type TargetedFixResult = EditorialResolutionResult & {
@@ -43,7 +45,8 @@ interface TargetedFixContext {
     feedback: FeedbackItem[],
     readiness: EditorialReadiness,
     polishedDraft: string,
-    flags: string[]
+    flags: string[],
+    origin: 'targeted_fix' | 'remove_content'
   ) => Promise<EditorialResolutionResult>;
   bodyChangeSuccessMessage: string;
   setAnalysis: (updater: (prev: AnalysisResult) => AnalysisResult) => void;
@@ -177,7 +180,8 @@ export async function executeTargetedFix(
       nextFeedback,
       nextReadiness,
       nextDraft,
-      nextFlags
+      nextFlags,
+      actionType === 'remove' ? 'remove_content' : 'targeted_fix'
     );
     const persistedFlags = persisted.readiness === 'ready' ? [] : nextFlags;
     setAnalysis(prev => ({
@@ -194,6 +198,7 @@ export async function executeTargetedFix(
           : prev.publicationPackageStatus),
       qualityGateState: persisted.qualityGateState ?? 'stale',
       seoReviewState: persisted.seoReviewState ?? prev.seoReviewState,
+      draftRevision: persisted.draftRevision ?? prev.draftRevision,
     }));
 
     toast.success(bodyChangeSuccessMessage);

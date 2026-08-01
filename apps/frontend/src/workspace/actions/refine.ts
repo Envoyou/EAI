@@ -244,6 +244,17 @@ export async function executeRefine(
           case 'complete': {
             receivedComplete = true;
             setProcessStage('finalizing');
+            const { analysisLogId, sourceRef, draftRevision } = event.data as {
+              analysisLogId?: string;
+              sourceRef?: string;
+              draftRevision?: import('@eai/shared').DraftRevisionIdentity;
+            };
+            setAnalysis(prev => ({
+              ...prev,
+              analysisLogId: analysisLogId ?? prev.analysisLogId,
+              sourceRef: sourceRef ?? prev.sourceRef,
+              draftRevision: draftRevision ?? prev.draftRevision,
+            }));
             break;
           }
           case 'error': throw new Error(event.data as string);

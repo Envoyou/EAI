@@ -60,6 +60,7 @@ describe('assessDraftRevision', () => {
       validationLevel: 'full',
       qualityGateState: 'stale',
       seoReviewState: 'valid',
+      signals: { numbersChanged: true },
     });
   });
 

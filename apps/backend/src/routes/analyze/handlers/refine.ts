@@ -22,6 +22,10 @@ import { SeoPromptComposer } from '@/lib/ai/prompt-engine/composer/seo-composer'
 import { RefinementPromptComposer } from '@/lib/ai/prompt-engine/composer/refinement-composer';
 import { stripLeadingH1 } from '@/lib/text-utils';
 import { createAnalysisLogAndDebitCredit } from '@/lib/services/analysis-log.service';
+import {
+  readDraftRevisionFromMetadata,
+  type DraftRevisionIdentity,
+} from '@/lib/draft-revision';
 import { sanitizeSuppressiveFeedbackItem, sanitizeFactualSummary } from '../utils/factual';
 import { getProtectedVerificationClaims } from '../utils/factual';
 import {
@@ -263,6 +267,7 @@ Apply the requested structural or editorial correction materially. Do not return
   }
 
   let refineLogId: string | undefined;
+  let savedDraftRevision: DraftRevisionIdentity | undefined;
   if (userId) {
     try {
       const savedLog = await createAnalysisLogAndDebitCredit({
@@ -284,7 +289,8 @@ Apply the requested structural or editorial correction materially. Do not return
               telemetry.snapshot(),
               editorialAudit,
               typeof refineSeo?.title === 'string' ? refineSeo.title : workingTitle,
-              refineSeo ? 'current' : 'not_generated'
+              refineSeo ? 'current' : 'not_generated',
+              'refine'
             )
           )
         ),
@@ -304,10 +310,19 @@ Apply the requested structural or editorial correction materially. Do not return
         telemetrySnapshot: telemetry.snapshot(),
       });
       refineLogId = savedLog.id;
+      savedDraftRevision = readDraftRevisionFromMetadata({
+        metadata: savedLog.metadata,
+        body: refinedText,
+        fallbackCreatedAt: savedLog.createdAt,
+      });
     } catch (dbErr) {
       console.error('[Refine] Failed to save to DB:', dbErr);
     }
   }
 
-  sendEvent('complete', { analysisLogId: refineLogId, sourceRef });
+  sendEvent('complete', {
+    analysisLogId: refineLogId,
+    sourceRef,
+    draftRevision: savedDraftRevision,
+  });
 }

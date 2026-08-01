@@ -8,12 +8,23 @@ export type RevisionValidationLevel = 'none' | 'light' | 'full';
 export type RevisionValidationState = 'valid' | 'validation_recommended' | 'stale';
 export type SeoReviewState = 'valid' | 'possibly_stale' | 'stale';
 
+export type RevisionSignals = {
+  numbersChanged: boolean;
+  entitiesChanged: boolean;
+  citationsChanged: boolean;
+  sensitiveTermsChanged: boolean;
+  headingsChanged: boolean;
+  structureChanged: boolean;
+  topicShiftDetected: boolean;
+};
+
 export type DraftRevisionAssessment = {
   impact: DraftRevisionImpact;
   validationLevel: RevisionValidationLevel;
   qualityGateState: RevisionValidationState;
   seoReviewState: SeoReviewState;
   reasons: string[];
+  signals: RevisionSignals;
 };
 
 type PublicationMetadata = {
@@ -147,6 +158,39 @@ const seoAnchors = (metadata: PublicationMetadata | null | undefined): Set<strin
       .filter((word) => word.length >= 4 && !SEO_STOPWORDS.has(word)),
   );
 
+export const deriveRevisionSignals = ({
+  previousDraft,
+  nextDraft,
+  publicationMetadata,
+}: {
+  previousDraft: string;
+  nextDraft: string;
+  publicationMetadata?: PublicationMetadata | null;
+}): RevisionSignals => {
+  const beforeSignals = signalGroups(previousDraft);
+  const afterSignals = signalGroups(nextDraft);
+  const anchors = seoAnchors(publicationMetadata);
+  const beforeWords = wordCounts(previousDraft);
+  const afterWords = wordCounts(nextDraft);
+  const anchorsBefore = [...anchors].filter((word) => (beforeWords.get(word) ?? 0) > 0);
+  const lostAnchors = anchorsBefore.filter((word) => (afterWords.get(word) ?? 0) === 0);
+  return {
+    numbersChanged: !equalGroup(beforeSignals.numbers, afterSignals.numbers),
+    entitiesChanged: !equalGroup(beforeSignals.entities, afterSignals.entities),
+    citationsChanged:
+      !equalGroup(beforeSignals.citations, afterSignals.citations)
+      || !equalGroup(beforeSignals.urls, afterSignals.urls),
+    sensitiveTermsChanged:
+      !equalGroup(beforeSignals.sensitiveTerms, afterSignals.sensitiveTerms),
+    headingsChanged:
+      headingText(previousDraft).join('\n') !== headingText(nextDraft).join('\n'),
+    structureChanged:
+      markdownStructure(previousDraft).join('\n') !== markdownStructure(nextDraft).join('\n'),
+    topicShiftDetected:
+      lostAnchors.length >= Math.max(2, Math.ceil(Math.max(anchorsBefore.length, 1) * 0.3)),
+  };
+};
+
 const countOccurrences = (value: string, target: string): number => value.split(target).length - 1;
 
 const protectedTargetChanged = (
@@ -166,6 +210,7 @@ const result = (
   validationLevel: RevisionValidationLevel,
   seoReviewState: SeoReviewState,
   reasons: string[],
+  signals: RevisionSignals,
 ): DraftRevisionAssessment => ({
   impact,
   validationLevel,
@@ -177,6 +222,7 @@ const result = (
         : 'valid',
   seoReviewState,
   reasons,
+  signals,
 });
 
 export const assessDraftRevision = ({
@@ -190,8 +236,13 @@ export const assessDraftRevision = ({
   publicationMetadata?: PublicationMetadata | null;
   protectedTargets?: string[];
 }): DraftRevisionAssessment => {
+  const signals = deriveRevisionSignals({
+    previousDraft,
+    nextDraft,
+    publicationMetadata,
+  });
   if (!previousDraft.trim() || !nextDraft.trim()) {
-    return result('high_risk_change', 'full', 'stale', ['missing_comparison_draft']);
+    return result('high_risk_change', 'full', 'stale', ['missing_comparison_draft'], signals);
   }
 
   const beforeCounts = wordCounts(previousDraft);
@@ -220,18 +271,18 @@ export const assessDraftRevision = ({
     highRiskReasons.push('reviewed_finding_region_changed');
   }
   if (normalizeCosmeticWhitespace(previousDraft) === normalizeCosmeticWhitespace(nextDraft)) {
-    return result('formatting_only', 'none', 'valid', ['whitespace_only']);
+    return result('formatting_only', 'none', 'valid', ['whitespace_only'], signals);
   }
 
   if (highRiskReasons.length === 0 && sameCounts(beforeCounts, afterCounts)) {
-    return result('formatting_only', 'none', seoReviewState, ['content_reformatted_or_reordered']);
+    return result('formatting_only', 'none', seoReviewState, ['content_reformatted_or_reordered'], signals);
   }
 
   if (!equalGroup(beforeSignals.entities, afterSignals.entities)) {
     highRiskReasons.push('entities_changed');
   }
   if (highRiskReasons.length > 0) {
-    return result('high_risk_change', 'full', seoReviewState, highRiskReasons);
+    return result('high_risk_change', 'full', seoReviewState, highRiskReasons, signals);
   }
 
   const beforeWordCount = [...beforeCounts.values()].reduce((sum, count) => sum + count, 0);
@@ -250,7 +301,7 @@ export const assessDraftRevision = ({
   const largeAdditionOrRemoval = wordCountDelta > 50
     || (wordCountDelta > 15 && wordCountDelta / Math.max(beforeWordCount, 1) > 0.15);
   if (sentenceDelta > 2 || largeAdditionOrRemoval) {
-    return result('high_risk_change', 'full', seoReviewState, ['claim_scope_changed']);
+    return result('high_risk_change', 'full', seoReviewState, ['claim_scope_changed'], signals);
   }
 
   const lowRiskCopyEdit = !structureChanged
@@ -259,7 +310,7 @@ export const assessDraftRevision = ({
     && sentenceDelta === 0
     && changedSeoTerms.length === 0;
   if (lowRiskCopyEdit) {
-    return result('minor_copy_edit', 'none', 'valid', ['bounded_copy_edit']);
+    return result('minor_copy_edit', 'none', 'valid', ['bounded_copy_edit'], signals);
   }
 
   const editorialReasons = [
@@ -274,5 +325,6 @@ export const assessDraftRevision = ({
     'light',
     seoReviewState,
     editorialReasons.length > 0 ? editorialReasons : ['editorial_language_changed'],
+    signals,
   );
 };

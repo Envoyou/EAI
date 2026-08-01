@@ -12,6 +12,10 @@ import { normalizeMarkdownHeadingHierarchy, stripLeadingExcerpt, stripLeadingH1 
 import { stripVerificationMarkers } from '@/lib/final-quality';
 import { stripGeneratedVerificationNotes } from './verification';
 import { cleanupRewriteArtifacts, removeEmptyHeadings } from './markdown';
+import {
+  createInitialDraftRevision,
+  type DraftChangeOrigin,
+} from '@/lib/draft-revision';
 
 // ── Async helpers ─────────────────────────────────────────────────────────────
 
@@ -48,29 +52,36 @@ export const buildStoredMetadata = (
   telemetry?: AiTelemetrySnapshot,
   editorialAudit?: EditorialAuditContext,
   workingTitle?: string,
-  publicationPackageStatus?: PublicationPackageStatus
-) => ({
-  ...(metadata ?? {}),
-  sourceRef: sourceRef || metadata?.sourceRef,
-  generatedMetadata: generatedMetadata || (metadata as Record<string, unknown>)?.generatedMetadata,
-  workingTitle: workingTitle || metadata?.workingTitle,
-  publicationPackageStatus: publicationPackageStatus
-    || metadata?.publicationPackageStatus
-    || (generatedMetadata ? 'current' : 'not_generated'),
-  _system: {
-    responseMode,
-    polishedDraft,
-    analysisSpeed,
-    readiness: finalQualityGate?.readiness,
-    refinementChanges: finalQualityGate?.changes,
-    telemetry,
-    editorialProfile: editorialAudit,
+  publicationPackageStatus?: PublicationPackageStatus,
+  revisionOrigin: Extract<DraftChangeOrigin, 'initial_analysis' | 'refine'> = 'initial_analysis'
+) => {
+  const revisionState = polishedDraft
+    ? createInitialDraftRevision({ body: polishedDraft, origin: revisionOrigin })
+    : null;
+  return {
+    ...(metadata ?? {}),
+    sourceRef: sourceRef || metadata?.sourceRef,
+    generatedMetadata: generatedMetadata || (metadata as Record<string, unknown>)?.generatedMetadata,
     workingTitle: workingTitle || metadata?.workingTitle,
     publicationPackageStatus: publicationPackageStatus
       || metadata?.publicationPackageStatus
       || (generatedMetadata ? 'current' : 'not_generated'),
-  },
-});
+    _system: {
+      responseMode,
+      polishedDraft,
+      analysisSpeed,
+      readiness: finalQualityGate?.readiness,
+      refinementChanges: finalQualityGate?.changes,
+      telemetry,
+      editorialProfile: editorialAudit,
+      workingTitle: workingTitle || metadata?.workingTitle,
+      publicationPackageStatus: publicationPackageStatus
+        || metadata?.publicationPackageStatus
+        || (generatedMetadata ? 'current' : 'not_generated'),
+      ...(revisionState ?? {}),
+    },
+  };
+};
 
 // ── Internal link selection ───────────────────────────────────────────────────
 
@@ -325,4 +336,3 @@ export function joinRewrittenChunks(chunks: string[]): string {
     return `${result} ${chunk}`;
   }, '');
 }
-

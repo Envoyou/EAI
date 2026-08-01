@@ -253,8 +253,18 @@ export async function executeAnalyze(
           case 'complete': {
             receivedComplete = true;
             setProcessStage('finalizing');
-            const { analysisLogId, sourceRef } = event.data as { analysisLogId: string; sourceRef: string };
-            setAnalysis(prev => ({ ...prev, status: 'success', analysisLogId, sourceRef }));
+            const { analysisLogId, sourceRef, draftRevision } = event.data as {
+              analysisLogId: string;
+              sourceRef: string;
+              draftRevision?: import('@eai/shared').DraftRevisionIdentity;
+            };
+            setAnalysis(prev => ({
+              ...prev,
+              status: 'success',
+              analysisLogId,
+              sourceRef,
+              draftRevision,
+            }));
             break;
           }
           case 'error': throw new Error(event.data as string);

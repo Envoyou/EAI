@@ -50,6 +50,7 @@ export const extractPublicationState = (metadata: unknown): {
   publicationPackageStatus?: import('@eai/shared').PublicationPackageStatus;
   qualityGateState?: import('@eai/shared').RevisionValidationState;
   seoReviewState?: import('@eai/shared').SeoReviewState;
+  draftRevision?: import('@eai/shared').DraftRevisionIdentity;
 } => {
   if (!metadata || typeof metadata !== 'object') return {};
   const source = metadata as Record<string, unknown>;
@@ -65,6 +66,15 @@ export const extractPublicationState = (metadata: unknown): {
   const rawTitle = source.workingTitle ?? system.workingTitle;
   const rawQualityGateState = system.qualityGateState;
   const rawSeoReviewState = system.seoReviewState;
+  const rawDraftRevision = system.draftRevision;
+  const draftRevision = rawDraftRevision
+    && typeof rawDraftRevision === 'object'
+    && !Array.isArray(rawDraftRevision)
+    && typeof (rawDraftRevision as Record<string, unknown>).revisionId === 'string'
+    && typeof (rawDraftRevision as Record<string, unknown>).bodyHash === 'string'
+    && typeof (rawDraftRevision as Record<string, unknown>).createdAt === 'string'
+      ? rawDraftRevision as import('@eai/shared').DraftRevisionIdentity
+      : undefined;
   return {
     workingTitle: typeof rawTitle === 'string' ? rawTitle : undefined,
     publicationPackageStatus,
@@ -80,6 +90,7 @@ export const extractPublicationState = (metadata: unknown): {
       || rawSeoReviewState === 'stale'
         ? rawSeoReviewState
         : undefined,
+    draftRevision,
   };
 };
 

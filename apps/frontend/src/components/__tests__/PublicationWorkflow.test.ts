@@ -127,6 +127,9 @@ describe('revision-safe publication workflow', () => {
     expect(workspace).toContain('await handleRegenerateSeo({');
     expect(workspace).toContain('const result = await executeTargetedFix');
     expect(workspace).toContain('sourceAddedAutomaticQualityCheck');
+    expect(workspace).toContain('revisionId: draftRevision?.revisionId');
+    expect(workspace).toContain('bodyHash: draftRevision?.bodyHash');
+    expect(workspace).toContain("event.type === 'revision_identity'");
     expect(targetedFix).toContain('Promise<TargetedFixResult | null>');
     expect(summary).toContain("t('applyAndVerify')");
   });

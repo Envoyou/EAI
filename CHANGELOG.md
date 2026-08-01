@@ -13,6 +13,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Removed absolute word-count and percentage invalidation rules. Edit size remains only a bounded fallback for unusually large additions/removals, while semantic-risk signals drive the decision.
   - Separated Quality Gate invalidation from SEO relevance. Metadata can remain current, become advisory `possibly_stale`, or become blocking `stale`; Prepare reuses current relevant SEO instead of regenerating it after every Quality Check.
   - System-generated body changes from Apply, Apply All, Rewrite/Remove with EAI, and source insertion now continue into Quality Check automatically. When that revision makes an existing publication package genuinely `stale`, SEO regeneration follows automatically after the body passes; remaining findings still return to the editor without weakening export guards.
+  - Added revision-aware publication invariants without a schema migration: every stored Final Draft now carries a revision ID, exact SHA-256 body hash, persistent sidecar block identities, revision signals, mutation origin, and a bounded `DraftChangeSet`. Quality Check, SEO generation, and editorial resolution reject revision mismatches; long-running publication results re-check the revision inside a serializable transaction before persistence so stale AI responses cannot overwrite a newer draft.
   - Added a sticky Save/Cancel bar and temporarily holds Preview-adjacent workflow, export, copy, and view actions while an unsaved revision is open.
 
 ## [3.21.0] - 2026-07-30

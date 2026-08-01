@@ -27,6 +27,10 @@ import { ReviewPromptComposer } from '@/lib/ai/prompt-engine/composer/review-com
 import { CmsAdapterError, listPublishedPostsForProfile } from '@/lib/cms-adapter';
 import { stripLeadingH1 } from '@/lib/text-utils';
 import { createAnalysisLogAndDebitCredit } from '@/lib/services/analysis-log.service';
+import {
+  readDraftRevisionFromMetadata,
+  type DraftRevisionIdentity,
+} from '@/lib/draft-revision';
 import type { ReviewOutput } from '../types';
 import { sanitizeSuppressiveFeedbackItem, sanitizeFactualSummary } from '../utils/factual';
 import { getProtectedVerificationClaims } from '../utils/factual';
@@ -375,6 +379,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
   }
 
   let savedLogId: string | undefined;
+  let savedDraftRevision: DraftRevisionIdentity | undefined;
   if (userId) {
     try {
       const finalPolishedDraftLog = polishedText
@@ -432,10 +437,21 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
         telemetrySnapshot: telemetry.snapshot(),
       });
       savedLogId = savedLog.id;
+      if (finalPolishedDraftLog) {
+        savedDraftRevision = readDraftRevisionFromMetadata({
+          metadata: savedLog.metadata,
+          body: finalPolishedDraftLog,
+          fallbackCreatedAt: savedLog.createdAt,
+        });
+      }
     } catch (dbError) {
       console.error(`[${effectiveProvider}] Failed to save success log to database:`, dbError);
     }
   }
 
-  sendEvent('complete', { analysisLogId: savedLogId, sourceRef });
+  sendEvent('complete', {
+    analysisLogId: savedLogId,
+    sourceRef,
+    draftRevision: savedDraftRevision,
+  });
 }

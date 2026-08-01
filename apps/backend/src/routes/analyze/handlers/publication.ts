@@ -22,6 +22,12 @@ import {
 } from '../utils/factual';
 import { preparePublicationDraft } from '../utils/text';
 import { isMockMode } from './dev-mock';
+import {
+  assertDraftRevisionMatches,
+  readDraftRevisionIdentity,
+  type DraftRevisionIdentity,
+} from '@/lib/draft-revision';
+import { runSerializableTransaction } from '@/lib/serializable-transaction';
 
 const loadOwnedLog = async (ctx: PublicationStageContext) => {
   if (!ctx.userId) {
@@ -56,8 +62,11 @@ const readStoredState = (metadataValue: unknown) => {
 
 const assertCurrentDraft = (
   text: string,
-  system: Record<string, unknown>
-) => {
+  system: Record<string, unknown>,
+  createdAt: Date,
+  expectedRevisionId?: string,
+  expectedBodyHash?: string
+): { finalDraft: string; draftRevision: DraftRevisionIdentity } => {
   const storedDraft =
     typeof system.polishedDraft === 'string'
       ? preparePublicationDraft(system.polishedDraft)
@@ -66,7 +75,80 @@ const assertCurrentDraft = (
   if (!storedDraft || storedDraft !== requestedDraft) {
     throw new Error('Save the current final draft before running publication checks.');
   }
-  return requestedDraft;
+  const draftRevision = readDraftRevisionIdentity({
+    system,
+    body: storedDraft,
+    fallbackCreatedAt: createdAt,
+  });
+  assertDraftRevisionMatches({
+    current: draftRevision,
+    expectedRevisionId,
+    expectedBodyHash,
+  });
+  return { finalDraft: requestedDraft, draftRevision };
+};
+
+const updatePublicationIfRevisionCurrent = async ({
+  logId,
+  expectedRevision,
+  data,
+}: {
+  logId: string;
+  expectedRevision: DraftRevisionIdentity;
+  data: Prisma.AnalysisLogUpdateArgs['data'];
+}): Promise<void> => {
+  await runSerializableTransaction(async (tx) => {
+    const current = await tx.analysisLog.findUnique({ where: { id: logId } });
+    if (!current) throw new Error('Analysis history not found.');
+    const { system } = readStoredState(current.metadata);
+    const currentDraft = typeof system.polishedDraft === 'string'
+      ? preparePublicationDraft(system.polishedDraft)
+      : '';
+    const currentRevision = readDraftRevisionIdentity({
+      system,
+      body: currentDraft,
+      fallbackCreatedAt: current.createdAt,
+    });
+    assertDraftRevisionMatches({
+      current: currentRevision,
+      expectedRevisionId: expectedRevision.revisionId,
+      expectedBodyHash: expectedRevision.bodyHash,
+    });
+    const currentMetadata = current.metadata
+      && typeof current.metadata === 'object'
+      && !Array.isArray(current.metadata)
+        ? current.metadata as Record<string, unknown>
+        : {};
+    const requestedMetadata = data.metadata
+      && typeof data.metadata === 'object'
+      && !Array.isArray(data.metadata)
+        ? data.metadata as Record<string, unknown>
+        : null;
+    const currentSystem = currentMetadata._system
+      && typeof currentMetadata._system === 'object'
+      && !Array.isArray(currentMetadata._system)
+        ? currentMetadata._system as Record<string, unknown>
+        : {};
+    const requestedSystem = requestedMetadata?._system
+      && typeof requestedMetadata._system === 'object'
+      && !Array.isArray(requestedMetadata._system)
+        ? requestedMetadata._system as Record<string, unknown>
+        : {};
+    const nextData: Prisma.AnalysisLogUpdateArgs['data'] = requestedMetadata
+      ? {
+          ...data,
+          metadata: {
+            ...currentMetadata,
+            ...requestedMetadata,
+            _system: {
+              ...currentSystem,
+              ...requestedSystem,
+            },
+          } as Prisma.InputJsonValue,
+        }
+      : data;
+    await tx.analysisLog.update({ where: { id: logId }, data: nextData });
+  });
 };
 
 export async function handleQualityGateOnly(
@@ -74,7 +156,13 @@ export async function handleQualityGateOnly(
 ): Promise<void> {
   const log = await loadOwnedLog(ctx);
   const { metadata, system } = readStoredState(log.metadata);
-  const finalDraft = assertCurrentDraft(ctx.text, system);
+  const { finalDraft, draftRevision } = assertCurrentDraft(
+    ctx.text,
+    system,
+    log.createdAt,
+    ctx.revisionId,
+    ctx.bodyHash
+  );
   const confirmedInternalUrls = mergeConfirmedInternalUrls(
     readConfirmedInternalUrls(system),
     log.feedback
@@ -126,8 +214,9 @@ export async function handleQualityGateOnly(
       });
 
   const result = response.result;
-  await prisma.analysisLog.update({
-    where: { id: log.id },
+  await updatePublicationIfRevisionCurrent({
+    logId: log.id,
+    expectedRevision: draftRevision,
     data: {
       verdict: result.readiness,
       summary: result.summary,
@@ -144,6 +233,7 @@ export async function handleQualityGateOnly(
           qualityGateCheckedAt: new Date().toISOString(),
           confirmedInternalUrls,
           resolvedQualityFindings,
+          draftRevision,
         },
       } as Prisma.InputJsonValue,
     },
@@ -157,6 +247,7 @@ export async function handleQualityGateOnly(
     ctx.sendEvent('feedback_item', { item, index })
   );
   ctx.sendEvent('flags', result.flags);
+  ctx.sendEvent('revision_identity', draftRevision);
   ctx.sendEvent('complete', {});
 }
 
@@ -165,7 +256,13 @@ export async function handleGenerateSeo(
 ): Promise<void> {
   const log = await loadOwnedLog(ctx);
   const { metadata, system } = readStoredState(log.metadata);
-  const finalDraft = assertCurrentDraft(ctx.text, system);
+  const { finalDraft, draftRevision } = assertCurrentDraft(
+    ctx.text,
+    system,
+    log.createdAt,
+    ctx.revisionId,
+    ctx.bodyHash
+  );
   if (system.readiness !== 'ready') {
     throw new Error('Complete or approve the current quality findings before generating SEO metadata.');
   }
@@ -247,8 +344,9 @@ export async function handleGenerateSeo(
       });
   const qualityGate = qualityGateResponse.result;
 
-  await prisma.analysisLog.update({
-    where: { id: log.id },
+  await updatePublicationIfRevisionCurrent({
+    logId: log.id,
+    expectedRevision: draftRevision,
     data: {
       verdict: qualityGate.readiness,
       summary: qualityGate.summary,
@@ -269,6 +367,7 @@ export async function handleGenerateSeo(
           qualityGateCheckedAt: new Date().toISOString(),
           confirmedInternalUrls,
           resolvedQualityFindings,
+          draftRevision,
         },
       } as Prisma.InputJsonValue,
     },
@@ -282,5 +381,6 @@ export async function handleGenerateSeo(
   );
   ctx.sendEvent('flags', qualityGate.flags);
   ctx.sendEvent('publication_package_status', 'current');
+  ctx.sendEvent('revision_identity', draftRevision);
   ctx.sendEvent('complete', {});
 }

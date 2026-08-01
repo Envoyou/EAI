@@ -63,6 +63,26 @@ describe('analyze pipeline stage order', () => {
     expect(source).toContain('readiness: qualityGate.readiness');
   });
 
+  it('binds standalone publication results to the exact saved revision', () => {
+    const publication = readHandler('publication.ts');
+    const controller = readFileSync(
+      resolve(process.cwd(), 'src/routes/analyze/controller.ts'),
+      'utf8'
+    );
+    const history = readFileSync(
+      resolve(process.cwd(), 'src/routes/history.ts'),
+      'utf8'
+    );
+
+    expect(controller).toContain("bodyHash: z.string().regex(/^[a-f0-9]{64}$/u).optional()");
+    expect(publication).toContain('assertDraftRevisionMatches({');
+    expect(publication).toContain('updatePublicationIfRevisionCurrent');
+    expect(publication).toContain('runSerializableTransaction(async (tx) =>');
+    expect(publication).toContain("ctx.sendEvent('revision_identity', draftRevision)");
+    expect(history).toContain('updateAnalysisLogIfRevisionCurrent');
+    expect(history).toContain("code: 'DRAFT_REVISION_MISMATCH'");
+  });
+
   it('reuses saved editorial decisions and research context in standalone Quality Gate', () => {
     const source = readHandler('publication.ts');
 

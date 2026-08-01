@@ -55,6 +55,8 @@ const AnalyzeRequestSchema = z
     feedbackMessage: z.string().max(5_000).optional(),
     instruction: z.string().max(5_000).optional(),
     requestId: z.string().uuid().optional(),
+    revisionId: z.string().min(1).max(100).optional(),
+    bodyHash: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
   })
   .superRefine((value, ctx) => {
     const mode = value.mode ?? (value.targetText ? 'fix_targeted' : 'analyze');
@@ -381,6 +383,8 @@ router.post('/', async (req: Request, res) => {
       analysisLogId,
       originalDraft,
       requestId: parsedRequestId,
+      revisionId,
+      bodyHash,
     } = parsedRequest.data;
 
     const analysisSpeed = userId ? (requestedAnalysisSpeed ?? 'deep') : 'fast';
@@ -471,6 +475,8 @@ router.post('/', async (req: Request, res) => {
         metadata,
         analysisLogId: analysisLogId ?? '',
         originalDraft,
+        revisionId,
+        bodyHash,
         analysisSpeed,
         effectiveProvider,
         userId,

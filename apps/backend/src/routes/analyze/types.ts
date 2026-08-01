@@ -129,6 +129,8 @@ export type RefineContext = BaseHandlerContext & {
 export type PublicationStageContext = BaseHandlerContext & {
   analysisLogId: string;
   originalDraft?: string;
+  revisionId?: string;
+  bodyHash?: string;
 };
 
 export type AnalyzeContext = BaseHandlerContext & {

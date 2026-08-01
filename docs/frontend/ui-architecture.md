@@ -116,6 +116,14 @@ remains single-flight and cancellable; a failed or still-unresolved check leaves
 the durable revised body visible instead of asking the editor to repeat a
 validation click.
 
+The workspace carries the backend-issued Final Draft revision identity through
+Analyze/Refine completion, History reload, editorial mutations, Quality Check,
+and SEO regeneration. Mutation and publication requests send both revision ID
+and exact body hash. A mismatch is a recoverable stale-operation failure; the
+client must never merge that response into the current draft. Block identity
+and change-scope derivation remain backend-owned metadata and are not inferred
+from rendered editor positions.
+
 While a revision is open, Save and Cancel remain visible in a sticky local
 toolbar. Other draft views and actions that operate on the persisted article
 are held until the user saves or cancels, preventing a visible unsaved revision
