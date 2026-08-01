@@ -13,7 +13,7 @@ export type QualityResolution = {
   message: string;
   targetText?: string;
   verifiedSource?: string;
-  resolution: 'accepted' | 'applied' | 'verified';
+  resolution: 'accepted' | 'verified';
 };
 
 const normalizeText = (value: string | undefined) =>
@@ -45,7 +45,6 @@ const readResolution = (value: unknown): QualityResolution | null => {
   const resolution = candidate.resolution;
   if (
     resolution !== 'accepted'
-    && resolution !== 'applied'
     && resolution !== 'verified'
   ) return null;
 
@@ -102,11 +101,9 @@ const resolutionKey = (item: QualityResolution) => item.feedbackId
 const feedbackResolution = (item: FeedbackItem): QualityResolution | null => {
   const resolution = item.isVerified
     ? 'verified'
-    : item.isApplied
-      ? 'applied'
-      : item.isAccepted
-        ? 'accepted'
-        : null;
+    : item.isAccepted
+      ? 'accepted'
+      : null;
   if (!resolution || item.status === 'fail') return null;
 
   return readResolution({

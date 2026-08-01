@@ -206,6 +206,7 @@
     "acceptEditorialDecision": "Terima sebagai keputusan editorial",
     "rewriteWithEAI": "Tulis ulang dengan EAI",
     "reviseWithEAI": "Revisi dengan EAI",
+    "removeUnsupportedDetail": "Hapus detail tanpa dukungan",
     "autoApplicableEdits": "{count} saran dapat diterapkan dalam satu langkah.",
     "applyAndVerify": "Terapkan perubahan",
     "applyingAndVerifying": "Menerapkan perubahan"

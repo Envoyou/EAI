@@ -107,6 +107,12 @@ describe('analyze pipeline stage order', () => {
     expect(source).toContain('ResearchNotesArraySchema.safeParse(metadata.researchNotes)');
   });
 
+  it('versions cached validation results so legacy false-ready results are not reused', () => {
+    const source = readHandler('publication.ts');
+
+    expect(source).toContain('policyVersion: VALIDATION_POLICY_VERSION');
+  });
+
   it('validates targeted replacements against source fidelity before returning them', () => {
     const source = readHandler('fix-targeted.ts');
     const stage = readFileSync(

@@ -77,7 +77,7 @@ describe('feedback preview auto-apply contract', () => {
       operation: 'manual',
     };
 
-    expect(canRequestEAIRevision(sourceFinding)).toBe(true);
+    expect(canRequestEAIRevision(sourceFinding)).toBe(false);
     expect(canAcceptEditorialDecision(sourceFinding)).toBe(false);
     expect(canRequestEAIRevision(blockingFinding)).toBe(true);
     expect(canAcceptEditorialDecision(blockingFinding)).toBe(false);

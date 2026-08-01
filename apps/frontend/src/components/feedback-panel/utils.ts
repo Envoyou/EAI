@@ -37,4 +37,7 @@ export const canAcceptEditorialDecision = (item: FeedbackItem) =>
 
 export const canRequestEAIRevision = (item: FeedbackItem) =>
   (item.status === 'warning' || item.status === 'fail')
-  && !isResolvedFeedback(item);
+  && !isResolvedFeedback(item)
+  && !item.verificationStatus
+  && item.category !== 'Source Fidelity'
+  && item.category !== 'Internal Linking';

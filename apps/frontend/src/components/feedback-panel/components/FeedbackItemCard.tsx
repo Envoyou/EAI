@@ -538,7 +538,7 @@ export function FeedbackItemCard({
                         ) : (
                           <Trash2 className="w-3.5 h-3.5" />
                         )}
-                        Remove or Neutralize
+                        {t('removeUnsupportedDetail')}
                       </Button>
                     )}
 

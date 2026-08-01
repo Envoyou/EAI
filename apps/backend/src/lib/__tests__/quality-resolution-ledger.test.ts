@@ -9,7 +9,7 @@ import {
 } from '@/lib/quality-resolution-ledger';
 
 type QualityFeedbackItem = FinalQualityGateOutput['feedback'][number] &
-  Pick<FeedbackItem, 'isAccepted' | 'isVerified' | 'verifiedSource'>;
+  Pick<FeedbackItem, 'isAccepted' | 'isApplied' | 'isVerified' | 'verifiedSource'>;
 
 const warning = (
   overrides: Partial<QualityFeedbackItem> = {}
@@ -64,6 +64,34 @@ describe('quality resolution ledger', () => {
 
     expect(nextResult.readiness).toBe('needs_review');
     expect(nextResult.feedback).toEqual([changedFinding]);
+  });
+
+  test('never persists an applied edit as a durable editorial resolution', () => {
+    const applied = warning({ isApplied: true });
+    const ledger = mergeQualityResolutions([], [applied]);
+    const nextFinding = warning();
+    const nextResult = reconcileQualityResolutions(
+      resultWith([nextFinding]),
+      nextFinding.targetText!,
+      ledger
+    );
+
+    expect(ledger).toEqual([]);
+    expect(nextResult.feedback).toEqual([nextFinding]);
+    expect(nextResult.readiness).toBe('needs_review');
+  });
+
+  test('ignores legacy applied resolutions when metadata is read', () => {
+    const stored = readQualityResolutions({
+      resolvedQualityFindings: [{
+        category: 'Source Fidelity',
+        message: 'Unsupported entity remains.',
+        targetText: 'RPA remains in the article.',
+        resolution: 'applied',
+      }],
+    });
+
+    expect(stored).toEqual([]);
   });
 
   test('never suppresses a fail using a previous warning decision', () => {

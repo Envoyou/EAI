@@ -25,7 +25,10 @@ export const ValidationScopeSchema = z.object({
   reasons: z.array(z.string().min(1).max(100)).max(30),
 });
 
+export const VALIDATION_POLICY_VERSION = 2 as const;
+
 export const StoredValidationResultSchema = z.object({
+  policyVersion: z.literal(VALIDATION_POLICY_VERSION),
   revisionId: z.string().min(1).max(100),
   bodyHash: z.string().regex(/^[a-f0-9]{64}$/u),
   validationLevel: z.enum(['none', 'light', 'targeted', 'full']),

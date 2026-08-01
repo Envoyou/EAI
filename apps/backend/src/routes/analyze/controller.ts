@@ -26,6 +26,7 @@ import {
   consumeRequestRateLimit,
 } from '@/middleware/rate-limit';
 import { prisma } from '@/lib/db';
+import { isBillableAnalyzeMode } from '@/lib/analyze-billing-policy';
 
 import type { AnalyzeState } from './types';
 import { parseCookies } from './utils/text';
@@ -117,6 +118,8 @@ router.post('/', async (req: Request, res) => {
     });
     return;
   }
+  const requestedMode: AnalyzeMode = parsedRequest.data.mode
+    ?? (parsedRequest.data.targetText ? 'fix_targeted' : 'analyze');
 
   // Auth (optional — guests are allowed for demo)
   let userId: string | null = null;
@@ -250,7 +253,8 @@ router.post('/', async (req: Request, res) => {
     if (
       workspace.plan &&
       typeof workspace.plan.creditsRemaining === 'number' &&
-      workspace.plan.creditsRemaining <= 0
+      workspace.plan.creditsRemaining <= 0 &&
+      isBillableAnalyzeMode(requestedMode)
     ) {
       res.status(402).json({
         error:
@@ -272,14 +276,11 @@ router.post('/', async (req: Request, res) => {
   }
 
   const requestId = parsedRequest.data.requestId;
-  const requestedMode =
-    parsedRequest.data.mode ??
-    (parsedRequest.data.targetText ? 'fix_targeted' : 'analyze');
   let requestLease: Awaited<ReturnType<typeof acquireRequestLease>> = null;
   if (
     userId &&
     requestId &&
-    (requestedMode === 'analyze' || requestedMode === 'refine')
+    isBillableAnalyzeMode(requestedMode)
   ) {
     const existingLog = await prisma.analysisLog.findFirst({
       where: { userId, requestId },

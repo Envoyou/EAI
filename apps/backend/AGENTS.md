@@ -241,6 +241,10 @@ Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes l
 
 > **H1 Contract**: `routes/analyze/` (specifically the rewrite stage handler) applies `stripLeadingH1` (from `src/lib/text-utils.ts`) to the input draft **before** the rewrite stage. This removes any top-level heading that would duplicate the article title rendered by the frontend.
 
+> **Remediation convergence contract**: An applied body mutation is provisional and must be validated against the resulting saved revision. Never persist `isApplied` as a durable Quality Gate resolution; only explicit warning acceptance or source verification may suppress the same unchanged finding. Source-fidelity removal should use a deterministic transformation when safe, and every generated candidate must reject unresolved named signals, no-op replacements, new unsupported signals, and duplicate headings.
+
+> **Analyze billing contract**: Only full `analyze` and `refine` modes enter the credit debit and balance gate. `fix_targeted`, `validate_revision`, `quality_gate`, `generate_seo`, and `refresh_seo_fields` are remediation/publication checks and must remain non-billable and available at zero balance.
+
 * **Provider-Native Thinking**: Reviewer and Quality Gate stages may enable provider-native thinking for model quality, but JSON response schemas must contain only the final editorial result. Do not request or persist manual chain-of-thought fields such as `"thinking"`.
 * **Provider Cancellation**: Every AI request must pass the originating response-close `AbortSignal` through `StreamRequest` or the provider-native request options. Gemini Flex retry delays must receive the same signal. An `isDisconnected` flag may prevent later writes, but it is not a substitute for aborting active provider work.
 * **Workspace Context & Compliance Helpers**:

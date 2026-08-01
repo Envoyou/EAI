@@ -6,7 +6,10 @@
  */
 
 import type { FixTargetedContext } from '../types';
-import { runTargetedFixStage } from '@/lib/ai/targeted-fix-stage';
+import {
+  buildDeterministicSourceNeutralization,
+  runTargetedFixStage,
+} from '@/lib/ai/targeted-fix-stage';
 
 export async function handleFixTargeted(ctx: FixTargetedContext): Promise<void> {
   const {
@@ -38,7 +41,11 @@ export async function handleFixTargeted(ctx: FixTargetedContext): Promise<void> 
   }
 
   sendEvent('status', 'rewriting');
-  let replacementText: string;
+  let replacementText = buildDeterministicSourceNeutralization({
+    targetText,
+    feedback: feedbackMessage || '',
+    editorInstruction: instruction || '',
+  });
 
   const missingGeminiKey =
     !process.env.GEMINI_API_KEY ||
@@ -53,7 +60,9 @@ export async function handleFixTargeted(ctx: FixTargetedContext): Promise<void> 
     process.env.OPENROUTER_API_KEY === 'empty' ||
     process.env.OPENROUTER_API_KEY === 'your-openrouter-api-key';
 
-  if (
+  if (replacementText) {
+    state.usedModels.push('deterministic(source_neutralization)');
+  } else if (
     (effectiveProvider === 'gemini' && missingGeminiKey) ||
     (effectiveProvider === 'groq' && missingGroqKey) ||
     (effectiveProvider === 'openrouter' && missingOpenRouterKey)

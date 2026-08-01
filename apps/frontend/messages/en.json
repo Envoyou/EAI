@@ -206,6 +206,7 @@
     "acceptEditorialDecision": "Accept as editorial decision",
     "rewriteWithEAI": "Rewrite with EAI",
     "reviseWithEAI": "Revise with EAI",
+    "removeUnsupportedDetail": "Remove unsupported detail",
     "autoApplicableEdits": "{count} suggested edits can be applied in one step.",
     "applyAndVerify": "Apply changes",
     "applyingAndVerifying": "Applying changes"

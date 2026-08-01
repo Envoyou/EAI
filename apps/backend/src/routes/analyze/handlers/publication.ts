@@ -38,6 +38,7 @@ import {
 import {
   buildValidationScope,
   StoredValidationResultSchema,
+  VALIDATION_POLICY_VERSION,
 } from '@/lib/validation-scope';
 import { applyDeterministicQualityChecks } from '@/lib/final-quality';
 import {
@@ -423,6 +424,7 @@ export async function handleValidateRevision(
           qualityGateState: aggregated.readiness === 'ready' ? 'valid' : 'stale',
           incrementalValidationCheckedAt: checkedAt,
           lastValidationResult: {
+            policyVersion: VALIDATION_POLICY_VERSION,
             revisionId: draftRevision.revisionId,
             bodyHash: draftRevision.bodyHash,
             validationLevel: scope.validationMode,
@@ -548,6 +550,7 @@ export async function handleQualityGateOnly(
             ? {
                 incrementalValidationCheckedAt: new Date().toISOString(),
                 lastValidationResult: {
+                  policyVersion: VALIDATION_POLICY_VERSION,
                   revisionId: draftRevision.revisionId,
                   bodyHash: draftRevision.bodyHash,
                   validationLevel: 'full',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyDeterministicQualityChecks,
+  detectAdjacentDuplicateHeadings,
   detectContentAfterReferences,
   detectMissingSentenceBoundaries,
 } from '../final-quality';
@@ -38,5 +39,44 @@ The trajectory of climate finance shows that capital availability is rarely the 
     );
     expect(result.flags).toContain('Content After References');
     expect(result.readiness).toBe('blocked');
+  });
+
+  it('blocks repeated headings with no article content between them', () => {
+    const text = `
+## How Agentic AI Replaces Rigid Automation
+
+## How Agentic AI Replaces Rigid Automation
+
+## How Agentic AI Replaces Rigid Automation
+
+The article continues here.
+`;
+
+    expect(detectAdjacentDuplicateHeadings(text)).toEqual([
+      'How Agentic AI Replaces Rigid Automation',
+    ]);
+
+    const result = applyDeterministicQualityChecks(
+      { readiness: 'ready', summary: '', changes: [], feedback: [], flags: [] },
+      text,
+      ''
+    );
+    expect(result.flags).toContain('Duplicate Heading');
+    expect(result.feedback[0]?.category).toBe('Structure');
+    expect(result.readiness).toBe('blocked');
+  });
+
+  it('allows the same heading text when article content separates the sections', () => {
+    const text = `
+## Reusable Pattern
+
+The first section has meaningful content.
+
+## Reusable Pattern
+
+The second section has meaningful content.
+`;
+
+    expect(detectAdjacentDuplicateHeadings(text)).toEqual([]);
   });
 });

@@ -11,6 +11,60 @@ import { detectSourceFidelitySignals } from '@/lib/final-quality';
 import { replaceFirstTargetMatch, ResearchNotesArraySchema } from '@eai/shared';
 import { buildAttachmentContext } from './prompt-context';
 
+const normalizeComparable = (value: string): string =>
+  value.normalize('NFKC').replace(/\s+/gu, ' ').trim().toLocaleLowerCase();
+
+const headingCounts = (value: string): Map<string, number> => {
+  const counts = new Map<string, number>();
+  value.split(/\r?\n/gu).forEach((line) => {
+    const match = /^#{1,6}\s+(.+)$/u.exec(line.trim());
+    if (!match?.[1]) return;
+    const heading = normalizeComparable(match[1]);
+    counts.set(heading, (counts.get(heading) ?? 0) + 1);
+  });
+  return counts;
+};
+
+const introducesDuplicateHeading = (before: string, after: string): boolean => {
+  const previous = headingCounts(before);
+  return [...headingCounts(after)].some(([heading, count]) =>
+    count > Math.max(previous.get(heading) ?? 0, 1)
+  );
+};
+
+export const buildDeterministicSourceNeutralization = ({
+  targetText,
+  feedback,
+  editorInstruction,
+}: {
+  targetText: string;
+  feedback: string;
+  editorInstruction: string;
+}): string | null => {
+  if (!/remove|neutralize|hapus|netral/iu.test(editorInstruction)) return null;
+  const signals = [...feedback.matchAll(/["“]([^"”\n]{1,80})["”]/gu)]
+    .map((match) => match[1]?.trim())
+    .filter((value): value is string => Boolean(value));
+  if (signals.length === 0) return null;
+  let replacement = targetText;
+  signals.forEach((signal) => {
+    const escaped = signal.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+    replacement = replacement.replace(
+      new RegExp(`\\s*\\([^()\\n]*${escaped}[^()\\n]*\\)`, 'giu'),
+      ''
+    );
+  });
+  replacement = replacement
+    .replace(/[ \t]+([,.;:!?])/gu, '$1')
+    .replace(/[ \t]{2,}/gu, ' ')
+    .trim();
+  const changed = normalizeComparable(replacement) !== normalizeComparable(targetText);
+  const unresolved = signals.some((signal) =>
+    normalizeComparable(replacement).includes(normalizeComparable(signal))
+  );
+  return changed && !unresolved && replacement.length >= 8 ? replacement : null;
+};
+
 export const runTargetedFixStage = async ({
   provider,
   analysisSpeed,
@@ -133,6 +187,12 @@ export const runTargetedFixStage = async ({
     entities: new Set(baselineSignals.novelEntities),
     urls: new Set(baselineSignals.novelUrls),
   };
+  const issueText = normalizeComparable(feedback);
+  const requiredRemovalSignals = [
+    ...baselineSignals.novelNumbers,
+    ...baselineSignals.novelEntities,
+    ...baselineSignals.novelUrls,
+  ].filter((value) => issueText.includes(normalizeComparable(value)));
   let correction = '';
 
   for (let attempt = 1; attempt <= 2; attempt++) {
@@ -165,20 +225,41 @@ export const runTargetedFixStage = async ({
         allowedEditorialTerms: editorialProfile.config.allowedEditorialTerms,
       }
     );
+    const candidateNovelSignals = [
+      ...candidateSignals.novelNumbers,
+      ...candidateSignals.novelEntities,
+      ...candidateSignals.novelUrls,
+    ];
+    const unresolvedIssueSignals = requiredRemovalSignals.filter((required) =>
+      candidateNovelSignals.some(
+        (candidateSignal) => normalizeComparable(candidateSignal) === normalizeComparable(required)
+      )
+    );
     const introduced = [
       ...candidateSignals.novelNumbers.filter((value) => !baseline.numbers.has(value)),
       ...candidateSignals.novelEntities.filter((value) => !baseline.entities.has(value)),
       ...candidateSignals.novelUrls.filter((value) => !baseline.urls.has(value)),
     ];
-    if (introduced.length === 0) {
+    const noOp = normalizeComparable(replacementText) === normalizeComparable(targetText);
+    const duplicateHeading = introducesDuplicateHeading(article, candidate.nextText);
+    if (
+      introduced.length === 0
+      && unresolvedIssueSignals.length === 0
+      && !noOp
+      && !duplicateHeading
+    ) {
       return { modelName, replacementText };
     }
 
     correction = `
 
 <retry_correction>
-The proposed replacement introduced source-fidelity signals that were absent from both the current article and supplied source material: ${introduced.slice(0, 6).join(', ')}.
-Rewrite the target again without adding those or any other new number, named entity, identity attribute, or URL.
+The proposed replacement did not safely resolve the requested issue.
+${introduced.length > 0 ? `It introduced unsupported signals: ${introduced.slice(0, 6).join(', ')}.` : ''}
+${unresolvedIssueSignals.length > 0 ? `It retained the unsupported signals named by the finding: ${unresolvedIssueSignals.slice(0, 6).join(', ')}.` : ''}
+${noOp ? 'It did not materially change the target text.' : ''}
+${duplicateHeading ? 'It introduced a duplicate Markdown heading.' : ''}
+Rewrite the target again, resolve the stated finding, preserve supported meaning, and add no new number, named entity, identity attribute, URL, or duplicate heading.
 </retry_correction>`;
   }
 

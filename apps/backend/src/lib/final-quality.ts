@@ -316,6 +316,34 @@ export const hasMalformedMarkdownTable = (text: string) => {
   return false;
 };
 
+export const detectAdjacentDuplicateHeadings = (text: string): string[] => {
+  const duplicates: string[] = [];
+  let previousHeading: string | null = null;
+
+  text.split(/\r?\n/gu).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    const heading = /^#{1,6}\s+(.+)$/u.exec(trimmed);
+    if (!heading?.[1]) {
+      previousHeading = null;
+      return;
+    }
+
+    const normalized = heading[1]
+      .normalize('NFKC')
+      .replace(/[*_`]+/gu, '')
+      .replace(/\s+/gu, ' ')
+      .trim()
+      .toLocaleLowerCase();
+    if (previousHeading === normalized) {
+      duplicates.push(heading[1].trim());
+    }
+    previousHeading = normalized;
+  });
+
+  return Array.from(new Set(duplicates));
+};
+
 const normalizeFlag = (flag: string) =>
   flag
     .replace(/[_-]+/g, ' ')
@@ -975,6 +1003,23 @@ export const applyDeterministicQualityChecks = (
       operation: 'manual',
     });
     flags.push('Malformed Markdown Table');
+  }
+
+  const duplicateHeadings = detectAdjacentDuplicateHeadings(finalDraft);
+  if (duplicateHeadings.length > 0) {
+    feedback.unshift({
+      category: 'Structure',
+      status: 'fail',
+      message: isEn
+        ? `The final draft repeats the heading "${duplicateHeadings[0]}" without article content between occurrences.`
+        : `Draft final mengulang heading "${duplicateHeadings[0]}" tanpa isi artikel di antara kemunculannya.`,
+      suggestion: isEn
+        ? 'Keep one heading and remove the empty duplicate headings before publication.'
+        : 'Pertahankan satu heading dan hapus heading duplikat yang kosong sebelum publikasi.',
+      operation: 'manual',
+      targetText: duplicateHeadings[0],
+    });
+    flags.push('Duplicate Heading');
   }
 
   const temporalPhaseMismatch = detectTemporalPhaseMismatch(finalDraft);
