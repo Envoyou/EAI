@@ -17,6 +17,7 @@ import {
   type DraftChangeOrigin,
 } from '@/lib/draft-revision';
 import type { EditorialIdentityState } from '@/lib/editorial-identity';
+import { createValidSeoFieldStates } from '@/lib/seo-field-state';
 
 // ── Async helpers ─────────────────────────────────────────────────────────────
 
@@ -65,6 +66,9 @@ export const buildStoredMetadata = (
   const revisionState = persistedIdentityState ?? (polishedDraft
     ? createInitialDraftRevision({ body: polishedDraft, origin: revisionOrigin })
     : null);
+  const seoFieldStates = generatedMetadata
+    ? createValidSeoFieldStates(revisionState?.draftRevision)
+    : {};
   return {
     ...(metadata ?? {}),
     sourceRef: sourceRef || metadata?.sourceRef,
@@ -85,6 +89,7 @@ export const buildStoredMetadata = (
       publicationPackageStatus: publicationPackageStatus
         || metadata?.publicationPackageStatus
         || (generatedMetadata ? 'current' : 'not_generated'),
+      seoFieldStates,
       ...(revisionState ?? {}),
     },
   };

@@ -123,9 +123,9 @@ describe('revision-safe publication workflow', () => {
     expect(workspace).toContain('runAutomaticPublicationValidation');
     expect(workspace).toContain('await handleQualityCheck({');
     expect(workspace).toContain("mode: options.automatic ? 'validate_revision' : 'quality_gate'");
-    expect(workspace).toContain("context.publicationPackageStatus === 'stale'");
-    expect(workspace).toContain("context.seoReviewState === 'stale'");
-    expect(workspace).toContain('await handleRegenerateSeo({');
+    expect(workspace).toContain("mode: 'refresh_seo_fields'");
+    expect(workspace).toContain('getSafeStaleSeoFields(context.seoFieldStates)');
+    expect(workspace).toContain('await handleRefreshSeoFields({');
     expect(workspace).toContain('const result = await executeTargetedFix');
     expect(workspace).toContain('sourceAddedAutomaticQualityCheck');
     expect(workspace).toContain('revisionId: draftRevision?.revisionId');

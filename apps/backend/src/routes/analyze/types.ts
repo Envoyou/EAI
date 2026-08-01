@@ -3,7 +3,7 @@
  * Extracted from analyze.ts during the Sprint 1 refactor (zero logic change).
  */
 
-import type { AnalyzeMode, FeedbackOutput, PolishDiagnosisOutput, ArticleMetadata, ResponseMode, Role, FeedbackItem } from '@eai/shared';
+import type { AnalyzeMode, FeedbackOutput, PolishDiagnosisOutput, ArticleMetadata, ResponseMode, Role, FeedbackItem, SeoField } from '@eai/shared';
 import type { EditorialAuditContext, EditorialProfileSnapshot } from '@eai/shared/server';
 import type { AiTelemetryCollector } from '@/lib/ai-telemetry';
 import type { getWorkspaceState } from '@/lib/user-workspace';
@@ -131,6 +131,7 @@ export type PublicationStageContext = BaseHandlerContext & {
   originalDraft?: string;
   revisionId?: string;
   bodyHash?: string;
+  seoFields?: SeoField[];
 };
 
 export type AnalyzeContext = BaseHandlerContext & {

@@ -17,7 +17,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
 import { buildParagraphDiff } from '@eai/shared';
-import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackage, PublicationPackageStatus, RevisionValidationState, SeoReviewState } from '@eai/shared';
+import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackage, PublicationPackageStatus, RevisionValidationState, SeoFieldStates, SeoReviewState } from '@eai/shared';
+import { getProtectedSeoReviewFields } from '@/workspace/seo-field-state';
 import EditorialProgress from '@/components/EditorialProgress';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,7 @@ interface FinalDraftPanelProps {
   publicationPackageStatus?: PublicationPackageStatus;
   qualityGateState?: RevisionValidationState;
   seoReviewState?: SeoReviewState;
+  seoFieldStates?: SeoFieldStates;
   isFocused?: boolean;
   onFocusToggle?: () => void;
   isStreaming?: boolean;
@@ -217,6 +219,7 @@ export default function FinalDraftPanel({
   publicationPackageStatus,
   qualityGateState,
   seoReviewState,
+  seoFieldStates,
   isFocused,
   onFocusToggle,
   isStreaming,
@@ -1251,7 +1254,20 @@ export default function FinalDraftPanel({
             </div>
           </Alert>
         )}
-        {publicationPackageStatus === 'stale' && (
+        {!isBackgroundValidation && getProtectedSeoReviewFields(seoFieldStates).length > 0 && (
+          <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <strong>{t('seoFieldsNeedReviewTitle')}</strong>{' '}
+              {t('seoFieldsNeedReviewDescription', {
+                fields: getProtectedSeoReviewFields(seoFieldStates)
+                  .map((field) => t(`seoField.${field}`))
+                  .join(', '),
+              })}
+            </div>
+          </Alert>
+        )}
+        {!isBackgroundValidation && publicationPackageStatus === 'stale' && getProtectedSeoReviewFields(seoFieldStates).length === 0 && (
           <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <div className="min-w-0 flex-1">

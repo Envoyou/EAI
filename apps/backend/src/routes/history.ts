@@ -33,6 +33,13 @@ import {
   assignPersistentEditorialIdentities,
   restoreTrustedFeedbackIdentities,
 } from '@/lib/editorial-identity';
+import {
+  createValidSeoFieldStates,
+  deriveSeoFieldStates,
+  readSeoFieldStates,
+  resolveStatusFromSeoFields,
+} from '@/lib/seo-field-state';
+import type { PublicationPackage } from '@eai/shared';
 
 const router = Router();
 
@@ -644,11 +651,21 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
           : assessment.seoReviewState === 'possibly_stale'
             ? 'possibly_stale'
             : previousSeoReviewState;
-      const publicationPackageStatus = resolvePublicationPackageStatus({
-        storedStatus: metadata.publicationPackageStatus,
-        hasPackage: Boolean(metadata.generatedMetadata),
-        bodyChanged: assessment.seoReviewState === 'stale',
+      const publicationPackage = metadata.generatedMetadata && typeof metadata.generatedMetadata === 'object'
+        ? metadata.generatedMetadata as PublicationPackage
+        : null;
+      const seoFieldStates = deriveSeoFieldStates({
+        previousDraft: previousPolishedDraft,
+        nextDraft: nextPolishedDraft,
+        publicationPackage,
+        assessment,
+        previousStates: systemMetadata.seoFieldStates,
+        revision: revisionState.draftRevision,
       });
+      const publicationPackageStatus = resolveStatusFromSeoFields(
+        seoFieldStates,
+        Boolean(publicationPackage),
+      );
       await updateAnalysisLogIfRevisionCurrent({
         id,
         expectedRevisionId: currentDraftRevision.revisionId,
@@ -675,6 +692,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
               revisionValidationReasons: assessment.reasons,
               qualityGateState,
               seoReviewState,
+              seoFieldStates,
               draftRevision: revisionState.draftRevision,
               contentBlocks: revisionState.contentBlocks,
               lastDraftChangeSet: revisionState.changeSet,
@@ -696,6 +714,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         revisionValidationReasons: assessment.reasons,
         qualityGateState,
         seoReviewState,
+        seoFieldStates,
         draftRevision: revisionState.draftRevision,
         qualityCheckInvalidated: invalidatesPublicationReview,
         seoInvalidated: assessment.seoReviewState === 'stale' && publicationPackageStatus === 'stale',
@@ -708,6 +727,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
           error: 'Complete or approve the current quality findings before saving publication metadata.',
         });
       }
+      const seoFieldStates = createValidSeoFieldStates(currentDraftRevision);
       await updateAnalysisLogIfRevisionCurrent({
         id,
         expectedRevisionId: currentDraftRevision.revisionId,
@@ -721,6 +741,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
               ...systemMetadata,
               publicationPackageStatus: 'current',
               seoReviewState: 'valid',
+              seoFieldStates,
               draftRevision: currentDraftRevision,
               seoEditedAt: new Date().toISOString(),
             },
@@ -732,6 +753,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         generatedMetadata: resolution.data.publicationPackage,
         publicationPackageStatus: 'current',
         seoReviewState: 'valid',
+        seoFieldStates,
         draftRevision: currentDraftRevision,
       });
     }
@@ -751,6 +773,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       }
 
       const confirmedAt = new Date().toISOString();
+      const seoFieldStates = createValidSeoFieldStates(currentDraftRevision);
       await updateAnalysisLogIfRevisionCurrent({
         id,
         expectedRevisionId: currentDraftRevision.revisionId,
@@ -763,6 +786,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
               ...systemMetadata,
               publicationPackageStatus: 'current',
               seoReviewState: 'valid',
+              seoFieldStates,
               draftRevision: currentDraftRevision,
               seoConfirmedAt: confirmedAt,
             },
@@ -773,6 +797,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         success: true,
         publicationPackageStatus: 'current',
         seoReviewState: 'valid',
+        seoFieldStates,
         draftRevision: currentDraftRevision,
         confirmedAt,
       });
@@ -838,11 +863,28 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         })
       : null;
     const nextDraftRevision = revisionState?.draftRevision ?? currentDraftRevision;
-    const publicationPackageStatus = resolvePublicationPackageStatus({
-      storedStatus: metadata.publicationPackageStatus,
-      hasPackage: Boolean(metadata.generatedMetadata),
-      bodyChanged: bodyChangeAssessment?.seoReviewState === 'stale',
-    });
+    const publicationPackage = metadata.generatedMetadata && typeof metadata.generatedMetadata === 'object'
+      ? metadata.generatedMetadata as PublicationPackage
+      : null;
+    const storedSeoFieldStates = readSeoFieldStates(systemMetadata.seoFieldStates);
+    const seoFieldStates = bodyChanged && bodyChangeAssessment && revisionState
+      ? deriveSeoFieldStates({
+          previousDraft: previousPolishedDraft,
+          nextDraft: nextPolishedDraft,
+          publicationPackage,
+          assessment: bodyChangeAssessment,
+          previousStates: systemMetadata.seoFieldStates,
+          revision: revisionState.draftRevision,
+        })
+      : Object.keys(storedSeoFieldStates).length > 0
+        ? storedSeoFieldStates
+        : publicationPackage
+          ? createValidSeoFieldStates(currentDraftRevision)
+          : {};
+    const publicationPackageStatus = resolveStatusFromSeoFields(
+      seoFieldStates,
+      Boolean(publicationPackage),
+    );
     const previousResolutionSeoState =
       systemMetadata.seoReviewState === 'valid'
       || systemMetadata.seoReviewState === 'possibly_stale'
@@ -892,6 +934,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
             publicationPackageStatus,
             qualityGateState: readiness === 'ready' ? 'valid' : 'stale',
             seoReviewState,
+            seoFieldStates,
             confirmedInternalUrls,
             resolvedQualityFindings,
             editorialIdentities: trustedIdentityUpdate.editorialIdentities,
@@ -913,6 +956,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       publicationPackageStatus,
       qualityGateState: readiness === 'ready' ? 'valid' : 'stale',
       seoReviewState,
+      seoFieldStates,
       draftRevision: nextDraftRevision,
     });
   } catch (error) {

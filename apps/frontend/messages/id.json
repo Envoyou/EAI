@@ -94,6 +94,18 @@
     "refreshPublicationMetadata": "Buat ulang atau edit metadata SEO untuk draft final saat ini",
     "staleMetadataTitle": "Metadata publikasi sudah tidak mutakhir.",
     "staleMetadataDescription": "Body artikel berubah setelah metadata dibuat. Buat ulang atau edit SEO, atau konfirmasi bahwa metadata saat ini masih relevan.",
+    "seoFieldsNeedReviewTitle": "Keputusan editor diperlukan untuk SEO.",
+    "seoFieldsNeedReviewDescription": "Tinjau field terlindungi ini sebelum export: {fields}.",
+    "seoPartialRefreshFailed": "Field SEO terkait tidak dapat diperbarui.",
+    "seoField": {
+      "title": "judul",
+      "slug": "slug",
+      "excerpt": "ringkasan",
+      "metaTitle": "meta title",
+      "metaDescription": "meta description",
+      "coverImageAltText": "alt text gambar sampul",
+      "tags": "tag"
+    },
     "confirmMetadataCurrent": "Pertahankan metadata saat ini",
     "confirmMetadataSuccess": "Metadata publikasi saat ini berhasil dikonfirmasi.",
     "confirmMetadataFailed": "Metadata publikasi tidak dapat dikonfirmasi.",

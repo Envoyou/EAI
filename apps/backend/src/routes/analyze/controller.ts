@@ -36,6 +36,7 @@ import { handleAnalyze } from './handlers/analyze';
 import {
   handleGenerateSeo,
   handleQualityGateOnly,
+  handleRefreshSeoFields,
   handleValidateRevision,
 } from './handlers/publication';
 
@@ -46,7 +47,7 @@ const AnalyzeRequestSchema = z
     text: z.string().max(100_000).optional(),
     role: z.enum(['polish', 'author', 'editor', 'seo', 'fact-checker']).optional(),
     metadata: AnalyzeMetadataSchema.optional(),
-    mode: z.enum(['analyze', 'refine', 'fix_targeted', 'quality_gate', 'validate_revision', 'generate_seo']).optional(),
+    mode: z.enum(['analyze', 'refine', 'fix_targeted', 'quality_gate', 'validate_revision', 'refresh_seo_fields', 'generate_seo']).optional(),
     analysisLogId: z.string().max(100).optional(),
     originalDraft: z.string().max(100_000).optional(),
     userInstruction: z.string().max(5_000).optional(),
@@ -58,6 +59,7 @@ const AnalyzeRequestSchema = z
     requestId: z.string().uuid().optional(),
     revisionId: z.string().min(1).max(100).optional(),
     bodyHash: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
+    seoFields: z.array(z.enum(['title', 'slug', 'excerpt', 'metaTitle', 'metaDescription', 'coverImageAltText', 'tags'])).min(1).max(4).optional(),
   })
   .superRefine((value, ctx) => {
     const mode = value.mode ?? (value.targetText ? 'fix_targeted' : 'analyze');
@@ -82,7 +84,7 @@ const AnalyzeRequestSchema = z
       });
     }
     if (
-      (mode === 'quality_gate' || mode === 'validate_revision' || mode === 'generate_seo')
+      (mode === 'quality_gate' || mode === 'validate_revision' || mode === 'refresh_seo_fields' || mode === 'generate_seo')
       && !value.analysisLogId?.trim()
     ) {
       ctx.addIssue({
@@ -389,6 +391,7 @@ router.post('/', async (req: Request, res) => {
       requestId: parsedRequestId,
       revisionId,
       bodyHash,
+      seoFields,
     } = parsedRequest.data;
 
     const analysisSpeed = userId ? (requestedAnalysisSpeed ?? 'deep') : 'fast';
@@ -412,7 +415,7 @@ router.post('/', async (req: Request, res) => {
           ? 'analyze_refine'
           : effectiveMode === 'quality_gate' || effectiveMode === 'validate_revision'
             ? 'analyze_quality_gate'
-            : effectiveMode === 'generate_seo'
+            : effectiveMode === 'generate_seo' || effectiveMode === 'refresh_seo_fields'
               ? 'analyze_seo'
               : 'analyze_review';
     const primaryConfig = resolveAiFunctionConfig(aiConfig, primaryFunction);
@@ -473,6 +476,7 @@ router.post('/', async (req: Request, res) => {
     if (
       effectiveMode === 'quality_gate'
       || effectiveMode === 'validate_revision'
+      || effectiveMode === 'refresh_seo_fields'
       || effectiveMode === 'generate_seo'
     ) {
       const publicationContext = {
@@ -485,6 +489,7 @@ router.post('/', async (req: Request, res) => {
         originalDraft,
         revisionId,
         bodyHash,
+        seoFields,
         analysisSpeed,
         effectiveProvider,
         userId,
@@ -500,6 +505,8 @@ router.post('/', async (req: Request, res) => {
         await handleQualityGateOnly(publicationContext);
       } else if (effectiveMode === 'validate_revision') {
         await handleValidateRevision(publicationContext);
+      } else if (effectiveMode === 'refresh_seo_fields') {
+        await handleRefreshSeoFields(publicationContext);
       } else {
         await handleGenerateSeo(publicationContext);
       }

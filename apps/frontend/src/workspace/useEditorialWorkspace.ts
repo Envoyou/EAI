@@ -15,6 +15,8 @@ import type {
   PublicationPackageStatus,
   RevisionValidationState,
   SeoReviewState,
+  SeoField,
+  SeoFieldStates,
   DraftRevisionIdentity,
 } from '@eai/shared';
 import {
@@ -40,6 +42,7 @@ import { executeRefine } from './actions/refine';
 import { executeTargetedFix } from './actions/targetedFix';
 import { executeGenerateDraftFromNotes } from './actions/strategist';
 import { getBackgroundValidationDelay } from './background-validation';
+import { getSafeStaleSeoFields, parseSeoFieldStates } from './seo-field-state';
 
 // Utilities
 import {
@@ -63,6 +66,7 @@ type EditorialResolutionResult = {
   publicationPackageStatus?: PublicationPackageStatus;
   qualityGateState?: RevisionValidationState;
   seoReviewState?: SeoReviewState;
+  seoFieldStates?: SeoFieldStates;
   draftRevision?: DraftRevisionIdentity;
   revisionValidationLevel?: 'none' | 'light' | 'full';
 };
@@ -83,6 +87,8 @@ type PendingBackgroundValidation = {
   polishedDraft: string;
   draftRevision: DraftRevisionIdentity;
   validationLevel: 'light' | 'full';
+  seoFieldStates?: SeoFieldStates;
+  publicationPackageStatus?: PublicationPackageStatus;
 };
 
 type EditorialMutationOrigin =
@@ -419,6 +425,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           || result.seoReviewState === 'stale'
             ? result.seoReviewState
             : prev.seoReviewState,
+        seoFieldStates: parseSeoFieldStates(result.seoFieldStates),
         draftRevision: result.draftRevision ?? prev.draftRevision,
       }));
       const validationLevel = result.revisionValidationLevel;
@@ -432,6 +439,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           polishedDraft: result.polishedDraft,
           draftRevision: savedRevision,
           validationLevel,
+          seoFieldStates: parseSeoFieldStates(result.seoFieldStates),
+          publicationPackageStatus: persistedPackageStatus,
         });
         setIsCheckingQuality(true);
       }
@@ -608,15 +617,89 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     }
   };
 
+  const handleRefreshSeoFields = async ({
+    polishedDraft,
+    draftRevision,
+    seoFieldStates,
+    background = false,
+  }: {
+    polishedDraft: string;
+    draftRevision?: DraftRevisionIdentity;
+    seoFieldStates?: SeoFieldStates;
+    background?: boolean;
+  }): Promise<void> => {
+    const fields: SeoField[] = getSafeStaleSeoFields(seoFieldStates);
+    const logId = analysis.analysisLogId || activeHistoryId;
+    if (fields.length === 0 || !logId || !polishedDraft) return;
+    const controller = new AbortController();
+    if (background) backgroundValidationAbortControllerRef.current = controller;
+    else analyzeAbortControllerRef.current = controller;
+    setIsCheckingQuality(true);
+    try {
+      const response = await directFetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          mode: 'refresh_seo_fields',
+          seoFields: fields,
+          text: polishedDraft,
+          analysisLogId: logId,
+          revisionId: draftRevision?.revisionId,
+          bodyHash: draftRevision?.bodyHash,
+          metadata: {
+            ...metadata,
+            researchNotes: researchNotes.slice(0, 10),
+          },
+          analysisSpeed: 'deep',
+        }),
+      });
+      await consumePublicationStream(response, event => {
+        if (event.type === 'seo_metadata') {
+          setAnalysis(prev => ({ ...prev, generatedMetadata: event.data as PublicationPackage }));
+        } else if (event.type === 'seo_field_states') {
+          setAnalysis(prev => ({ ...prev, seoFieldStates: parseSeoFieldStates(event.data) }));
+        } else if (event.type === 'publication_package_status') {
+          setAnalysis(prev => ({
+            ...prev,
+            publicationPackageStatus: event.data as PublicationPackageStatus,
+            seoReviewState: event.data === 'current' ? 'valid' : 'stale',
+          }));
+        }
+      }, controller);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        toast.error(error instanceof Error ? error.message : tFinalDraftPanel('seoPartialRefreshFailed'));
+      }
+    } finally {
+      if (backgroundValidationAbortControllerRef.current === controller) {
+        backgroundValidationAbortControllerRef.current = null;
+        setIsCheckingQuality(false);
+      }
+      if (analyzeAbortControllerRef.current === controller) {
+        analyzeAbortControllerRef.current = null;
+        setIsCheckingQuality(false);
+      }
+    }
+  };
+
   useEffect(() => {
     backgroundValidationRunnerRef.current = async (context) => {
-      await handleQualityCheck({
+      const readiness = await handleQualityCheck({
         polishedDraft: context.polishedDraft,
         draftRevision: context.draftRevision,
         automatic: true,
         background: true,
         preserveCurrentStateOnFailure: true,
       });
+      if (readiness === 'ready') {
+        await handleRefreshSeoFields({
+          polishedDraft: context.polishedDraft,
+          draftRevision: context.draftRevision,
+          seoFieldStates: context.seoFieldStates,
+          background: true,
+        });
+      }
     };
   });
 
@@ -697,6 +780,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
             ...prev,
             publicationPackageStatus: event.data as AnalysisResult['publicationPackageStatus'],
           }));
+        } else if (event.type === 'seo_field_states') {
+          setAnalysis(prev => ({ ...prev, seoFieldStates: parseSeoFieldStates(event.data) }));
         } else if (event.type === 'feedback_reset') {
           setAnalysis(prev => ({ ...prev, feedback: [], flags: [] }));
         } else if (event.type === 'readiness') {
@@ -776,11 +861,18 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     });
     if (readiness !== 'ready') return;
 
-    const seoIsStale =
-      context.publicationPackageStatus === 'stale'
-      || context.seoReviewState === 'stale';
-    if (!seoIsStale) return;
-
+    const safeFields = getSafeStaleSeoFields(context.seoFieldStates);
+    if (safeFields.length > 0) {
+      await handleRefreshSeoFields({
+        polishedDraft: context.polishedDraft,
+        draftRevision: context.draftRevision,
+        seoFieldStates: context.seoFieldStates,
+      });
+      return;
+    }
+    const legacySeoState = !context.seoFieldStates
+      && (context.publicationPackageStatus === 'stale' || context.seoReviewState === 'stale');
+    if (!legacySeoState) return;
     await handleRegenerateSeo({
       polishedDraft: context.polishedDraft,
       automatic: true,
@@ -813,6 +905,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         generatedMetadata: result.generatedMetadata,
         publicationPackageStatus: 'current',
         seoReviewState: 'valid',
+        seoFieldStates: parseSeoFieldStates(result.seoFieldStates),
         draftRevision: result.draftRevision ?? prev.draftRevision,
       }));
       toast.success('SEO metadata saved for the current final draft.');
@@ -850,6 +943,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         ...prev,
         publicationPackageStatus: 'current',
         seoReviewState: 'valid',
+        seoFieldStates: parseSeoFieldStates(result.seoFieldStates),
         draftRevision: result.draftRevision ?? prev.draftRevision,
       }));
     } finally {
@@ -969,6 +1063,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
             : prev.publicationPackageStatus),
         qualityGateState: persisted.qualityGateState ?? 'stale',
         seoReviewState: persisted.seoReviewState ?? prev.seoReviewState,
+        seoFieldStates: persisted.seoFieldStates ?? prev.seoFieldStates,
         draftRevision: persisted.draftRevision ?? prev.draftRevision,
       }));
       automaticValidation = {
@@ -1039,6 +1134,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
             : prev.publicationPackageStatus),
         qualityGateState: persisted.qualityGateState ?? 'stale',
         seoReviewState: persisted.seoReviewState ?? prev.seoReviewState,
+        seoFieldStates: persisted.seoFieldStates ?? prev.seoFieldStates,
         draftRevision: persisted.draftRevision ?? prev.draftRevision,
       }));
       automaticValidation = {
@@ -1222,6 +1318,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           publicationPackageStatus: publicationState.publicationPackageStatus,
           qualityGateState: publicationState.qualityGateState,
           seoReviewState: publicationState.seoReviewState,
+          seoFieldStates: publicationState.seoFieldStates,
           draftRevision: publicationState.draftRevision,
           editorStatus: log.editorStatus,
         });
@@ -1288,6 +1385,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       || result.seoReviewState === 'stale'
         ? result.seoReviewState
         : undefined;
+    const persistedSeoFieldStates = parseSeoFieldStates(result.seoFieldStates);
     const persistedDraftRevision: DraftRevisionIdentity | undefined =
       result.draftRevision
       && typeof result.draftRevision.revisionId === 'string'
@@ -1300,6 +1398,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       publicationPackageStatus: persistedPublicationPackageStatus,
       qualityGateState: persistedQualityGateState,
       seoReviewState: persistedSeoReviewState,
+      seoFieldStates: persistedSeoFieldStates,
       draftRevision: persistedDraftRevision,
     };
   };
@@ -1396,6 +1495,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
             : prev.publicationPackageStatus),
         qualityGateState: persisted.qualityGateState ?? prev.qualityGateState,
         seoReviewState: persisted.seoReviewState ?? prev.seoReviewState,
+        seoFieldStates: persisted.seoFieldStates ?? prev.seoFieldStates,
         draftRevision: persisted.draftRevision ?? prev.draftRevision,
       }));
       if (linked) {

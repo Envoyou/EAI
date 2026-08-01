@@ -5,6 +5,7 @@ export type AnalyzeMode =
   | 'fix_targeted'
   | 'quality_gate'
   | 'validate_revision'
+  | 'refresh_seo_fields'
   | 'generate_seo';
 export type ResponseMode = 'standard' | 'compact' | 'manual_fallback';
 export type VerificationStatus = 'source_backed' | 'needs_citation' | 'high_risk_factual_claim';
@@ -21,6 +22,13 @@ export type SeoField =
   | 'metaDescription'
   | 'coverImageAltText'
   | 'tags';
+export type SeoFieldReviewStatus = 'valid' | 'stale' | 'review_required';
+export type SeoFieldReview = {
+  status: SeoFieldReviewStatus;
+  reason?: string;
+  revisionId?: string;
+};
+export type SeoFieldStates = Partial<Record<SeoField, SeoFieldReview>>;
 export interface ValidationScope {
   changedBlockIds: string[];
   affectedClaimIds: string[];
@@ -132,6 +140,7 @@ export interface AnalysisResult {
   publicationPackageStatus?: PublicationPackageStatus;
   qualityGateState?: RevisionValidationState;
   seoReviewState?: SeoReviewState;
+  seoFieldStates?: SeoFieldStates;
   draftRevision?: DraftRevisionIdentity;
   /** @deprecated Prefer the PublicationPackage domain name. Kept for stored-data compatibility. */
   generatedMetadata?: PublicationPackage;

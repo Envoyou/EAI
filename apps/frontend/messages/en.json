@@ -94,6 +94,18 @@
     "refreshPublicationMetadata": "Regenerate or edit SEO metadata for the current final draft",
     "staleMetadataTitle": "Publication metadata is outdated.",
     "staleMetadataDescription": "The article body changed after metadata generation. Regenerate or edit SEO, or confirm that the current metadata is still relevant.",
+    "seoFieldsNeedReviewTitle": "Editorial decision needed for SEO.",
+    "seoFieldsNeedReviewDescription": "Review these protected fields before export: {fields}.",
+    "seoPartialRefreshFailed": "Dependent SEO fields could not be refreshed.",
+    "seoField": {
+      "title": "title",
+      "slug": "slug",
+      "excerpt": "excerpt",
+      "metaTitle": "meta title",
+      "metaDescription": "meta description",
+      "coverImageAltText": "cover image alt text",
+      "tags": "tags"
+    },
     "confirmMetadataCurrent": "Keep current metadata",
     "confirmMetadataSuccess": "Current publication metadata confirmed.",
     "confirmMetadataFailed": "Publication metadata could not be confirmed.",

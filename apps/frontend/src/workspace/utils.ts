@@ -7,6 +7,7 @@ import type {
   EditorialProcessStage,
 } from '@eai/shared';
 import { findTargetMatch } from '@eai/shared';
+import { parseSeoFieldStates } from './seo-field-state';
 
 export const extractArticleMetadata = (metadata: unknown): ArticleMetadata => {
   if (!metadata || typeof metadata !== 'object') return {};
@@ -50,6 +51,7 @@ export const extractPublicationState = (metadata: unknown): {
   publicationPackageStatus?: import('@eai/shared').PublicationPackageStatus;
   qualityGateState?: import('@eai/shared').RevisionValidationState;
   seoReviewState?: import('@eai/shared').SeoReviewState;
+  seoFieldStates?: import('@eai/shared').SeoFieldStates;
   draftRevision?: import('@eai/shared').DraftRevisionIdentity;
 } => {
   if (!metadata || typeof metadata !== 'object') return {};
@@ -67,6 +69,7 @@ export const extractPublicationState = (metadata: unknown): {
   const rawQualityGateState = system.qualityGateState;
   const rawSeoReviewState = system.seoReviewState;
   const rawDraftRevision = system.draftRevision;
+  const seoFieldStates = parseSeoFieldStates(system.seoFieldStates);
   const draftRevision = rawDraftRevision
     && typeof rawDraftRevision === 'object'
     && !Array.isArray(rawDraftRevision)
@@ -90,6 +93,7 @@ export const extractPublicationState = (metadata: unknown): {
       || rawSeoReviewState === 'stale'
         ? rawSeoReviewState
         : undefined,
+    seoFieldStates,
     draftRevision,
   };
 };

@@ -14,8 +14,8 @@ import {
   readQualityResolutions,
   readTrustedSourceUrls,
 } from '@/lib/quality-resolution-ledger';
-import { FeedbackItemSchema, ResearchNotesArraySchema } from '@eai/shared';
-import type { FeedbackItem, FinalQualityGateOutput, ValidationScope } from '@eai/shared';
+import { FeedbackItemSchema, ResearchNotesArraySchema, SeoMetadataSchema } from '@eai/shared';
+import type { FeedbackItem, FinalQualityGateOutput, PublicationPackage, SeoField, ValidationScope } from '@eai/shared';
 import type { PublicationStageContext } from '../types';
 import {
   sanitizeFactualSummary,
@@ -40,6 +40,13 @@ import {
   StoredValidationResultSchema,
 } from '@/lib/validation-scope';
 import { applyDeterministicQualityChecks } from '@/lib/final-quality';
+import {
+  createValidSeoFieldStates,
+  markSeoFieldsValid,
+  readSeoFieldStates,
+  resolveStatusFromSeoFields,
+  SAFE_AUTO_REFRESH_SEO_FIELDS,
+} from '@/lib/seo-field-state';
 
 const loadOwnedLog = async (ctx: PublicationStageContext) => {
   if (!ctx.userId) {
@@ -672,6 +679,7 @@ export async function handleGenerateSeo(
     ...qualityGateResponse.result,
     feedback: identified.feedback,
   };
+  const seoFieldStates = createValidSeoFieldStates(draftRevision);
 
   await updatePublicationIfRevisionCurrent({
     logId: log.id,
@@ -692,6 +700,7 @@ export async function handleGenerateSeo(
           publicationPackageStatus: 'current',
           qualityGateState: qualityGate.readiness === 'ready' ? 'valid' : 'stale',
           seoReviewState: 'valid',
+          seoFieldStates,
           seoGeneratedAt: new Date().toISOString(),
           qualityGateCheckedAt: new Date().toISOString(),
           confirmedInternalUrls,
@@ -699,7 +708,7 @@ export async function handleGenerateSeo(
           draftRevision,
           editorialIdentities: identified.editorialIdentities,
         },
-      } as Prisma.InputJsonValue,
+      } as unknown as Prisma.InputJsonValue,
     },
   });
   ctx.sendEvent('feedback_reset', null);
@@ -711,6 +720,140 @@ export async function handleGenerateSeo(
   );
   ctx.sendEvent('flags', qualityGate.flags);
   ctx.sendEvent('publication_package_status', 'current');
+  ctx.sendEvent('seo_field_states', seoFieldStates);
+  ctx.sendEvent('revision_identity', draftRevision);
+  ctx.sendEvent('complete', {});
+}
+
+export async function handleRefreshSeoFields(
+  ctx: PublicationStageContext
+): Promise<void> {
+  const log = await loadOwnedLog(ctx);
+  const { metadata, system } = readStoredState(log.metadata);
+  const { finalDraft, draftRevision } = assertCurrentDraft(
+    ctx.text,
+    system,
+    log.createdAt,
+    ctx.revisionId,
+    ctx.bodyHash
+  );
+  if (system.readiness !== 'ready') {
+    throw new Error('Complete the current content validation before refreshing SEO fields.');
+  }
+  const storedPackage = SeoMetadataSchema.safeParse(metadata.generatedMetadata);
+  if (!storedPackage.success) {
+    throw new Error('Generate publication metadata before refreshing dependent SEO fields.');
+  }
+  const requested = Array.from(new Set(ctx.seoFields ?? []))
+    .filter((field): field is SeoField => SAFE_AUTO_REFRESH_SEO_FIELDS.includes(field));
+  const currentStates = readSeoFieldStates(system.seoFieldStates);
+  const fields = requested.filter((field) => currentStates[field]?.status === 'stale');
+  if (fields.length === 0) {
+    ctx.sendEvent('seo_metadata', storedPackage.data);
+    ctx.sendEvent('seo_field_states', currentStates);
+    ctx.sendEvent('publication_package_status', resolveStatusFromSeoFields(currentStates, true));
+    ctx.sendEvent('complete', {});
+    return;
+  }
+
+  ctx.sendEvent('status', 'generating_seo');
+  const missingKey = isMockMode(ctx.effectiveProvider);
+  const candidate: PublicationPackage = missingKey
+    ? {
+        excerpt: 'A concise publication excerpt for the saved final draft.',
+        metaDescription: 'A concise meta description generated for the saved final draft.',
+        coverImageAltText: 'Cover image for the saved final draft',
+        tags: ['editorial', 'content strategy', 'publishing'],
+      }
+    : await runSeoStage({
+        signal: ctx.state.signal,
+        provider: ctx.effectiveProvider,
+        modelName: resolveModel(
+          ctx.effectiveProvider,
+          'seo',
+          ctx.analysisSpeed,
+          ctx.modelOverride
+        ),
+        article: finalDraft,
+        metadata: ctx.metadata,
+        editorialProfile: ctx.editorialProfile,
+        systemInstruction: new SeoPromptComposer(ctx.editorialProfile.config, {
+          includeTextSchema: ctx.effectiveProvider !== 'gemini',
+        }).compose('xml'),
+        telemetry: new AiTelemetryCollector(),
+      });
+  const merged: PublicationPackage = { ...storedPackage.data };
+  fields.forEach((field) => {
+    if (field === 'tags') {
+      if (candidate.tags) merged.tags = candidate.tags;
+      return;
+    }
+    const value = candidate[field];
+    if (typeof value === 'string') merged[field] = value;
+  });
+  const deterministicAudit = applyDeterministicQualityChecks({
+    readiness: 'ready',
+    summary: 'Checked refreshed publication metadata.',
+    changes: [],
+    feedback: [],
+    flags: [],
+  }, finalDraft, finalDraft, {
+    language: ctx.metadata?.outputLanguage === 'id' ? 'id' : 'en',
+    publicationMode: 'publish_ready',
+    publicationPackage: merged,
+    seoRules: ctx.editorialProfile.config.seoRules,
+  });
+  const targetByField: Partial<Record<SeoField, string>> = {
+    excerpt: 'publication.excerpt',
+    metaDescription: 'publication.metaDescription',
+    coverImageAltText: 'publication.coverImageAlt',
+    tags: 'publication.tags',
+  };
+  const draftNumbers = new Set(finalDraft.match(/\d[\d.,:%/-]*/gu) ?? []);
+  const hasUnsupportedNumbers = (field: SeoField): boolean => {
+    const value = field === 'tags'
+      ? merged.tags?.join(' ') ?? ''
+      : typeof merged[field] === 'string' ? merged[field] : '';
+    return (value.match(/\d[\d.,:%/-]*/gu) ?? []).some((number) => !draftNumbers.has(number));
+  };
+  const validFields = fields.filter((field) =>
+    !hasUnsupportedNumbers(field)
+    && !deterministicAudit.feedback.some((item) =>
+      item.status === 'fail' && item.targetField === targetByField[field]
+    )
+  );
+  const persistedPackage: PublicationPackage = { ...storedPackage.data };
+  validFields.forEach((field) => {
+    if (field === 'tags') persistedPackage.tags = merged.tags;
+    else {
+      const value = merged[field];
+      if (typeof value === 'string') persistedPackage[field] = value;
+    }
+  });
+  const seoFieldStates = markSeoFieldsValid(currentStates, validFields, draftRevision);
+  const publicationPackageStatus = resolveStatusFromSeoFields(seoFieldStates, true);
+  await updatePublicationIfRevisionCurrent({
+    logId: log.id,
+    expectedRevision: draftRevision,
+    data: {
+      metadata: {
+        ...metadata,
+        generatedMetadata: persistedPackage,
+        publicationPackageStatus,
+        _system: {
+          ...system,
+          publicationPackageStatus,
+          seoFieldStates,
+          seoReviewState: publicationPackageStatus === 'current' ? 'valid' : 'stale',
+          seoPartiallyRefreshedAt: new Date().toISOString(),
+          draftRevision,
+        },
+      } as unknown as Prisma.InputJsonValue,
+    },
+  });
+  ctx.sendEvent('seo_metadata', persistedPackage);
+  ctx.sendEvent('seo_field_states', seoFieldStates);
+  ctx.sendEvent('publication_package_status', publicationPackageStatus);
   ctx.sendEvent('revision_identity', draftRevision);
   ctx.sendEvent('complete', {});
 }

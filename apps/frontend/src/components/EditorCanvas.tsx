@@ -245,6 +245,7 @@ export default function EditorCanvas({
                       publicationPackageStatus={analysis.publicationPackageStatus}
                       qualityGateState={analysis.qualityGateState}
                       seoReviewState={analysis.seoReviewState}
+                      seoFieldStates={analysis.seoFieldStates}
                       isStreaming={isStreaming}
                       isRefining={isRefining}
                       processStage={processStage}

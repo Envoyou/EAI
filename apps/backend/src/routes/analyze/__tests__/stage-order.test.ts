@@ -63,6 +63,21 @@ describe('analyze pipeline stage order', () => {
     expect(source).toContain('readiness: qualityGate.readiness');
   });
 
+  it('limits partial SEO refresh to safe fields and preserves protected fields', () => {
+    const source = readHandler('publication.ts');
+    const start = source.indexOf('export async function handleRefreshSeoFields');
+    const partialHandler = source.slice(start);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(partialHandler).toContain('SAFE_AUTO_REFRESH_SEO_FIELDS.includes(field)');
+    expect(partialHandler).toContain('const merged: PublicationPackage = { ...storedPackage.data }');
+    expect(partialHandler).toContain("publicationMode: 'publish_ready'");
+    expect(partialHandler).toContain('hasUnsupportedNumbers(field)');
+    expect(partialHandler).not.toContain('merged.title = candidate.title');
+    expect(partialHandler).not.toContain('merged.metaTitle = candidate.metaTitle');
+    expect(partialHandler).not.toContain('merged.slug = candidate.slug');
+  });
+
   it('binds standalone publication results to the exact saved revision', () => {
     const publication = readHandler('publication.ts');
     const controller = readFileSync(
