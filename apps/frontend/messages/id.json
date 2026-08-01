@@ -126,8 +126,10 @@
     "workflowActions": "Alur revisi",
     "qualityCheck": "Quality Check",
     "qualityCheckSuccess": "Quality Check selesai tanpa menulis ulang draft.",
+    "automaticQualityCheckSuccess": "Draft yang direvisi telah diperiksa secara otomatis.",
     "regenerateSeo": "Buat Ulang SEO",
     "seoQualityReady": "Metadata SEO dibuat ulang dan paket publikasi lengkap lulus Quality Check.",
+    "automaticSeoQualityReady": "Draft yang direvisi lulus Quality Check dan metadata SEO yang usang diperbarui secara otomatis.",
     "seoQualityNeedsReview": "Metadata SEO dibuat ulang, tetapi paket publikasi lengkap masih perlu ditinjau.",
     "fullAnalyze": "Analisis Penuh",
     "viewActions": "Tampilan",
@@ -163,12 +165,19 @@
     "copySuggestion": "Salin saran",
     "acceptEditorialDecision": "Terima sebagai keputusan editorial",
     "rewriteWithEAI": "Tulis ulang dengan EAI",
-    "reviseWithEAI": "Revisi dengan EAI"
+    "reviseWithEAI": "Revisi dengan EAI",
+    "autoApplicableEdits": "{count} saran dapat diterapkan dan diperiksa dalam satu langkah.",
+    "applyAndVerify": "Terapkan & periksa",
+    "applyingAndVerifying": "Menerapkan & memeriksa"
   },
   "FeedbackWorkflow": {
-    "appliedPendingQualityCheck": "Saran diterapkan. Jalankan Quality Check untuk memverifikasi draft yang telah direvisi.",
-    "removedPendingQualityCheck": "Tambahan dihapus. Jalankan Quality Check untuk memverifikasi draft yang telah direvisi.",
-    "fixedPendingQualityCheck": "Kalimat diperbaiki. Jalankan Quality Check untuk memverifikasi draft yang telah direvisi."
+    "appliedAutomaticQualityCheck": "Saran diterapkan. Quality Check berjalan otomatis.",
+    "removedAutomaticQualityCheck": "Tambahan dihapus. Quality Check berjalan otomatis.",
+    "fixedAutomaticQualityCheck": "Kalimat diperbaiki. Quality Check berjalan otomatis.",
+    "applyAllAutomaticQualityCheck": "{count} perubahan diterapkan. Quality Check berjalan otomatis.",
+    "applyAllPartialAutomaticQualityCheck": "{applied} perubahan diterapkan; {remaining} masih memerlukan tindakan editorial. Quality Check berjalan otomatis.",
+    "sourceAddedAutomaticQualityCheck": "Sumber ditambahkan dan diverifikasi. Quality Check berjalan otomatis.",
+    "sourceSavedWithoutDraftChange": "Sumber disimpan; teks draft tidak berubah."
   },
   "PricingGrid": {
     "billingCycleToggle": "Ubah siklus tagihan tahunan"

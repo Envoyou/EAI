@@ -113,6 +113,24 @@ describe('revision-safe publication workflow', () => {
     expect(feedbackCard).toContain("t('acceptedPendingQualityCheck')");
   });
 
+  it('automatically validates system-applied draft changes and refreshes only stale SEO', () => {
+    const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
+    const targetedFix = readFrontendSource('workspace/actions/targetedFix.ts');
+    const summary = readFrontendSource(
+      'components/feedback-panel/components/QualityGateSummary.tsx'
+    );
+
+    expect(workspace).toContain('runAutomaticPublicationValidation');
+    expect(workspace).toContain('await handleQualityCheck({');
+    expect(workspace).toContain("context.publicationPackageStatus === 'stale'");
+    expect(workspace).toContain("context.seoReviewState === 'stale'");
+    expect(workspace).toContain('await handleRegenerateSeo({');
+    expect(workspace).toContain('const result = await executeTargetedFix');
+    expect(workspace).toContain('sourceAddedAutomaticQualityCheck');
+    expect(targetedFix).toContain('Promise<TargetedFixResult | null>');
+    expect(summary).toContain("t('applyAndVerify')");
+  });
+
   it('keeps targetless quality findings actionable without requiring full Analyze', () => {
     const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
     const feedbackCard = readFrontendSource(

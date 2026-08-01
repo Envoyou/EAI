@@ -126,8 +126,10 @@
     "workflowActions": "Revision workflow",
     "qualityCheck": "Quality Check",
     "qualityCheckSuccess": "Quality check completed without rewriting the draft.",
+    "automaticQualityCheckSuccess": "The revised draft was checked automatically.",
     "regenerateSeo": "Regenerate SEO",
     "seoQualityReady": "SEO metadata regenerated and the complete publication package passed Quality Check.",
+    "automaticSeoQualityReady": "The revised draft passed Quality Check and its stale SEO metadata was refreshed automatically.",
     "seoQualityNeedsReview": "SEO metadata regenerated, but the complete publication package still needs review.",
     "fullAnalyze": "Full Analyze",
     "viewActions": "View",
@@ -163,12 +165,19 @@
     "copySuggestion": "Copy suggestion",
     "acceptEditorialDecision": "Accept as editorial decision",
     "rewriteWithEAI": "Rewrite with EAI",
-    "reviseWithEAI": "Revise with EAI"
+    "reviseWithEAI": "Revise with EAI",
+    "autoApplicableEdits": "{count} suggested edits can be applied and checked in one step.",
+    "applyAndVerify": "Apply & verify",
+    "applyingAndVerifying": "Applying & checking"
   },
   "FeedbackWorkflow": {
-    "appliedPendingQualityCheck": "Suggestion applied. Run Quality Check to verify the revised draft.",
-    "removedPendingQualityCheck": "Addition removed. Run Quality Check to verify the revised draft.",
-    "fixedPendingQualityCheck": "Sentence fixed. Run Quality Check to verify the revised draft."
+    "appliedAutomaticQualityCheck": "Suggestion applied. Quality Check is running automatically.",
+    "removedAutomaticQualityCheck": "Addition removed. Quality Check is running automatically.",
+    "fixedAutomaticQualityCheck": "Sentence fixed. Quality Check is running automatically.",
+    "applyAllAutomaticQualityCheck": "{count} changes applied. Quality Check is running automatically.",
+    "applyAllPartialAutomaticQualityCheck": "{applied} changes applied; {remaining} still need editorial action. Quality Check is running automatically.",
+    "sourceAddedAutomaticQualityCheck": "Source added and verified. Quality Check is running automatically.",
+    "sourceSavedWithoutDraftChange": "Source saved; the draft text did not change."
   },
   "PricingGrid": {
     "billingCycleToggle": "Toggle annual billing"

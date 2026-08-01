@@ -4,7 +4,18 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
-import type { FeedbackItem, EditorialReadiness, ResearchNote, Attachment, AnalysisResult, ArticleMetadata, PublicationPackage, PublicationPackageStatus } from '@eai/shared';
+import type {
+  FeedbackItem,
+  EditorialReadiness,
+  ResearchNote,
+  Attachment,
+  AnalysisResult,
+  ArticleMetadata,
+  PublicationPackage,
+  PublicationPackageStatus,
+  RevisionValidationState,
+  SeoReviewState,
+} from '@eai/shared';
 import {
   applyAllFeedbackOperations,
   applyFeedbackOperation,
@@ -44,6 +55,23 @@ import {
 } from './utils';
 
 import type { PendingRefineAction } from './types';
+
+type EditorialResolutionResult = {
+  readiness: EditorialReadiness;
+  publicationPackageStatus?: PublicationPackageStatus;
+  qualityGateState?: RevisionValidationState;
+  seoReviewState?: SeoReviewState;
+};
+
+type AutomaticValidationContext = EditorialResolutionResult & {
+  polishedDraft: string;
+};
+
+type PublicationOperationOptions = {
+  polishedDraft?: string;
+  automatic?: boolean;
+  preserveCurrentStateOnFailure?: boolean;
+};
 
 export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) {
   const router = useRouter();
@@ -404,9 +432,12 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     if (!complete) throw new Error('Publication operation ended before completion.');
   };
 
-  const handleQualityCheck = async (): Promise<EditorialReadiness | null> => {
+  const handleQualityCheck = async (
+    options: PublicationOperationOptions = {}
+  ): Promise<EditorialReadiness | null> => {
     const logId = analysis.analysisLogId || activeHistoryId;
-    if (!logId || !analysis.polishedDraft || hasBlockingWorkspaceOperation()) return null;
+    const polishedDraft = options.polishedDraft ?? analysis.polishedDraft;
+    if (!logId || !polishedDraft || hasBlockingWorkspaceOperation()) return null;
     const previousAnalysis = analysis;
     const controller = new AbortController();
     analyzeAbortControllerRef.current = controller;
@@ -414,7 +445,6 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     setIsStreaming(true);
     setProcessStage('quality_gate');
     setProcessStartedAt(Date.now());
-    setAnalysis(prev => ({ ...prev, feedback: [], flags: [] }));
     let checkedReadiness: EditorialReadiness | null = null;
     try {
       const response = await directFetch('/api/analyze', {
@@ -423,7 +453,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         signal: controller.signal,
         body: JSON.stringify({
           mode: 'quality_gate',
-          text: analysis.polishedDraft,
+          text: polishedDraft,
           originalDraft: sourceDraft,
           analysisLogId: logId,
           metadata: {
@@ -441,7 +471,9 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         }),
       });
       await consumePublicationStream(response, event => {
-        if (event.type === 'readiness') {
+        if (event.type === 'feedback_reset') {
+          setAnalysis(prev => ({ ...prev, feedback: [], flags: [] }));
+        } else if (event.type === 'readiness') {
           checkedReadiness = event.data as EditorialReadiness;
           setAnalysis(prev => ({
             ...prev,
@@ -467,11 +499,19 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         ...prev,
         qualityGateState: checkedReadiness === 'ready' ? 'valid' : 'stale',
       }));
-      toast.success(tFinalDraftPanel('qualityCheckSuccess'));
+      toast.success(
+        tFinalDraftPanel(
+          options.automatic
+            ? 'automaticQualityCheckSuccess'
+            : 'qualityCheckSuccess'
+        )
+      );
       return checkedReadiness;
     } catch (error) {
       if (controller.signal.aborted) {
-        setAnalysis(() => previousAnalysis);
+        if (!options.preserveCurrentStateOnFailure) {
+          setAnalysis(() => previousAnalysis);
+        }
         return null;
       }
       toast.error(error instanceof Error ? error.message : 'Quality check failed.');
@@ -486,9 +526,12 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     }
   };
 
-  const handleRegenerateSeo = async () => {
+  const handleRegenerateSeo = async (
+    options: PublicationOperationOptions = {}
+  ) => {
     const logId = analysis.analysisLogId || activeHistoryId;
-    if (!logId || !analysis.polishedDraft || hasBlockingWorkspaceOperation()) return;
+    const polishedDraft = options.polishedDraft ?? analysis.polishedDraft;
+    if (!logId || !polishedDraft || hasBlockingWorkspaceOperation()) return;
     const previousAnalysis = analysis;
     const controller = new AbortController();
     analyzeAbortControllerRef.current = controller;
@@ -504,7 +547,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         signal: controller.signal,
         body: JSON.stringify({
           mode: 'generate_seo',
-          text: analysis.polishedDraft,
+          text: polishedDraft,
           analysisLogId: logId,
           metadata: {
             ...metadata,
@@ -561,7 +604,13 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           qualityGateState: 'valid',
           seoReviewState: 'valid',
         }));
-        toast.success(tFinalDraftPanel('seoQualityReady'));
+        toast.success(
+          tFinalDraftPanel(
+            options.automatic
+              ? 'automaticSeoQualityReady'
+              : 'seoQualityReady'
+          )
+        );
       } else {
         setAnalysis(prev => ({
           ...prev,
@@ -572,7 +621,9 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       }
     } catch (error) {
       if (controller.signal.aborted) {
-        setAnalysis(() => previousAnalysis);
+        if (!options.preserveCurrentStateOnFailure) {
+          setAnalysis(() => previousAnalysis);
+        }
         return;
       }
       toast.error(error instanceof Error ? error.message : 'SEO generation failed.');
@@ -584,6 +635,28 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         analyzeAbortControllerRef.current = null;
       }
     }
+  };
+
+  const runAutomaticPublicationValidation = async (
+    context: AutomaticValidationContext
+  ): Promise<void> => {
+    const readiness = await handleQualityCheck({
+      polishedDraft: context.polishedDraft,
+      automatic: true,
+      preserveCurrentStateOnFailure: true,
+    });
+    if (readiness !== 'ready') return;
+
+    const seoIsStale =
+      context.publicationPackageStatus === 'stale'
+      || context.seoReviewState === 'stale';
+    if (!seoIsStale) return;
+
+    await handleRegenerateSeo({
+      polishedDraft: context.polishedDraft,
+      automatic: true,
+      preserveCurrentStateOnFailure: true,
+    });
   };
 
   const handleSavePublicationMetadata = async (
@@ -734,6 +807,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     const nextFeedback = markFeedbackApplied(analysis.feedback || [], index);
     const nextReadiness: EditorialReadiness = 'needs_review';
     const nextFlags = analysis.flags || [];
+    let automaticValidation: AutomaticValidationContext | null = null;
     workspaceMutationRef.current = true;
     try {
       const persisted = await persistEditorialResolution(
@@ -755,15 +829,24 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           ?? (prev.publicationPackageStatus === 'current'
             ? 'stale'
             : prev.publicationPackageStatus),
+        qualityGateState: persisted.qualityGateState ?? 'stale',
+        seoReviewState: persisted.seoReviewState ?? prev.seoReviewState,
       }));
-      toast.success(tFeedbackWorkflow('appliedPendingQualityCheck'));
-      return true;
+      automaticValidation = {
+        ...persisted,
+        polishedDraft: result.nextText,
+      };
+      toast.success(tFeedbackWorkflow('appliedAutomaticQualityCheck'));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save the applied suggestion.');
       return false;
     } finally {
       workspaceMutationRef.current = false;
     }
+    if (automaticValidation) {
+      await runAutomaticPublicationValidation(automaticValidation);
+    }
+    return true;
   };
 
   const handleApplyAllFixes = async () => {
@@ -792,6 +875,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     );
     const nextReadiness: EditorialReadiness = 'needs_review';
     const nextFlags = analysis.flags || [];
+    let automaticValidation: AutomaticValidationContext | null = null;
     workspaceMutationRef.current = true;
     try {
       const persisted = await persistEditorialResolution(
@@ -813,16 +897,30 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           ?? (prev.publicationPackageStatus === 'current'
             ? 'stale'
             : prev.publicationPackageStatus),
+        qualityGateState: persisted.qualityGateState ?? 'stale',
+        seoReviewState: persisted.seoReviewState ?? prev.seoReviewState,
       }));
+      automaticValidation = {
+        ...persisted,
+        polishedDraft: result.nextText,
+      };
       if (result.failedIndexes.length > 0) {
-        toast.warning(`${result.appliedIndexes.length} applied, ${result.failedIndexes.length} need manual review.`);
+        toast.warning(tFeedbackWorkflow('applyAllPartialAutomaticQualityCheck', {
+          applied: result.appliedIndexes.length,
+          remaining: result.failedIndexes.length,
+        }));
       } else {
-        toast.success(`${result.appliedIndexes.length} changes applied and saved.`);
+        toast.success(tFeedbackWorkflow('applyAllAutomaticQualityCheck', {
+          count: result.appliedIndexes.length,
+        }));
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save applied suggestions.');
     } finally {
       workspaceMutationRef.current = false;
+    }
+    if (automaticValidation) {
+      await runAutomaticPublicationValidation(automaticValidation);
     }
   };
 
@@ -997,10 +1095,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     readiness: EditorialReadiness,
     polishedDraft: string,
     flags: string[]
-  ): Promise<{
-    readiness: EditorialReadiness;
-    publicationPackageStatus?: PublicationPackageStatus;
-  }> => {
+  ): Promise<EditorialResolutionResult> => {
     const logId = analysis.analysisLogId || activeHistoryId;
     if (!logId) {
       throw new Error('The refinement history is not ready yet. Please try again.');
@@ -1032,9 +1127,23 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       || result.publicationPackageStatus === 'not_generated'
         ? result.publicationPackageStatus
         : undefined;
+    const persistedQualityGateState: RevisionValidationState | undefined =
+      result.qualityGateState === 'valid'
+      || result.qualityGateState === 'validation_recommended'
+      || result.qualityGateState === 'stale'
+        ? result.qualityGateState
+        : undefined;
+    const persistedSeoReviewState: SeoReviewState | undefined =
+      result.seoReviewState === 'valid'
+      || result.seoReviewState === 'possibly_stale'
+      || result.seoReviewState === 'stale'
+        ? result.seoReviewState
+        : undefined;
     return {
       readiness: persistedReadiness,
       publicationPackageStatus: persistedPublicationPackageStatus,
+      qualityGateState: persistedQualityGateState,
+      seoReviewState: persistedSeoReviewState,
     };
   };
 
@@ -1103,6 +1212,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       ? 'needs_review'
       : calculateReadiness(nextFeedback, analysis.readiness);
     const nextFlags = nextReadiness === 'ready' ? [] : (analysis.flags || []);
+    let automaticValidation: AutomaticValidationContext | null = null;
     workspaceMutationRef.current = true;
     try {
       const persisted = await persistEditorialResolution(
@@ -1124,15 +1234,30 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           ?? (nextDraft !== currentDraft && prev.publicationPackageStatus === 'current'
             ? 'stale'
             : prev.publicationPackageStatus),
+        qualityGateState: persisted.qualityGateState ?? prev.qualityGateState,
+        seoReviewState: persisted.seoReviewState ?? prev.seoReviewState,
       }));
-      toast.success(linked ? 'Source added and verified.' : 'Source saved; target text was not changed.');
-      return true;
+      if (linked) {
+        automaticValidation = {
+          ...persisted,
+          polishedDraft: nextDraft,
+        };
+      }
+      toast.success(
+        linked
+          ? tFeedbackWorkflow('sourceAddedAutomaticQualityCheck')
+          : tFeedbackWorkflow('sourceSavedWithoutDraftChange')
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save the source.');
       return false;
     } finally {
       workspaceMutationRef.current = false;
     }
+    if (automaticValidation) {
+      await runAutomaticPublicationValidation(automaticValidation);
+    }
+    return true;
   };
 
   const handleTargetedFix = async (index: number, actionType: 'remove' | 'fix') => {
@@ -1173,12 +1298,15 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       attachments,
       persistEditorialResolution,
       bodyChangeSuccessMessage: actionType === 'remove'
-        ? tFeedbackWorkflow('removedPendingQualityCheck')
-        : tFeedbackWorkflow('fixedPendingQualityCheck'),
+        ? tFeedbackWorkflow('removedAutomaticQualityCheck')
+        : tFeedbackWorkflow('fixedAutomaticQualityCheck'),
       setAnalysis,
       analyzeAbortControllerRef,
     };
-    await executeTargetedFix(ctx, index, actionType);
+    const result = await executeTargetedFix(ctx, index, actionType);
+    if (result) {
+      await runAutomaticPublicationValidation(result);
+    }
   };
 
   const handleProceedRefinement = (resolution: { restore: boolean }) => {

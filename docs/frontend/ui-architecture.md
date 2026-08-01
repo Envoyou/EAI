@@ -108,6 +108,13 @@ non-blocking `validation_recommended` advisory, while factual/source-sensitive
 changes mark the Quality Gate stale. SEO relevance is independent: it can stay
 valid, become `possibly_stale`, or become blocking `stale` after topical anchor
 loss. These advisory states survive History reloads through `_system` metadata.
+System-originated body mutations (single/bulk apply, constrained EAI rewrite or
+removal, and source insertion) are a continuous client-orchestrated workflow:
+persist the exact body, run the standalone Quality Check, then regenerate SEO
+only when the backend marked an existing package genuinely `stale`. The action
+remains single-flight and cancellable; a failed or still-unresolved check leaves
+the durable revised body visible instead of asking the editor to repeat a
+validation click.
 
 While a revision is open, Save and Cancel remain visible in a sticky local
 toolbar. Other draft views and actions that operate on the persisted article

@@ -2,6 +2,7 @@
 
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AnalysisResult } from '@eai/shared';
 import { ShieldAlert, Wand2, Maximize2, Minimize2 } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -30,6 +31,7 @@ export function QualityGateSummary({
   isManualFallback,
   isCompactFallback,
 }: QualityGateSummaryProps) {
+  const t = useTranslations('FeedbackPanel');
   const [isApplyingAll, setIsApplyingAll] = useState(false);
   const readiness = result.readiness;
   const readinessVariant: BadgeVariant =
@@ -136,8 +138,7 @@ export function QualityGateSummary({
       {onApplyAll && autoApplicableCount > 0 && !isManualFallback && (
         <div className="feedback-apply-all mt-3 flex items-center justify-between gap-3 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
           <p className="text-xs flex-1 ui-text">
-            <span className="font-semibold">{autoApplicableCount}</span> suggested
-            edits can be applied.
+            {t('autoApplicableEdits', { count: autoApplicableCount })}
           </p>
           <Button
             type="button"
@@ -159,7 +160,7 @@ export function QualityGateSummary({
             ) : (
               <Wand2 className="w-3.5 h-3.5" />
             )}
-            Apply All
+            {isApplyingAll ? t('applyingAndVerifying') : t('applyAndVerify')}
           </Button>
         </div>
       )}

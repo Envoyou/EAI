@@ -9,6 +9,8 @@ import type {
   EditorialReadiness,
   PublicationPackageStatus,
   ResearchNote,
+  RevisionValidationState,
+  SeoReviewState,
 } from '@eai/shared';
 import type { AnalysisSpeed, DirectFetchType } from '../types';
 import { replaceFirstTargetMatch } from '@eai/shared';
@@ -19,6 +21,12 @@ import { markFeedbackApplied } from '../utils';
 type EditorialResolutionResult = {
   readiness: EditorialReadiness;
   publicationPackageStatus?: PublicationPackageStatus;
+  qualityGateState?: RevisionValidationState;
+  seoReviewState?: SeoReviewState;
+};
+
+export type TargetedFixResult = EditorialResolutionResult & {
+  polishedDraft: string;
 };
 
 interface TargetedFixContext {
@@ -46,7 +54,7 @@ export async function executeTargetedFix(
   ctx: TargetedFixContext,
   index: number,
   actionType: 'remove' | 'fix'
-) {
+): Promise<TargetedFixResult | null> {
   const {
     analysis,
     isTargetedFixing,
@@ -69,7 +77,7 @@ export async function executeTargetedFix(
     || !item.targetText
     || isTargetedFixing !== null
     || analyzeAbortControllerRef.current
-  ) return;
+  ) return null;
   setIsTargetedFixing(index);
 
   const controller = new AbortController();
@@ -159,7 +167,7 @@ export async function executeTargetedFix(
       nextDraft = result.nextText;
     } else {
       toast.info('Target text was already modified or removed. Refresh the analysis before retrying.');
-      return;
+      return null;
     }
 
     const nextFeedback = markFeedbackApplied(analysis.feedback || [], index);
@@ -184,15 +192,22 @@ export async function executeTargetedFix(
         ?? (prev.publicationPackageStatus === 'current'
           ? 'stale'
           : prev.publicationPackageStatus),
+      qualityGateState: persisted.qualityGateState ?? 'stale',
+      seoReviewState: persisted.seoReviewState ?? prev.seoReviewState,
     }));
 
     toast.success(bodyChangeSuccessMessage);
+    return {
+      ...persisted,
+      polishedDraft: nextDraft,
+    };
   } catch (error) {
     if (controller.signal.aborted) {
-      return;
+      return null;
     }
     const msg = error instanceof Error ? error.message : 'Targeted fix failed';
     toast.error('Fix Failed', { description: msg });
+    return null;
   } finally {
     if (analyzeAbortControllerRef.current === controller) {
       analyzeAbortControllerRef.current = null;

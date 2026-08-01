@@ -12,6 +12,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Kept Markdown as the persisted interchange format and added a server-authoritative three-level revision assessment. Cosmetic/reordered formatting and bounded grammar edits retain status; broader editorial/structural edits receive a persisted lightweight advisory without blocking publication; factual, entity, number, citation, source, negation, high-stakes, reviewed-region, or claim-scope changes require the full Quality Gate.
   - Removed absolute word-count and percentage invalidation rules. Edit size remains only a bounded fallback for unusually large additions/removals, while semantic-risk signals drive the decision.
   - Separated Quality Gate invalidation from SEO relevance. Metadata can remain current, become advisory `possibly_stale`, or become blocking `stale`; Prepare reuses current relevant SEO instead of regenerating it after every Quality Check.
+  - System-generated body changes from Apply, Apply All, Rewrite/Remove with EAI, and source insertion now continue into Quality Check automatically. When that revision makes an existing publication package genuinely `stale`, SEO regeneration follows automatically after the body passes; remaining findings still return to the editor without weakening export guards.
   - Added a sticky Save/Cancel bar and temporarily holds Preview-adjacent workflow, export, copy, and view actions while an unsaved revision is open.
 
 ## [3.21.0] - 2026-07-30
