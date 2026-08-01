@@ -48,6 +48,7 @@ import {
   resolveStatusFromSeoFields,
   SAFE_AUTO_REFRESH_SEO_FIELDS,
 } from '@/lib/seo-field-state';
+import { detectEditorialLanguage } from '@/lib/editorial-language';
 
 const loadOwnedLog = async (ctx: PublicationStageContext) => {
   if (!ctx.userId) {
@@ -333,7 +334,7 @@ export async function handleValidateRevision(
   const scopedResearchNotes = affectedResearchNoteIds.size > 0
     ? researchNotes.filter((note) => affectedResearchNoteIds.has(note.id))
     : researchNotes;
-  const language = ctx.metadata?.outputLanguage === 'id' ? 'id' : 'en';
+  const language = detectEditorialLanguage(finalDraft);
   let result: FinalQualityGateOutput;
 
   if (scope.validationMode === 'targeted' && !isMockMode(ctx.effectiveProvider)) {
@@ -801,7 +802,7 @@ export async function handleRefreshSeoFields(
     feedback: [],
     flags: [],
   }, finalDraft, finalDraft, {
-    language: ctx.metadata?.outputLanguage === 'id' ? 'id' : 'en',
+    language: detectEditorialLanguage(finalDraft),
     publicationMode: 'publish_ready',
     publicationPackage: merged,
     seoRules: ctx.editorialProfile.config.seoRules,

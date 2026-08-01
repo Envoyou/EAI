@@ -12,6 +12,10 @@ import {
   buildAttachmentContext,
   buildResearchNotesSummary,
 } from './prompt-context';
+import {
+  detectEditorialLanguage,
+  isPublicationLanguageAligned,
+} from '@/lib/editorial-language';
 
 export const runSeoStage = async ({
   provider,
@@ -55,47 +59,69 @@ export const runSeoStage = async ({
 
   const systemInstruction = `${baseSystemInstruction}\n\n${agentInstruction}`;
 
-  const contents = [
+  const articleLanguage = detectEditorialLanguage(article);
+  const languageLabel = articleLanguage === 'id' ? 'Bahasa Indonesia' : 'English';
+  const effectiveMetadata: ArticleMetadata = {
+    ...metadata,
+    outputLanguage: articleLanguage,
+  };
+
+  const buildContents = (correctiveRetry = false) => [
     workspaceXml,
+    '<target_language>',
+    `${languageLabel}. This is derived from the dominant language of the final article body and overrides the profile default for this publication package.`,
+    '</target_language>',
     '<article_draft>',
     article,
     '</article_draft>',
     '',
     '<task>',
-    'Create SEO metadata for the article and reply only with JSON matching the schema.',
+    correctiveRetry
+      ? `Correct the previous language mismatch. Rewrite every human-readable metadata field in ${languageLabel}, matching the article, and reply only with JSON matching the schema.`
+      : `Create SEO metadata in ${languageLabel}, matching the article language, and reply only with JSON matching the schema.`,
     '</task>'
   ].join('\n');
 
   const aiProvider = getProvider(provider);
 
-  const result = await executeGenerate({
-    provider: aiProvider,
-    request: {
-      signal,
-      systemInstruction,
-      userContent: contents,
-      model: modelName,
-      maxOutputTokens: 400,
-      temperature: 0.2,
-      thinkingLevel: provider === 'gemini' ? 'minimal' : undefined,
-      responseFormat: 'json',
-      responseJsonSchema: provider === 'gemini' ? SeoMetadataResponseJsonSchema : undefined,
-    },
-    telemetry,
-    stage: 'seo',
-  });
+  const generateAttempt = async (attempt: number, correctiveRetry = false) => {
+    const result = await executeGenerate({
+      provider: aiProvider,
+      request: {
+        signal,
+        systemInstruction,
+        userContent: buildContents(correctiveRetry),
+        model: modelName,
+        maxOutputTokens: 400,
+        temperature: 0.2,
+        thinkingLevel: provider === 'gemini' ? 'minimal' : undefined,
+        responseFormat: 'json',
+        responseJsonSchema: provider === 'gemini' ? SeoMetadataResponseJsonSchema : undefined,
+      },
+      telemetry,
+      stage: 'seo',
+      attempt,
+    });
+    if (!result.text.trim()) return null;
+    try {
+      return normalizeSeoMetadata(
+        parseJsonResponse(result.text.trim()),
+        article,
+        effectiveMetadata,
+        editorialProfile
+      );
+    } catch {
+      return null;
+    }
+  };
 
-  const raw = result.text.trim();
-  if (!raw) return buildFallbackSeoMetadata(article, metadata, editorialProfile);
+  const first = await generateAttempt(1);
+  if (first && isPublicationLanguageAligned(first, articleLanguage)) return first;
 
-  try {
-    return normalizeSeoMetadata(
-      parseJsonResponse(raw),
-      article,
-      metadata,
-      editorialProfile
-    );
-  } catch {
-    return buildFallbackSeoMetadata(article, metadata, editorialProfile);
+  const corrected = await generateAttempt(2, true);
+  if (corrected && isPublicationLanguageAligned(corrected, articleLanguage)) {
+    return corrected;
   }
+
+  return buildFallbackSeoMetadata(article, effectiveMetadata, editorialProfile);
 };

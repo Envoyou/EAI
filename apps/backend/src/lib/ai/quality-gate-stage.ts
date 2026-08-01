@@ -22,21 +22,7 @@ import {
   assignPersistentEditorialIdentities,
   type EditorialIdentityState,
 } from '@/lib/editorial-identity';
-
-const detectLanguage = (text: string): 'id' | 'en' => {
-  const clean = text.toLowerCase();
-  const idScore = (clean.match(/\byang\b/g) || []).length * 2 +
-                  (clean.match(/\bdan\b/g) || []).length +
-                  (clean.match(/\bdi\b/g) || []).length +
-                  (clean.match(/\bdengan\b/g) || []).length +
-                  (clean.match(/\buntuk\b/g) || []).length;
-  const enScore = (clean.match(/\bthe\b/g) || []).length * 2 +
-                  (clean.match(/\band\b/g) || []).length +
-                  (clean.match(/\bof\b/g) || []).length +
-                  (clean.match(/\bto\b/g) || []).length +
-                  (clean.match(/\bis\b/g) || []).length;
-  return enScore > idScore ? 'en' : 'id';
-};
+import { detectEditorialLanguage } from '@/lib/editorial-language';
 
 type FeedbackSanitizer = (
   item: FeedbackItem,
@@ -136,9 +122,14 @@ const runFinalQualityGate = async ({
     notesSummary: notesSummary || null,
     attachment: buildAttachmentContext(metadata?.attachments),
   });
+  const articleLanguage = detectEditorialLanguage(finalDraft);
+  const languageLabel = articleLanguage === 'id' ? 'Bahasa Indonesia' : 'English';
 
   const contents = [
     workspaceXml,
+    '<target_language>',
+    `${languageLabel}. Match the dominant language of finalDraft for summaries, changes, feedback, and suggestions.`,
+    '</target_language>',
     '<article_draft>',
     finalDraft,
     '</article_draft>',
@@ -208,9 +199,7 @@ The previous response failed structural validation. Return one JSON object only.
     sanitizeFeedback(item, finalDraft)
   );
   result.summary = sanitizeSummary(result.summary, result.feedback, finalDraft);
-  const language = metadata?.outputLanguage === 'follow_draft'
-    ? detectLanguage(finalDraft)
-    : (metadata?.outputLanguage ?? 'en');
+  const language = articleLanguage;
 
   result = applyDeterministicQualityChecks(
     result,

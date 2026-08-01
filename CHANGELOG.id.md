@@ -13,6 +13,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menerapkan patch Before/After yang sudah siap secara optimistis di editor sebelum persistence. Kegagalan penyimpanan memulihkan snapshot sebelumnya, konflik revisi memuat revisi tersimpan terbaru, sedangkan warning validasi mempertahankan edit yang sudah diterima.
   - Memisahkan generasi AI dari persetujuan: temuan tanpa replacement konkret kini menampilkan Buat usulan perbaikan yang hanya menghasilkan preview tanpa menyimpan; Terima perubahan baru muncul setelah patch siap dan tidak memanggil model kembali.
   - Mengarahkan temuan field publikasi hanya ke field metadata yang sesuai. Slug terlalu panjang kini mendapat kandidat maksimal enam kata secara deterministik dan lokal, dengan keputusan langsung gunakan/pertahankan/edit manual; temuan tersebut tidak pernah lagi jatuh ke penulisan ulang body artikel oleh AI.
+  - Menjadikan bahasa dominan body artikel final sebagai acuan bahasa SEO dan teks Quality Gate. Hasil SEO yang berbeda bahasa menjalani satu corrective retry internal sebelum paket atau feedback dikirim, sehingga drift akibat rewrite/default profil diperbaiki tanpa keputusan editor.
 - **Akurasi target source-fidelity**:
   - Mencocokkan temuan akronim sebagai token Unicode utuh ketika mencari kalimat terdampak, sehingga `ERP` tidak lagi menyorot kalimat tak terkait hanya karena memuat kata `enterprises`.
 - **Pengeditan Final Draft langsung di tempat**:

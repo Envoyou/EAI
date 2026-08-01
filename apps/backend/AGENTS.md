@@ -247,6 +247,8 @@ Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes l
 
 > **Refine outcome contract**: Refine owns rewrite through publish-ready validation. Do not emit the intermediate rewritten body or Quality Gate feedback before bounded automatic remediation finishes. Run deterministic/allowlisted-source fixes before generated fixes, limit generated remediation rounds, regenerate SEO from the final body, and emit only the final body/package plus genuinely unresolved human decisions. Never auto-accept a finding, invent a source URL, or treat an available URL as proof for an unrelated claim.
 
+> **Publication language contract**: The dominant language of the stored final body is authoritative for human-readable SEO fields and Quality Gate prose. Profile/default language may guide rewriting, but it must not produce a publication package in a different language from the resulting body. Detect and correct a mismatched SEO response internally before emitting metadata or feedback; do not turn provider language drift into an editor decision.
+
 * **Provider-Native Thinking**: Reviewer and Quality Gate stages may enable provider-native thinking for model quality, but JSON response schemas must contain only the final editorial result. Do not request or persist manual chain-of-thought fields such as `"thinking"`.
 * **Provider Cancellation**: Every AI request must pass the originating response-close `AbortSignal` through `StreamRequest` or the provider-native request options. Gemini Flex retry delays must receive the same signal. An `isDisconnected` flag may prevent later writes, but it is not a substitute for aborting active provider work.
 * **Workspace Context & Compliance Helpers**:
