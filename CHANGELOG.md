@@ -7,6 +7,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Changed
+- **Source-fidelity target accuracy**:
+  - Matched acronym findings as complete Unicode tokens when locating their affected sentence, preventing `ERP` from highlighting an unrelated sentence containing the word `enterprises`.
 - **In-place Final Draft editing**:
   - Replaced the detached raw-Markdown edit card with a rich-text editor in the existing Preview surface, so a visible typo can be corrected without finding it again in a separate representation.
   - Kept Markdown as the persisted interchange format and added a server-authoritative three-level revision assessment. Cosmetic/reordered formatting and bounded grammar edits retain status; broader editorial/structural edits receive a persisted lightweight advisory without blocking publication; factual, entity, number, citation, source, negation, high-stakes, reviewed-region, or claim-scope changes require blocking validation before publication.

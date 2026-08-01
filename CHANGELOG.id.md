@@ -7,6 +7,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Changed
+- **Akurasi target source-fidelity**:
+  - Mencocokkan temuan akronim sebagai token Unicode utuh ketika mencari kalimat terdampak, sehingga `ERP` tidak lagi menyorot kalimat tak terkait hanya karena memuat kata `enterprises`.
 - **Pengeditan Final Draft langsung di tempat**:
   - Mengganti kartu edit Markdown mentah yang terpisah dengan editor rich-text pada area Preview yang sama, sehingga typo yang terlihat dapat langsung diperbaiki tanpa mencarinya lagi dalam representasi lain.
   - Mempertahankan Markdown sebagai format pertukaran yang disimpan dan menambahkan penilaian revisi tiga tingkat yang ditentukan backend. Format kosmetik/berpindah serta perbaikan grammar terbatas mempertahankan status; perubahan editorial/struktur yang lebih luas mendapat advisory ringan persisten tanpa memblokir publikasi; perubahan fakta, entitas, angka, sitasi, sumber, negasi, high-stakes, area yang pernah direview, atau cakupan klaim mewajibkan validasi blocking sebelum publikasi.

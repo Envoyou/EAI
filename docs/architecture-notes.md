@@ -145,6 +145,7 @@ Pemisahan ini mencegah instruksi seperti `[Source verification recommended]` boc
 
 *   Konversi dan deteksi tabel ASCII serta validasi tabel Markdown GFM.
 *   Source fidelity untuk angka, rentang, URL, entitas, dan akronim.
+*   Lokasi target source-fidelity memakai batas token Unicode untuk sinyal alfanumerik; akronim seperti `ERP` tidak boleh dicocokkan sebagai substring di dalam kata seperti `enterprises`.
 *   Deteksi atribusi motif organisasi/tokoh yang tidak ada pada sumber.
 *   Validasi fase kalender berbasis zona waktu `Asia/Jakarta`.
 *   Normalisasi tautan internal tepercaya dan marker verifikasi.

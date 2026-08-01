@@ -8,6 +8,25 @@ import {
 } from '../final-quality';
 
 describe('Final Quality Deterministic Fidelity Checks', () => {
+  it('targets an acronym token instead of matching it inside enterprises', () => {
+    const finalDraft = [
+      'While most enterprises remain in experimental pilots, operational efficiency is improving.',
+      'The integration connects ERP and CRM workflows across business units.',
+    ].join('\n\n');
+    const result = applyDeterministicQualityChecks(
+      { readiness: 'ready', summary: '', changes: [], feedback: [], flags: [] },
+      finalDraft,
+      'Most organizations remain in experimental pilots.'
+    );
+    const finding = result.feedback.find((item) =>
+      item.category === 'Source Fidelity' && item.message.includes('"ERP"')
+    );
+
+    expect(finding?.targetText).toBe(
+      'The integration connects ERP and CRM workflows across business units.'
+    );
+  });
+
   it('does not flag a year promoted from source URL into reference anchor text', () => {
     const original = `- [bi.go.id](https://www.bi.go.id/en/iru/presentation/Documents/Republic%20of%20Indonesia%20Presentation%20Book%20-%20Green%20Policy%20Q3-2025.pdf)`;
     const final = `* [Bank Indonesia Presentation Book – Green Policy Q3-2025](https://www.bi.go.id/en/iru/presentation/Documents/Republic%20of%20Indonesia%20Presentation%20Book%20-%20Green%20Policy%20Q3-2025.pdf)`;

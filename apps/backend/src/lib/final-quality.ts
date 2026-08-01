@@ -353,8 +353,17 @@ const normalizeFlag = (flag: string) =>
 
 const findSentenceContaining = (text: string, searchStr: string): string | undefined => {
   if (!searchStr?.trim()) return undefined;
+  const trimmedSearch = searchStr.trim();
+  const escapedSearch = trimmedSearch.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  const isTokenLike = /^[\p{L}\p{N}][\p{L}\p{N}._%+-]*$/u.test(trimmedSearch);
+  const pattern = new RegExp(
+    isTokenLike
+      ? `(?<![\\p{L}\\p{N}])${escapedSearch}(?![\\p{L}\\p{N}])`
+      : escapedSearch,
+    'iu'
+  );
   const sentences = text.split(/(?<=[.!?])(?:\s+|\n+)/);
-  return sentences.find(sentence => sentence.toLowerCase().includes(searchStr.toLowerCase()))?.trim();
+  return sentences.find((sentence) => pattern.test(sentence))?.trim();
 };
 
 const BENIGN_FLAG_PATTERN =
