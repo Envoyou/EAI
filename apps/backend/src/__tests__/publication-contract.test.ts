@@ -246,6 +246,23 @@ describe('publication title contract', () => {
 });
 
 describe('publication readiness reconciliation', () => {
+  test('applies a publication finding atomically without weakening the general metadata guard', () => {
+    const historyRoute = readFileSync(
+      resolve(process.cwd(), 'src/routes/history.ts'),
+      'utf8'
+    );
+
+    expect(historyRoute).toContain(
+      "action: z.literal('apply_publication_metadata_finding')"
+    );
+    expect(historyRoute).toContain('applyPublicationMetadataFinding({');
+    expect(historyRoute).toContain('await runSerializableTransaction(async (tx) => {');
+    expect(historyRoute).toContain("if (systemMetadata.readiness !== 'ready')");
+    expect(historyRoute).toContain(
+      'Complete or approve the current quality findings before saving publication metadata.'
+    );
+  });
+
   test('supports an explicit persisted confirmation for a stale publication package', () => {
     const historyRoute = readFileSync(
       resolve(process.cwd(), 'src/routes/history.ts'),

@@ -34,8 +34,13 @@ import {
   restoreTrustedFeedbackIdentities,
 } from '@/lib/editorial-identity';
 import {
+  applyPublicationMetadataFinding,
+  PublicationMetadataFindingConflictError,
+} from '@/lib/publication-metadata-finding';
+import {
   createValidSeoFieldStates,
   deriveSeoFieldStates,
+  markSeoFieldsValid,
   readSeoFieldStates,
   resolveStatusFromSeoFields,
 } from '@/lib/seo-field-state';
@@ -74,6 +79,30 @@ const RevisionExpectationFields = {
   bodyHash: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
 };
 
+const PublicationPackageUpdateSchema = SeoMetadataSchema.extend({
+  excerpt: z.string().min(1).max(300),
+  metaTitle: z.string().min(1).max(80),
+});
+
+const PublicationMetadataFindingTargetSchema = z.enum([
+  'publication.title',
+  'publication.slug',
+  'publication.excerpt',
+  'publication.metaTitle',
+  'publication.metaDescription',
+  'publication.coverImageAlt',
+]);
+
+const PublicationTargetToSeoField = {
+  'publication.title': 'title',
+  'publication.slug': 'slug',
+  'publication.excerpt': 'excerpt',
+  'publication.metaTitle': 'metaTitle',
+  'publication.metaDescription': 'metaDescription',
+  'publication.coverImageAlt': 'coverImageAltText',
+  'publication.tags': 'tags',
+} as const;
+
 const EditorialResolutionSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('resolve_editorial_feedback'),
@@ -90,10 +119,15 @@ const EditorialResolutionSchema = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('update_publication_package'),
-    publicationPackage: SeoMetadataSchema.extend({
-      excerpt: z.string().min(1).max(300),
-      metaTitle: z.string().min(1).max(80),
-    }),
+    publicationPackage: PublicationPackageUpdateSchema,
+    ...RevisionExpectationFields,
+  }),
+  z.object({
+    action: z.literal('apply_publication_metadata_finding'),
+    feedbackId: z.string().min(1).max(100).optional(),
+    targetField: PublicationMetadataFindingTargetSchema,
+    targetText: z.string().min(1).max(300),
+    replacementText: z.string().trim().min(1).max(300),
     ...RevisionExpectationFields,
   }),
   z.object({
@@ -719,6 +753,159 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         qualityCheckInvalidated: invalidatesPublicationReview,
         seoInvalidated: assessment.seoReviewState === 'stale' && publicationPackageStatus === 'stale',
       });
+    }
+
+    if (resolution.data.action === 'apply_publication_metadata_finding') {
+      let appliedResult;
+      try {
+        appliedResult = await runSerializableTransaction(async (tx) => {
+          const current = await tx.analysisLog.findUnique({ where: { id } });
+          if (!current) throw new Error('History not found');
+
+          const currentMetadata = current.metadata
+            && typeof current.metadata === 'object'
+            && !Array.isArray(current.metadata)
+              ? current.metadata as Record<string, unknown>
+              : {};
+          const currentSystem = currentMetadata._system
+            && typeof currentMetadata._system === 'object'
+            && !Array.isArray(currentMetadata._system)
+              ? currentMetadata._system as Record<string, unknown>
+              : {};
+          const currentBody = typeof currentSystem.polishedDraft === 'string'
+            ? preparePublicationDraft(currentSystem.polishedDraft)
+            : '';
+          const transactionRevision = readDraftRevisionIdentity({
+            system: currentSystem,
+            body: currentBody,
+            fallbackCreatedAt: current.createdAt,
+          });
+          assertDraftRevisionMatches({
+            current: transactionRevision,
+            expectedRevisionId: currentDraftRevision.revisionId,
+            expectedBodyHash: currentDraftRevision.bodyHash,
+          });
+
+          const storedPublicationPackage = PublicationPackageUpdateSchema.safeParse(
+            currentMetadata.generatedMetadata
+          );
+          if (!storedPublicationPackage.success) {
+            throw new PublicationMetadataFindingConflictError(
+              'Generate and save publication metadata before applying this finding.'
+            );
+          }
+          const storedFeedback = Array.isArray(current.feedback)
+            ? current.feedback.filter(
+                (item) => Boolean(item) && typeof item === 'object' && !Array.isArray(item)
+              ) as unknown as import('@eai/shared').FeedbackItem[]
+            : [];
+          const previousReadiness = currentSystem.readiness === 'ready'
+            || currentSystem.readiness === 'needs_review'
+            || currentSystem.readiness === 'blocked'
+              ? currentSystem.readiness
+              : 'needs_review';
+          const applied = applyPublicationMetadataFinding({
+            feedback: storedFeedback,
+            publicationPackage: storedPublicationPackage.data,
+            feedbackId: resolution.data.feedbackId,
+            targetField: resolution.data.targetField,
+            targetText: resolution.data.targetText,
+            replacementText: resolution.data.replacementText,
+            previousReadiness,
+          });
+          const validatedPackage = PublicationPackageUpdateSchema.safeParse(
+            applied.publicationPackage
+          );
+          if (!validatedPackage.success) {
+            throw new PublicationMetadataFindingConflictError(
+              'The proposed publication value does not satisfy the metadata requirements.'
+            );
+          }
+
+          const storedSeoFieldStates = readSeoFieldStates(currentSystem.seoFieldStates);
+          const baseSeoFieldStates = Object.keys(storedSeoFieldStates).length > 0
+            ? storedSeoFieldStates
+            : createValidSeoFieldStates(transactionRevision);
+          const appliedSeoField = PublicationTargetToSeoField[resolution.data.targetField];
+          const seoFieldStates = markSeoFieldsValid(
+            baseSeoFieldStates,
+            [appliedSeoField],
+            transactionRevision
+          );
+          applied.feedback.forEach((feedbackItem) => {
+            if (
+              feedbackItem.status === 'pass'
+              || feedbackItem.isApplied
+              || feedbackItem.isAccepted
+              || feedbackItem.isVerified
+              || !feedbackItem.targetField?.startsWith('publication.')
+            ) return;
+            const unresolvedField = PublicationTargetToSeoField[
+              feedbackItem.targetField as keyof typeof PublicationTargetToSeoField
+            ];
+            if (unresolvedField) {
+              seoFieldStates[unresolvedField] = {
+                status: 'review_required',
+                reason: 'editor_decision_required',
+                revisionId: transactionRevision.revisionId,
+              };
+            }
+          });
+          const publicationPackageStatus = resolveStatusFromSeoFields(
+            seoFieldStates,
+            true
+          );
+          const seoReviewState = publicationPackageStatus === 'current' ? 'valid' : 'stale';
+          const qualityGateState = applied.readiness === 'ready' ? 'valid' : 'stale';
+          const nextFlags = applied.readiness === 'ready'
+            ? []
+            : Array.isArray(current.flags)
+              ? current.flags.filter((flag): flag is string => typeof flag === 'string')
+              : [];
+          await tx.analysisLog.update({
+            where: { id },
+            data: {
+              feedback: applied.feedback as unknown as Prisma.InputJsonValue,
+              flags: nextFlags as Prisma.InputJsonValue,
+              verdict: applied.readiness,
+              metadata: {
+                ...currentMetadata,
+                generatedMetadata: validatedPackage.data,
+                publicationPackageStatus,
+                _system: {
+                  ...currentSystem,
+                  readiness: applied.readiness,
+                  publicationPackageStatus,
+                  qualityGateState,
+                  seoReviewState,
+                  seoFieldStates,
+                  draftRevision: transactionRevision,
+                  seoEditedAt: new Date().toISOString(),
+                },
+              } as Prisma.InputJsonValue,
+            },
+          });
+
+          return {
+            feedback: applied.feedback,
+            flags: nextFlags,
+            generatedMetadata: validatedPackage.data,
+            readiness: applied.readiness,
+            publicationPackageStatus,
+            qualityGateState,
+            seoReviewState,
+            seoFieldStates,
+            draftRevision: transactionRevision,
+          };
+        });
+      } catch (error) {
+        if (error instanceof PublicationMetadataFindingConflictError) {
+          return res.status(409).json({ error: error.message });
+        }
+        throw error;
+      }
+
+      return res.json({ success: true, ...appliedResult });
     }
 
     if (resolution.data.action === 'update_publication_package') {

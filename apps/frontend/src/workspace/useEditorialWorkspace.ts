@@ -984,20 +984,98 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       qualityGateState: 'stale',
     }));
 
-    const saved = await handleSavePublicationMetadata(nextPackage);
-    if (!saved) {
-      setAnalysis(prev =>
-        prev.generatedMetadata?.[packageField] === replacementText
-          ? previousAnalysis
-          : prev
-      );
+    const logId = analysis.analysisLogId || activeHistoryId;
+    if (!logId) {
+      setAnalysis(() => previousAnalysis);
       return false;
     }
+    let automaticValidation: AutomaticValidationContext | null = null;
+    workspaceMutationRef.current = true;
+    try {
+      const response = await fetchWithTimeout(`/api/history/${logId}/resolve`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'apply_publication_metadata_finding',
+          feedbackId: item.feedbackId,
+          targetField,
+          targetText,
+          replacementText,
+          revisionId: analysis.draftRevision?.revisionId,
+          bodyHash: analysis.draftRevision?.bodyHash,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new EditorialResolutionPersistenceError(
+          result.error || 'Failed to apply the publication suggestion.',
+          response.status,
+          typeof result.code === 'string' ? result.code : undefined
+        );
+      }
+      const persistedReadiness: EditorialReadiness =
+        result.readiness === 'ready'
+        || result.readiness === 'needs_review'
+        || result.readiness === 'blocked'
+          ? result.readiness
+          : calculateReadiness(nextFeedback, analysis.readiness);
+      const persistedFeedback = Array.isArray(result.feedback)
+        ? result.feedback as FeedbackItem[]
+        : nextFeedback;
+      const persistedDraftRevision = result.draftRevision ?? analysis.draftRevision;
+      const persistedSeoFieldStates = parseSeoFieldStates(result.seoFieldStates);
+      setAnalysis(prev => ({
+        ...prev,
+        generatedMetadata: result.generatedMetadata ?? nextPackage,
+        feedback: persistedFeedback,
+        flags: Array.isArray(result.flags) ? result.flags : prev.flags,
+        readiness: persistedReadiness,
+        verdict: persistedReadiness,
+        publicationPackageStatus: result.publicationPackageStatus ?? 'current',
+        qualityGateState: result.qualityGateState ?? (
+          persistedReadiness === 'ready' ? 'valid' : 'stale'
+        ),
+        seoReviewState: result.seoReviewState ?? 'valid',
+        seoFieldStates: persistedSeoFieldStates ?? prev.seoFieldStates,
+        draftRevision: persistedDraftRevision,
+      }));
+      automaticValidation = {
+        readiness: persistedReadiness,
+        publicationPackageStatus: result.publicationPackageStatus ?? 'current',
+        qualityGateState: result.qualityGateState,
+        seoReviewState: result.seoReviewState,
+        seoFieldStates: persistedSeoFieldStates,
+        draftRevision: persistedDraftRevision,
+        polishedDraft: analysis.polishedDraft || '',
+      };
+      toast.success(tFeedbackWorkflow('publicationMetadataApplied'));
+    } catch (error) {
+      if (
+        error instanceof EditorialResolutionPersistenceError
+        && error.code === 'DRAFT_REVISION_MISMATCH'
+      ) {
+        await loadHistory(logId);
+        toast.warning(tFeedbackWorkflow('revisionConflictReconciled'));
+      } else {
+        setAnalysis(prev =>
+          prev.generatedMetadata?.[packageField] === replacementText
+            ? previousAnalysis
+            : prev
+        );
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : tFeedbackWorkflow('publicationMetadataApplyFailed')
+        );
+      }
+      return false;
+    } finally {
+      workspaceMutationRef.current = false;
+    }
 
-    await handleQualityCheck({
-      automatic: true,
-      preserveCurrentStateOnFailure: true,
-    });
+    if (automaticValidation) {
+      await runAutomaticPublicationValidation(automaticValidation);
+    }
     return true;
   };
 

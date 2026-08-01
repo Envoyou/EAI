@@ -256,7 +256,9 @@
     "applyAllAutomaticQualityCheck": "{count} changes applied. EAI is checking the affected content.",
     "applyAllPartialAutomaticQualityCheck": "{applied} changes applied; {remaining} still need editorial action. EAI is checking the affected content.",
     "sourceAddedAutomaticQualityCheck": "Source added and verified. EAI is checking the affected content.",
-    "sourceSavedWithoutDraftChange": "Source saved; the draft text did not change."
+    "sourceSavedWithoutDraftChange": "Source saved; the draft text did not change.",
+    "publicationMetadataApplied": "Publication detail applied and its review decision saved.",
+    "publicationMetadataApplyFailed": "The publication detail could not be applied."
   },
   "PricingGrid": {
     "billingCycleToggle": "Toggle annual billing"

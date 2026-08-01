@@ -256,7 +256,9 @@
     "applyAllAutomaticQualityCheck": "{count} perubahan diterapkan. EAI sedang memeriksa konten yang terdampak.",
     "applyAllPartialAutomaticQualityCheck": "{applied} perubahan diterapkan; {remaining} masih memerlukan tindakan editorial. EAI sedang memeriksa konten yang terdampak.",
     "sourceAddedAutomaticQualityCheck": "Sumber ditambahkan dan diverifikasi. EAI sedang memeriksa konten yang terdampak.",
-    "sourceSavedWithoutDraftChange": "Sumber disimpan; teks draft tidak berubah."
+    "sourceSavedWithoutDraftChange": "Sumber disimpan; teks draft tidak berubah.",
+    "publicationMetadataApplied": "Detail publikasi diterapkan dan keputusan tinjauannya disimpan.",
+    "publicationMetadataApplyFailed": "Detail publikasi tidak dapat diterapkan."
   },
   "PricingGrid": {
     "billingCycleToggle": "Ubah siklus tagihan tahunan"

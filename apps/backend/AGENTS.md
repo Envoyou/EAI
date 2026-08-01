@@ -202,6 +202,7 @@ apps/backend/
 - **Error handling**: All async route handlers must be wrapped with `try/catch`; never let unhandled promise rejections propagate to Express's default error handler.
 - **Prisma**: Always call `prisma.$disconnect()` in graceful shutdown. Use `$transaction([])` for multi-step writes.
 - **Shared types**: Import domain types and Zod schemas from `@eai/shared`. Import server-only utilities (encryption, admin guards) from `@eai/shared/server`.
+- **Publication finding persistence**: Keep the general `update_publication_package` readiness guard intact. Applying a prepared or manually edited publication-field finding must use `apply_publication_metadata_finding`, validate against the server-stored finding and current draft revision, and persist the metadata value plus finding resolution in one serializable transaction.
 
 ## 4. Database & ORM Conventions (Prisma & Neon)
 

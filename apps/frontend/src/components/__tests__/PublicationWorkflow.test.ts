@@ -99,6 +99,22 @@ describe('revision-safe publication workflow', () => {
     expect(targetedFix).toContain('researchNotes,');
   });
 
+  it('persists a metadata value and its finding resolution through one atomic action', () => {
+    const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
+    const handlerStart = workspace.indexOf('const handleApplyPublicationFix = async');
+    const handlerEnd = workspace.indexOf(
+      'const handleConfirmPublicationMetadata = async',
+      handlerStart
+    );
+    const handler = workspace.slice(handlerStart, handlerEnd);
+
+    expect(handler).toContain("action: 'apply_publication_metadata_finding'");
+    expect(handler).toContain('feedbackId: item.feedbackId');
+    expect(handler).toContain('result.generatedMetadata ?? nextPackage');
+    expect(handler).toContain('result.feedback as FeedbackItem[]');
+    expect(handler).not.toContain('handleSavePublicationMetadata(nextPackage)');
+  });
+
   it('distinguishes accepted decisions from body changes awaiting quality recheck', () => {
     const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
     const targetedFix = readFrontendSource('workspace/actions/targetedFix.ts');
