@@ -127,6 +127,7 @@
     "qualityCheck": "Quality Check",
     "qualityCheckSuccess": "Quality check completed without rewriting the draft.",
     "automaticQualityCheckSuccess": "The revised draft was checked automatically.",
+    "automaticQualityCheckNeedsReview": "The latest changes were checked. Remaining items need your editorial decision.",
     "regenerateSeo": "Regenerate SEO",
     "seoQualityReady": "SEO metadata regenerated and the complete publication package passed Quality Check.",
     "automaticSeoQualityReady": "The revised draft passed Quality Check and its stale SEO metadata was refreshed automatically.",

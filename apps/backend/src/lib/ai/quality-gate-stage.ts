@@ -66,6 +66,10 @@ const runFinalQualityGate = async ({
   attempt = 1,
   identitySystem,
   identityFallbackCreatedAt,
+  deterministicDraft,
+  deterministicOriginalDraft,
+  identityDraft,
+  taskInstruction,
 }: {
   provider: AiProvider;
   originalDraft: string;
@@ -93,6 +97,10 @@ const runFinalQualityGate = async ({
   attempt?: number;
   identitySystem?: Record<string, unknown>;
   identityFallbackCreatedAt?: Date | string;
+  deterministicDraft?: string;
+  deterministicOriginalDraft?: string;
+  identityDraft?: string;
+  taskInstruction?: string;
 }): Promise<{
   result: FinalQualityGateOutput;
   modelName: string;
@@ -152,7 +160,8 @@ const runFinalQualityGate = async ({
     trustedSourceUrls.length > 0 ? `<trusted_source_urls>\n${trustedSourceUrls.join('\n')}\n</trusted_source_urls>\n` : '',
     trustedInternalDomains.length > 0 ? `<trusted_internal_domains>\n${trustedInternalDomains.join('\n')}\n</trusted_internal_domains>\n` : '',
     '<task>',
-    'Evaluate finalDraft as the primary quality gate object. Use sourceDraft only to compare changes and source fidelity.',
+    taskInstruction
+      ?? 'Evaluate finalDraft as the primary quality gate object. Use sourceDraft only to compare changes and source fidelity.',
     '</task>'
   ].filter(Boolean).join('\n');
 
@@ -203,22 +212,27 @@ The previous response failed structural validation. Return one JSON object only.
     ? detectLanguage(finalDraft)
     : (metadata?.outputLanguage ?? 'en');
 
-  result = applyDeterministicQualityChecks(result, finalDraft, originalDraft, {
-    trustedInternalUrls,
-    trustedSourceUrls,
-    trustedInternalDomains,
-    trustedEntities: [editorialProfile.config.brandName],
-    allowedEditorialTerms: editorialProfile.config.allowedEditorialTerms,
-    language,
-    publicationMode,
-    documentTitle: publicationPackage?.title || workingTitle,
-    publicationPackage,
-    seoRules: editorialProfile.config.seoRules,
-  });
+  result = applyDeterministicQualityChecks(
+    result,
+    deterministicDraft ?? finalDraft,
+    deterministicOriginalDraft ?? originalDraft,
+    {
+      trustedInternalUrls,
+      trustedSourceUrls,
+      trustedInternalDomains,
+      trustedEntities: [editorialProfile.config.brandName],
+      allowedEditorialTerms: editorialProfile.config.allowedEditorialTerms,
+      language,
+      publicationMode,
+      documentTitle: publicationPackage?.title || workingTitle,
+      publicationPackage,
+      seoRules: editorialProfile.config.seoRules,
+    }
+  );
   const identified = identitySystem
     ? assignPersistentEditorialIdentities({
         feedback: result.feedback,
-        finalDraft,
+        finalDraft: identityDraft ?? finalDraft,
         system: identitySystem,
         researchNotes,
         fallbackCreatedAt: identityFallbackCreatedAt,

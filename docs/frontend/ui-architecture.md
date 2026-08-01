@@ -110,11 +110,17 @@ valid, become `possibly_stale`, or become blocking `stale` after topical anchor
 loss. These advisory states survive History reloads through `_system` metadata.
 System-originated body mutations (single/bulk apply, constrained EAI rewrite or
 removal, and source insertion) are a continuous client-orchestrated workflow:
-persist the exact body, run the standalone Quality Check, then regenerate SEO
+persist the exact body, request backend-owned revision-scoped validation, then regenerate SEO
 only when the backend marked an existing package genuinely `stale`. The action
 remains single-flight and cancellable; a failed or still-unresolved check leaves
 the durable revised body visible instead of asking the editor to repeat a
 validation click.
+
+Automatic validation uses `validate_revision`; the backend decides whether the
+exact revision needs no AI call, a lightweight deterministic pass, targeted
+claim/source validation, or full Quality Gate escalation. The manual Quality
+Check action continues to use `quality_gate` as a publication checkpoint and
+recovery path. The client does not derive changed blocks or validation scope.
 
 The workspace carries the backend-issued Final Draft revision identity through
 Analyze/Refine completion, History reload, editorial mutations, Quality Check,

@@ -14,7 +14,8 @@ import {
   readQualityResolutions,
   readTrustedSourceUrls,
 } from '@/lib/quality-resolution-ledger';
-import { ResearchNotesArraySchema } from '@eai/shared';
+import { FeedbackItemSchema, ResearchNotesArraySchema } from '@eai/shared';
+import type { FeedbackItem, FinalQualityGateOutput, ValidationScope } from '@eai/shared';
 import type { PublicationStageContext } from '../types';
 import {
   sanitizeFactualSummary,
@@ -24,11 +25,21 @@ import { preparePublicationDraft } from '../utils/text';
 import { isMockMode } from './dev-mock';
 import {
   assertDraftRevisionMatches,
+  readContentBlockSnapshots,
   readDraftRevisionIdentity,
+  readStoredContentBlocks,
   type DraftRevisionIdentity,
 } from '@/lib/draft-revision';
 import { runSerializableTransaction } from '@/lib/serializable-transaction';
-import { assignPersistentEditorialIdentities } from '@/lib/editorial-identity';
+import {
+  assignPersistentEditorialIdentities,
+  EditorialIdentityStateSchema,
+} from '@/lib/editorial-identity';
+import {
+  buildValidationScope,
+  StoredValidationResultSchema,
+} from '@/lib/validation-scope';
+import { applyDeterministicQualityChecks } from '@/lib/final-quality';
 
 const loadOwnedLog = async (ctx: PublicationStageContext) => {
   if (!ctx.userId) {
@@ -152,8 +163,289 @@ const updatePublicationIfRevisionCurrent = async ({
   });
 };
 
-export async function handleQualityGateOnly(
+const readStoredFeedback = (value: unknown): FeedbackItem[] => Array.isArray(value)
+  ? value.flatMap((item) => {
+      const parsed = FeedbackItemSchema.safeParse(item);
+      return parsed.success ? [parsed.data] : [];
+    })
+  : [];
+
+const buildScopedDraft = (
+  finalDraft: string,
+  system: Record<string, unknown>,
+  scope: ValidationScope
+): string => {
+  const snapshots = readContentBlockSnapshots({
+    body: finalDraft,
+    storedBlocks: readStoredContentBlocks(system),
+  });
+  const changed = new Set(scope.changedBlockIds);
+  const selectedIndexes = new Set<number>();
+  if (snapshots.length > 0) {
+    selectedIndexes.add(0);
+    selectedIndexes.add(snapshots.length - 1);
+  }
+  snapshots.forEach((block, index) => {
+    if (!changed.has(block.blockId)) return;
+    selectedIndexes.add(index);
+    if (index > 0) selectedIndexes.add(index - 1);
+    if (index + 1 < snapshots.length) selectedIndexes.add(index + 1);
+  });
+  const selected = snapshots.filter((_block, index) => selectedIndexes.has(index));
+  return (selected.length > 0 ? selected : snapshots.slice(0, 3))
+    .map((block) => block.content)
+    .join('\n\n');
+};
+
+const mergeIncrementalFeedback = ({
+  existing,
+  current,
+  scope,
+}: {
+  existing: FeedbackItem[];
+  current: FeedbackItem[];
+  scope: ValidationScope;
+}): FinalQualityGateOutput['feedback'] => {
+  const affectedFeedback = new Set(scope.affectedFeedbackIds);
+  const affectedClaims = new Set(scope.affectedClaimIds);
+  const affectedBlocks = new Set(scope.changedBlockIds);
+  const retained = existing.filter((item) => {
+    if (item.status === 'pass' || item.isApplied || item.isAccepted || item.isVerified) return false;
+    return !(
+      (item.feedbackId && affectedFeedback.has(item.feedbackId))
+      || (item.claimId && affectedClaims.has(item.claimId))
+      || (item.blockId && affectedBlocks.has(item.blockId))
+    );
+  });
+  const byIdentity = new Map<string, FeedbackItem>();
+  [...retained, ...current].forEach((item) => {
+    const key = item.feedbackId
+      ?? [item.category, item.targetText ?? item.message, item.targetField ?? 'body'].join('::');
+    byIdentity.set(key, item);
+  });
+  return Array.from(byIdentity.values()).map((item) => ({
+    ...item,
+    operation: item.operation ?? 'manual',
+  }));
+};
+
+const aggregateIncrementalResult = ({
+  result,
+  feedback,
+  mode,
+}: {
+  result: FinalQualityGateOutput;
+  feedback: FinalQualityGateOutput['feedback'];
+  mode: ValidationScope['validationMode'];
+}): FinalQualityGateOutput => {
+  const readiness = feedback.some((item) => item.status === 'fail')
+    ? 'blocked'
+    : feedback.length > 0
+      ? 'needs_review'
+      : 'ready';
+  return {
+    ...result,
+    readiness,
+    feedback,
+    flags: readiness === 'ready' ? [] : result.flags,
+    summary: readiness === 'ready'
+      ? `The ${mode} validation passed for the current revision; unchanged checks were retained.`
+      : result.summary,
+  };
+};
+
+export async function handleValidateRevision(
   ctx: PublicationStageContext
+): Promise<void> {
+  const log = await loadOwnedLog(ctx);
+  const { metadata, system } = readStoredState(log.metadata);
+  const { finalDraft, draftRevision } = assertCurrentDraft(
+    ctx.text,
+    system,
+    log.createdAt,
+    ctx.revisionId,
+    ctx.bodyHash
+  );
+  const existingFeedback = readStoredFeedback(log.feedback);
+  const scope = buildValidationScope({ system, feedback: existingFeedback });
+  ctx.sendEvent('validation_scope', scope);
+  const parsedPreviousValidation = StoredValidationResultSchema.safeParse(
+    system.lastValidationResult
+  );
+  const previousValidation = parsedPreviousValidation.success
+    ? parsedPreviousValidation.data
+    : null;
+  if (
+    previousValidation?.revisionId === draftRevision.revisionId
+    && previousValidation.bodyHash === draftRevision.bodyHash
+    && typeof previousValidation.automatedRounds === 'number'
+    && previousValidation.automatedRounds >= 1
+  ) {
+    const readiness = system.readiness === 'ready'
+      || system.readiness === 'needs_review'
+      || system.readiness === 'blocked'
+        ? system.readiness
+        : 'needs_review';
+    ctx.sendEvent('feedback_reset', null);
+    ctx.sendEvent('readiness', readiness);
+    ctx.sendEvent('summary', log.summary ?? 'The current revision already has an automatic validation result.');
+    ctx.sendEvent('changes', ['Reused the existing validation result for this exact revision.']);
+    existingFeedback.forEach((item, index) =>
+      ctx.sendEvent('feedback_item', { item, index })
+    );
+    ctx.sendEvent('flags', Array.isArray(log.flags) ? log.flags : []);
+    ctx.sendEvent('revision_identity', draftRevision);
+    ctx.sendEvent('complete', {});
+    return;
+  }
+  if (scope.validationMode === 'full') {
+    await handleQualityGateOnly(ctx, scope);
+    return;
+  }
+
+  ctx.sendEvent('status', 'quality_gate');
+  const confirmedInternalUrls = mergeConfirmedInternalUrls(
+    readConfirmedInternalUrls(system),
+    log.feedback
+  );
+  const resolvedQualityFindings = mergeQualityResolutions(
+    readQualityResolutions(system),
+    log.feedback
+  );
+  const trustedSourceUrls = readTrustedSourceUrls(resolvedQualityFindings);
+  const storedResearchNotes = ResearchNotesArraySchema.safeParse(metadata.researchNotes);
+  const researchNotes = storedResearchNotes.success ? storedResearchNotes.data : [];
+  const identityState = EditorialIdentityStateSchema.safeParse(system.editorialIdentities);
+  const affectedSourceIds = new Set(scope.affectedSourceIds);
+  const affectedResearchNoteIds = identityState.success
+    ? new Set(identityState.data.sources
+        .filter((source) => affectedSourceIds.has(source.sourceId))
+        .flatMap((source) => source.researchNoteId ? [source.researchNoteId] : []))
+    : new Set<string>();
+  const scopedResearchNotes = affectedResearchNoteIds.size > 0
+    ? researchNotes.filter((note) => affectedResearchNoteIds.has(note.id))
+    : researchNotes;
+  const language = ctx.metadata?.outputLanguage === 'id' ? 'id' : 'en';
+  let result: FinalQualityGateOutput;
+
+  if (scope.validationMode === 'targeted' && !isMockMode(ctx.effectiveProvider)) {
+    const scopedDraft = buildScopedDraft(finalDraft, system, scope);
+    const telemetry = new AiTelemetryCollector();
+    const response = await runFinalQualityGateSafely({
+      signal: ctx.state.signal,
+      provider: ctx.effectiveProvider,
+      modelOverride: ctx.modelOverride,
+      originalDraft: scopedDraft,
+      finalDraft: scopedDraft,
+      deterministicDraft: finalDraft,
+      deterministicOriginalDraft: log.content || finalDraft,
+      identityDraft: finalDraft,
+      identitySystem: system,
+      identityFallbackCreatedAt: log.createdAt,
+      taskInstruction: [
+        'Validate only the changed passage and its nearby context.',
+        'Check the affected claim, source support, factual qualifiers, and local coherence.',
+        'The first and last excerpts are non-contiguous global coherence anchors; compare meaning but do not judge transitions between excerpts.',
+        'Do not reopen unrelated editorial decisions or invent findings outside this passage.',
+      ].join(' '),
+      metadata: ctx.metadata,
+      analysisSpeed: ctx.analysisSpeed,
+      trustedInternalUrls: confirmedInternalUrls,
+      trustedSourceUrls,
+      trustedInternalDomains: ctx.editorialProfile.config.internalLinkDomains,
+      resolvedQualityFindings,
+      telemetry,
+      editorialProfile: ctx.editorialProfile,
+      sanitizeFeedback: sanitizeSuppressiveFeedbackItem,
+      sanitizeSummary: sanitizeFactualSummary,
+      researchNotes: scopedResearchNotes,
+      publicationMode: 'fast',
+      workingTitle: typeof metadata.workingTitle === 'string' ? metadata.workingTitle : undefined,
+      publicationPackage: null,
+    });
+    result = response.result;
+  } else {
+    result = applyDeterministicQualityChecks({
+      readiness: 'ready',
+      summary: 'The changed blocks passed deterministic and lightweight coherence checks.',
+      changes: ['Validated only the blocks and dependencies changed in the current revision.'],
+      feedback: [],
+      flags: [],
+    }, finalDraft, log.content || finalDraft, {
+      trustedInternalUrls: confirmedInternalUrls,
+      trustedSourceUrls,
+      trustedInternalDomains: ctx.editorialProfile.config.internalLinkDomains,
+      trustedEntities: [ctx.editorialProfile.config.brandName],
+      allowedEditorialTerms: ctx.editorialProfile.config.allowedEditorialTerms,
+      language,
+      publicationMode: 'fast',
+    });
+  }
+
+  const identified = assignPersistentEditorialIdentities({
+    feedback: result.feedback,
+    finalDraft,
+    system,
+    researchNotes,
+    fallbackCreatedAt: log.createdAt,
+  });
+  const mergedFeedback = mergeIncrementalFeedback({
+    existing: existingFeedback,
+    current: identified.feedback,
+    scope,
+  });
+  const aggregated = aggregateIncrementalResult({
+    result: { ...result, feedback: identified.feedback },
+    feedback: mergedFeedback,
+    mode: scope.validationMode,
+  });
+  const checkedAt = new Date().toISOString();
+  await updatePublicationIfRevisionCurrent({
+    logId: log.id,
+    expectedRevision: draftRevision,
+    data: {
+      verdict: aggregated.readiness,
+      summary: aggregated.summary,
+      feedback: aggregated.feedback as unknown as Prisma.InputJsonValue,
+      flags: aggregated.flags as Prisma.InputJsonValue,
+      metadata: {
+        ...metadata,
+        _system: {
+          ...system,
+          readiness: aggregated.readiness,
+          qualityGateState: aggregated.readiness === 'ready' ? 'valid' : 'stale',
+          incrementalValidationCheckedAt: checkedAt,
+          lastValidationResult: {
+            revisionId: draftRevision.revisionId,
+            bodyHash: draftRevision.bodyHash,
+            validationLevel: scope.validationMode,
+            status: aggregated.readiness === 'ready' ? 'passed' : aggregated.readiness,
+            checkedAt,
+            scope,
+            automatedRounds: 1,
+          },
+          editorialIdentities: identified.editorialIdentities,
+          draftRevision,
+        },
+      } as unknown as Prisma.InputJsonValue,
+    },
+  });
+
+  ctx.sendEvent('feedback_reset', null);
+  ctx.sendEvent('readiness', aggregated.readiness);
+  ctx.sendEvent('summary', aggregated.summary);
+  ctx.sendEvent('changes', aggregated.changes);
+  aggregated.feedback.forEach((item, index) =>
+    ctx.sendEvent('feedback_item', { item, index })
+  );
+  ctx.sendEvent('flags', aggregated.flags);
+  ctx.sendEvent('revision_identity', draftRevision);
+  ctx.sendEvent('complete', {});
+}
+
+export async function handleQualityGateOnly(
+  ctx: PublicationStageContext,
+  incrementalScope?: ValidationScope
 ): Promise<void> {
   const log = await loadOwnedLog(ctx);
   const { metadata, system } = readStoredState(log.metadata);
@@ -245,8 +537,22 @@ export async function handleQualityGateOnly(
           resolvedQualityFindings,
           draftRevision,
           editorialIdentities: identified.editorialIdentities,
+          ...(incrementalScope
+            ? {
+                incrementalValidationCheckedAt: new Date().toISOString(),
+                lastValidationResult: {
+                  revisionId: draftRevision.revisionId,
+                  bodyHash: draftRevision.bodyHash,
+                  validationLevel: 'full',
+                  status: result.readiness === 'ready' ? 'passed' : result.readiness,
+                  checkedAt: new Date().toISOString(),
+                  scope: incrementalScope,
+                  automatedRounds: 1,
+                },
+              }
+            : {}),
         },
-      } as Prisma.InputJsonValue,
+      } as unknown as Prisma.InputJsonValue,
     },
   });
 

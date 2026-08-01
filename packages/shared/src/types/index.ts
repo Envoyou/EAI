@@ -4,6 +4,7 @@ export type AnalyzeMode =
   | 'refine'
   | 'fix_targeted'
   | 'quality_gate'
+  | 'validate_revision'
   | 'generate_seo';
 export type ResponseMode = 'standard' | 'compact' | 'manual_fallback';
 export type VerificationStatus = 'source_backed' | 'needs_citation' | 'high_risk_factual_claim';
@@ -11,6 +12,24 @@ export type EditorialReadiness = 'ready' | 'needs_review' | 'blocked';
 export type PublicationPackageStatus = 'not_generated' | 'current' | 'stale';
 export type RevisionValidationState = 'valid' | 'validation_recommended' | 'stale';
 export type SeoReviewState = 'valid' | 'possibly_stale' | 'stale';
+export type IncrementalValidationMode = 'none' | 'light' | 'targeted' | 'full';
+export type SeoField =
+  | 'title'
+  | 'slug'
+  | 'excerpt'
+  | 'metaTitle'
+  | 'metaDescription'
+  | 'coverImageAltText'
+  | 'tags';
+export interface ValidationScope {
+  changedBlockIds: string[];
+  affectedClaimIds: string[];
+  affectedSourceIds: string[];
+  affectedFeedbackIds: string[];
+  affectedSeoFields: SeoField[];
+  validationMode: IncrementalValidationMode;
+  reasons: string[];
+}
 export interface DraftRevisionIdentity {
   revisionId: string;
   previousRevisionId?: string;

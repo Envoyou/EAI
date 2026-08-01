@@ -157,4 +157,20 @@ describe('analyze pipeline stage order', () => {
     expect(refine).toContain('promptVersion: PROMPT_VERSION');
     expect(geminiProvider.match(/signal: request\.signal/g)).toHaveLength(2);
   });
+
+  it('routes automatic revision validation through dependency scope with bounded escalation', () => {
+    const controller = readFileSync(
+      resolve(process.cwd(), 'src/routes/analyze/controller.ts'),
+      'utf8'
+    );
+    const publication = readHandler('publication.ts');
+
+    expect(controller).toContain("mode === 'validate_revision'");
+    expect(controller).toContain('await handleValidateRevision(publicationContext)');
+    expect(publication).toContain('const scope = buildValidationScope');
+    expect(publication).toContain("scope.validationMode === 'full'");
+    expect(publication).toContain('await handleQualityGateOnly(ctx, scope)');
+    expect(publication).toContain('deterministicDraft: finalDraft');
+    expect(publication).toContain('automatedRounds: 1');
+  });
 });

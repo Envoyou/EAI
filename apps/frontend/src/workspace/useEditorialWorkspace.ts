@@ -467,7 +467,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
-          mode: 'quality_gate',
+          mode: options.automatic ? 'validate_revision' : 'quality_gate',
           text: polishedDraft,
           originalDraft: sourceDraft,
           analysisLogId: logId,
@@ -521,13 +521,17 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         ...prev,
         qualityGateState: checkedReadiness === 'ready' ? 'valid' : 'stale',
       }));
-      toast.success(
-        tFinalDraftPanel(
-          options.automatic
-            ? 'automaticQualityCheckSuccess'
-            : 'qualityCheckSuccess'
-        )
-      );
+      if (options.automatic && checkedReadiness !== 'ready') {
+        toast.warning(tFinalDraftPanel('automaticQualityCheckNeedsReview'));
+      } else {
+        toast.success(
+          tFinalDraftPanel(
+            options.automatic
+              ? 'automaticQualityCheckSuccess'
+              : 'qualityCheckSuccess'
+          )
+        );
+      }
       return checkedReadiness;
     } catch (error) {
       if (controller.signal.aborted) {

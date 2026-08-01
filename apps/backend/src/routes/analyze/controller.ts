@@ -36,6 +36,7 @@ import { handleAnalyze } from './handlers/analyze';
 import {
   handleGenerateSeo,
   handleQualityGateOnly,
+  handleValidateRevision,
 } from './handlers/publication';
 
 const router = Router();
@@ -45,7 +46,7 @@ const AnalyzeRequestSchema = z
     text: z.string().max(100_000).optional(),
     role: z.enum(['polish', 'author', 'editor', 'seo', 'fact-checker']).optional(),
     metadata: AnalyzeMetadataSchema.optional(),
-    mode: z.enum(['analyze', 'refine', 'fix_targeted', 'quality_gate', 'generate_seo']).optional(),
+    mode: z.enum(['analyze', 'refine', 'fix_targeted', 'quality_gate', 'validate_revision', 'generate_seo']).optional(),
     analysisLogId: z.string().max(100).optional(),
     originalDraft: z.string().max(100_000).optional(),
     userInstruction: z.string().max(5_000).optional(),
@@ -80,7 +81,10 @@ const AnalyzeRequestSchema = z
         message: 'Target text is required',
       });
     }
-    if ((mode === 'quality_gate' || mode === 'generate_seo') && !value.analysisLogId?.trim()) {
+    if (
+      (mode === 'quality_gate' || mode === 'validate_revision' || mode === 'generate_seo')
+      && !value.analysisLogId?.trim()
+    ) {
       ctx.addIssue({
         code: 'custom',
         path: ['analysisLogId'],
@@ -406,7 +410,7 @@ router.post('/', async (req: Request, res) => {
         ? 'analyze_targeted_fix'
         : effectiveMode === 'refine'
           ? 'analyze_refine'
-          : effectiveMode === 'quality_gate'
+          : effectiveMode === 'quality_gate' || effectiveMode === 'validate_revision'
             ? 'analyze_quality_gate'
             : effectiveMode === 'generate_seo'
               ? 'analyze_seo'
@@ -466,7 +470,11 @@ router.post('/', async (req: Request, res) => {
       return;
     }
 
-    if (effectiveMode === 'quality_gate' || effectiveMode === 'generate_seo') {
+    if (
+      effectiveMode === 'quality_gate'
+      || effectiveMode === 'validate_revision'
+      || effectiveMode === 'generate_seo'
+    ) {
       const publicationContext = {
         requestId: parsedRequestId,
         sendEvent,
@@ -490,6 +498,8 @@ router.post('/', async (req: Request, res) => {
       };
       if (effectiveMode === 'quality_gate') {
         await handleQualityGateOnly(publicationContext);
+      } else if (effectiveMode === 'validate_revision') {
+        await handleValidateRevision(publicationContext);
       } else {
         await handleGenerateSeo(publicationContext);
       }

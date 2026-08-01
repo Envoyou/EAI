@@ -127,6 +127,7 @@
     "qualityCheck": "Quality Check",
     "qualityCheckSuccess": "Quality Check selesai tanpa menulis ulang draft.",
     "automaticQualityCheckSuccess": "Draft yang direvisi telah diperiksa secara otomatis.",
+    "automaticQualityCheckNeedsReview": "Perubahan terbaru sudah diperiksa. Temuan yang tersisa memerlukan keputusan editorial Anda.",
     "regenerateSeo": "Buat Ulang SEO",
     "seoQualityReady": "Metadata SEO dibuat ulang dan paket publikasi lengkap lulus Quality Check.",
     "automaticSeoQualityReady": "Draft yang direvisi lulus Quality Check dan metadata SEO yang usang diperbarui secara otomatis.",

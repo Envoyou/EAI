@@ -85,7 +85,7 @@ describe('revision-safe publication workflow', () => {
     const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
     const targetedFix = readFrontendSource('workspace/actions/targetedFix.ts');
 
-    expect(workspace).toContain("mode: 'quality_gate'");
+    expect(workspace).toContain("options.automatic ? 'validate_revision' : 'quality_gate'");
     expect(workspace).toContain("mode: 'generate_seo'");
     expect(workspace).toContain("action: 'update_final_draft'");
     expect(workspace).toContain("action: 'update_publication_package'");
@@ -122,6 +122,7 @@ describe('revision-safe publication workflow', () => {
 
     expect(workspace).toContain('runAutomaticPublicationValidation');
     expect(workspace).toContain('await handleQualityCheck({');
+    expect(workspace).toContain("mode: options.automatic ? 'validate_revision' : 'quality_gate'");
     expect(workspace).toContain("context.publicationPackageStatus === 'stale'");
     expect(workspace).toContain("context.seoReviewState === 'stale'");
     expect(workspace).toContain('await handleRegenerateSeo({');

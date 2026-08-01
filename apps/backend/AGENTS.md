@@ -85,6 +85,7 @@ apps/backend/
 │   │   ├── text-utils.ts     # Text utilities (stripLeadingH1, joinRewrittenChunks — boundary-aware chunk joiner)
 │   │   ├── draft-revision.ts # Revision/body-hash invariants, sidecar block identity, and DraftChangeSet lineage
 │   │   ├── editorial-identity.ts # Server-issued feedback/rule/claim/source identities and trusted History reconciliation
+│   │   ├── validation-scope.ts # DraftChangeSet dependency scope and bounded targeted/full validation policy
 │   │   ├── final-quality.ts  # Final quality gate pipeline — deterministic source-fidelity checks & structural integrity audits (detectMissingSentenceBoundaries, detectContentAfterReferences)
 │   │   ├── admin-billing.ts  # Subscription + credit ledger admin helpers
 │   │   ├── admin-billing-core.ts  # Core billing primitives

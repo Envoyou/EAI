@@ -61,6 +61,37 @@ export type DraftChangeSet = DraftRevisionIdentity & DraftRevisionAssessment & {
   changedBlocks: ChangedBlock[];
 };
 
+const RevisionSignalsSchema = z.object({
+  numbersChanged: z.boolean(),
+  entitiesChanged: z.boolean(),
+  citationsChanged: z.boolean(),
+  sensitiveTermsChanged: z.boolean(),
+  headingsChanged: z.boolean(),
+  structureChanged: z.boolean(),
+  topicShiftDetected: z.boolean(),
+});
+
+const ChangedBlockSchema = z.object({
+  blockId: z.string().min(1).max(100),
+  type: ContentBlockTypeSchema,
+  changeType: z.enum(['insert', 'update', 'delete']),
+  beforeContentHash: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
+  afterContentHash: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
+  beforeIndex: z.number().int().nonnegative().optional(),
+  afterIndex: z.number().int().nonnegative().optional(),
+});
+
+export const DraftChangeSetSchema = DraftRevisionIdentitySchema.extend({
+  origin: DraftChangeOriginSchema,
+  impact: z.enum(['formatting_only', 'minor_copy_edit', 'editorial_change', 'high_risk_change']),
+  validationLevel: z.enum(['none', 'light', 'full']),
+  qualityGateState: z.enum(['valid', 'validation_recommended', 'stale']),
+  seoReviewState: z.enum(['valid', 'possibly_stale', 'stale']),
+  reasons: z.array(z.string().min(1).max(100)).max(30),
+  signals: RevisionSignalsSchema,
+  changedBlocks: z.array(ChangedBlockSchema).max(200),
+});
+
 type ParsedBlock = {
   type: ContentBlockType;
   contentHash: string;
@@ -126,6 +157,23 @@ export const findStoredContentBlockForText = ({
       || (normalizedTarget.length >= 24 && normalizedTarget.includes(normalizedContent));
   });
   return match ? aligned[match.index] : undefined;
+};
+
+export type ContentBlockSnapshot = StoredContentBlock & { content: string };
+
+export const readContentBlockSnapshots = ({
+  body,
+  storedBlocks,
+}: {
+  body: string;
+  storedBlocks: StoredContentBlock[];
+}): ContentBlockSnapshot[] => {
+  const parsed = parseContentBlocks(body);
+  const aligned = alignPreviousBlocks(body, storedBlocks);
+  return parsed.map((block, index) => ({
+    ...aligned[index]!,
+    content: block.content,
+  }));
 };
 
 export const readStoredContentBlocks = (
