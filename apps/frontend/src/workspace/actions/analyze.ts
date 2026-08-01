@@ -43,6 +43,7 @@ interface AnalyzeContext {
   setMissingSources: (s: { url: string; domain: string }[]) => void;
   setPendingRefineAction: (a: PendingRefineAction | null) => void;
   setShowMissingSourcesModal: (o: boolean) => void;
+  notifyDraftReady: () => void;
 }
 
 export async function executeAnalyze(
@@ -280,7 +281,7 @@ export async function executeAnalyze(
       throw new Error('Connection lost. Please retry.');
     }
 
-    toast.success('Refinement Complete', { description: 'Final draft and editorial quality gate are ready.' });
+    ctx.notifyDraftReady();
     if (overrideDraft) {
       setDraftHistory(prev => [...prev, draft]);
       setDraft(overrideDraft);

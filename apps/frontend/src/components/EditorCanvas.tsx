@@ -251,7 +251,6 @@ export default function EditorCanvas({
                       processStage={processStage}
                       processStartedAt={processStartedAt}
                       includeSeoStage={includeSeoStage}
-                      isStale={analysis.summary?.startsWith('Iterative refinement')}
                       onRefineAgain={onRefineAgain}
                       onReanalyze={onReanalyze}
                       onSaveFinalDraft={onSaveFinalDraft}

@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { buildParagraphDiff } from '@eai/shared';
 import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackage, PublicationPackageStatus, RevisionValidationState, SeoFieldStates, SeoReviewState } from '@eai/shared';
 import { getProtectedSeoReviewFields } from '@/workspace/seo-field-state';
+import { derivePublicationUxState } from '@/workspace/publication-ux-state';
 import EditorialProgress from '@/components/EditorialProgress';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -72,7 +73,6 @@ interface FinalDraftPanelProps {
   processStage?: EditorialProcessStage;
   processStartedAt?: number | null;
   includeSeoStage?: boolean;
-  isStale?: boolean;
   onRefineAgain?: (instruction: string) => void;
   onReanalyze?: () => void;
   onSaveFinalDraft?: (draft: string) => Promise<boolean>;
@@ -227,7 +227,6 @@ export default function FinalDraftPanel({
   processStage = 'reviewing',
   processStartedAt,
   includeSeoStage = true,
-  isStale,
   onRefineAgain,
   onReanalyze,
   onSaveFinalDraft,
@@ -263,6 +262,14 @@ export default function FinalDraftPanel({
   const isBackgroundValidation = Boolean(
     isCheckingQuality && !isAiBusy && !isGeneratingDraft
   );
+  const protectedSeoFields = getProtectedSeoReviewFields(seoFieldStates);
+  const publicationUxState = derivePublicationUxState({
+    isChecking: isBackgroundValidation,
+    qualityGateState,
+    seoReviewState,
+    publicationPackageStatus,
+    seoFieldStates,
+  });
   const displayTab: TabType = isGeneratingDraft && !polishedDraft.trim() ? 'preview' : activeTab;
 
   // Auto-scroll when active feedback index changes
@@ -609,26 +616,26 @@ export default function FinalDraftPanel({
     !isDemoMode &&
     Boolean(polishedDraft.trim());
   const exportUnavailableReason = isDemoMode
-    ? 'Sign up to export to CMS'
+    ? t('exportRequiresAccount')
     : !cmsConnected
-      ? 'Connect and verify a CMS before exporting'
+      ? t('connectCmsBeforeExport')
       : !ready
-        ? 'Wait for the editorial process to finish'
+        ? t('waitForEditorialProcess')
         : exportBlocked
-          ? 'Run Publish Ready and pass the quality gate before exporting'
+          ? t('completeEditorialDecisionsBeforeExport')
           : !analysisLogId
-            ? 'Export requires a saved analysis result'
+            ? t('saveDraftBeforeExport')
             : !sourceRef
-              ? 'Add a source reference before exporting'
+              ? t('addSourceBeforeExport')
             : publicationPackageStatus !== 'current'
               ? t('refreshPublicationMetadata')
             : !generatedMetadata?.title ||
                   !generatedMetadata?.excerpt ||
                   !generatedMetadata?.metaTitle ||
                   !generatedMetadata?.metaDescription
-                ? 'Complete the Publish Ready SEO metadata before exporting'
+                ? t('completePublicationDetailsBeforeExport')
                 : !polishedDraft.trim()
-                  ? 'A refined draft is required before exporting'
+                  ? t('finalDraftRequiredBeforeExport')
                   : null;
 
   const handleExport = async () => {
@@ -893,7 +900,7 @@ export default function FinalDraftPanel({
                             label={t('prepareAgain')}
                           />
                         )}
-                        {onQualityCheck && (
+                        {onQualityCheck && qualityGateState === 'stale' && !isBackgroundValidation && (
                           <Button
                             type="button"
                             onClick={() => {
@@ -903,7 +910,7 @@ export default function FinalDraftPanel({
                             disabled={isGeneratingDraft || isSavingFinalDraft || isAiBusy}
                             variant="muted"
                             className="ui-menu-item justify-start w-full font-normal border-none"
-                            aria-label="Run Quality Check"
+                            aria-label={t('qualityCheck')}
                           >
                             {isCheckingQuality
                               ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
@@ -911,7 +918,7 @@ export default function FinalDraftPanel({
                             <span>{t('qualityCheck')}</span>
                           </Button>
                         )}
-                        {onRegenerateSeo && (
+                        {onRegenerateSeo && publicationPackageStatus === 'stale' && !isBackgroundValidation && (
                           <Button
                             type="button"
                             onClick={() => {
@@ -921,7 +928,7 @@ export default function FinalDraftPanel({
                             disabled={!qualityReady || isGeneratingDraft || isAiBusy}
                             variant="muted"
                             className="ui-menu-item justify-start w-full font-normal border-none"
-                            aria-label="Regenerate SEO metadata"
+                            aria-label={t('regenerateSeo')}
                           >
                             {isGeneratingSeo
                               ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
@@ -1163,7 +1170,7 @@ export default function FinalDraftPanel({
             <strong>Note:</strong> This draft was already exported. Re-exporting will update the existing blog draft.
           </Alert>
         )}
-        {isBackgroundValidation && (
+        {publicationUxState === 'checking' && (
           <Alert variant="primary" className="mb-3 px-3 py-2 text-xs">
             <EAILoaderStatusIcon className="h-4 w-4 shrink-0" />
             <div className="min-w-0 flex-1">
@@ -1172,60 +1179,34 @@ export default function FinalDraftPanel({
             </div>
           </Alert>
         )}
-        {qualityGateState === 'validation_recommended' && !isBackgroundValidation && (
+        {publicationUxState === 'changes_checked' && (
           <Alert variant="primary" className="mb-3 px-3 py-2 text-xs">
             <ShieldCheck className="h-4 w-4 shrink-0" />
             <div className="min-w-0 flex-1">
               <strong>{t('validationRecommendedTitle')}</strong>{' '}
               {t('validationRecommendedDescription')}
-              {onQualityCheck && (
-                <Button
-                  type="button"
-                  variant="muted"
-                  size="xs"
-                  className="mt-2"
-                  disabled={isCheckingQuality || isAiBusy}
-                  onClick={() => void onQualityCheck()}
-                >
-                  {isCheckingQuality
-                    ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
-                    : <ShieldCheck className="h-3.5 w-3.5" />}
-                  {t('runOptionalQualityCheck')}
-                </Button>
-              )}
             </div>
           </Alert>
         )}
-        {qualityGateState === 'stale' && !isBackgroundValidation && (
+        {publicationUxState === 'content_decision_required' && (
           <Alert variant="danger" className="mb-3 px-3 py-2 text-xs">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <div className="min-w-0 flex-1">
               <strong>{t('fullValidationRequiredTitle')}</strong>{' '}
               {t('fullValidationRequiredDescription')}
-              {onQualityCheck && (
-                <Button
-                  type="button"
-                  variant="muted"
-                  size="xs"
-                  className="mt-2"
-                  disabled={isCheckingQuality || isAiBusy}
-                  onClick={() => void onQualityCheck()}
-                >
-                  {isCheckingQuality
-                    ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
-                    : <ShieldCheck className="h-3.5 w-3.5" />}
-                  {t('qualityCheck')}
-                </Button>
-              )}
             </div>
           </Alert>
         )}
-        {seoReviewState === 'possibly_stale' && publicationPackageStatus === 'current' && (
+        {publicationUxState === 'metadata_decision_required' && (
           <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <div className="min-w-0 flex-1">
-              <strong>{t('seoReviewRecommendedTitle')}</strong>{' '}
-              {t('seoReviewRecommendedDescription')}
+              <strong>{t('seoFieldsNeedReviewTitle')}</strong>{' '}
+              {protectedSeoFields.length > 0
+                ? t('seoFieldsNeedReviewDescription', {
+                    fields: protectedSeoFields.map((field) => t(`seoField.${field}`)).join(', '),
+                  })
+                : t('seoReviewRecommendedDescription')}
               {onConfirmPublicationMetadata && generatedMetadata && (
                 <Button
                   type="button"
@@ -1254,20 +1235,7 @@ export default function FinalDraftPanel({
             </div>
           </Alert>
         )}
-        {!isBackgroundValidation && getProtectedSeoReviewFields(seoFieldStates).length > 0 && (
-          <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <strong>{t('seoFieldsNeedReviewTitle')}</strong>{' '}
-              {t('seoFieldsNeedReviewDescription', {
-                fields: getProtectedSeoReviewFields(seoFieldStates)
-                  .map((field) => t(`seoField.${field}`))
-                  .join(', '),
-              })}
-            </div>
-          </Alert>
-        )}
-        {!isBackgroundValidation && publicationPackageStatus === 'stale' && getProtectedSeoReviewFields(seoFieldStates).length === 0 && (
+        {publicationUxState === 'metadata_attention_required' && (
           <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <div className="min-w-0 flex-1">
@@ -1383,18 +1351,6 @@ export default function FinalDraftPanel({
           </div>
         )}
 
-        {/* Stale Warning Banner */}
-        {isStale && ready && (
-          <Alert variant="warning" className="mt-3 text-[11.5px] leading-relaxed">
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold mb-0.5">Draft has been refined</p>
-              <p className="opacity-90">
-                The previous editorial feedback has been cleared. Run Quality Check to evaluate this exact version without rewriting it.
-              </p>
-            </div>
-          </Alert>
-        )}
       </div>
 
       {/* ── Content ── */}

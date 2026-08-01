@@ -77,6 +77,7 @@ const createAnalyzeContext = (
       setMissingSources: vi.fn(),
       setPendingRefineAction: vi.fn(),
       setShowMissingSourcesModal: vi.fn(),
+      notifyDraftReady: vi.fn(),
   };
 
   return {

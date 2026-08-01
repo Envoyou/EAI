@@ -66,6 +66,7 @@ npm run lint
 - **i18n**: All user-facing strings must go through `next-intl`; never hardcode English strings in components.
 - **Manual Final Draft validation**: Validate only durable saved revisions. Safe edits schedule no background work; meaningful edits use the shared debounce policy and `validate_revision`. Background checks must remain cancellable/non-blocking for continued editing, coalesce on a newer save, and carry the backend-issued revision ID/body hash. Manual `quality_gate` remains recovery/publication checkpoint behavior, not the normal post-save path.
 - **SEO dependency refresh**: Consume backend-issued per-field SEO state. Automatically refresh only stale excerpt, meta description, cover alt text, and tags after the exact saved revision passes; never auto-write title, meta title, or slug. Protected fields must surface as editorial decisions, and any unresolved field keeps export blocked.
+- **Publication UX state**: Keep `stale`, rerun modes, provider response modes, Quality Gate mechanics, and SEO regeneration terminology internal. Map them through `workspace/publication-ux-state.ts` into checking, completed, or editor-decision outcomes. Manual revision/metadata actions may appear only as contextual recovery tools; normal Apply copy describes the editorial action and implies automatic verification.
 - **Content Memory warnings**: The frontend must trust the backend enforcement
   contract and must never derive a block from semantic/classifier confidence.
   Exact/reservation conflicts are non-overridable. A calibrated probable

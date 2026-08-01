@@ -27,8 +27,8 @@ describe('revision-safe publication workflow', () => {
     expect(editorStyles).toContain('position: sticky');
     expect(editorStyles).toContain('.final-draft-inline-editor');
     expect(editorStyles).toContain('caret-color: var(--primary)');
-    expect(panel).toContain('Run Quality Check');
-    expect(panel).toContain('Regenerate SEO metadata');
+    expect(panel).toContain("t('qualityCheck')");
+    expect(panel).toContain("t('regenerateSeo')");
     expect(panel).toContain('Save Publication Metadata');
     expect(panel).toContain('Prepare current draft for export');
     expect(panel).toContain("t('confirmMetadataCurrent')");
@@ -53,13 +53,17 @@ describe('revision-safe publication workflow', () => {
     expect(workspace).toContain("tFinalDraftPanel('existingSeoRetained')");
   });
 
-  it('distinguishes advisory validation from blocking Quality Gate and SEO states', () => {
+  it('maps technical validation state to user-facing publication outcomes', () => {
     const panel = readFrontendSource('components/FinalDraftPanel.tsx');
+    const uxState = readFrontendSource('workspace/publication-ux-state.ts');
 
-    expect(panel).toContain("qualityGateState === 'validation_recommended'");
-    expect(panel).toContain("qualityGateState === 'stale'");
-    expect(panel).toContain("seoReviewState === 'possibly_stale'");
-    expect(panel).toContain("t('runOptionalQualityCheck')");
+    expect(panel).toContain('derivePublicationUxState({');
+    expect(panel).toContain("publicationUxState === 'checking'");
+    expect(panel).toContain("publicationUxState === 'content_decision_required'");
+    expect(panel).toContain("publicationUxState === 'metadata_decision_required'");
+    expect(panel).not.toContain("t('runOptionalQualityCheck')");
+    expect(uxState).toContain("qualityGateState === 'stale'");
+    expect(uxState).toContain("seoReviewState === 'possibly_stale'");
     expect(panel).toContain("t('seoReviewRecommendedDescription')");
   });
 

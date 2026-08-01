@@ -163,7 +163,6 @@ export default function FeedbackPanel({
 
   const readiness = result.readiness;
   const isManualFallback = result.responseMode === 'manual_fallback';
-  const isCompactFallback = result.responseMode === 'compact';
   const autoApplicableCount = countAutoApplicableFeedback(
     result.feedback,
     isManualFallback
@@ -194,7 +193,6 @@ export default function FeedbackPanel({
         onApplyAll={onApplyAll}
         autoApplicableCount={autoApplicableCount}
         isManualFallback={isManualFallback}
-        isCompactFallback={isCompactFallback}
       />
 
       <div className="relative min-h-0 flex-1 overflow-y-auto p-3 w-full max-w-full overflow-x-hidden min-w-0">

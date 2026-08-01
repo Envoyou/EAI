@@ -354,6 +354,10 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       setMissingSources,
       setPendingRefineAction,
       setShowMissingSourcesModal,
+      notifyDraftReady: () => toast.success(
+        tFinalDraftPanel('draftReady'),
+        { description: tFinalDraftPanel('draftReadyDescription') }
+      ),
     };
     await executeAnalyze(ctx, overrideDraft, forceSkipCheck);
   };
@@ -409,7 +413,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
               verdict: 'needs_review' as const,
               feedback: [],
               flags: [],
-              summary: 'The final draft changed factual or source-sensitive content and needs a content quality check.',
+              summary: tFinalDraftPanel('sensitiveChangesNeedDecision'),
             }
           : {}),
         publicationPackageStatus: persistedPackageStatus,
@@ -599,7 +603,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         }
         return null;
       }
-      toast.error(error instanceof Error ? error.message : 'Quality check failed.');
+      toast.error(error instanceof Error ? error.message : tFinalDraftPanel('revisionCheckFailed'));
       return null;
     } finally {
       if (
@@ -839,7 +843,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         }
         return;
       }
-      toast.error(error instanceof Error ? error.message : 'SEO generation failed.');
+      toast.error(error instanceof Error ? error.message : tFinalDraftPanel('publicationRefreshFailed'));
     } finally {
       if (analyzeAbortControllerRef.current === controller) {
         setIsGeneratingSeo(false);
@@ -957,7 +961,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       ? 'ready'
       : await handleQualityCheck();
     if (readiness !== 'ready') {
-      toast.info('Resolve or approve the current quality findings before generating SEO.');
+      toast.info(tFinalDraftPanel('resolveEditorialDecisionsFirst'));
       return;
     }
     if (
