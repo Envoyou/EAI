@@ -8,16 +8,24 @@ const readFrontendSource = (path: string) =>
 describe('revision-safe publication workflow', () => {
   it('offers draft editing, quality-only checks, and independent SEO regeneration', () => {
     const panel = readFrontendSource('components/FinalDraftPanel.tsx');
+    const inlineEditor = readFrontendSource(
+      'components/final-draft/InlineFinalDraftEditor.tsx'
+    );
     const editorStyles = readFrontendSource('app/styles/workspace/editor.css');
 
-    expect(panel).toContain('Edit Final Draft');
-    expect(panel).toContain('final-draft-editor-card');
-    expect(panel).toContain('final-draft-editor-textarea');
-    expect(editorStyles).toContain('.final-draft-editor-card');
-    expect(editorStyles).toContain('margin-top: 12px');
-    expect(editorStyles).toContain('.final-draft-editor-textarea.ui-textarea');
-    expect(editorStyles).toContain('field-sizing: fixed');
-    expect(editorStyles).toContain('overflow-y: auto');
+    expect(panel).toContain('<InlineFinalDraftEditor');
+    expect(panel).toContain("setActiveTab('preview')");
+    expect(panel).toContain('saveDraftRevision');
+    expect(panel).toContain('cancelDraftEditing');
+    expect(panel).toContain("t('saveInvalidatesReview')");
+    expect(panel).not.toContain('final-draft-editor-textarea');
+    expect(inlineEditor).toContain('useEditor({');
+    expect(inlineEditor).toContain('Markdown.configure({');
+    expect(inlineEditor).toContain('onChange(readMarkdown(currentEditor.storage))');
+    expect(editorStyles).toContain('.final-draft-inline-editor-toolbar');
+    expect(editorStyles).toContain('position: sticky');
+    expect(editorStyles).toContain('.final-draft-inline-editor');
+    expect(editorStyles).toContain('caret-color: var(--primary)');
     expect(panel).toContain('Run Quality Check');
     expect(panel).toContain('Regenerate SEO metadata');
     expect(panel).toContain('Save Publication Metadata');

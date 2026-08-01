@@ -94,6 +94,20 @@ This is appropriate for the editor workspace, which relies heavily on local
 state, Tiptap, storage, streaming, and browser events. It should not become the
 default pattern for mostly static route shells or read-only views.
 
+### Final Draft editing boundary
+
+`FinalDraftPanel` keeps reading and persisting the final article as Markdown,
+but its edit state is rendered by a dedicated TipTap client component in the
+same Preview surface used for reading. The editor serializes every update back
+to Markdown and delegates persistence to the existing Final Draft revision
+action; it does not own API access or publication-readiness state.
+
+While a revision is open, Save and Cancel remain visible in a sticky local
+toolbar. Other draft views and actions that operate on the persisted article
+are held until the user saves or cancels, preventing a visible unsaved revision
+from being confused with the last durable Quality Check, SEO package, export,
+copy, or download state.
+
 The localized `/[locale]/dashboard/content-map` route is a bounded client view
 over the authenticated Content Memory API. It exposes collaboration-safe
 artifact metadata (title/topic, source, stage, creator, and timestamps), never

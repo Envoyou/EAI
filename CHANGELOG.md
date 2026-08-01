@@ -6,6 +6,12 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Changed
+- **In-place Final Draft editing**:
+  - Replaced the detached raw-Markdown edit card with a rich-text editor in the existing Preview surface, so a visible typo can be corrected without finding it again in a separate representation.
+  - Kept Markdown as the persisted interchange format and retained the existing revision-save contract that invalidates stale Quality Check and SEO metadata.
+  - Added a sticky Save/Cancel bar and temporarily holds Preview-adjacent workflow, export, copy, and view actions while an unsaved revision is open.
+
 ## [3.21.0] - 2026-07-30
 
 ### Changed

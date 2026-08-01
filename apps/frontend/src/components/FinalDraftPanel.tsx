@@ -8,7 +8,7 @@ import {
   FileDiff, CheckCircle2, PlusCircle, MinusCircle,
   Eye, Code, SplitSquareHorizontal, Send, Maximize2, Minimize2,
   FileText, Download, ChevronDown, ChevronUp, AlertTriangle, RefreshCw,
-  Pencil, ShieldCheck, Wand2, Save, X
+  Pencil, ShieldCheck, Wand2, Save
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,6 +31,7 @@ import {
   PublishActionIcon,
 } from '@/components/ui/icons/actions';
 import { useTranslations } from 'next-intl';
+import { InlineFinalDraftEditor } from '@/components/final-draft/InlineFinalDraftEditor';
 
 interface FinalDraftPanelProps {
   originalDraft: string;
@@ -563,6 +564,24 @@ export default function FinalDraftPanel({
     }
   };
 
+  const startDraftEditing = () => {
+    setDraftEditValue(polishedDraft);
+    setActiveTab('preview');
+    setEditingDraft(true);
+  };
+
+  const cancelDraftEditing = () => {
+    setDraftEditValue(polishedDraft);
+    setEditingDraft(false);
+  };
+
+  const saveDraftRevision = async () => {
+    if (!onSaveFinalDraft || !draftEditValue.trim() || draftEditValue === polishedDraft) return;
+    if (await onSaveFinalDraft(draftEditValue)) setEditingDraft(false);
+  };
+
+  const hasUnsavedDraftEdits = editingDraft && draftEditValue !== polishedDraft;
+
   const canExport =
     !isDemoMode &&
     cmsConnected &&
@@ -728,7 +747,7 @@ export default function FinalDraftPanel({
                   <ActionButton
                     type="button"
                     onClick={handleCopy}
-                    disabled={!polishedDraft.trim() || isDemoMode || isAiBusy}
+                    disabled={editingDraft || !polishedDraft.trim() || isDemoMode || isAiBusy}
                     variant="muted"
                     size="sm"
                     aria-label="Copy refined draft"
@@ -752,11 +771,8 @@ export default function FinalDraftPanel({
                       type="button"
                       variant={editingDraft ? 'surface' : 'muted'}
                       size="sm"
-                      onClick={() => {
-                        if (!editingDraft) setDraftEditValue(polishedDraft);
-                        setEditingDraft((current) => !current);
-                      }}
-                      disabled={isGeneratingDraft || isAiBusy}
+                      onClick={startDraftEditing}
+                      disabled={editingDraft || isGeneratingDraft || isAiBusy}
                       aria-pressed={editingDraft}
                       aria-label="Edit final draft"
                       icon={EditActionIcon}
@@ -767,7 +783,7 @@ export default function FinalDraftPanel({
                   }
                 />
                 <TooltipContent side="bottom" className="text-xs">
-                  Edit the saved final draft without running Rewrite
+                  {editingDraft ? t('editingInline') : t('editDraftInlineHint')}
                 </TooltipContent>
               </Tooltip>
             )}
@@ -781,7 +797,7 @@ export default function FinalDraftPanel({
                       variant={canExport ? 'surface' : 'primary'}
                       size="sm"
                       onClick={onPrepareForExport}
-                      disabled={isGeneratingDraft || isSavingFinalDraft || isAiBusy}
+                      disabled={editingDraft || isGeneratingDraft || isSavingFinalDraft || isAiBusy}
                       aria-label="Prepare current draft for export"
                       icon={PreparePublicationIcon}
                       iconClassName="h-3.5 w-3.5 md:hidden"
@@ -801,7 +817,7 @@ export default function FinalDraftPanel({
                     <ActionButton
                       type="button"
                       onClick={handleExport}
-                      disabled={!canExport || isExporting || isAiBusy}
+                      disabled={editingDraft || !canExport || isExporting || isAiBusy}
                       variant={canExport && !isExporting ? 'primary' : 'surface'}
                       size="sm"
                       aria-label={exportStatus?.blogEditUrl ? 'Update CMS Draft' : 'Export to CMS'}
@@ -833,7 +849,7 @@ export default function FinalDraftPanel({
                     iconClassName="h-4 w-4"
                     label={t('moreActions')}
                     labelClassName="sr-only"
-                    disabled={isAiBusy}
+                    disabled={editingDraft || isAiBusy}
                   />
                 }
               />
@@ -1023,51 +1039,6 @@ export default function FinalDraftPanel({
             </div>
           )}
         </div>
-
-        {editingDraft && onSaveFinalDraft && (
-          <div className="final-draft-editor-card ui-card mb-3 space-y-3 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold ui-text">Edit Final Draft</p>
-                <p className="text-[11px] ui-muted">
-                  Saving changes invalidates the previous quality check and SEO metadata.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="muted"
-                size="icon-xs"
-                onClick={() => setEditingDraft(false)}
-                aria-label="Close final draft editor"
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-            <Textarea
-              variant="surface"
-              value={draftEditValue}
-              onChange={(event) => setDraftEditValue(event.target.value)}
-              rows={16}
-              disabled={isSavingFinalDraft}
-              aria-label="Final draft content"
-              className="final-draft-editor-textarea font-mono text-xs leading-relaxed"
-            />
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              disabled={!draftEditValue.trim() || isSavingFinalDraft}
-              onClick={async () => {
-                if (await onSaveFinalDraft(draftEditValue)) setEditingDraft(false);
-              }}
-            >
-              {isSavingFinalDraft
-                ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
-                : <Save className="h-3.5 w-3.5" />}
-              Save Draft Revision
-            </Button>
-          </div>
-        )}
 
         {generatedMetadata && qualityReady && onSavePublicationMetadata && (
           <div className="ui-card mt-3 mb-3 p-3">
@@ -1342,6 +1313,7 @@ export default function FinalDraftPanel({
                   type="button"
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
+                  disabled={editingDraft && tab.key !== 'preview'}
                   variant="muted"
                   className={`document-tab flex items-center justify-center gap-1.5 h-auto rounded-none border-none ${
                     active
@@ -1362,22 +1334,66 @@ export default function FinalDraftPanel({
             {displayTab === 'preview' && (
               <article className="max-w-[95%] mx-auto font-sans py-4 md:py-6">
                 {polishedDraft ? (
-                  <div className="text-[16px] leading-[1.85] text-foreground/90 select-text selection:bg-[var(--gold)]/30">
-                    <ReactMarkdown
-                      key={`md-${activeFeedbackIndex ?? 'n'}-${hoveredFeedbackIndex ?? 'n'}`}
-                      remarkPlugins={[remarkGfm]}
-                      components={markdownComponents}
-                    >
-                      {polishedDraft}
-                    </ReactMarkdown>
-                    {isStreaming && (
-                      <span
-                        className="inline-block w-[2px] h-[1em] ml-0.5 animate-cursor-blink align-middle"
-                        style={{ background: 'var(--primary)', borderRadius: '1px' }}
-                        aria-hidden
+                  editingDraft && onSaveFinalDraft ? (
+                    <div className="final-draft-inline-editor-shell">
+                      <div className="final-draft-inline-editor-toolbar not-prose">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-[var(--foreground)]">
+                            {t('editingInline')}
+                          </p>
+                          <p className="text-[11px] text-[var(--muted-foreground)]">
+                            {t('saveInvalidatesReview')}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <Button
+                            type="button"
+                            variant="muted"
+                            size="sm"
+                            onClick={cancelDraftEditing}
+                            disabled={isSavingFinalDraft}
+                          >
+                            {t('cancelEdit')}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            onClick={() => void saveDraftRevision()}
+                            disabled={!draftEditValue.trim() || !hasUnsavedDraftEdits || isSavingFinalDraft}
+                          >
+                            {isSavingFinalDraft
+                              ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
+                              : <Save className="h-3.5 w-3.5" />}
+                            {t('saveRevision')}
+                          </Button>
+                        </div>
+                      </div>
+                      <InlineFinalDraftEditor
+                        value={draftEditValue}
+                        onChange={setDraftEditValue}
+                        disabled={isSavingFinalDraft}
+                        ariaLabel={t('inlineEditorLabel')}
                       />
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="text-[16px] leading-[1.85] text-foreground/90 select-text selection:bg-[var(--gold)]/30">
+                      <ReactMarkdown
+                        key={`md-${activeFeedbackIndex ?? 'n'}-${hoveredFeedbackIndex ?? 'n'}`}
+                        remarkPlugins={[remarkGfm]}
+                        components={markdownComponents}
+                      >
+                        {polishedDraft}
+                      </ReactMarkdown>
+                      {isStreaming && (
+                        <span
+                          className="inline-block w-[2px] h-[1em] ml-0.5 animate-cursor-blink align-middle"
+                          style={{ background: 'var(--primary)', borderRadius: '1px' }}
+                          aria-hidden
+                        />
+                      )}
+                    </div>
+                  )
                 ) : isGeneratingDraft ? (
                   loadingPanel
                 ) : (

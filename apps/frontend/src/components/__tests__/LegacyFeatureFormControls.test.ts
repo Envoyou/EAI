@@ -2,6 +2,10 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const finalDraftSource = readFileSync(new URL('../FinalDraftPanel.tsx', import.meta.url), 'utf8');
+const inlineFinalDraftEditorSource = readFileSync(
+  new URL('../final-draft/InlineFinalDraftEditor.tsx', import.meta.url),
+  'utf8',
+);
 const onboardingSource = readFileSync(new URL('../OnboardingWizard.tsx', import.meta.url), 'utf8');
 const feedbackItemSource = readFileSync(
   new URL('../feedback-panel/components/FeedbackItemCard.tsx', import.meta.url),
@@ -15,9 +19,11 @@ const activationStep = onboardingSource.slice(
 describe('remaining legacy feature form-control contract', () => {
   it('uses canonical controls for revision and publication fields in Final Draft', () => {
     expect(finalDraftSource).not.toMatch(/<textarea\b/);
-    expect(finalDraftSource.match(/<Textarea\b/g)).toHaveLength(4);
+    expect(finalDraftSource.match(/<Textarea\b/g)).toHaveLength(3);
     expect(finalDraftSource.match(/<Input\b/g)).toHaveLength(2);
-    expect(finalDraftSource.match(/variant="surface"/g)).toHaveLength(6);
+    expect(finalDraftSource.match(/variant="surface"/g)).toHaveLength(5);
+    expect(finalDraftSource).toContain('<InlineFinalDraftEditor');
+    expect(inlineFinalDraftEditorSource).toContain('<EditorContent editor={editor} />');
     expect(finalDraftSource).not.toMatch(/ui-control|ui-input|ui-textarea|ui-select/);
   });
 

@@ -18,16 +18,60 @@
   background: color-mix(in srgb, var(--surface-2) 48%, var(--surface-1));
 }
 
-.final-draft-editor-card {
-  margin-top: 12px;
+.final-draft-inline-editor-shell {
+  min-width: 0;
 }
 
-.final-draft-editor-textarea.ui-textarea {
-  field-sizing: fixed;
-  height: clamp(12rem, 42dvh, 28rem);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+.final-draft-inline-editor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--background) 28%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.final-draft-inline-editor {
+  min-height: 20rem;
+  max-width: 100%;
+  padding: 2px;
+  caret-color: var(--primary);
+  color: color-mix(in srgb, var(--foreground) 90%, transparent);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.85;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.final-draft-inline-editor:focus {
+  outline: none;
+}
+
+.final-draft-inline-editor:focus-visible {
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 24%, transparent);
+}
+
+@media (max-width: 639px) {
+  .final-draft-inline-editor-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .final-draft-inline-editor-toolbar > :last-child {
+    align-self: stretch;
+    justify-content: flex-end;
+  }
 }
 
 .editor-canvas {
