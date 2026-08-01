@@ -18,8 +18,21 @@ describe('analyze pipeline stage order', () => {
     expectSeoBeforeQualityGate(readHandler('analyze.ts'));
   });
 
-  it('runs SEO before Quality Gate for refine', () => {
-    expectSeoBeforeQualityGate(readHandler('refine.ts'));
+  it('validates and remediates the Refine body before generating final SEO', () => {
+    const source = readHandler('refine.ts');
+    const bodyGate = source.indexOf("runQualityGate(refinedText, 'fast', null)");
+    const seo = source.indexOf('let refineSeo = await runFinalSeo(refinedText)');
+    const publishReadyGate = source.indexOf("'publish_ready'", seo);
+
+    expect(bodyGate).toBeGreaterThan(-1);
+    expect(seo).toBeGreaterThan(bodyGate);
+    expect(publishReadyGate).toBeGreaterThan(seo);
+    expect(source).toContain('automaticRounds < 2');
+    expect(source).toContain('applyAutomaticDeterministicRemediations');
+    expect(source).toContain('runTargetedFixStage');
+    expect(source).toContain('deterministicOriginalDraft: qualitySourceCorpus');
+    expect(source.indexOf("sendEvent('draft_final', refinedText)")).toBeGreaterThan(publishReadyGate);
+    expect(source).toContain('await runRefineAttempt(1, false, false)');
   });
 
   it('retries an unchanged refinement once and refuses to persist a second no-op', () => {

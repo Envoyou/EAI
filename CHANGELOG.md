@@ -23,6 +23,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Replaced generative rewriting for source-fidelity findings with source, deterministic removal/neutralization, or manual-decision actions. Targeted candidates must remove the named unsupported signal, materially change the target, introduce no new unsupported signal, and create no duplicate heading.
   - Declared Analyze and Refine as the only credit-billed analyze modes. Targeted fixes, revision validation, Quality Check, and SEO generation/refresh remain available at zero balance and do not enter the debit path.
   - Added a deterministic blocking check for adjacent duplicate Markdown headings, preventing visibly corrupted drafts from being reported as ready.
+  - Turned Refine Draft into an outcome-owned pipeline. The initial rewrite stays internal while body-only Quality Gate checks run up to two bounded remediation rounds: complete structured edits and safe source neutralizations are deterministic, supplied research-note URLs may be attached only when the gate returns that exact allowlisted source, and non-factual targeted corrections use guarded Targeted Fix. SEO is then generated from the final body and the complete publish-ready package is checked before one final result is emitted.
+  - Replaced separate accept-versus-rewrite controls for residual editorial decisions with approval actions that immediately apply the proposed correction and start automatic validation. Findings that cannot be corrected safely remain explicit human decisions and are never auto-accepted.
   - Added a sticky Save/Cancel bar and temporarily holds Preview-adjacent workflow, export, copy, and view actions while an unsaved revision is open.
 
 ## [3.21.0] - 2026-07-30

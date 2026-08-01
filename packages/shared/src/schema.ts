@@ -16,6 +16,7 @@ export const FEEDBACK_OUTPUT_PROMPT_SCHEMA = `
     "targetField"?: "body" | "publication.title" | "publication.slug" | "publication.excerpt" | "publication.metaTitle" | "publication.metaDescription" | "publication.coverImageAlt" | "publication.tags",
     "targetText"?: string,
     "replacementText"?: string,
+    "verifiedSource"?: string,
     "reason"?: string
   }>,
   "flags": Array<string>
@@ -55,6 +56,7 @@ export const FINAL_QUALITY_GATE_OUTPUT_PROMPT_SCHEMA = `
     "targetField"?: "body" | "publication.title" | "publication.slug" | "publication.excerpt" | "publication.metaTitle" | "publication.metaDescription" | "publication.coverImageAlt" | "publication.tags",
     "targetText"?: string,
     "replacementText"?: string,
+    "verifiedSource"?: string,
     "reason"?: string
   }>,
   "flags": Array<string>
@@ -88,6 +90,7 @@ export const FeedbackItemSchema = z.object({
   suggestion: z.string().describe('Concrete next action an editor can take to resolve or review the issue.').optional(),
   targetText: z.string().describe('Exact text from the draft final that the issue refers to. Keep it short, unique, and copyable when possible.').optional(),
   replacementText: z.string().describe('Replacement or insertion text for automatic operations. Do not use this to alter sensitive factual claims without source support.').optional(),
+  verifiedSource: z.string().url().describe('Exact source URL supplied in workspace context that directly supports the target claim. Never invent a URL.').optional(),
   reason: z.string().describe('Why this issue matters editorially, factually, or technically.').optional(),
   operation: z.enum(['replace', 'insert_before', 'insert_after', 'manual'])
     .describe('How the UI may apply this feedback. Use manual for factual/source risks or broad editorial judgment.')

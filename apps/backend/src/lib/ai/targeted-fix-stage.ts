@@ -162,7 +162,9 @@ export const runTargetedFixStage = async ({
     '</editor_instruction>',
     '',
     '<task>',
-    'Based on the preceding article context, return only a concise replacement for targetText that resolves the feedback and follows editorInstruction.',
+    targetText.length > 2_000
+      ? 'The target is the complete current draft. Return the complete corrected draft, changing only what is required to resolve feedback and editorInstruction.'
+      : 'Based on the preceding article context, return only a concise replacement for targetText that resolves the feedback and follows editorInstruction.',
     '</task>'
   ].join('\n');
 
@@ -203,7 +205,10 @@ export const runTargetedFixStage = async ({
         systemInstruction: `${baseSystemInstruction}${correction}`,
         userContent: baseContents,
         model: modelName,
-        maxOutputTokens: 800,
+        maxOutputTokens: Math.min(
+          8_000,
+          Math.max(800, Math.ceil(targetText.length / 2))
+        ),
         temperature: 0.2,
         thinkingLevel: provider === 'gemini' ? 'medium' : undefined,
       },

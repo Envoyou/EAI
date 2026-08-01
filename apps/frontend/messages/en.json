@@ -204,6 +204,8 @@
     "acceptedPendingQualityCheck": "Accepted — verification pending",
     "copySuggestion": "Copy suggestion",
     "acceptEditorialDecision": "Accept as editorial decision",
+    "acceptAndApplySuggestion": "Accept and apply suggestion",
+    "applySuggestedFix": "Apply suggested fix",
     "rewriteWithEAI": "Rewrite with EAI",
     "reviseWithEAI": "Revise with EAI",
     "removeUnsupportedDetail": "Remove unsupported detail",

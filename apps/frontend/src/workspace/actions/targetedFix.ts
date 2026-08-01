@@ -75,9 +75,11 @@ export async function executeTargetedFix(
   } = ctx;
 
   const item = analysis.feedback?.[index];
+  const fullDraft = analysis.polishedDraft || '';
+  const effectiveTargetText = item?.targetText?.trim() || fullDraft;
   if (
     !item
-    || !item.targetText
+    || !effectiveTargetText
     || isTargetedFixing !== null
     || analyzeAbortControllerRef.current
   ) return null;
@@ -89,16 +91,23 @@ export async function executeTargetedFix(
   try {
     const instruction = actionType === 'remove'
       ? 'Write a revised version of the text to completely remove or neutralize the editorial addition/novel framework or claim. Do NOT add new unverified claims, numbers, or frameworks.'
-      : `Revise this sentence to fix the following editorial issue: ${item.message}.`;
+      : item.targetText?.trim()
+        ? `Revise this passage to fix the following editorial issue: ${item.message}.`
+        : [
+            'Revise the complete draft only as much as needed to resolve this approved editorial issue.',
+            `Finding: ${item.message}.`,
+            item.suggestion ? `Required correction: ${item.suggestion}` : '',
+            'Preserve unrelated wording, facts, sources, structure, and publication intent.',
+          ].filter(Boolean).join('\n');
 
     const response = await directFetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
       body: JSON.stringify({
-        text: analysis.polishedDraft || item.targetText,
+        text: fullDraft || effectiveTargetText,
         mode: 'fix_targeted',
-        targetText: item.targetText,
+        targetText: effectiveTargetText,
         feedbackMessage: item.message || 'Address this editorial issue',
         instruction: instruction,
         originalDraft,
@@ -162,8 +171,8 @@ export async function executeTargetedFix(
       throw new Error('No replacement text returned by the AI.');
     }
 
-    const finalDraft = analysis.polishedDraft || '';
-    const result = replaceFirstTargetMatch(finalDraft, item.targetText, replacementText);
+    const finalDraft = fullDraft;
+    const result = replaceFirstTargetMatch(finalDraft, effectiveTargetText, replacementText);
     
     let nextDraft = finalDraft;
     if (result.success) {

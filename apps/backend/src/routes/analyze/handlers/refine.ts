@@ -5,7 +5,12 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { PublicationPackage, ResearchNote } from '@eai/shared';
+import {
+  replaceFirstTargetMatch,
+  type FinalQualityGateOutput,
+  type PublicationPackage,
+  type ResearchNote,
+} from '@eai/shared';
 import type { RefineContext } from '../types';
 import { getProvider } from '@/lib/ai/providers/registry';
 import { resolveModel } from '@/lib/ai/model-router';
@@ -43,6 +48,12 @@ import {
 } from '../utils/text';
 import { resolveAiFunctionConfig } from '@/lib/ai-provider-resolver';
 import { getCurrentEditorialDate, PROMPT_VERSION } from '@/lib/prompts';
+import { runTargetedFixStage } from '@/lib/ai/targeted-fix-stage';
+import {
+  applyAutomaticDeterministicRemediations,
+  buildQualitySourceCorpus,
+  canUseGeneratedRemediation,
+} from '@/lib/automatic-remediation';
 
 export async function handleRefine(ctx: RefineContext): Promise<void> {
   const {
@@ -174,7 +185,7 @@ Apply the requested structural or editorial correction materially. Do not return
     value.replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, '').trim();
 
   let finalizedRefine = finalizeRefinedText(
-    await runRefineAttempt(1, false, true)
+    await runRefineAttempt(1, false, false)
   );
   if (state.isDisconnected) return;
 
@@ -192,13 +203,57 @@ Apply the requested structural or editorial correction materially. Do not return
     );
   }
 
-  const refinedText = finalizedRefine.text;
+  let refinedText = finalizedRefine.text;
   const workingTitle = finalizedRefine.workingTitle;
   if (workingTitle) sendEvent('working_title', workingTitle);
-  sendEvent('draft_final', refinedText);
 
-  let refineSeo: PublicationPackage | null = null;
-  if (analysisSpeed !== 'fast') {
+  const qualityGateConfig = resolveAiFunctionConfig(
+    aiConfig,
+    'analyze_quality_gate'
+  );
+  const targetedFixConfig = resolveAiFunctionConfig(aiConfig, 'analyze_targeted_fix');
+  const qualitySourceCorpus = buildQualitySourceCorpus(text, refineResearchNotes);
+  const trustedSourceUrls = new Set<string>();
+
+  const runQualityGate = async (
+    draft: string,
+    publicationMode: 'fast' | 'publish_ready',
+    publicationPackage: PublicationPackage | null
+  ): Promise<FinalQualityGateOutput> => {
+    sendEvent('status', 'quality_gate');
+    const response = await runFinalQualityGateSafely({
+      signal: state.signal,
+      provider: qualityGateConfig.provider,
+      modelOverride: qualityGateConfig.model,
+      originalDraft: text,
+      finalDraft: draft,
+      deterministicOriginalDraft: qualitySourceCorpus,
+      metadata,
+      analysisSpeed,
+      trustedSourceUrls: Array.from(trustedSourceUrls),
+      trustedInternalDomains: editorialProfile.config.internalLinkDomains,
+      telemetry,
+      editorialProfile,
+      sanitizeFeedback: sanitizeSuppressiveFeedbackItem,
+      sanitizeSummary: sanitizeFactualSummary,
+      researchNotes: refineResearchNotes,
+      publicationMode,
+      taskInstruction: [
+        'Evaluate the current final draft and publication contract.',
+        'Treat supplied workspace research notes as source material, but only within the claims they directly support.',
+        'When a research-note URL directly supports a claim that merely lacks an inline citation, return that exact URL as verifiedSource for automatic attachment.',
+        'Do not request an editor action for a correction the system can express safely as a complete target/replacement operation.',
+      ].join(' '),
+      workingTitle: typeof publicationPackage?.title === 'string'
+        ? publicationPackage.title
+        : workingTitle,
+      publicationPackage,
+    });
+    state.usedModels.push(`${response.modelName}(quality-gate)`);
+    return response.result;
+  };
+
+  const runFinalSeo = async (draft: string): Promise<PublicationPackage> => {
     sendEvent('status', 'generating_seo');
     const seoConfig = resolveAiFunctionConfig(aiConfig, 'analyze_seo');
     const seoModelName = resolveModel(
@@ -208,11 +263,11 @@ Apply the requested structural or editorial correction materially. Do not return
       seoConfig.model
     );
     state.usedModels.push(`${seoModelName}(seo)`);
-    refineSeo = await runSeoStage({
+    const result = await runSeoStage({
       signal: state.signal,
       provider: seoConfig.provider,
       modelName: seoModelName,
-      article: refinedText,
+      article: draft,
       metadata,
       editorialProfile,
       systemInstruction: new SeoPromptComposer(
@@ -221,38 +276,107 @@ Apply the requested structural or editorial correction materially. Do not return
       ).compose('xml'),
       telemetry,
     });
+    return result;
+  };
+
+  const applyAutomaticRemediationRound = async (
+    gate: FinalQualityGateOutput
+  ): Promise<boolean> => {
+    const deterministic = applyAutomaticDeterministicRemediations({
+      draft: refinedText,
+      feedback: gate.feedback,
+      researchNotes: refineResearchNotes,
+    });
+    deterministic.trustedSourceUrls.forEach((url) => trustedSourceUrls.add(url));
+    if (deterministic.appliedCount > 0 && deterministic.draft !== refinedText) {
+      refinedText = preparePublicationDraft(deterministic.draft);
+      return true;
+    }
+
+    let generatedChange = false;
+    const generatedCandidates = gate.feedback
+      .filter(canUseGeneratedRemediation)
+      .slice(0, 2);
+    for (const item of generatedCandidates) {
+      if (!item.targetText?.trim()) continue;
+      try {
+        const targeted = await runTargetedFixStage({
+          signal: state.signal,
+          provider: targetedFixConfig.provider,
+          analysisSpeed,
+          article: refinedText,
+          originalDraft: qualitySourceCorpus,
+          targetText: item.targetText,
+          feedback: item.message,
+          editorInstruction: item.suggestion || 'Resolve this editorial issue without changing unrelated facts.',
+          metadata,
+          editorialProfile,
+          telemetry,
+          modelOverride: targetedFixConfig.model,
+        });
+        const replacement = replaceFirstTargetMatch(
+          refinedText,
+          item.targetText,
+          targeted.replacementText
+        );
+        if (replacement.success && replacement.nextText !== refinedText) {
+          refinedText = preparePublicationDraft(replacement.nextText);
+          state.usedModels.push(`${targeted.modelName}(automatic-remediation)`);
+          generatedChange = true;
+        }
+      } catch (error) {
+        console.warn('[Refine] Automatic targeted remediation stopped safely:', error);
+      }
+    }
+    return generatedChange;
+  };
+
+  let refineQualityGate = await runQualityGate(refinedText, 'fast', null);
+  let automaticRounds = 0;
+  while (refineQualityGate.readiness !== 'ready' && automaticRounds < 2) {
+    const changed = await applyAutomaticRemediationRound(refineQualityGate);
+    if (!changed) break;
+    automaticRounds += 1;
+    refineQualityGate = await runQualityGate(refinedText, 'fast', null);
     if (state.isDisconnected) return;
-    sendEvent('seo_metadata', refineSeo);
-    sendEvent('publication_package_status', 'current');
-  } else {
-    sendEvent('publication_package_status', 'not_generated');
   }
 
-  sendEvent('status', 'quality_gate');
-  const qualityGateConfig = resolveAiFunctionConfig(
-    aiConfig,
-    'analyze_quality_gate'
-  );
-  const refineQualityGateResponse = await runFinalQualityGateSafely({
-    signal: state.signal,
-    provider: qualityGateConfig.provider,
-    modelOverride: qualityGateConfig.model,
-    originalDraft: text,
-    finalDraft: refinedText,
-    metadata,
-    analysisSpeed,
-    trustedInternalDomains: editorialProfile.config.internalLinkDomains,
-    telemetry,
-    editorialProfile,
-    sanitizeFeedback: sanitizeSuppressiveFeedbackItem,
-    sanitizeSummary: sanitizeFactualSummary,
-    researchNotes: refineResearchNotes,
-    publicationMode: analysisSpeed === 'fast' ? 'fast' : 'publish_ready',
-    workingTitle: typeof refineSeo?.title === 'string' ? refineSeo.title : workingTitle,
-    publicationPackage: refineSeo,
-  });
+  let refineSeo = await runFinalSeo(refinedText);
   if (state.isDisconnected) return;
-  let refineQualityGate = refineQualityGateResponse.result;
+  refineQualityGate = await runQualityGate(
+    refinedText,
+    'publish_ready',
+    refineSeo
+  );
+  if (state.isDisconnected) return;
+
+  while (refineQualityGate.readiness !== 'ready' && automaticRounds < 2) {
+    const changed = await applyAutomaticRemediationRound(refineQualityGate);
+    if (!changed) break;
+    automaticRounds += 1;
+    refineSeo = await runFinalSeo(refinedText);
+    if (state.isDisconnected) return;
+    refineQualityGate = await runQualityGate(
+      refinedText,
+      'publish_ready',
+      refineSeo
+    );
+    if (state.isDisconnected) return;
+  }
+
+  const publicationOnlyFinding = refineQualityGate.feedback.length > 0
+    && refineQualityGate.feedback.every((item) => item.targetField?.startsWith('publication.'));
+  if (publicationOnlyFinding) {
+    refineSeo = await runFinalSeo(refinedText);
+    if (state.isDisconnected) return;
+    refineQualityGate = await runQualityGate(refinedText, 'publish_ready', refineSeo);
+    if (state.isDisconnected) return;
+  }
+
+  sendEvent('draft_final', refinedText);
+  sendEvent('seo_metadata', refineSeo);
+  sendEvent('publication_package_status', 'current');
+
   const initialRevision = createInitialDraftRevision({
     body: refinedText,
     origin: 'refine',
@@ -268,7 +392,6 @@ Apply the requested structural or editorial correction materially. Do not return
     ...initialRevision,
     editorialIdentities: identified.editorialIdentities,
   };
-  state.usedModels.push(`${refineQualityGateResponse.modelName}(quality-gate)`);
   sendEvent('feedback_reset', null);
   sendEvent('readiness', refineQualityGate.readiness);
   sendEvent('summary', refineQualityGate.summary);
@@ -300,13 +423,13 @@ Apply the requested structural or editorial correction materially. Do not return
               'standard',
               refinedText,
               sourceRef,
-              refineSeo ?? undefined,
+              refineSeo,
               analysisSpeed,
               refineQualityGate,
               telemetry.snapshot(),
               editorialAudit,
               typeof refineSeo?.title === 'string' ? refineSeo.title : workingTitle,
-              refineSeo ? 'current' : 'not_generated',
+              'current',
               'refine',
               persistedIdentityState
             )

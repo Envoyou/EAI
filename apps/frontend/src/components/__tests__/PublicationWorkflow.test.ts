@@ -154,16 +154,18 @@ describe('revision-safe publication workflow', () => {
 
   it('keeps targetless quality findings actionable without requiring full Analyze', () => {
     const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
+    const targetedFix = readFrontendSource('workspace/actions/targetedFix.ts');
     const feedbackCard = readFrontendSource(
       'components/feedback-panel/components/FeedbackItemCard.tsx'
     );
 
     expect(feedbackCard).toContain('showAcceptEditorialDecision');
     expect(feedbackCard).toContain('showEAIRevision');
-    expect(feedbackCard).toContain("t('reviseWithEAI')");
-    expect(workspace).toContain("!item.targetText?.trim()");
-    expect(workspace).toContain('Resolve only this remaining editorial finding');
-    expect(workspace).toContain('await handleRefineAgain(instruction, analysis.polishedDraft, true)');
+    expect(feedbackCard).toContain("t('applySuggestedFix')");
+    expect(feedbackCard).toContain("t('acceptAndApplySuggestion')");
+    expect(targetedFix).toContain("item?.targetText?.trim() || fullDraft");
+    expect(targetedFix).toContain("mode: 'fix_targeted'");
+    expect(workspace).not.toContain('Resolve only this remaining editorial finding');
   });
 
   it('keeps cancellation available for the complete AI lifecycle and blocks overlapping actions', () => {

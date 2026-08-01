@@ -204,6 +204,8 @@
     "acceptedPendingQualityCheck": "Diterima — menunggu verifikasi",
     "copySuggestion": "Salin saran",
     "acceptEditorialDecision": "Terima sebagai keputusan editorial",
+    "acceptAndApplySuggestion": "Terima dan terapkan saran",
+    "applySuggestedFix": "Terapkan saran perbaikan",
     "rewriteWithEAI": "Tulis ulang dengan EAI",
     "reviseWithEAI": "Revisi dengan EAI",
     "removeUnsupportedDetail": "Hapus detail tanpa dukungan",

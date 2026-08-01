@@ -58,4 +58,25 @@ describe('Final Quality Gate response normalization', () => {
     );
     expect(result.flags).toEqual(['Structure Review']);
   });
+
+  test('retains an allowlisted source candidate for automatic attachment', () => {
+    const result = FinalQualityGateResponseSchema.parse({
+      readiness: 'needs_review',
+      summary: 'One supplied source must be attached.',
+      changes: ['Preserved the supported claim.'],
+      feedback: [{
+        category: 'Source Verification',
+        status: 'warning',
+        verificationStatus: 'needs_citation',
+        message: 'Attach the supplied primary report.',
+        suggestion: 'Add the exact source URL from the research notes.',
+        targetText: 'The documented program result.',
+        operation: 'manual',
+        verifiedSource: 'https://example.com/report',
+      }],
+      flags: ['Source attachment'],
+    });
+
+    expect(result.feedback[0]?.verifiedSource).toBe('https://example.com/report');
+  });
 });

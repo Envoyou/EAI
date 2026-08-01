@@ -163,7 +163,12 @@ export function FeedbackItemCard({
   const isResolved = isApplied || isAccepted || isVerified || item.status === 'pass';
   const showAcceptEditorialDecision =
     canAcceptEditorialDecision(item) && Boolean(onAcceptFeedback);
-  const showEAIRevision = canRequestEAIRevision(item) && Boolean(onFixFeedbackWithEAI);
+  const applySuggestionOnAccept = showAcceptEditorialDecision
+    && canRequestEAIRevision(item)
+    && Boolean(onFixFeedbackWithEAI);
+  const showEAIRevision = canRequestEAIRevision(item)
+    && Boolean(onFixFeedbackWithEAI)
+    && !showAcceptEditorialDecision;
   const sourceDisplay = item.verifiedSource
     ? getSourceDisplay(item.verifiedSource)
     : null;
@@ -488,13 +493,24 @@ export function FeedbackItemCard({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (onAcceptFeedback) onAcceptFeedback(index);
+                        if (applySuggestionOnAccept && onFixFeedbackWithEAI) {
+                          onFixFeedbackWithEAI(index);
+                        } else if (onAcceptFeedback) {
+                          onAcceptFeedback(index);
+                        }
                       }}
+                      disabled={isTargetedFixing !== null}
                       variant="muted"
                       size="xs"
                     >
-                      <Check className="w-3.5 h-3.5" />
-                      {t('acceptEditorialDecision')}
+                      {isTargetedFixing === index ? (
+                        <EAILoaderStatusIcon className="w-3.5 h-3.5" />
+                      ) : (
+                        <Check className="w-3.5 h-3.5" />
+                      )}
+                      {applySuggestionOnAccept
+                        ? t('acceptAndApplySuggestion')
+                        : t('acceptEditorialDecision')}
                     </Button>
                   )}
 
@@ -558,7 +574,7 @@ export function FeedbackItemCard({
                       ) : (
                         <Wand2 className="w-3.5 h-3.5" />
                       )}
-                      {targetText ? t('rewriteWithEAI') : t('reviseWithEAI')}
+                      {t('applySuggestedFix')}
                     </Button>
                   )}
                 </div>

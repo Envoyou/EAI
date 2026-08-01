@@ -79,6 +79,7 @@ Output rules:
 - Audit each diagram and table for necessity and source support. Unsupported visual labels or relationships are source-fidelity issues.
 - URLs listed in trusted_source_urls were explicitly verified by an editor. Do not flag the presence of those exact URLs again.
 - A trusted URL does not automatically verify every surrounding claim; continue to flag a materially unsupported claim when the supplied source context does not support it.
+- When a workspace research note directly supports a flagged claim and supplies a URL, return that exact allowlisted URL as verifiedSource so the pipeline can attach it automatically. Never invent, transform, or guess a URL. If no supplied source directly supports the claim, omit verifiedSource and leave the decision for the editor.
 
 Consistency rules:
 - If any feedback item has status "fail", readiness must be "blocked".
