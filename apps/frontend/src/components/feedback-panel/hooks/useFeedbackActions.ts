@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { AnalysisResult } from '@eai/shared';
+import { AnalysisResult, FindingTarget } from '@eai/shared';
 
 export function useFeedbackActions(
   result: AnalysisResult,
@@ -8,6 +8,12 @@ export function useFeedbackActions(
     targetText: string,
     replacementText: string,
     operation: 'replace' | 'insert_before' | 'insert_after' | 'manual',
+    index: number
+  ) => Promise<boolean>,
+  onApplyPublicationFix?: (
+    targetField: FindingTarget,
+    targetText: string,
+    replacementText: string,
     index: number
   ) => Promise<boolean>
 ) {
@@ -41,6 +47,22 @@ export function useFeedbackActions(
     setApplyingFeedback(feedbackKey);
     try {
       await onApplyFix(target, replacement, operation, index);
+    } finally {
+      setApplyingFeedback(null);
+    }
+  };
+
+  const handleApplyPublicationClick = async (
+    targetField: FindingTarget,
+    target: string,
+    replacement: string,
+    index: number,
+    feedbackKey: string
+  ): Promise<void> => {
+    if (!onApplyPublicationFix || applyingFeedback !== null) return;
+    setApplyingFeedback(feedbackKey);
+    try {
+      await onApplyPublicationFix(targetField, target, replacement, index);
     } finally {
       setApplyingFeedback(null);
     }
@@ -98,6 +120,7 @@ export function useFeedbackActions(
     setSubmittingSource,
     toggleFeedback,
     handleApplyClick,
+    handleApplyPublicationClick,
     handleCopy,
     handleCopySEOPack,
   };

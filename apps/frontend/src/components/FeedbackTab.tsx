@@ -1,12 +1,13 @@
 'use client';
 
 import FeedbackPanel from '@/components/FeedbackPanel';
-import type { AnalysisResult, EditorialProcessStage } from '@eai/shared';
+import type { AnalysisResult, EditorialProcessStage, FindingTarget } from '@eai/shared';
 
 interface FeedbackTabProps {
   result: AnalysisResult;
   title?: string;
   onApplyFix?: (targetText: string, replacementText: string, operation: 'replace' | 'insert_before' | 'insert_after' | 'manual', index: number) => Promise<boolean>;
+  onApplyPublicationFix?: (targetField: FindingTarget, targetText: string, replacementText: string, index: number) => Promise<boolean>;
   onApplyAll?: () => Promise<void>;
   hoveredFeedbackIndex: number | null;
   onHoveredFeedbackChange: (index: number | null) => void;

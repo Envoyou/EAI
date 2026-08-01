@@ -148,6 +148,53 @@ export const canAutoApplyFeedback = (item: FeedbackItem) => {
   return true;
 };
 
+const LOW_INFORMATION_SLUG_WORDS = [
+  'of',
+  'the',
+  'a',
+  'an',
+  'for',
+  'to',
+  'in',
+  'and',
+  'with',
+  'on',
+];
+
+/** Builds a bounded, deterministic slug proposal without rewriting article content. */
+export const buildShortSlugSuggestion = (
+  value: string,
+  maxWords = 6
+): string => {
+  const words = value
+    .trim()
+    .split(/[-\s]+/)
+    .map(word => word.toLowerCase().replace(/[^a-z0-9]+/g, ''))
+    .filter(Boolean);
+
+  const impactOfIndex = words.indexOf('impact');
+  const ofIndex = words.indexOf('of');
+  const onIndex = words.indexOf('on');
+  if (
+    impactOfIndex === 0
+    && ofIndex === 1
+    && onIndex > ofIndex + 1
+  ) {
+    const subject = words.slice(ofIndex + 1, onIndex);
+    words.splice(0, onIndex, ...subject, 'impact', 'on');
+  }
+
+  for (const connector of LOW_INFORMATION_SLUG_WORDS) {
+    while (words.length > maxWords) {
+      const index = words.indexOf(connector);
+      if (index < 0) break;
+      words.splice(index, 1);
+    }
+  }
+
+  return words.slice(0, maxWords).join('-');
+};
+
 export const applyFeedbackOperation = (
   text: string,
   item: FeedbackItem

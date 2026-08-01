@@ -11,7 +11,7 @@ import NotesTab from '@/components/NotesTab';
 import { DeepResearchReportTab } from '@/components/strategist-tab/components/DeepResearchReportTab';
 import { useContentStrategist, type Attachment } from '@/lib/hooks/useContentStrategist';
 import type { ResearchNote } from '@/lib/hooks/useContentStrategist';
-import type { AnalysisResult, EditorialProcessStage } from '@eai/shared';
+import type { AnalysisResult, EditorialProcessStage, FindingTarget } from '@eai/shared';
 
 type RightTab = 'strategist' | 'feedback' | 'notes' | 'deep_report';
 
@@ -22,6 +22,7 @@ interface AICopilotPanelProps {
   feedbackResult?: AnalysisResult | null;
   feedbackTitle?: string;
   onApplyFix?: (targetText: string, replacementText: string, operation: 'replace' | 'insert_before' | 'insert_after' | 'manual', index: number) => Promise<boolean>;
+  onApplyPublicationFix?: (targetField: FindingTarget, targetText: string, replacementText: string, index: number) => Promise<boolean>;
   onApplyAll?: () => Promise<void>;
   hoveredFeedbackIndex?: number | null;
   onHoveredFeedbackChange?: (index: number | null) => void;
@@ -55,6 +56,7 @@ export default function AICopilotPanel({
   feedbackResult,
   feedbackTitle,
   onApplyFix,
+  onApplyPublicationFix,
   onApplyAll,
   hoveredFeedbackIndex = null,
   onHoveredFeedbackChange,
@@ -148,6 +150,7 @@ export default function AICopilotPanel({
               result={feedbackResult}
               title={feedbackTitle}
               onApplyFix={onApplyFix}
+              onApplyPublicationFix={onApplyPublicationFix}
               onApplyAll={onApplyAll}
               hoveredFeedbackIndex={hoveredFeedbackIndex ?? null}
               onHoveredFeedbackChange={onHoveredFeedbackChange ?? (() => {})}

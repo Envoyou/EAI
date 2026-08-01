@@ -33,11 +33,12 @@ describe('remaining legacy feature form-control contract', () => {
     expect(onboardingSource).not.toMatch(/ui-control|ui-input|ui-textarea|ui-select/);
   });
 
-  it('uses a canonical source input without changing Enter submission', () => {
+  it('uses canonical source and manual publication inputs without changing Enter submission', () => {
     expect(feedbackItemSource).not.toMatch(/<input\b/);
-    expect(feedbackItemSource.match(/<Input\b/g)).toHaveLength(1);
+    expect(feedbackItemSource.match(/<Input\b/g)).toHaveLength(2);
     expect(feedbackItemSource.match(/variant="surface"/g)).toHaveLength(1);
     expect(feedbackItemSource).toContain("e.key === 'Enter' && !isSubmittingSource");
+    expect(feedbackItemSource).toContain("aria-label={t('manualPublicationValue')}");
     expect(feedbackItemSource).not.toMatch(/ui-control|ui-input|ui-textarea|ui-select/);
   });
 });

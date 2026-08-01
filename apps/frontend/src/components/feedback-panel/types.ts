@@ -1,4 +1,4 @@
-import { AnalysisResult, EditorialProcessStage } from '@eai/shared';
+import { AnalysisResult, EditorialProcessStage, FindingTarget } from '@eai/shared';
 
 export interface FeedbackPanelProps {
   result: AnalysisResult;
@@ -7,6 +7,12 @@ export interface FeedbackPanelProps {
     targetText: string,
     replacementText: string,
     operation: 'replace' | 'insert_before' | 'insert_after' | 'manual',
+    index: number
+  ) => Promise<boolean>;
+  onApplyPublicationFix?: (
+    targetField: FindingTarget,
+    targetText: string,
+    replacementText: string,
     index: number
   ) => Promise<boolean>;
   onApplyAll?: () => Promise<void>;

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import type {
   FeedbackItem,
+  FindingTarget,
   EditorialReadiness,
   ResearchNote,
   Attachment,
@@ -933,6 +934,73 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     }
   };
 
+  const handleApplyPublicationFix = async (
+    targetField: FindingTarget,
+    targetText: string,
+    replacementText: string,
+    index: number
+  ): Promise<boolean> => {
+    if (hasBlockingWorkspaceOperation()) return false;
+    const fieldMap: Partial<Record<FindingTarget, keyof PublicationPackage>> = {
+      'publication.title': 'title',
+      'publication.slug': 'slug',
+      'publication.excerpt': 'excerpt',
+      'publication.metaTitle': 'metaTitle',
+      'publication.metaDescription': 'metaDescription',
+      'publication.coverImageAlt': 'coverImageAltText',
+    };
+    const packageField = fieldMap[targetField];
+    const publicationPackage = analysis.generatedMetadata;
+    const item = analysis.feedback?.[index];
+    if (
+      !packageField
+      || !publicationPackage
+      || !item
+      || item.targetField !== targetField
+      || typeof publicationPackage[packageField] !== 'string'
+      || publicationPackage[packageField] !== targetText
+      || !replacementText.trim()
+      || replacementText === targetText
+    ) {
+      toast.error('Cannot apply publication suggestion', {
+        description: 'The publication field changed or this suggestion is no longer current.',
+      });
+      return false;
+    }
+
+    const previousAnalysis = analysis;
+    const nextPackage: PublicationPackage = {
+      ...publicationPackage,
+      [packageField]: replacementText,
+    };
+    const nextFeedback = markFeedbackApplied(analysis.feedback || [], index);
+
+    setAnalysis(prev => ({
+      ...prev,
+      generatedMetadata: nextPackage,
+      feedback: nextFeedback,
+      readiness: 'needs_review',
+      verdict: 'needs_review',
+      qualityGateState: 'stale',
+    }));
+
+    const saved = await handleSavePublicationMetadata(nextPackage);
+    if (!saved) {
+      setAnalysis(prev =>
+        prev.generatedMetadata?.[packageField] === replacementText
+          ? previousAnalysis
+          : prev
+      );
+      return false;
+    }
+
+    await handleQualityCheck({
+      automatic: true,
+      preserveCurrentStateOnFailure: true,
+    });
+    return true;
+  };
+
   const handleConfirmPublicationMetadata = async (): Promise<void> => {
     const logId = analysis.analysisLogId || activeHistoryId;
     if (!logId) {
@@ -1732,6 +1800,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     handleQualityCheck,
     handleRegenerateSeo,
     handleSavePublicationMetadata,
+    handleApplyPublicationFix,
     handleConfirmPublicationMetadata,
     handlePrepareForExport,
     handleRefineAgain,

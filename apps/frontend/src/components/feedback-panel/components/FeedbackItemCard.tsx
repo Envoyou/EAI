@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
-import { FeedbackItem, VerificationStatus } from '@eai/shared';
+import { FeedbackItem, FindingTarget, VerificationStatus } from '@eai/shared';
 import {
   AlertCircle,
   CheckCircle2,
@@ -112,6 +113,13 @@ interface FeedbackItemCardProps {
     index: number,
     feedbackKey: string
   ) => Promise<void>;
+  onApplyPublicationClick: (
+    targetField: FindingTarget,
+    target: string,
+    replacement: string,
+    index: number,
+    feedbackKey: string
+  ) => Promise<void>;
   onCopy: (text: string, label: string) => void;
   onAcceptFeedback?: (index: number) => Promise<void>;
   onRemoveFeedbackAddition?: (index: number) => Promise<void>;
@@ -143,6 +151,7 @@ export function FeedbackItemCard({
   onActiveFeedbackChange,
   onHoveredFeedbackChange,
   onApplyClick,
+  onApplyPublicationClick,
   onCopy,
   onAcceptFeedback,
   onRemoveFeedbackAddition,
@@ -156,6 +165,14 @@ export function FeedbackItemCard({
   const replacementText = item.replacementText;
   const operation = item.operation;
   const showApplyFeature = canShowAutoApply(item, autoApplyDisabled);
+  const isPublicationPatch = Boolean(
+    item.targetField?.startsWith('publication.')
+    && targetText
+    && replacementText
+  );
+  const showPreparedPatch = showApplyFeature || isPublicationPatch;
+  const [isEditingPublicationValue, setIsEditingPublicationValue] = useState(false);
+  const [manualPublicationValue, setManualPublicationValue] = useState(replacementText ?? '');
 
   const verificationMeta = item.verificationStatus
     ? verificationBadgeMap[item.verificationStatus]
@@ -171,6 +188,7 @@ export function FeedbackItemCard({
   const showAcceptEditorialDecision =
     canAcceptEditorialDecision(item)
     && !requiresGeneratedPreview
+    && !showPreparedPatch
     && Boolean(onAcceptFeedback);
   const showEAIRevision = canRequestEAIRevision(item)
     && Boolean(onFixFeedbackWithEAI)
@@ -283,7 +301,7 @@ export function FeedbackItemCard({
                 </Badge>
               )}
 
-              {targetText && !showApplyFeature && (
+              {targetText && !showPreparedPatch && (
                 <div className="ui-card-soft px-4 py-3 min-w-0 w-full">
                   <span
                     className="text-[12px] font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5"
@@ -309,7 +327,7 @@ export function FeedbackItemCard({
                 </div>
               )}
 
-              {item.suggestion && !showApplyFeature && (
+              {item.suggestion && !showPreparedPatch && (
                 <div className="ui-card-soft px-4 py-3.5 min-w-0 w-full">
                   <span
                     className="text-[12px] font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5"
@@ -345,7 +363,7 @@ export function FeedbackItemCard({
                 </div>
               )}
 
-              {showApplyFeature && targetText && replacementText && operation && (
+              {showPreparedPatch && targetText && replacementText && operation && (
                 <div className="ui-card overflow-hidden min-w-0 w-full">
                   <div className="px-3.5 py-2.5 bg-[var(--surface-2)]">
                     <span
@@ -353,7 +371,9 @@ export function FeedbackItemCard({
                       style={{ color: 'var(--primary)' }}
                     >
                       <ArrowRightCircle className="w-3.5 h-3.5" />
-                      {operation === 'insert_before'
+                      {isPublicationPatch
+                        ? 'Publication metadata update'
+                        : operation === 'insert_before'
                         ? 'Insert Before Target'
                         : operation === 'insert_after'
                           ? 'Insert After Target'
@@ -418,24 +438,48 @@ export function FeedbackItemCard({
                           variant="muted"
                           size="sm"
                         >
-                          {t('keepCurrentText')}
+                          {isPublicationPatch && item.targetField === 'publication.slug'
+                            ? t('keepPublicationSlug')
+                            : t('keepCurrentText')}
+                        </Button>
+                      )}
+                      {isPublicationPatch && (
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setManualPublicationValue(replacementText);
+                            setIsEditingPublicationValue(current => !current);
+                          }}
+                          disabled={isApplying}
+                          variant="muted"
+                          size="sm"
+                        >
+                          {t('editManually')}
                         </Button>
                       )}
                       <Button
                         type="button"
-                        onClick={() =>
-                          onApplyClick(
-                            targetText,
-                            replacementText,
-                            operation,
-                            index,
-                            feedbackKey
-                          )
-                        }
+                        onClick={() => isPublicationPatch && item.targetField
+                          ? onApplyPublicationClick(
+                              item.targetField,
+                              targetText,
+                              replacementText,
+                              index,
+                              feedbackKey
+                            )
+                          : onApplyClick(
+                              targetText,
+                              replacementText,
+                              operation,
+                              index,
+                              feedbackKey
+                            )}
                         disabled={isApplied || isApplying}
                         variant={isApplied ? 'surface' : 'primary'}
                         size="sm"
-                        className={isApplied ? 'text-[var(--success)]' : undefined}
+                        className={`${isPublicationPatch ? 'order-first' : ''} ${
+                          isApplied ? 'text-[var(--success)]' : ''
+                        }`}
                       >
                         {isApplied ? (
                           <>
@@ -447,11 +491,43 @@ export function FeedbackItemCard({
                           </>
                         ) : (
                           <>
-                            <Check className="w-3.5 h-3.5" /> {t('acceptChange')}
+                            <Check className="w-3.5 h-3.5" />{' '}
+                            {isPublicationPatch
+                              ? t('usePublicationValue', { value: replacementText })
+                              : t('acceptChange')}
                           </>
                         )}
                       </Button>
                     </div>
+                    {isPublicationPatch && isEditingPublicationValue && item.targetField && (
+                      <div className="flex flex-col gap-2 border-t border-[var(--border)] pt-3 sm:flex-row">
+                        <Input
+                          value={manualPublicationValue}
+                          onChange={event => setManualPublicationValue(event.target.value)}
+                          aria-label={t('manualPublicationValue')}
+                          className="min-w-0 flex-1 font-mono text-xs"
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => onApplyPublicationClick(
+                            item.targetField as FindingTarget,
+                            targetText,
+                            manualPublicationValue.trim(),
+                            index,
+                            feedbackKey
+                          )}
+                          disabled={
+                            isApplying
+                            || !manualPublicationValue.trim()
+                            || manualPublicationValue.trim() === targetText
+                          }
+                          variant="primary"
+                          size="sm"
+                        >
+                          {t('useManualValue')}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

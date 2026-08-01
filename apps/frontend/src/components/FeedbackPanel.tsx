@@ -25,6 +25,7 @@ import {
   getFeedbackIdentity,
 } from './feedback-panel/utils';
 import { isFeedbackResolved } from '@/workspace/utils';
+import { buildShortSlugSuggestion } from '@eai/shared';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -77,6 +78,7 @@ export default function FeedbackPanel({
   result,
   title,
   onApplyFix,
+  onApplyPublicationFix,
   onApplyAll,
   isFocused,
   onFocusToggle,
@@ -110,7 +112,8 @@ export default function FeedbackPanel({
     handleApplyClick,
     handleCopy,
     handleCopySEOPack,
-  } = useFeedbackActions(result, onApplyFix);
+    handleApplyPublicationClick,
+  } = useFeedbackActions(result, onApplyFix, onApplyPublicationFix);
 
   if (result.status === 'idle') {
     return (
@@ -171,7 +174,18 @@ export default function FeedbackPanel({
     (flag) => !BENIGN_DISPLAY_FLAG_PATTERN.test(flag.trim())
   );
   const hasCriticalFlags = readiness === 'blocked';
-  const feedbackItems = result.feedback ?? [];
+  const feedbackItems = (result.feedback ?? []).map(item => {
+    if (
+      item.targetField !== 'publication.slug'
+      || (item.targetText && item.replacementText)
+      || !result.generatedMetadata?.slug
+    ) return item;
+    const targetText = result.generatedMetadata.slug;
+    const replacementText = buildShortSlugSuggestion(targetText);
+    return replacementText && replacementText !== targetText
+      ? { ...item, targetText, replacementText, operation: 'manual' as const }
+      : item;
+  });
   const unresolvedFeedbackCount = feedbackItems.filter(
     (item) => !isFeedbackResolved(item)
   ).length;
@@ -439,6 +453,7 @@ export default function FeedbackPanel({
                 onActiveFeedbackChange={onActiveFeedbackChange}
                 onHoveredFeedbackChange={onHoveredFeedbackChange}
                 onApplyClick={handleApplyClick}
+                onApplyPublicationClick={handleApplyPublicationClick}
                 onCopy={handleCopy}
                 onAcceptFeedback={onAcceptFeedback}
                 onRemoveFeedbackAddition={onRemoveFeedbackAddition}

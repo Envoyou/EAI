@@ -12,6 +12,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Replaced technical feedback controls with editorial outcomes such as Accept change, Keep current text, Add source manually, and Remove unsupported detail; applying a decision continues to trigger automatic validation.
   - Made prepared Before/After patches apply optimistically in the editor before persistence. Persistence failures restore the prior snapshot, revision conflicts reload the latest saved revision, and validation warnings keep the accepted edit.
   - Split AI generation from approval: findings without a concrete replacement now expose Generate suggestion, which creates a non-persisted preview; Accept change appears only after that patch is ready and applies without another model call.
+  - Routed publication-field findings exclusively to their matching metadata field. Overlong slugs now receive a deterministic six-word proposal locally, with immediate use/keep/manual-edit decisions; they never fall back to an AI rewrite of the article body.
 - **Source-fidelity target accuracy**:
   - Matched acronym findings as complete Unicode tokens when locating their affected sentence, preventing `ERP` from highlighting an unrelated sentence containing the word `enterprises`.
 - **In-place Final Draft editing**:

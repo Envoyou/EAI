@@ -54,6 +54,10 @@ export async function executeTargetedFix(
 
   const item = analysis.feedback?.[index];
   const fullDraft = analysis.polishedDraft || '';
+  if (item?.targetField && item.targetField !== 'body') {
+    toast.error('This suggestion targets publication metadata, not the article body.');
+    return null;
+  }
   const effectiveTargetText = item?.targetText?.trim() || fullDraft;
   if (
     !item

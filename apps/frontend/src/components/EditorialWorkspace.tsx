@@ -116,6 +116,7 @@ export default function EditorialWorkspace({
     handleQualityCheck,
     handleRegenerateSeo,
     handleSavePublicationMetadata,
+    handleApplyPublicationFix,
     handleConfirmPublicationMetadata,
     handlePrepareForExport,
     handleRefineAgain,
@@ -549,6 +550,7 @@ export default function EditorialWorkspace({
                     feedbackResult={hasResult || analysis.status === 'loading' ? analysis : null}
                     feedbackTitle={(analysis.generatedMetadata?.title || analysis.workingTitle) as string | undefined}
                     onApplyFix={handleApplyFix}
+                    onApplyPublicationFix={handleApplyPublicationFix}
                     onApplyAll={handleApplyAllFixes}
                     hoveredFeedbackIndex={hoveredFeedbackIndex}
                     onHoveredFeedbackChange={setHoveredFeedbackIndex}
@@ -716,6 +718,7 @@ export default function EditorialWorkspace({
                   feedbackResult={hasResult || analysis.status === 'loading' ? analysis : null}
                   feedbackTitle={(analysis.generatedMetadata?.title || analysis.workingTitle) as string | undefined}
                   onApplyFix={handleApplyFix}
+                  onApplyPublicationFix={handleApplyPublicationFix}
                   onApplyAll={handleApplyAllFixes}
                   hoveredFeedbackIndex={hoveredFeedbackIndex}
                   onHoveredFeedbackChange={setHoveredFeedbackIndex}

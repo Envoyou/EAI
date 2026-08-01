@@ -1,4 +1,8 @@
-import { hasIncompleteMetadataEnding, type FinalQualityGateOutput } from '@eai/shared';
+import {
+  buildShortSlugSuggestion,
+  hasIncompleteMetadataEnding,
+  type FinalQualityGateOutput,
+} from '@eai/shared';
 import type { AllowedEditorialTerm, PublicationPackage } from '@eai/shared';
 import type { EditorialProfileConfig } from '@eai/shared/server';
 import { normalizeUrl } from '@/routes/analyze/utils/text';
@@ -966,8 +970,10 @@ export const applyDeterministicQualityChecks = (
       flags.push('CMS Content Length');
     }
 
-    const slugWordCount = countSlugWords(options.publicationPackage.slug ?? '');
+    const currentSlug = options.publicationPackage.slug ?? '';
+    const slugWordCount = countSlugWords(currentSlug);
     if (slugWordCount > 6) {
+      const proposedSlug = buildShortSlugSuggestion(currentSlug);
       feedback.push({
         category: 'Publication Metadata',
         status: 'warning',
@@ -979,6 +985,8 @@ export const applyDeterministicQualityChecks = (
           : 'Pendekkan slug sambil mempertahankan deskripsi yang jelas dan tidak ambigu.',
         operation: 'manual',
         targetField: 'publication.slug',
+        targetText: currentSlug,
+        replacementText: proposedSlug !== currentSlug ? proposedSlug : undefined,
       });
       flags.push('Publication Metadata Length');
     }

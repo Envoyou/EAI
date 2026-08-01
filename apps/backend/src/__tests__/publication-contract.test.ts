@@ -155,6 +155,14 @@ describe('publication title contract', () => {
         targetField: 'body',
       }),
     ]));
+    expect(result.feedback).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        targetField: 'publication.slug',
+        targetText: 'an-overly-long-slug-for-the-current-cms-article',
+        replacementText: 'overly-long-slug-current-cms-article',
+        operation: 'manual',
+      }),
+    ]));
   });
 
   test('publication-field feedback cannot become a body text operation', () => {
@@ -173,6 +181,37 @@ describe('publication title contract', () => {
     expect(item.targetField).toBe('publication.title');
     expect(item.targetText).toBeUndefined();
     expect(item.replacementText).toBeUndefined();
+  });
+
+  test('builds the canonical six-word impact slug without an AI rewrite', () => {
+    const result = applyDeterministicQualityChecks(
+      { ...missingH1Result(), readiness: 'ready', feedback: [], flags: [] },
+      'A complete article body that is intentionally long enough for this test. '.repeat(12),
+      'Source body.',
+      {
+        publicationMode: 'publish_ready',
+        documentTitle: 'AI Automation and Labor Markets',
+        language: 'en',
+        seoRules: ENVOYOU_EDITORIAL_PROFILE.config.seoRules,
+        publicationPackage: {
+          title: 'AI Automation and Labor Markets',
+          slug: 'impact-of-ai-automation-on-labor-market',
+          excerpt: 'A sufficiently detailed excerpt about AI automation and labor market change for publication.',
+          metaTitle: 'AI Automation and Labor Markets Explained',
+          metaDescription: 'A detailed analysis of how AI automation affects labor markets, workforce structures, and business planning.',
+          tags: ['AI', 'Automation', 'Labor Market'],
+        },
+      }
+    );
+
+    expect(result.feedback).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        targetField: 'publication.slug',
+        targetText: 'impact-of-ai-automation-on-labor-market',
+        replacementText: 'ai-automation-impact-on-labor-market',
+        operation: 'manual',
+      }),
+    ]));
   });
 
   test('does not praise an unsafe visual that is flagged for source fidelity', () => {

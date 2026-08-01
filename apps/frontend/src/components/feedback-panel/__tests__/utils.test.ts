@@ -89,6 +89,16 @@ describe('feedback preview auto-apply contract', () => {
     expect(canAcceptEditorialDecision(unsupportedClaim)).toBe(false);
   });
 
+  it('does not route publication metadata findings through the body AI revision flow', () => {
+    expect(canRequestEAIRevision({
+      category: 'Publication Metadata',
+      status: 'warning',
+      message: 'The slug is too long.',
+      targetField: 'publication.slug',
+      operation: 'manual',
+    })).toBe(false);
+  });
+
   it('hides resolution actions after a finding is handled', () => {
     const appliedFinding = { ...autoFix, isApplied: true };
 
