@@ -91,6 +91,8 @@
     "privacyLink": "Privacy Notice"
   },
   "FinalDraftPanel": {
+    "finalDraft": "Final Draft",
+    "candidateDraft": "Candidate Draft",
     "refreshPublicationMetadata": "Review the publication details affected by the latest revision",
     "staleMetadataTitle": "Publication details need attention.",
     "staleMetadataDescription": "EAI could not safely update every affected field. Review the publication details or confirm that the current wording is still appropriate.",
@@ -203,6 +205,16 @@
     "appliedPendingQualityCheck": "Applied — verification pending",
     "acceptedPendingQualityCheck": "Accepted — verification pending",
     "copySuggestion": "Copy suggestion",
+    "acceptChange": "Accept change",
+    "keepCurrentText": "Keep current text",
+    "addSourceManually": "Add source manually",
+    "suggestedSource": "Suggested source",
+    "supportsClaim": "Supports:",
+    "useSuggestedSource": "Use source",
+    "editSourceLink": "Edit link",
+    "sourceUrlLabel": "Source URL",
+    "saveSource": "Save source",
+    "cancel": "Cancel",
     "acceptEditorialDecision": "Accept as editorial decision",
     "acceptAndApplySuggestion": "Accept and apply suggestion",
     "applySuggestedFix": "Apply suggested fix",
@@ -212,6 +224,20 @@
     "autoApplicableEdits": "{count} suggested edits can be applied in one step.",
     "applyAndVerify": "Apply changes",
     "applyingAndVerifying": "Applying changes"
+  },
+  "DraftReview": {
+    "tabLabel": "Draft Review",
+    "statusFinal": "Final Draft",
+    "eyebrow": "Draft review",
+    "title": "The article is almost ready",
+    "description": "Review {count, plural, one {# editorial decision} other {# editorial decisions}} before EAI prepares the Final Draft.",
+    "reviewDecision": "Review decision",
+    "progress": "{completed} of {total} decisions completed",
+    "editCandidate": "Edit candidate manually",
+    "candidateNotice": "This is a candidate draft. It will become the Final Draft only after the remaining decisions and validation are complete.",
+    "backToQueue": "Back to review queue",
+    "validatingTitle": "Preparing the Final Draft",
+    "validatingDescription": "EAI is applying your decisions and validating the saved revision automatically."
   },
   "FeedbackWorkflow": {
     "appliedAutomaticQualityCheck": "Suggestion applied. EAI is checking the affected content.",

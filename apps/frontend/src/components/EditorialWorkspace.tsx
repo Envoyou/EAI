@@ -490,6 +490,11 @@ export default function EditorialWorkspace({
                         setRightPanelTab('feedback');
                       }
                     }}
+                    onOpenFeedbackSidebar={() => {
+                      setRightPanelOpen(true);
+                      setRightPanelTab('feedback');
+                      setMobileViewTab('copilot');
+                    }}
                     showNotesSidebar={showNotesSidebar}
                     onToggleNotesSidebar={() => {
                       if (rightPanelOpen) {
@@ -651,6 +656,10 @@ export default function EditorialWorkspace({
                         setRightPanelOpen(true);
                         setRightPanelTab('feedback');
                       }
+                    }}
+                    onOpenFeedbackSidebar={() => {
+                      setRightPanelOpen(true);
+                      setRightPanelTab('feedback');
                     }}
                     showNotesSidebar={showNotesSidebar}
                     onToggleNotesSidebar={() => {

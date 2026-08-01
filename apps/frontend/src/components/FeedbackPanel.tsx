@@ -442,11 +442,14 @@ export default function FeedbackPanel({
                 onCopy={handleCopy}
                 onAcceptFeedback={onAcceptFeedback}
                 onRemoveFeedbackAddition={onRemoveFeedbackAddition}
-                onSubmitSource={async (feedbackIndex, key) => {
+                onSubmitSource={async (feedbackIndex, key, sourceOverride) => {
                   if (!onAddFeedbackSource || submittingSource !== null) return;
                   setSubmittingSource(key);
                   try {
-                    const saved = await onAddFeedbackSource(feedbackIndex, sourceText);
+                    const saved = await onAddFeedbackSource(
+                      feedbackIndex,
+                      sourceOverride ?? sourceText
+                    );
                     if (saved) {
                       setActiveSourceInput(null);
                       setSourceText('');

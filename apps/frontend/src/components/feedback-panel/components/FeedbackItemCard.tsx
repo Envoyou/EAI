@@ -115,7 +115,11 @@ interface FeedbackItemCardProps {
   onCopy: (text: string, label: string) => void;
   onAcceptFeedback?: (index: number) => Promise<void>;
   onRemoveFeedbackAddition?: (index: number) => Promise<void>;
-  onSubmitSource: (index: number, feedbackKey: string) => Promise<void>;
+  onSubmitSource: (
+    index: number,
+    feedbackKey: string,
+    sourceOverride?: string
+  ) => Promise<void>;
   onFixFeedbackWithEAI?: (index: number) => Promise<void>;
   setActiveSourceInput: (feedbackKey: string | null) => void;
   setSourceText: (text: string) => void;
@@ -317,6 +321,28 @@ export function FeedbackItemCard({
                 </div>
               )}
 
+              {item.verificationStatus && item.verifiedSource && !isVerified && sourceDisplay && (
+                <div className="ui-card-soft px-4 py-3 min-w-0 w-full">
+                  <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--primary)]">
+                    {t('suggestedSource')}
+                  </span>
+                  <p className="mt-1 text-xs font-semibold text-[var(--foreground)]">
+                    {sourceDisplay.host}
+                  </p>
+                  <p className="mt-0.5 break-all text-[11px] text-[var(--muted-foreground)]">
+                    {item.verifiedSource}
+                  </p>
+                  {targetText && (
+                    <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted-foreground)]">
+                      <span className="font-semibold text-[var(--foreground)]">
+                        {t('supportsClaim')}{' '}
+                      </span>
+                      {targetText}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {showApplyFeature && targetText && replacementText && operation && (
                 <div className="ui-card overflow-hidden min-w-0 w-full">
                   <div className="px-3.5 py-2.5 bg-[var(--surface-2)]">
@@ -381,7 +407,18 @@ export function FeedbackItemCard({
                         {replacementText}
                       </p>
                     </div>
-                    <div className="flex justify-end pt-1">
+                    <div className="flex flex-wrap justify-end gap-2 pt-1">
+                      {canAcceptEditorialDecision(item) && onAcceptFeedback && (
+                        <Button
+                          type="button"
+                          onClick={() => onAcceptFeedback(index)}
+                          disabled={isApplying}
+                          variant="muted"
+                          size="sm"
+                        >
+                          {t('keepCurrentText')}
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         onClick={() =>
@@ -408,7 +445,7 @@ export function FeedbackItemCard({
                           </>
                         ) : (
                           <>
-                            <Wand2 className="w-3.5 h-3.5" /> Apply
+                            <Check className="w-3.5 h-3.5" /> {t('acceptChange')}
                           </>
                         )}
                       </Button>
@@ -420,24 +457,6 @@ export function FeedbackItemCard({
               {/* Interactive Actions for Post-Polish Review Loop */}
               {!isResolved && (
                 <div className="mt-3 pt-3 border-t border-[var(--border)]/50 flex flex-wrap gap-2">
-                  {/* Manual or incomplete suggestions remain copy-only. */}
-                  {!showApplyFeature &&
-                    (item.status === 'warning' || item.status === 'fail') &&
-                    item.suggestion && (
-                      <Button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onCopy(item.suggestion!, 'Suggestion');
-                        }}
-                        variant="muted"
-                        size="xs"
-                      >
-                        <Copy className="w-3.5 h-3.5" /> {t('copySuggestion')}
-                      </Button>
-                    )}
-
-
                   {item.category === 'Editorial Addition' && (
                     <>
                       <Button
@@ -516,6 +535,22 @@ export function FeedbackItemCard({
 
                   {item.verificationStatus && (
                     <>
+                      {item.verifiedSource && (
+                        <Button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void onSubmitSource(index, feedbackKey, item.verifiedSource);
+                          }}
+                          disabled={isSubmittingSource}
+                          variant="primary"
+                          size="xs"
+                        >
+                          {isSubmittingSource && <EAILoaderStatusIcon className="h-3.5 w-3.5" />}
+                          <Link className="w-3.5 h-3.5" />
+                          {t('useSuggestedSource')}
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         onClick={(e) => {
@@ -523,14 +558,16 @@ export function FeedbackItemCard({
                           setActiveSourceInput(
                             activeSourceInput === feedbackKey ? null : feedbackKey
                           );
-                          setSourceText('');
+                          setSourceText(item.verifiedSource ?? '');
                         }}
                         variant="primary"
                         size="xs"
                         aria-expanded={activeSourceInput === feedbackKey}
                       >
                         <Link className="w-3.5 h-3.5" />
-                        Add Source
+                        {item.verifiedSource
+                          ? t('editSourceLink')
+                          : t('addSourceManually')}
                       </Button>
                     </>
                   )}
@@ -587,7 +624,7 @@ export function FeedbackItemCard({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">
-                    Enter Source URL
+                    {t('sourceUrlLabel')}
                   </div>
                   <div className="flex min-w-0 gap-2">
                     <Input
@@ -615,7 +652,7 @@ export function FeedbackItemCard({
                       size="xs"
                     >
                       {isSubmittingSource && <EAILoaderStatusIcon className="h-3.5 w-3.5" />}
-                      Submit
+                      {t('saveSource')}
                     </Button>
                     <Button
                       type="button"
@@ -623,7 +660,7 @@ export function FeedbackItemCard({
                       variant="muted"
                       size="xs"
                     >
-                      Cancel
+                      {t('cancel')}
                     </Button>
                   </div>
                 </div>

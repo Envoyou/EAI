@@ -90,6 +90,7 @@ interface FinalDraftPanelProps {
   onActiveFeedbackChange: (index: number | null) => void;
   feedback?: FeedbackItem[];
   isDemoMode?: boolean;
+  reviewMode?: boolean;
 }
 
 function highlightChildren(
@@ -243,6 +244,7 @@ export default function FinalDraftPanel({
   activeFeedbackIndex,
   feedback = [],
   isDemoMode = false,
+  reviewMode = false,
 }: FinalDraftPanelProps) {
   const t = useTranslations('FinalDraftPanel');
   const [activeTab, setActiveTab] = useState<TabType>('preview');
@@ -747,7 +749,7 @@ export default function FinalDraftPanel({
         <div className="final-draft-header-row flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="final-draft-title min-w-0 w-full">
             <p className="mb-0.5 text-[11px] font-medium text-[var(--muted-foreground)]">
-              Refined Draft
+              {reviewMode ? t('candidateDraft') : t('finalDraft')}
             </p>
             <h2 className="line-clamp-2 break-normal text-[14px] font-semibold text-[var(--foreground)]">
               {generatedMetadata?.title || workingTitle || (isGeneratingDraft ? 'Preparing refined draft' : 'Refined Article')}
@@ -758,6 +760,7 @@ export default function FinalDraftPanel({
           {polishedDraft.trim() && (
             <div className="final-draft-actions flex flex-wrap sm:flex-nowrap items-center gap-1 shrink-0 w-full sm:w-auto">
             {/* Quick actions */}
+            {!reviewMode && (
             <Tooltip>
               <TooltipTrigger
                 render={
@@ -779,6 +782,7 @@ export default function FinalDraftPanel({
                 {isDemoMode ? 'Sign up to copy the refined draft' : 'Copy refined draft'}
               </TooltipContent>
             </Tooltip>
+            )}
 
             {onSaveFinalDraft && (
               <Tooltip>

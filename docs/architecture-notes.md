@@ -374,6 +374,19 @@ Any body-changing resolution returns to Quality Check semantics. It does not
 require Full Analyze, and export remains guarded by current readiness,
 publication metadata, and saved-body consistency.
 
+### Pre-final candidate presentation
+
+Refine may persist a candidate revision that still contains a bounded residual
+editorial decision. Persistence protects recovery across refreshes and devices,
+but it does not promote that revision to the user-facing Final Draft surface.
+
+- unresolved `warning` or `fail` items render in Draft Review;
+- the candidate body remains hidden unless the editor explicitly opens the
+  Candidate Draft manual-edit view;
+- feedback actions describe editorial outcomes rather than backend mechanisms;
+- every body or source decision is saved and validated automatically; and
+- Final Draft is presented only when the current saved revision is `ready`.
+
 ## Workspace Editorial AI Request Lifecycle
 
 Analyze, Refine, targeted fixes, standalone Quality Check, SEO regeneration,

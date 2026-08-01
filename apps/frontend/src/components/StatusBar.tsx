@@ -7,6 +7,7 @@ import { EditorialReadiness } from '@eai/shared';
 import packageJson from '../../package.json';
 import { Button } from '@/components/ui/button';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
+import { useTranslations } from 'next-intl';
 
 interface StatusBarProps {
   wordCount: number;
@@ -51,6 +52,7 @@ export default function StatusBar({
   layoutReversed = false,
   onToggleLayoutReversed,
 }: StatusBarProps) {
+  const t = useTranslations('DraftReview');
   const isOverLimit = charCount > charLimit;
 
   return (
@@ -66,7 +68,13 @@ export default function StatusBar({
       </Tooltip>
 
       <span className="status-active-tab ide-statusbar-item bg-[var(--surface-2)] text-muted-foreground font-semibold" style={{ textTransform: 'capitalize' }}>
-        {activeTab === 'draft' ? 'Article Draft' : activeTab === 'analysis' ? 'Analysis' : 'Refined Draft'}
+        {activeTab === 'draft'
+          ? 'Article Draft'
+          : activeTab === 'analysis'
+            ? 'Analysis'
+            : readiness === 'ready'
+              ? t('statusFinal')
+              : t('tabLabel')}
       </span>
 
       {/* Divider */}

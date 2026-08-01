@@ -3,6 +3,7 @@
 import { FileEdit, FileCheck } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 
 export type PanelTab = 'draft' | 'refined';
 
@@ -22,6 +23,7 @@ interface PanelTabBarProps {
   hasNotes?: boolean;
   /** When true, left/right panel icons and handlers are swapped */
   layoutReversed?: boolean;
+  reviewPending?: boolean;
 }
 
 const TABS: { key: PanelTab; label: string; icon: React.ReactNode; description: string }[] = [
@@ -44,7 +46,9 @@ export default function PanelTabBar({
   onTabChange,
   hasResult,
   isLoading,
+  reviewPending = false,
 }: PanelTabBarProps) {
+  const t = useTranslations('DraftReview');
   return (
     <div className="ide-tabbar [container-type:inline-size] flex items-center min-w-0" role="tablist" aria-label="Editor Panels">
       {TABS.map((tab) => {
@@ -74,7 +78,7 @@ export default function PanelTabBar({
               tab.icon
             )}
             <span className="hidden @[340px]:inline truncate max-w-[120px]">
-              {tab.label}
+              {tab.key === 'refined' && reviewPending ? t('tabLabel') : tab.label}
             </span>
             {isLoadingTab && (
               <span

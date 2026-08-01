@@ -91,6 +91,8 @@
     "privacyLink": "Pemberitahuan Privasi"
   },
   "FinalDraftPanel": {
+    "finalDraft": "Draft Final",
+    "candidateDraft": "Draft Kandidat",
     "refreshPublicationMetadata": "Tinjau detail publikasi yang terdampak revisi terbaru",
     "staleMetadataTitle": "Detail publikasi memerlukan perhatian.",
     "staleMetadataDescription": "EAI tidak dapat memperbarui semua field terdampak dengan aman. Tinjau detail publikasi atau konfirmasikan bahwa redaksi saat ini masih sesuai.",
@@ -203,6 +205,16 @@
     "appliedPendingQualityCheck": "Diterapkan — menunggu verifikasi",
     "acceptedPendingQualityCheck": "Diterima — menunggu verifikasi",
     "copySuggestion": "Salin saran",
+    "acceptChange": "Terima perubahan",
+    "keepCurrentText": "Pertahankan teks",
+    "addSourceManually": "Tambah sumber manual",
+    "suggestedSource": "Sumber yang disarankan",
+    "supportsClaim": "Mendukung:",
+    "useSuggestedSource": "Gunakan sumber",
+    "editSourceLink": "Edit link",
+    "sourceUrlLabel": "URL sumber",
+    "saveSource": "Simpan sumber",
+    "cancel": "Batal",
     "acceptEditorialDecision": "Terima sebagai keputusan editorial",
     "acceptAndApplySuggestion": "Terima dan terapkan saran",
     "applySuggestedFix": "Terapkan saran perbaikan",
@@ -212,6 +224,20 @@
     "autoApplicableEdits": "{count} saran dapat diterapkan dalam satu langkah.",
     "applyAndVerify": "Terapkan perubahan",
     "applyingAndVerifying": "Menerapkan perubahan"
+  },
+  "DraftReview": {
+    "tabLabel": "Tinjauan Draft",
+    "statusFinal": "Draft Final",
+    "eyebrow": "Tinjauan draft",
+    "title": "Artikel hampir selesai",
+    "description": "Tinjau {count} keputusan editorial sebelum EAI menyiapkan Draft Final.",
+    "reviewDecision": "Tinjau keputusan",
+    "progress": "{completed} dari {total} keputusan selesai",
+    "editCandidate": "Edit draft kandidat secara manual",
+    "candidateNotice": "Ini adalah draft kandidat. Artikel baru menjadi Draft Final setelah keputusan yang tersisa dan validasi selesai.",
+    "backToQueue": "Kembali ke antrean tinjauan",
+    "validatingTitle": "Menyiapkan Draft Final",
+    "validatingDescription": "EAI sedang menerapkan keputusan Anda dan memvalidasi revisi tersimpan secara otomatis."
   },
   "FeedbackWorkflow": {
     "appliedAutomaticQualityCheck": "Saran diterapkan. EAI sedang memeriksa konten yang terdampak.",

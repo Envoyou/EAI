@@ -1,12 +1,18 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Editor from '@/components/Editor';
 import FinalDraftPanel from '@/components/FinalDraftPanel';
 import PanelTabBar from '@/components/PanelTabBar';
 import StatusBar from '@/components/StatusBar';
 import { Button } from '@/components/ui/button';
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
+import { WarningStatusIcon } from '@/components/ui/icons/status';
+import { EditActionIcon } from '@/components/ui/icons/actions';
+import { DocumentIcon } from '@/components/ui/icons/content';
+import { useTranslations } from 'next-intl';
 import type { PanelTab } from '@/components/PanelTabBar';
 import type { AnalysisResult, ArticleMetadata, EditorialProcessStage, PublicationPackage } from '@eai/shared';
 
@@ -35,6 +41,7 @@ interface EditorCanvasProps {
   onToggleSidebar: () => void;
   showFeedbackSidebar: boolean;
   onToggleFeedbackSidebar: () => void;
+  onOpenFeedbackSidebar: () => void;
   showNotesSidebar: boolean;
   onToggleNotesSidebar: () => void;
   hasNotes: boolean;
@@ -85,6 +92,7 @@ export default function EditorCanvas({
   onToggleSidebar,
   showFeedbackSidebar,
   onToggleFeedbackSidebar,
+  onOpenFeedbackSidebar,
   showNotesSidebar,
   onToggleNotesSidebar,
   hasNotes,
@@ -120,6 +128,32 @@ export default function EditorCanvas({
   isGeneratingDraft = false,
 }: EditorCanvasProps) {
   const router = useRouter();
+  const t = useTranslations('DraftReview');
+  const [candidateEditorKey, setCandidateEditorKey] = useState<string | null>(null);
+  const decisionFeedback = (analysis.feedback ?? []).filter(
+    (item) => item.status !== 'pass'
+  );
+  const unresolvedFeedback = decisionFeedback.filter(
+    (item) => item.status !== 'pass' && !item.isApplied && !item.isAccepted && !item.isVerified
+  );
+  const isCandidatePendingReview = Boolean(
+    analysis.polishedDraft?.trim()
+    && analysis.status === 'success'
+    && analysis.readiness !== 'ready'
+    && !isStreaming
+    && !isRefining
+  );
+
+  const candidateReviewKey = analysis.draftRevision?.bodyHash
+    ?? analysis.draftRevision?.revisionId
+    ?? `${analysis.analysisLogId ?? 'candidate'}:${analysis.polishedDraft?.length ?? 0}`;
+  const showCandidateEditor = isCandidatePendingReview
+    && candidateEditorKey === candidateReviewKey;
+
+  const openFeedbackDecision = (index?: number) => {
+    if (typeof index === 'number') onActiveFeedbackChange(index);
+    onOpenFeedbackSidebar();
+  };
 
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
@@ -172,6 +206,7 @@ export default function EditorCanvas({
         onToggleNotesSidebar={onToggleNotesSidebar}
         hasNotes={hasNotes}
         layoutReversed={layoutReversed}
+        reviewPending={isCandidatePendingReview}
       />
 
       {/* Workspace */}
@@ -229,10 +264,107 @@ export default function EditorCanvas({
                       marginRight: 'auto',
                     }}
                   >
+                    {isCandidatePendingReview && !showCandidateEditor ? (
+                      <div className="ui-panel flex h-full min-h-0 flex-col overflow-hidden">
+                        <div className="ui-panel-header px-5 py-4">
+                          <p className="text-[11px] font-medium text-[var(--muted-foreground)]">
+                            {t('eyebrow')}
+                          </p>
+                          <h2 className="mt-1 text-base font-semibold text-[var(--foreground)]">
+                            {t('title')}
+                          </h2>
+                          <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-[var(--muted-foreground)]">
+                            {unresolvedFeedback.length > 0
+                              ? t('description', { count: unresolvedFeedback.length })
+                              : t('validatingDescription')}
+                          </p>
+                        </div>
+
+                        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+                          {unresolvedFeedback.length > 0 ? (
+                            <div className="mx-auto max-w-2xl space-y-3">
+                              {unresolvedFeedback.map((item) => {
+                                const index = (analysis.feedback ?? []).indexOf(item);
+                                return (
+                                  <Button
+                                    key={item.feedbackId ?? `${item.category}-${index}`}
+                                    type="button"
+                                    variant="surface"
+                                    onClick={() => openFeedbackDecision(index)}
+                                    className="h-auto w-full items-start justify-start gap-3 whitespace-normal p-4 text-left"
+                                  >
+                                    <WarningStatusIcon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block text-xs font-semibold text-[var(--foreground)]">
+                                        {item.category}
+                                      </span>
+                                      <span className="mt-1 block text-xs font-normal leading-relaxed text-[var(--muted-foreground)]">
+                                        {item.message}
+                                      </span>
+                                      <span className="mt-2 block text-[11px] font-semibold text-[var(--primary)]">
+                                        {t('reviewDecision')}
+                                      </span>
+                                    </span>
+                                  </Button>
+                                );
+                              })}
+                              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                                <p className="text-xs text-[var(--muted-foreground)]">
+                                  {t('progress', {
+                                    completed: decisionFeedback.length - unresolvedFeedback.length,
+                                    total: decisionFeedback.length,
+                                  })}
+                                </p>
+                                <Button
+                                  type="button"
+                                  variant="muted"
+                                  size="sm"
+                                  onClick={() => setCandidateEditorKey(candidateReviewKey)}
+                                >
+                                  <EditActionIcon className="h-3.5 w-3.5" />
+                                  {t('editCandidate')}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="ui-state-card mx-auto flex max-w-xl flex-col items-center justify-center p-8 text-center">
+                              {isCheckingQuality ? (
+                                <EAILoaderStatusIcon className="mb-3 h-6 w-6" />
+                              ) : (
+                                <DocumentIcon className="mb-3 h-6 w-6 text-[var(--primary)]" />
+                              )}
+                              <h3 className="text-sm font-semibold text-[var(--foreground)]">
+                                {t('validatingTitle')}
+                              </h3>
+                              <p className="mt-1.5 text-xs leading-relaxed text-[var(--muted-foreground)]">
+                                {t('validatingDescription')}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                    <div className="flex h-full min-h-0 flex-col">
+                      {isCandidatePendingReview && (
+                        <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5">
+                          <p className="text-xs text-[var(--muted-foreground)]">
+                            {t('candidateNotice')}
+                          </p>
+                          <Button
+                            type="button"
+                            variant="muted"
+                            size="xs"
+                            onClick={() => setCandidateEditorKey(null)}
+                          >
+                            {t('backToQueue')}
+                          </Button>
+                        </div>
+                      )}
+                      <div className="min-h-0 flex-1">
                     <FinalDraftPanel
                       originalDraft={sourceDraft}
                       polishedDraft={analysis.polishedDraft ?? ''}
-                      ready={analysis.status === 'success'}
+                      ready={analysis.status === 'success' && analysis.readiness === 'ready'}
                       qualityReady={analysis.readiness === 'ready'}
                       exportBlocked={isDemoMode || analysis.readiness !== 'ready'}
                       cmsConnected={editorialOptions.cmsExportEnabled}
@@ -251,14 +383,14 @@ export default function EditorCanvas({
                       processStage={processStage}
                       processStartedAt={processStartedAt}
                       includeSeoStage={includeSeoStage}
-                      onRefineAgain={onRefineAgain}
+                      onRefineAgain={isCandidatePendingReview ? undefined : onRefineAgain}
                       onReanalyze={onReanalyze}
                       onSaveFinalDraft={onSaveFinalDraft}
                       onQualityCheck={onQualityCheck}
                       onRegenerateSeo={onRegenerateSeo}
                       onSavePublicationMetadata={onSavePublicationMetadata}
                       onConfirmPublicationMetadata={onConfirmPublicationMetadata}
-                      onPrepareForExport={onPrepareForExport}
+                      onPrepareForExport={isCandidatePendingReview ? undefined : onPrepareForExport}
                       isSavingFinalDraft={isSavingFinalDraft}
                       isCheckingQuality={isCheckingQuality}
                       isGeneratingSeo={isGeneratingSeo}
@@ -268,7 +400,11 @@ export default function EditorCanvas({
                       onActiveFeedbackChange={onActiveFeedbackChange}
                       feedback={analysis.feedback || []}
                       isDemoMode={isDemoMode}
+                      reviewMode={isCandidatePendingReview}
                     />
+                      </div>
+                    </div>
+                    )}
                   </div>
                 </div>
               ) : (

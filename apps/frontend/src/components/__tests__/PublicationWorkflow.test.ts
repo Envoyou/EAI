@@ -168,6 +168,27 @@ describe('revision-safe publication workflow', () => {
     expect(workspace).not.toContain('Resolve only this remaining editorial finding');
   });
 
+  it('keeps unresolved candidates behind an editorial review queue', () => {
+    const canvas = readFrontendSource('components/EditorCanvas.tsx');
+    const panel = readFrontendSource('components/FinalDraftPanel.tsx');
+    const feedbackCard = readFrontendSource(
+      'components/feedback-panel/components/FeedbackItemCard.tsx'
+    );
+
+    expect(canvas).toContain('isCandidatePendingReview');
+    expect(canvas).toContain("analysis.readiness !== 'ready'");
+    expect(canvas).toContain("t('reviewDecision')");
+    expect(canvas).toContain('onOpenFeedbackSidebar();');
+    expect(canvas).toContain("analysis.readiness === 'ready'");
+    expect(panel).toContain("reviewMode ? t('candidateDraft') : t('finalDraft')");
+    expect(feedbackCard).toContain("t('acceptChange')");
+    expect(feedbackCard).toContain("t('keepCurrentText')");
+    expect(feedbackCard).toContain("t('addSourceManually')");
+    expect(feedbackCard).toContain("t('useSuggestedSource')");
+    expect(feedbackCard).toContain('sourceOverride?: string');
+    expect(feedbackCard).not.toContain("onCopy(item.suggestion!");
+  });
+
   it('keeps cancellation available for the complete AI lifecycle and blocks overlapping actions', () => {
     const shell = readFrontendSource('components/EditorialWorkspace.tsx');
     const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');

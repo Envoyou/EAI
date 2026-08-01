@@ -7,6 +7,9 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Changed
+- **Decision-oriented pre-final review**:
+  - Kept unresolved Refine output behind a Draft Review queue and labeled explicit manual access as Candidate Draft; the normal Final Draft surface now appears only after the saved revision reaches `ready`.
+  - Replaced technical feedback controls with editorial outcomes such as Accept change, Keep current text, Add source manually, and Remove unsupported detail; applying a decision continues to trigger automatic validation.
 - **Source-fidelity target accuracy**:
   - Matched acronym findings as complete Unicode tokens when locating their affected sentence, preventing `ERP` from highlighting an unrelated sentence containing the word `enterprises`.
 - **In-place Final Draft editing**:

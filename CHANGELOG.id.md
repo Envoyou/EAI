@@ -7,6 +7,9 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Changed
+- **Tinjauan Pra-final Berbasis Keputusan**:
+  - Menahan hasil Refine yang masih memiliki keputusan blocking di antrean Tinjauan Draft dan memberi label Draft Kandidat pada akses edit manual; tampilan Draft Final normal baru muncul setelah revisi tersimpan berstatus `ready`.
+  - Mengganti kontrol feedback teknis dengan hasil editorial seperti Terima perubahan, Pertahankan teks, Tambah sumber manual, dan Hapus detail tanpa dukungan; penerapan keputusan tetap memicu validasi otomatis.
 - **Akurasi target source-fidelity**:
   - Mencocokkan temuan akronim sebagai token Unicode utuh ketika mencari kalimat terdampak, sehingga `ERP` tidak lagi menyorot kalimat tak terkait hanya karena memuat kata `enterprises`.
 - **Pengeditan Final Draft langsung di tempat**:
