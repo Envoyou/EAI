@@ -48,6 +48,8 @@ export const extractGeneratedMetadata = (metadata: unknown) => {
 export const extractPublicationState = (metadata: unknown): {
   workingTitle?: string;
   publicationPackageStatus?: import('@eai/shared').PublicationPackageStatus;
+  qualityGateState?: import('@eai/shared').RevisionValidationState;
+  seoReviewState?: import('@eai/shared').SeoReviewState;
 } => {
   if (!metadata || typeof metadata !== 'object') return {};
   const source = metadata as Record<string, unknown>;
@@ -61,9 +63,23 @@ export const extractPublicationState = (metadata: unknown): {
       ? 'current'
       : 'not_generated';
   const rawTitle = source.workingTitle ?? system.workingTitle;
+  const rawQualityGateState = system.qualityGateState;
+  const rawSeoReviewState = system.seoReviewState;
   return {
     workingTitle: typeof rawTitle === 'string' ? rawTitle : undefined,
     publicationPackageStatus,
+    qualityGateState:
+      rawQualityGateState === 'valid'
+      || rawQualityGateState === 'validation_recommended'
+      || rawQualityGateState === 'stale'
+        ? rawQualityGateState
+        : undefined,
+    seoReviewState:
+      rawSeoReviewState === 'valid'
+      || rawSeoReviewState === 'possibly_stale'
+      || rawSeoReviewState === 'stale'
+        ? rawSeoReviewState
+        : undefined,
   };
 };
 

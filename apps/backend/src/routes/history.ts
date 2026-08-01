@@ -20,7 +20,7 @@ import {
   ContentSourceType,
 } from '@prisma/client';
 import { upsertContentArtifact } from '@/lib/content-memory';
-import { classifyDraftRevisionImpact } from '@/lib/draft-revision-impact';
+import { assessDraftRevision } from '@/lib/draft-revision-impact';
 
 const router = Router();
 
@@ -475,15 +475,25 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       const previousPolishedDraft = typeof systemMetadata.polishedDraft === 'string'
         ? systemMetadata.polishedDraft
         : '';
-      const revisionImpact = classifyDraftRevisionImpact({
+      const protectedTargets = Array.isArray(log.feedback)
+        ? log.feedback
+            .map((item) =>
+              item && typeof item === 'object' && !Array.isArray(item)
+                ? (item as Record<string, unknown>).targetText
+                : undefined
+            )
+            .filter((target): target is string => typeof target === 'string')
+        : [];
+      const assessment = assessDraftRevision({
         previousDraft: previousPolishedDraft,
         nextDraft: nextPolishedDraft,
         publicationMetadata:
           metadata.generatedMetadata && typeof metadata.generatedMetadata === 'object'
             ? metadata.generatedMetadata
             : null,
+        protectedTargets,
       });
-      const invalidatesPublicationReview = revisionImpact === 'substantive';
+      const invalidatesPublicationReview = assessment.validationLevel === 'full';
       const previousReadiness =
         systemMetadata.readiness === 'ready'
         || systemMetadata.readiness === 'needs_review'
@@ -491,10 +501,40 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
           ? systemMetadata.readiness
           : 'needs_review';
       const readiness = invalidatesPublicationReview ? 'needs_review' : previousReadiness;
+      const previousQualityGateState =
+        systemMetadata.qualityGateState === 'valid'
+        || systemMetadata.qualityGateState === 'validation_recommended'
+        || systemMetadata.qualityGateState === 'stale'
+          ? systemMetadata.qualityGateState
+          : previousReadiness === 'ready'
+            ? 'valid'
+            : 'stale';
+      const qualityGateState = previousQualityGateState === 'stale'
+        ? 'stale'
+        : assessment.qualityGateState === 'stale'
+          ? 'stale'
+          : assessment.qualityGateState === 'validation_recommended'
+            ? 'validation_recommended'
+            : previousQualityGateState;
+      const previousSeoReviewState =
+        systemMetadata.seoReviewState === 'valid'
+        || systemMetadata.seoReviewState === 'possibly_stale'
+        || systemMetadata.seoReviewState === 'stale'
+          ? systemMetadata.seoReviewState
+          : metadata.publicationPackageStatus === 'stale'
+            ? 'stale'
+            : 'valid';
+      const seoReviewState = previousSeoReviewState === 'stale'
+        ? 'stale'
+        : assessment.seoReviewState === 'stale'
+          ? 'stale'
+          : assessment.seoReviewState === 'possibly_stale'
+            ? 'possibly_stale'
+            : previousSeoReviewState;
       const publicationPackageStatus = resolvePublicationPackageStatus({
         storedStatus: metadata.publicationPackageStatus,
         hasPackage: Boolean(metadata.generatedMetadata),
-        bodyChanged: invalidatesPublicationReview,
+        bodyChanged: assessment.seoReviewState === 'stale',
       });
       await prisma.analysisLog.update({
         where: { id },
@@ -504,7 +544,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
                 feedback: [] as Prisma.InputJsonValue,
                 flags: [] as Prisma.InputJsonValue,
                 verdict: 'needs_review',
-                summary: 'The final draft changed substantively and needs a content quality check.',
+                summary: 'The final draft changed factual or source-sensitive content and needs a content quality check.',
               }
             : {}),
           metadata: {
@@ -515,7 +555,11 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
               polishedDraft: nextPolishedDraft,
               readiness,
               publicationPackageStatus,
-              revisionImpact,
+              revisionImpact: assessment.impact,
+              revisionValidationLevel: assessment.validationLevel,
+              revisionValidationReasons: assessment.reasons,
+              qualityGateState,
+              seoReviewState,
               finalDraftEditedAt: new Date().toISOString(),
               qualityGateCheckedAt: invalidatesPublicationReview
                 ? null
@@ -529,9 +573,13 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         polishedDraft: nextPolishedDraft,
         readiness,
         publicationPackageStatus,
-        revisionImpact,
+        revisionImpact: assessment.impact,
+        revisionValidationLevel: assessment.validationLevel,
+        revisionValidationReasons: assessment.reasons,
+        qualityGateState,
+        seoReviewState,
         qualityCheckInvalidated: invalidatesPublicationReview,
-        seoInvalidated: invalidatesPublicationReview && publicationPackageStatus === 'stale',
+        seoInvalidated: assessment.seoReviewState === 'stale' && publicationPackageStatus === 'stale',
       });
     }
 
@@ -551,6 +599,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
             _system: {
               ...systemMetadata,
               publicationPackageStatus: 'current',
+              seoReviewState: 'valid',
               seoEditedAt: new Date().toISOString(),
             },
           } as Prisma.InputJsonValue,
@@ -560,6 +609,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         success: true,
         generatedMetadata: resolution.data.publicationPackage,
         publicationPackageStatus: 'current',
+        seoReviewState: 'valid',
       });
     }
 
@@ -587,6 +637,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
             _system: {
               ...systemMetadata,
               publicationPackageStatus: 'current',
+              seoReviewState: 'valid',
               seoConfirmedAt: confirmedAt,
             },
           } as Prisma.InputJsonValue,
@@ -595,6 +646,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       return res.json({
         success: true,
         publicationPackageStatus: 'current',
+        seoReviewState: 'valid',
         confirmedAt,
       });
     }
@@ -607,11 +659,39 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       : '';
     const nextPolishedDraft = preparePublicationDraft(resolution.data.polishedDraft);
     const bodyChanged = previousPolishedDraft !== nextPolishedDraft;
+    const bodyChangeAssessment = bodyChanged
+      ? assessDraftRevision({
+          previousDraft: previousPolishedDraft,
+          nextDraft: nextPolishedDraft,
+          publicationMetadata:
+            metadata.generatedMetadata && typeof metadata.generatedMetadata === 'object'
+              ? metadata.generatedMetadata
+              : null,
+          protectedTargets: resolution.data.feedback
+            .map((item) => item.targetText)
+            .filter((target): target is string => typeof target === 'string'),
+        })
+      : null;
     const publicationPackageStatus = resolvePublicationPackageStatus({
       storedStatus: metadata.publicationPackageStatus,
       hasPackage: Boolean(metadata.generatedMetadata),
-      bodyChanged,
+      bodyChanged: bodyChangeAssessment?.seoReviewState === 'stale',
     });
+    const previousResolutionSeoState =
+      systemMetadata.seoReviewState === 'valid'
+      || systemMetadata.seoReviewState === 'possibly_stale'
+      || systemMetadata.seoReviewState === 'stale'
+        ? systemMetadata.seoReviewState
+        : metadata.publicationPackageStatus === 'stale'
+          ? 'stale'
+          : 'valid';
+    const seoReviewState = previousResolutionSeoState === 'stale'
+      ? 'stale'
+      : bodyChangeAssessment?.seoReviewState === 'stale'
+        ? 'stale'
+        : bodyChangeAssessment?.seoReviewState === 'possibly_stale'
+          ? 'possibly_stale'
+          : previousResolutionSeoState;
     const readiness = bodyChanged
       ? 'needs_review'
       : unresolved.length === 0
@@ -642,6 +722,8 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
             polishedDraft: nextPolishedDraft,
             readiness,
             publicationPackageStatus,
+            qualityGateState: readiness === 'ready' ? 'valid' : 'stale',
+            seoReviewState,
             confirmedInternalUrls,
             resolvedQualityFindings,
           },
@@ -649,7 +731,13 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       },
     });
 
-    return res.json({ success: true, readiness, publicationPackageStatus });
+    return res.json({
+      success: true,
+      readiness,
+      publicationPackageStatus,
+      qualityGateState: readiness === 'ready' ? 'valid' : 'stale',
+      seoReviewState,
+    });
   } catch (error) {
     console.error('[HISTORY_ID_RESOLVE_PATCH]', error);
     return res.status(500).json({ error: 'Failed to resolve editorial feedback' });

@@ -334,17 +334,31 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
               verdict: 'needs_review' as const,
               feedback: [],
               flags: [],
-              summary: 'The final draft changed substantively and needs a content quality check.',
+              summary: 'The final draft changed factual or source-sensitive content and needs a content quality check.',
             }
           : {}),
         publicationPackageStatus: persistedPackageStatus,
+        qualityGateState:
+          result.qualityGateState === 'valid'
+          || result.qualityGateState === 'validation_recommended'
+          || result.qualityGateState === 'stale'
+            ? result.qualityGateState
+            : prev.qualityGateState,
+        seoReviewState:
+          result.seoReviewState === 'valid'
+          || result.seoReviewState === 'possibly_stale'
+          || result.seoReviewState === 'stale'
+            ? result.seoReviewState
+            : prev.seoReviewState,
       }));
       toast.success(
         result.revisionImpact === 'formatting_only'
           ? tFinalDraftPanel('formattingEditSaved')
           : result.revisionImpact === 'minor_copy_edit'
             ? tFinalDraftPanel('minorEditSaved')
-            : tFinalDraftPanel('substantiveEditSaved')
+            : result.revisionImpact === 'editorial_change'
+              ? tFinalDraftPanel('editorialEditSaved')
+              : tFinalDraftPanel('substantiveEditSaved')
       );
       return true;
     } catch (error) {
@@ -449,6 +463,10 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           setAnalysis(prev => ({ ...prev, flags: event.data as string[] }));
         }
       }, controller);
+      setAnalysis(prev => ({
+        ...prev,
+        qualityGateState: checkedReadiness === 'ready' ? 'valid' : 'stale',
+      }));
       toast.success(tFinalDraftPanel('qualityCheckSuccess'));
       return checkedReadiness;
     } catch (error) {
@@ -538,8 +556,18 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         }
       }, controller);
       if (packageReadiness === 'ready') {
+        setAnalysis(prev => ({
+          ...prev,
+          qualityGateState: 'valid',
+          seoReviewState: 'valid',
+        }));
         toast.success(tFinalDraftPanel('seoQualityReady'));
       } else {
+        setAnalysis(prev => ({
+          ...prev,
+          qualityGateState: 'stale',
+          seoReviewState: 'valid',
+        }));
         toast.warning(tFinalDraftPanel('seoQualityNeedsReview'));
       }
     } catch (error) {
@@ -579,6 +607,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         ...prev,
         generatedMetadata: result.generatedMetadata,
         publicationPackageStatus: 'current',
+        seoReviewState: 'valid',
       }));
       toast.success('SEO metadata saved for the current final draft.');
       return true;
@@ -612,6 +641,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       setAnalysis(prev => ({
         ...prev,
         publicationPackageStatus: 'current',
+        seoReviewState: 'valid',
       }));
     } finally {
       workspaceMutationRef.current = false;
@@ -625,6 +655,14 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       : await handleQualityCheck();
     if (readiness !== 'ready') {
       toast.info('Resolve or approve the current quality findings before generating SEO.');
+      return;
+    }
+    if (
+      analysis.publicationPackageStatus === 'current'
+      && analysis.seoReviewState !== 'stale'
+      && analysis.generatedMetadata
+    ) {
+      toast.success(tFinalDraftPanel('existingSeoRetained'));
       return;
     }
     await handleRegenerateSeo();
@@ -941,6 +979,8 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           generatedMetadata: extractGeneratedMetadata(log.metadata) as Record<string, unknown>,
           workingTitle: publicationState.workingTitle,
           publicationPackageStatus: publicationState.publicationPackageStatus,
+          qualityGateState: publicationState.qualityGateState,
+          seoReviewState: publicationState.seoReviewState,
           editorStatus: log.editorStatus,
         });
         if (log.status === 'success') setActiveTab('refined');

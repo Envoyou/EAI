@@ -9,8 +9,9 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ### Changed
 - **Pengeditan Final Draft langsung di tempat**:
   - Mengganti kartu edit Markdown mentah yang terpisah dengan editor rich-text pada area Preview yang sama, sehingga typo yang terlihat dapat langsung diperbaiki tanpa mencarinya lagi dalam representasi lain.
-  - Mempertahankan Markdown sebagai format pertukaran yang disimpan dan menambahkan klasifikasi dampak revisi yang ditentukan backend: koreksi spasi mempertahankan status Quality Check dan SEO saat ini, demikian juga edit berisiko rendah hingga 1% dari draft minimal 100 kata dengan batas maksimal dua perubahan kata.
-  - Perubahan substantif tetap menginvalidasi kesiapan publikasi. Perubahan heading, fakta/angka, tautan, bahasa terlindungi, istilah SEO, proper name, struktur, dan konten yang lebih luas tetap wajib divalidasi ulang.
+  - Mempertahankan Markdown sebagai format pertukaran yang disimpan dan menambahkan penilaian revisi tiga tingkat yang ditentukan backend. Format kosmetik/berpindah serta perbaikan grammar terbatas mempertahankan status; perubahan editorial/struktur yang lebih luas mendapat advisory ringan persisten tanpa memblokir publikasi; perubahan fakta, entitas, angka, sitasi, sumber, negasi, high-stakes, area yang pernah direview, atau cakupan klaim mewajibkan Quality Gate penuh.
+  - Menghapus aturan invalidasi mutlak berdasarkan jumlah kata dan persentase. Ukuran edit hanya menjadi fallback terbatas untuk penambahan/penghapusan yang sangat besar, sedangkan keputusan utama mengikuti sinyal risiko makna.
+  - Memisahkan invalidasi Quality Gate dari relevansi SEO. Metadata dapat tetap `current`, mendapat advisory `possibly_stale`, atau menjadi `stale` yang memblokir; Prepare menggunakan kembali SEO relevan yang masih current alih-alih selalu membuat ulang setelah Quality Check.
   - Menambahkan bar Save/Cancel yang sticky dan menahan sementara aksi workflow, ekspor, salin, serta perpindahan tampilan selama revisi belum disimpan.
 
 ## [3.21.0] - 2026-07-30

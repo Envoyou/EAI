@@ -9,6 +9,8 @@ export type ResponseMode = 'standard' | 'compact' | 'manual_fallback';
 export type VerificationStatus = 'source_backed' | 'needs_citation' | 'high_risk_factual_claim';
 export type EditorialReadiness = 'ready' | 'needs_review' | 'blocked';
 export type PublicationPackageStatus = 'not_generated' | 'current' | 'stale';
+export type RevisionValidationState = 'valid' | 'validation_recommended' | 'stale';
+export type SeoReviewState = 'valid' | 'possibly_stale' | 'stale';
 export type FindingTarget =
   | 'body'
   | 'publication.title'
@@ -93,6 +95,8 @@ export interface AnalysisResult {
   analysisLogId?: string;
   workingTitle?: string;
   publicationPackageStatus?: PublicationPackageStatus;
+  qualityGateState?: RevisionValidationState;
+  seoReviewState?: SeoReviewState;
   /** @deprecated Prefer the PublicationPackage domain name. Kept for stored-data compatibility. */
   generatedMetadata?: PublicationPackage;
   sourceRef?: string;

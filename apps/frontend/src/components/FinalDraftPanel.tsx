@@ -17,7 +17,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
 import { buildParagraphDiff } from '@eai/shared';
-import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackage, PublicationPackageStatus } from '@eai/shared';
+import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackage, PublicationPackageStatus, RevisionValidationState, SeoReviewState } from '@eai/shared';
 import EditorialProgress from '@/components/EditorialProgress';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -61,6 +61,8 @@ interface FinalDraftPanelProps {
   };
   workingTitle?: string;
   publicationPackageStatus?: PublicationPackageStatus;
+  qualityGateState?: RevisionValidationState;
+  seoReviewState?: SeoReviewState;
   isFocused?: boolean;
   onFocusToggle?: () => void;
   isStreaming?: boolean;
@@ -213,6 +215,8 @@ export default function FinalDraftPanel({
   generatedMetadata,
   workingTitle,
   publicationPackageStatus,
+  qualityGateState,
+  seoReviewState,
   isFocused,
   onFocusToggle,
   isStreaming,
@@ -1151,6 +1155,88 @@ export default function FinalDraftPanel({
         {exportStatus?.blogEditUrl && (
           <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
             <strong>Note:</strong> This draft was already exported. Re-exporting will update the existing blog draft.
+          </Alert>
+        )}
+        {qualityGateState === 'validation_recommended' && (
+          <Alert variant="primary" className="mb-3 px-3 py-2 text-xs">
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <strong>{t('validationRecommendedTitle')}</strong>{' '}
+              {t('validationRecommendedDescription')}
+              {onQualityCheck && (
+                <Button
+                  type="button"
+                  variant="muted"
+                  size="xs"
+                  className="mt-2"
+                  disabled={isCheckingQuality || isAiBusy}
+                  onClick={() => void onQualityCheck()}
+                >
+                  {isCheckingQuality
+                    ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
+                    : <ShieldCheck className="h-3.5 w-3.5" />}
+                  {t('runOptionalQualityCheck')}
+                </Button>
+              )}
+            </div>
+          </Alert>
+        )}
+        {qualityGateState === 'stale' && (
+          <Alert variant="danger" className="mb-3 px-3 py-2 text-xs">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <strong>{t('fullValidationRequiredTitle')}</strong>{' '}
+              {t('fullValidationRequiredDescription')}
+              {onQualityCheck && (
+                <Button
+                  type="button"
+                  variant="muted"
+                  size="xs"
+                  className="mt-2"
+                  disabled={isCheckingQuality || isAiBusy}
+                  onClick={() => void onQualityCheck()}
+                >
+                  {isCheckingQuality
+                    ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
+                    : <ShieldCheck className="h-3.5 w-3.5" />}
+                  {t('qualityCheck')}
+                </Button>
+              )}
+            </div>
+          </Alert>
+        )}
+        {seoReviewState === 'possibly_stale' && publicationPackageStatus === 'current' && (
+          <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <strong>{t('seoReviewRecommendedTitle')}</strong>{' '}
+              {t('seoReviewRecommendedDescription')}
+              {onConfirmPublicationMetadata && generatedMetadata && (
+                <Button
+                  type="button"
+                  variant="muted"
+                  size="xs"
+                  className="mt-2"
+                  disabled={isConfirmingMetadata}
+                  onClick={async () => {
+                    setIsConfirmingMetadata(true);
+                    try {
+                      await onConfirmPublicationMetadata();
+                      toast.success(t('confirmMetadataSuccess'));
+                    } catch {
+                      toast.error(t('confirmMetadataFailed'));
+                    } finally {
+                      setIsConfirmingMetadata(false);
+                    }
+                  }}
+                >
+                  {isConfirmingMetadata
+                    ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
+                    : <ShieldCheck className="h-3.5 w-3.5" />}
+                  {t('confirmMetadataCurrent')}
+                </Button>
+              )}
+            </div>
           </Alert>
         )}
         {publicationPackageStatus === 'stale' && (

@@ -9,8 +9,9 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ### Changed
 - **In-place Final Draft editing**:
   - Replaced the detached raw-Markdown edit card with a rich-text editor in the existing Preview surface, so a visible typo can be corrected without finding it again in a separate representation.
-  - Kept Markdown as the persisted interchange format and added server-authoritative revision-impact classification: whitespace-only corrections retain the current Quality Check and SEO status, as do low-risk edits within 1% of a draft of at least 100 words, capped at two word edits.
-  - Substantive edits still invalidate publication readiness. Heading, fact/number, link, protected language, SEO-term, proper-name, structural, and broader content changes remain on the strict revalidation path.
+  - Kept Markdown as the persisted interchange format and added a server-authoritative three-level revision assessment. Cosmetic/reordered formatting and bounded grammar edits retain status; broader editorial/structural edits receive a persisted lightweight advisory without blocking publication; factual, entity, number, citation, source, negation, high-stakes, reviewed-region, or claim-scope changes require the full Quality Gate.
+  - Removed absolute word-count and percentage invalidation rules. Edit size remains only a bounded fallback for unusually large additions/removals, while semantic-risk signals drive the decision.
+  - Separated Quality Gate invalidation from SEO relevance. Metadata can remain current, become advisory `possibly_stale`, or become blocking `stale`; Prepare reuses current relevant SEO instead of regenerating it after every Quality Check.
   - Added a sticky Save/Cancel bar and temporarily holds Preview-adjacent workflow, export, copy, and view actions while an unsaved revision is open.
 
 ## [3.21.0] - 2026-07-30

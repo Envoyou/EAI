@@ -102,9 +102,12 @@ same Preview surface used for reading. The editor serializes every update back
 to Markdown and delegates persistence to the existing Final Draft revision
 action; it does not own API access or publication-readiness state. The backend
 classifies revision impact from the persisted and submitted bodies rather than
-trusting a client-supplied severity flag. Cosmetic whitespace and bounded
-low-risk copy edits preserve the current review/SEO state; structural,
-fact-sensitive, metadata-relevant, or broader edits invalidate it.
+trusting a client-supplied severity flag. Cosmetic/reordered formatting and
+low-risk copy edits preserve state. Editorial and structural edits persist a
+non-blocking `validation_recommended` advisory, while factual/source-sensitive
+changes mark the Quality Gate stale. SEO relevance is independent: it can stay
+valid, become `possibly_stale`, or become blocking `stale` after topical anchor
+loss. These advisory states survive History reloads through `_system` metadata.
 
 While a revision is open, Save and Cancel remain visible in a sticky local
 toolbar. Other draft views and actions that operate on the persisted article

@@ -47,7 +47,20 @@ describe('revision-safe publication workflow', () => {
     expect(workspace).toContain('result.qualityCheckInvalidated === true');
     expect(workspace).toContain("result.revisionImpact === 'formatting_only'");
     expect(workspace).toContain("result.revisionImpact === 'minor_copy_edit'");
+    expect(workspace).toContain("result.revisionImpact === 'editorial_change'");
     expect(workspace).toContain("tFinalDraftPanel('substantiveEditSaved')");
+    expect(workspace).toContain("analysis.seoReviewState !== 'stale'");
+    expect(workspace).toContain("tFinalDraftPanel('existingSeoRetained')");
+  });
+
+  it('distinguishes advisory validation from blocking Quality Gate and SEO states', () => {
+    const panel = readFrontendSource('components/FinalDraftPanel.tsx');
+
+    expect(panel).toContain("qualityGateState === 'validation_recommended'");
+    expect(panel).toContain("qualityGateState === 'stale'");
+    expect(panel).toContain("seoReviewState === 'possibly_stale'");
+    expect(panel).toContain("t('runOptionalQualityCheck')");
+    expect(panel).toContain("t('seoReviewRecommendedDescription')");
   });
 
   it('keeps secondary final-draft actions in an adaptive portalled menu', () => {

@@ -5,6 +5,7 @@ import {
   calculateReadiness,
   extractArticleMetadata,
   extractQualityGate,
+  extractPublicationState,
   isFeedbackResolved,
   markFeedbackApplied,
   normalizeHttpSourceUrl,
@@ -98,6 +99,22 @@ describe('calculateReadiness', () => {
     expect(isFeedbackResolved(accepted)).toBe(true);
     expect(calculateReadiness([accepted])).toBe('ready');
     expect(accepted.isApplied).toBeUndefined();
+  });
+});
+
+describe('extractPublicationState', () => {
+  it('restores independent Quality Gate and SEO advisory states', () => {
+    expect(extractPublicationState({
+      publicationPackageStatus: 'current',
+      _system: {
+        qualityGateState: 'validation_recommended',
+        seoReviewState: 'possibly_stale',
+      },
+    })).toMatchObject({
+      publicationPackageStatus: 'current',
+      qualityGateState: 'validation_recommended',
+      seoReviewState: 'possibly_stale',
+    });
   });
 });
 
