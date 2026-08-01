@@ -257,6 +257,9 @@ export default function FinalDraftPanel({
     toSeoEditValue(generatedMetadata)
   );
   const isGeneratingDraft = Boolean(isStreaming || isRefining);
+  const isBackgroundValidation = Boolean(
+    isCheckingQuality && !isAiBusy && !isGeneratingDraft
+  );
   const displayTab: TabType = isGeneratingDraft && !polishedDraft.trim() ? 'preview' : activeTab;
 
   // Auto-scroll when active feedback index changes
@@ -1157,7 +1160,16 @@ export default function FinalDraftPanel({
             <strong>Note:</strong> This draft was already exported. Re-exporting will update the existing blog draft.
           </Alert>
         )}
-        {qualityGateState === 'validation_recommended' && (
+        {isBackgroundValidation && (
+          <Alert variant="primary" className="mb-3 px-3 py-2 text-xs">
+            <EAILoaderStatusIcon className="h-4 w-4 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <strong>{t('checkingRecentChangesTitle')}</strong>{' '}
+              {t('checkingRecentChangesDescription')}
+            </div>
+          </Alert>
+        )}
+        {qualityGateState === 'validation_recommended' && !isBackgroundValidation && (
           <Alert variant="primary" className="mb-3 px-3 py-2 text-xs">
             <ShieldCheck className="h-4 w-4 shrink-0" />
             <div className="min-w-0 flex-1">
@@ -1181,7 +1193,7 @@ export default function FinalDraftPanel({
             </div>
           </Alert>
         )}
-        {qualityGateState === 'stale' && (
+        {qualityGateState === 'stale' && !isBackgroundValidation && (
           <Alert variant="danger" className="mb-3 px-3 py-2 text-xs">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <div className="min-w-0 flex-1">

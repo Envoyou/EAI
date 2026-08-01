@@ -122,6 +122,14 @@ claim/source validation, or full Quality Gate escalation. The manual Quality
 Check action continues to use `quality_gate` as a publication checkpoint and
 recovery path. The client does not derive changed blocks or validation scope.
 
+Manual editing keeps explicit Save/Cancel semantics. Validation never runs
+against the unsaved TipTap buffer. After Save returns a new durable revision,
+the client schedules background validation at 1.8 seconds for lightweight
+changes or 800 ms for high-risk changes; safe formatting/copy edits schedule
+nothing. The background controller is separate from foreground AI, so editing
+remains available. A new save or conflicting workspace action cancels and
+coalesces pending work, while backend revision/hash checks reject late results.
+
 The workspace carries the backend-issued Final Draft revision identity through
 Analyze/Refine completion, History reload, editorial mutations, Quality Check,
 and SEO regeneration. Mutation and publication requests send both revision ID

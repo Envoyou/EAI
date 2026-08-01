@@ -135,6 +135,19 @@ describe('revision-safe publication workflow', () => {
     expect(summary).toContain("t('applyAndVerify')");
   });
 
+  it('schedules non-blocking validation after a durable manual revision', () => {
+    const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
+    const panel = readFrontendSource('components/FinalDraftPanel.tsx');
+
+    expect(workspace).toContain('getBackgroundValidationDelay(context.validationLevel)');
+    expect(workspace).toContain('backgroundValidationAbortControllerRef');
+    expect(workspace).toContain('preserveCurrentStateOnFailure: true');
+    expect(workspace).toContain('background: true');
+    expect(workspace).toContain('cancelBackgroundValidation();');
+    expect(panel).toContain('isBackgroundValidation');
+    expect(panel).toContain("t('checkingRecentChangesTitle')");
+  });
+
   it('keeps targetless quality findings actionable without requiring full Analyze', () => {
     const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
     const feedbackCard = readFrontendSource(

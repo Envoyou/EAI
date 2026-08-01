@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -39,6 +39,7 @@ import { executeAnalyze } from './actions/analyze';
 import { executeRefine } from './actions/refine';
 import { executeTargetedFix } from './actions/targetedFix';
 import { executeGenerateDraftFromNotes } from './actions/strategist';
+import { getBackgroundValidationDelay } from './background-validation';
 
 // Utilities
 import {
@@ -63,6 +64,7 @@ type EditorialResolutionResult = {
   qualityGateState?: RevisionValidationState;
   seoReviewState?: SeoReviewState;
   draftRevision?: DraftRevisionIdentity;
+  revisionValidationLevel?: 'none' | 'light' | 'full';
 };
 
 type AutomaticValidationContext = EditorialResolutionResult & {
@@ -74,6 +76,13 @@ type PublicationOperationOptions = {
   automatic?: boolean;
   preserveCurrentStateOnFailure?: boolean;
   draftRevision?: DraftRevisionIdentity;
+  background?: boolean;
+};
+
+type PendingBackgroundValidation = {
+  polishedDraft: string;
+  draftRevision: DraftRevisionIdentity;
+  validationLevel: 'light' | 'full';
 };
 
 type EditorialMutationOrigin =
@@ -157,6 +166,24 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   const [isCheckingQuality, setIsCheckingQuality] = useState(false);
   const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
   const workspaceMutationRef = useRef(false);
+  const backgroundValidationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backgroundValidationAbortControllerRef = useRef<AbortController | null>(null);
+  const backgroundValidationRunnerRef = useRef<(
+    context: PendingBackgroundValidation
+  ) => Promise<void>>(async () => undefined);
+  const [pendingBackgroundValidation, setPendingBackgroundValidation] =
+    useState<PendingBackgroundValidation | null>(null);
+
+  const cancelBackgroundValidation = () => {
+    if (backgroundValidationTimerRef.current) {
+      clearTimeout(backgroundValidationTimerRef.current);
+      backgroundValidationTimerRef.current = null;
+    }
+    backgroundValidationAbortControllerRef.current?.abort();
+    backgroundValidationAbortControllerRef.current = null;
+    setIsCheckingQuality(false);
+    setPendingBackgroundValidation(null);
+  };
 
   // 3. Config Hook
   useWorkspaceConfig({
@@ -222,7 +249,6 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     || isRefining
     || isGeneratingDraftFromNotes
     || isTargetedFixing !== null
-    || isCheckingQuality
     || isGeneratingSeo;
   const hasActiveAiRequest = () =>
     Boolean(
@@ -281,6 +307,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
 
   const handleAnalyze = async (overrideDraft?: string, forceSkipCheck = false) => {
     if (hasBlockingWorkspaceOperation()) return;
+    cancelBackgroundValidation();
     setHoveredFeedbackIndex(null);
     setActiveFeedbackIndex(null);
     const ctx = {
@@ -338,6 +365,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       || !polishedDraft.trim()
       || hasBlockingWorkspaceOperation()
     ) return false;
+    cancelBackgroundValidation();
     workspaceMutationRef.current = true;
     setIsSavingFinalDraft(true);
     try {
@@ -393,6 +421,20 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
             : prev.seoReviewState,
         draftRevision: result.draftRevision ?? prev.draftRevision,
       }));
+      const validationLevel = result.revisionValidationLevel;
+      const savedRevision = result.draftRevision as DraftRevisionIdentity | undefined;
+      if (
+        (validationLevel === 'light' || validationLevel === 'full')
+        && savedRevision?.revisionId
+        && savedRevision.bodyHash
+      ) {
+        setPendingBackgroundValidation({
+          polishedDraft: result.polishedDraft,
+          draftRevision: savedRevision,
+          validationLevel,
+        });
+        setIsCheckingQuality(true);
+      }
       toast.success(
         result.revisionImpact === 'formatting_only'
           ? tFinalDraftPanel('formattingEditSaved')
@@ -452,14 +494,22 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     const logId = analysis.analysisLogId || activeHistoryId;
     const polishedDraft = options.polishedDraft ?? analysis.polishedDraft;
     const draftRevision = options.draftRevision ?? analysis.draftRevision;
+    const isBackground = options.background === true;
     if (!logId || !polishedDraft || hasBlockingWorkspaceOperation()) return null;
+    if (!isBackground) cancelBackgroundValidation();
     const previousAnalysis = analysis;
     const controller = new AbortController();
-    analyzeAbortControllerRef.current = controller;
+    if (isBackground) {
+      backgroundValidationAbortControllerRef.current = controller;
+    } else {
+      analyzeAbortControllerRef.current = controller;
+    }
     setIsCheckingQuality(true);
-    setIsStreaming(true);
-    setProcessStage('quality_gate');
-    setProcessStartedAt(Date.now());
+    if (!isBackground) {
+      setIsStreaming(true);
+      setProcessStage('quality_gate');
+      setProcessStartedAt(Date.now());
+    }
     let checkedReadiness: EditorialReadiness | null = null;
     try {
       const response = await directFetch('/api/analyze', {
@@ -543,7 +593,13 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       toast.error(error instanceof Error ? error.message : 'Quality check failed.');
       return null;
     } finally {
-      if (analyzeAbortControllerRef.current === controller) {
+      if (
+        isBackground
+        && backgroundValidationAbortControllerRef.current === controller
+      ) {
+        backgroundValidationAbortControllerRef.current = null;
+        setIsCheckingQuality(false);
+      } else if (analyzeAbortControllerRef.current === controller) {
         setIsCheckingQuality(false);
         setIsStreaming(false);
         setProcessStartedAt(null);
@@ -552,6 +608,43 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     }
   };
 
+  useEffect(() => {
+    backgroundValidationRunnerRef.current = async (context) => {
+      await handleQualityCheck({
+        polishedDraft: context.polishedDraft,
+        draftRevision: context.draftRevision,
+        automatic: true,
+        background: true,
+        preserveCurrentStateOnFailure: true,
+      });
+    };
+  });
+
+  useEffect(() => {
+    if (!pendingBackgroundValidation) return;
+    const context = pendingBackgroundValidation;
+    const debounceMs = getBackgroundValidationDelay(context.validationLevel);
+    if (debounceMs === null) return;
+    backgroundValidationTimerRef.current = setTimeout(() => {
+      backgroundValidationTimerRef.current = null;
+      setPendingBackgroundValidation(null);
+      void backgroundValidationRunnerRef.current(context);
+    }, debounceMs);
+    return () => {
+      if (backgroundValidationTimerRef.current) {
+        clearTimeout(backgroundValidationTimerRef.current);
+        backgroundValidationTimerRef.current = null;
+      }
+    };
+  }, [pendingBackgroundValidation]);
+
+  useEffect(() => () => {
+    if (backgroundValidationTimerRef.current) {
+      clearTimeout(backgroundValidationTimerRef.current);
+    }
+    backgroundValidationAbortControllerRef.current?.abort();
+  }, []);
+
   const handleRegenerateSeo = async (
     options: PublicationOperationOptions = {}
   ) => {
@@ -559,6 +652,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     const polishedDraft = options.polishedDraft ?? analysis.polishedDraft;
     const draftRevision = options.draftRevision ?? analysis.draftRevision;
     if (!logId || !polishedDraft || hasBlockingWorkspaceOperation()) return;
+    cancelBackgroundValidation();
     const previousAnalysis = analysis;
     const controller = new AbortController();
     analyzeAbortControllerRef.current = controller;
@@ -785,6 +879,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
 
   const handleRefineAgain = async (instruction: string, overrideText?: string, forceSkipCheck = false) => {
     if (hasBlockingWorkspaceOperation()) return;
+    cancelBackgroundValidation();
     setHoveredFeedbackIndex(null);
     setActiveFeedbackIndex(null);
     const ctx = {
@@ -984,6 +1079,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
 
   const handleNewDraft = () => {
     if (hasBlockingWorkspaceOperation()) return;
+    cancelBackgroundValidation();
     setActiveHistoryId(null);
     setDraft('');
     setSourceDraft('');
@@ -1080,6 +1176,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
 
   const loadHistory = async (id: string) => {
     if (hasBlockingWorkspaceOperation()) return;
+    cancelBackgroundValidation();
     try {
       const res = await fetchWithTimeout(`/api/history/${id}`);
       if (res.ok) {
@@ -1144,6 +1241,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
     flags: string[],
     origin: EditorialMutationOrigin
   ): Promise<EditorialResolutionResult> => {
+    cancelBackgroundValidation();
     const logId = analysis.analysisLogId || activeHistoryId;
     if (!logId) {
       throw new Error('The refinement history is not ready yet. Please try again.');

@@ -64,6 +64,7 @@ npm run lint
 - **Design Tokens**: Always use canonical CSS design tokens (`var(--primary)`, `var(--surface-1)`, `var(--surface-2)`, `var(--error)`) instead of raw utility colors like `bg-primary/10` or `text-red-500`.
 - **Imports**: Use `@/` path alias. Never use relative `../../../` chains.
 - **i18n**: All user-facing strings must go through `next-intl`; never hardcode English strings in components.
+- **Manual Final Draft validation**: Validate only durable saved revisions. Safe edits schedule no background work; meaningful edits use the shared debounce policy and `validate_revision`. Background checks must remain cancellable/non-blocking for continued editing, coalesce on a newer save, and carry the backend-issued revision ID/body hash. Manual `quality_gate` remains recovery/publication checkpoint behavior, not the normal post-save path.
 - **Content Memory warnings**: The frontend must trust the backend enforcement
   contract and must never derive a block from semantic/classifier confidence.
   Exact/reservation conflicts are non-overridable. A calibrated probable
