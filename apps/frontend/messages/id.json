@@ -100,7 +100,29 @@
     "findings": "Temuan",
     "tools": "Alat",
     "seoPack": "Paket SEO",
-    "openTools": "Buka alat penulisan"
+    "openTools": "Buka alat penulisan",
+    "undoAction": "Batal",
+    "undoTooltip": "Batalkan editan terakhir",
+    "savingToCloud": "Menyimpan...",
+    "savedToCloud": "Tersimpan di Cloud",
+    "saveToCloudAction": "Simpan ke Cloud",
+    "autosaveActiveTooltip": "Autosave aktif. Editan akan tersinkronisasi ke database otomatis.",
+    "manualSaveTooltip": "Simpan draf dan catatan ke database cloud agar bisa dibuka di perangkat lain.",
+    "fastReviewMode": "Review Cepat",
+    "fastReviewDesc": "Analisis cepat & hemat.",
+    "publishReadyMode": "Siap Publikasi",
+    "publishReadyDesc": "Metadata SEO lengkap & tautan internal.",
+    "changeModeTooltip": "Ubah Mode Analisis Editorial",
+    "cancelAiAction": "Batal",
+    "cancelAiTooltip": "Batalkan permintaan AI saat ini",
+    "refineDraftAction": "Perhalus Draf",
+    "refineDraftTooltip": "Perhalus Draf ({shortcut})",
+    "statusDraft": "Draf",
+    "statusReview": "Review",
+    "statusReady": "Siap",
+    "statusFinal": "Final",
+    "statusError": "Eror",
+    "demoProBadge": "Pro"
   },
   "EditorWorkflow": {
     "completeEyebrow": "Refinement selesai",
@@ -123,7 +145,18 @@
     "viewResults": "Lihat Hasil",
     "stayInEditor": "Tetap di Editor",
     "inPlaceRefineCompleteTitle": "Perbaikan Draf Selesai",
-    "inPlaceRefineCompleteDescription": "Semua temuan editorial telah dievaluasi. Pilih langkah selanjutnya."
+    "inPlaceRefineCompleteDescription": "Semua temuan editorial telah dievaluasi. Pilih langkah selanjutnya.",
+    "missingSourcesTitle": "Sumber Terhapus Terdeteksi",
+    "missingSourcesDescription": "Kami mendeteksi beberapa tautan referensi dari catatan riset Anda telah terhapus dari draf:",
+    "sourceLabel": "Sumber",
+    "missingSourcesRestore": "Pulihkan Sumber & Perhalus",
+    "missingSourcesRefineAnyway": "Tetap Perhalus",
+    "missingSourcesCancel": "Batal",
+    "demoSignupTitle": "Simpan hasil ini?",
+    "demoSignupSubtitle": "Buat workspace gratis dan lanjutkan mengedit dengan konten Anda sendiri.",
+    "demoSignupNotice": "Demo Anda tidak akan disimpan. Buat akun untuk menyimpan pekerjaan Anda.",
+    "demoSignupStartFree": "Mulai Gratis",
+    "demoSignupMaybeLater": "Mungkin Nanti"
   },
   "AppNavigation": {
     "create": "Alur kerja",
@@ -483,7 +516,10 @@
     "fixWithAi": "Usulan Perbaikan AI",
     "sourceUrlPlaceholder": "Masukkan URL / domain sumber...",
     "saveSource": "Simpan Sumber",
-    "proceedToPublication": "Lanjutkan ke Publikasi"
+    "proceedToPublication": "Lanjutkan ke Publikasi",
+    "proposalLabel": "Usulan",
+    "emptyStateRefine": "Jalankan \"Perhalus Draf\" untuk menghasilkan draf yang telah disempurnakan.",
+    "candidateEditorOpened": "Candidate editor terbuka. Anda sekarang dapat mengedit draf hasil refinement."
   },
   "FeedbackWorkflow": {
     "suggestionReady": "Usulan siap. Tinjau perubahan yang diajukan sebelum menerimanya.",

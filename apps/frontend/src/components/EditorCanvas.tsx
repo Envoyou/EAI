@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Editor from '@/components/Editor';
 import FinalDraftPanel from '@/components/FinalDraftPanel';
@@ -74,6 +74,7 @@ interface EditorCanvasProps {
   layoutReversed?: boolean;
   onToggleLayoutReversed?: () => void;
   isGeneratingDraft?: boolean;
+  isCandidatePendingReview?: boolean;
   workspaceStage?: 'editor' | 'review' | 'publication';
   onAcceptFeedback?: (index: number) => Promise<void>;
   onApplyFix?: (
@@ -141,6 +142,7 @@ export default function EditorCanvas({
   layoutReversed = false,
   onToggleLayoutReversed,
   isGeneratingDraft = false,
+  isCandidatePendingReview = false,
   workspaceStage = 'editor',
   onAcceptFeedback,
   onApplyFix,
@@ -168,17 +170,17 @@ export default function EditorCanvas({
   const candidateReviewKey = analysis.draftRevision?.bodyHash
     ?? analysis.draftRevision?.revisionId
     ?? `${analysis.analysisLogId ?? 'candidate'}:${analysis.polishedDraft?.length ?? 0}`;
-    
-  const isCandidatePendingReview = Boolean(
-    analysis.polishedDraft?.trim()
-    && analysis.status === 'success'
-    && analysis.readiness !== 'ready'
-    && !isStreaming
-    && !isRefining
-  );
 
   const showCandidateEditor = isCandidatePendingReview
     && candidateEditorKey === candidateReviewKey;
+
+  const candidateEditorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (showCandidateEditor && candidateEditorRef.current) {
+      candidateEditorRef.current.focus();
+    }
+  }, [showCandidateEditor]);
 
   const openFeedbackDecision = (index?: number) => {
     if (typeof index === 'number') onActiveFeedbackChange(index);
@@ -393,7 +395,7 @@ export default function EditorCanvas({
                                         </p>
                                         {item.replacementText && (
                                           <div className="mt-2 rounded-lg bg-[var(--surface-2)] p-2 text-xs font-mono text-[var(--foreground)]">
-                                            <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-wider block mb-0.5">Proposal</span>
+                                            <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-wider block mb-0.5">{t('proposalLabel')}</span>
                                             {item.replacementText}
                                           </div>
                                         )}
@@ -640,10 +642,13 @@ export default function EditorCanvas({
                         </div>
                       </div>
                     ) : (
-                    <div className="flex h-full min-h-0 flex-col">
+                    <div className="flex h-full min-h-0 flex-col" ref={candidateEditorRef} tabIndex={-1}>
                       {isCandidatePendingReview && (
                         <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5">
-                          <p className="text-xs text-[var(--muted-foreground)]">
+                          <div className="sr-only" role="status" aria-live="polite">
+                            {t('candidateNotice')}
+                          </div>
+                          <p className="text-xs text-[var(--muted-foreground)]" aria-hidden="true">
                             {t('candidateNotice')}
                           </p>
                           <Button
@@ -715,7 +720,7 @@ export default function EditorCanvas({
                 <div className="h-full max-w-4xl mx-auto w-full p-6 md:p-10">
                   <div className="ui-state-card flex h-full items-center justify-center p-8">
                     <p className="text-xs ui-muted">
-                      Run &ldquo;Refine Draft&rdquo; to generate the Refined Draft.
+                      {t('emptyStateRefine')}
                     </p>
                   </div>
                 </div>

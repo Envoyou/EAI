@@ -100,7 +100,29 @@
     "findings": "Findings",
     "tools": "Tools",
     "seoPack": "SEO Pack",
-    "openTools": "Open writing tools"
+    "openTools": "Open writing tools",
+    "undoAction": "Undo",
+    "undoTooltip": "Undo last edit",
+    "savingToCloud": "Saving...",
+    "savedToCloud": "Saved to Cloud",
+    "saveToCloudAction": "Save to Cloud",
+    "autosaveActiveTooltip": "Autosave is active. Edits sync to database automatically.",
+    "manualSaveTooltip": "Save this draft and notes to the cloud database to work on other devices.",
+    "fastReviewMode": "Fast Review",
+    "fastReviewDesc": "Quick & cost-efficient analysis.",
+    "publishReadyMode": "Publish Ready",
+    "publishReadyDesc": "Full SEO metadata & internal links.",
+    "changeModeTooltip": "Change Editorial Analysis Mode",
+    "cancelAiAction": "Cancel",
+    "cancelAiTooltip": "Cancel current AI request",
+    "refineDraftAction": "Refine Draft",
+    "refineDraftTooltip": "Refine Draft ({shortcut})",
+    "statusDraft": "Draft",
+    "statusReview": "Review",
+    "statusReady": "Ready",
+    "statusFinal": "Final",
+    "statusError": "Error",
+    "demoProBadge": "Pro"
   },
   "EditorWorkflow": {
     "completeEyebrow": "Refinement complete",
@@ -123,7 +145,18 @@
     "viewResults": "View Results",
     "stayInEditor": "Stay in Editor",
     "inPlaceRefineCompleteTitle": "Refinement Complete",
-    "inPlaceRefineCompleteDescription": "All feedback items have been evaluated. Choose where to proceed next."
+    "inPlaceRefineCompleteDescription": "All feedback items have been evaluated. Choose where to proceed next.",
+    "missingSourcesTitle": "Source Missing Detected",
+    "missingSourcesDescription": "We detected that some reference links from your research notes have been deleted from the draft:",
+    "sourceLabel": "Source",
+    "missingSourcesRestore": "Restore Sources & Refine",
+    "missingSourcesRefineAnyway": "Refine Anyway",
+    "missingSourcesCancel": "Cancel",
+    "demoSignupTitle": "Save this result?",
+    "demoSignupSubtitle": "Create your free workspace and continue editing with your own content.",
+    "demoSignupNotice": "Your demo won't be saved. Create an account to keep your work.",
+    "demoSignupStartFree": "Start Free",
+    "demoSignupMaybeLater": "Maybe Later"
   },
   "AppNavigation": {
     "create": "Workflow",
@@ -483,7 +516,10 @@
     "fixWithAi": "Suggest AI Fix",
     "sourceUrlPlaceholder": "Enter source URL or domain...",
     "saveSource": "Save Source",
-    "proceedToPublication": "Proceed to Publication"
+    "proceedToPublication": "Proceed to Publication",
+    "proposalLabel": "Proposal",
+    "emptyStateRefine": "Run \"Refine Draft\" to generate the Refined Draft.",
+    "candidateEditorOpened": "Candidate editor opened. You can now edit the refined draft."
   },
   "FeedbackWorkflow": {
     "suggestionReady": "Suggestion ready. Review the proposed change before accepting it.",

@@ -37,7 +37,8 @@ import { CancelActionIcon } from '@/components/ui/icons/actions';
 import { DocumentIcon } from '@/components/ui/icons/content';
 
 import { useEditorialWorkspace } from '@/workspace/useEditorialWorkspace';
-import { editorStatusBadgeVariant } from '@/workspace/utils';
+import { editorStatusBadgeVariant, isCandidatePendingReview, deriveHandoffDestination } from '@/workspace/utils';
+import type { EditorHandoffState } from '@/workspace/types';
 
 export default function EditorialWorkspace({
   mode,
@@ -56,6 +57,7 @@ export default function EditorialWorkspace({
 }) {
   const router = useRouter();
   const tWorkspace = useTranslations('WorkspaceShell');
+  const tEditor = useTranslations('EditorWorkflow');
   const workspace = useEditorialWorkspace({ mode, startNewDraft });
 
   const {
@@ -148,19 +150,63 @@ export default function EditorialWorkspace({
   const currentPage = stage as WorkspacePage;
   const effectiveActiveTab = (stage === 'review' || stage === 'publication') ? 'refined' : activeTab;
   const [dismissedHandoffId, setDismissedHandoffId] = useState<string | null>(null);
-  const isCandidatePendingReview = Boolean(
+
+  const isCandidatePending = isCandidatePendingReview(analysis, {
+    isStreaming,
+    isRefining,
+  });
+
+  const completedAnalysisLogId = editorHandoff?.analysisLogId ?? analysis.analysisLogId;
+  const previousIsRefining = useRef(isRefining);
+  const [lastCompletedRefineRunId, setLastCompletedRefineRunId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (previousIsRefining.current && !isRefining) {
+      if (analysis.status === 'success' && analysis.analysisLogId) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLastCompletedRefineRunId(analysis.analysisLogId);
+      }
+    }
+    previousIsRefining.current = isRefining;
+  }, [isRefining, analysis.status, analysis.analysisLogId]);
+
+  const hasCompletedReadyCandidate = Boolean(
     analysis.polishedDraft?.trim() &&
     analysis.status === 'success' &&
-    analysis.readiness !== 'ready' &&
+    analysis.readiness === 'ready' &&
+    completedAnalysisLogId &&
     !isStreaming &&
     !isRefining
   );
+
+  const isRecentlyCompleted = lastCompletedRefineRunId === completedAnalysisLogId;
+
+  const resolvedEditorHandoff = editorHandoff ?? (
+    hasCompletedReadyCandidate && isRecentlyCompleted
+      ? {
+          analysisLogId: completedAnalysisLogId,
+          destination: deriveHandoffDestination({
+            readiness: analysis.readiness || 'needs_review',
+            hasPublicationPackage: analysis.publicationPackageStatus === 'current'
+          }),
+          unresolvedFindingCount: 0,
+          blockingFindingCount: 0,
+          hasSeoPackage: analysis.publicationPackageStatus === 'current',
+          readiness: analysis.readiness,
+          status: analysis.status,
+          generatedMetadata: analysis.generatedMetadata,
+          publicationPackageStatus: analysis.publicationPackageStatus,
+          feedback: analysis.feedback || [],
+          recovered: true
+        } as unknown as EditorHandoffState
+      : null
+  );
+
   const showInPlaceModal = Boolean(
     stage === 'editor' &&
-    editorHandoff &&
-    !isCandidatePendingReview &&
-    analysis.readiness === 'ready' &&
-    dismissedHandoffId !== editorHandoff.analysisLogId
+    resolvedEditorHandoff &&
+    !isCandidatePending &&
+    dismissedHandoffId !== resolvedEditorHandoff.analysisLogId
   );
 
   useEffect(() => {
@@ -261,11 +307,21 @@ export default function EditorialWorkspace({
                 </span>
               </>
             )}
-            {analysis.editorStatus && (
-              <Badge variant={editorStatusBadgeVariant(analysis.editorStatus)} size="xs" className="ml-1 capitalize">
-                {analysis.editorStatus}
-              </Badge>
-            )}
+            {analysis.editorStatus && (() => {
+              const statusKeyMap: Record<string, 'statusDraft' | 'statusReview' | 'statusReady' | 'statusFinal' | 'statusError'> = {
+                draft: 'statusDraft',
+                review: 'statusReview',
+                ready: 'statusReady',
+                final: 'statusFinal',
+                error: 'statusError',
+              };
+              const key = statusKeyMap[analysis.editorStatus];
+              return (
+                <Badge variant={editorStatusBadgeVariant(analysis.editorStatus)} size="xs" className="ml-1 capitalize">
+                  {key ? tWorkspace(key) : analysis.editorStatus}
+                </Badge>
+              );
+            })()}
           </div>
 
           {/* Spacer */}
@@ -288,12 +344,12 @@ export default function EditorialWorkspace({
                       aria-label="Undo last edit"
                     >
                       <RotateCcw className="w-4 h-4" />
-                      <span className="hidden @[560px]:inline">Undo</span>
+                      <span className="hidden @[560px]:inline">{tWorkspace('undoAction')}</span>
                     </Button>
                   }
                 />
                 <TooltipContent side="bottom" className="text-xs">
-                  Undo last edit
+                  {tWorkspace('undoTooltip')}
                 </TooltipContent>
               </Tooltip>
             )}
@@ -308,12 +364,12 @@ export default function EditorialWorkspace({
                         {isSavingToCloud ? (
                           <>
                             <EAILoaderStatusIcon className="w-3.5 h-3.5 text-[var(--primary)]" />
-                            <span className="hidden @[640px]:inline">Saving...</span>
+                            <span className="hidden @[640px]:inline">{tWorkspace('savingToCloud')}</span>
                           </>
                         ) : (
                           <>
                             <Cloud className="w-3.5 h-3.5 text-emerald-500" />
-                            <span className="hidden @[640px]:inline">Saved to Cloud</span>
+                            <span className="hidden @[640px]:inline">{tWorkspace('savedToCloud')}</span>
                           </>
                         )}
                       </div>
@@ -331,15 +387,15 @@ export default function EditorialWorkspace({
                         ) : (
                           <CloudUpload className="w-3.5 h-3.5" />
                         )}
-                        <span className="hidden @[640px]:inline">Save to Cloud</span>
+                        <span className="hidden @[640px]:inline">{tWorkspace('saveToCloudAction')}</span>
                       </Button>
                     )
                   }
                 />
                 <TooltipContent side="bottom" className="text-xs">
                   {activeHistoryId
-                    ? 'Autosave is active. Edits sync to database automatically.'
-                    : 'Save this draft and notes to the cloud database to work on other devices.'}
+                    ? tWorkspace('autosaveActiveTooltip')
+                    : tWorkspace('manualSaveTooltip')}
                 </TooltipContent>
               </Tooltip>
             )}
@@ -367,7 +423,7 @@ export default function EditorialWorkspace({
                           {analysisSpeed === 'fast' ? (
                             <span className="flex items-center gap-1.5 font-bold">
                               <Zap className="w-3.5 h-3.5 text-[var(--foreground)] md:text-[var(--warning)] shrink-0" />
-                              <span className="hidden md:inline">Fast Review</span>
+                              <span className="hidden md:inline">{tWorkspace('fastReviewMode')}</span>
                             </span>
                           ) : (
                             <span className="flex items-center gap-1.5 font-bold">
@@ -376,7 +432,7 @@ export default function EditorialWorkspace({
                               ) : (
                                 <Rocket className="w-3.5 h-3.5 text-[var(--primary)] shrink-0" />
                               )}
-                              <span className="hidden md:inline">Publish Ready</span>
+                              <span className="hidden md:inline">{tWorkspace('publishReadyMode')}</span>
                             </span>
                           )}
                         </SelectValue>
@@ -384,15 +440,15 @@ export default function EditorialWorkspace({
                     }
                   />
                   <TooltipContent side="bottom" className="text-xs">
-                    Change Editorial Analysis Mode
+                    {tWorkspace('changeModeTooltip')}
                   </TooltipContent>
                 </Tooltip>
                 <SelectContent className="z-50 bg-[var(--popover)] border border-[var(--border)] shadow-xl rounded-xl p-1 min-w-[220px]">
                   <SelectItem value="fast" className="flex items-start gap-2.5 px-3 py-2 text-xs rounded-lg cursor-pointer hover:bg-[var(--surface-2)]">
                     <Zap className="w-4 h-4 text-[var(--foreground)] shrink-0 mt-0.5" />
                     <div className="flex flex-col">
-                      <span className="font-bold text-[var(--foreground)]">Fast Review</span>
-                      <span className="text-[11px] text-[var(--muted-foreground)]">Quick & cost-efficient analysis.</span>
+                      <span className="font-bold text-[var(--foreground)]">{tWorkspace('fastReviewMode')}</span>
+                      <span className="text-[11px] text-[var(--muted-foreground)]">{tWorkspace('fastReviewDesc')}</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="publish" className="flex items-start gap-2.5 px-3 py-2 text-xs rounded-lg cursor-pointer hover:bg-[var(--surface-2)]">
@@ -403,10 +459,10 @@ export default function EditorialWorkspace({
                     )}
                     <div className="flex flex-col">
                       <span className="font-bold text-[var(--foreground)] flex items-center gap-1.5">
-                        Publish Ready
-                        {isDemoMode && <Badge variant="surface" size="xs">Pro</Badge>}
+                        {tWorkspace('publishReadyMode')}
+                        {isDemoMode && <Badge variant="surface" size="xs">{tWorkspace('demoProBadge')}</Badge>}
                       </span>
-                      <span className="text-[11px] text-[var(--muted-foreground)]">Full SEO metadata & internal links.</span>
+                      <span className="text-[11px] text-[var(--muted-foreground)]">{tWorkspace('publishReadyDesc')}</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -438,15 +494,15 @@ export default function EditorialWorkspace({
                     }
                     label={
                       isAiBusy
-                        ? 'Cancel'
-                        : 'Refine Draft'
+                        ? tWorkspace('cancelAiAction')
+                        : tWorkspace('refineDraftAction')
                     }
                     labelClassName="hidden @[560px]:inline"
                   />
                 }
               />
               <TooltipContent side="bottom" className="text-xs">
-                {isAiBusy ? 'Cancel current AI request' : 'Refine Draft (Ctrl+Enter)'}
+                {isAiBusy ? tWorkspace('cancelAiTooltip') : tWorkspace('refineDraftTooltip', { shortcut: 'Ctrl+Enter' })}
               </TooltipContent>
             </Tooltip>}
           </div>
@@ -484,6 +540,7 @@ export default function EditorialWorkspace({
       onTabChange={setActiveTab}
       workspaceStage={stage}
       isGeneratingDraft={isGeneratingDraftFromNotes}
+      isCandidatePendingReview={isCandidatePending}
       isAiBusy={isAiBusy || (stage === 'editor' && Boolean(editorHandoff))}
       hasResult={hasResult}
       sidebarOpen={leftPanelOpen}
@@ -774,12 +831,12 @@ export default function EditorialWorkspace({
               </div>
 
               {/* Copy */}
-              <h2 className="text-base font-bold text-[var(--foreground)] mb-1.5">Save this result?</h2>
+              <h2 className="text-base font-bold text-[var(--foreground)] mb-1.5">{tEditor('demoSignupTitle')}</h2>
               <p className="text-sm text-[var(--muted-foreground)] mb-1 leading-relaxed">
-                Create your free workspace and continue editing with your own content.
+                {tEditor('demoSignupSubtitle')}
               </p>
               <p className="text-xs text-[var(--muted-foreground)]/70 mb-6">
-                Your demo won&apos;t be saved. Create an account to keep your work.
+                {tEditor('demoSignupNotice')}
               </p>
 
               {/* Actions */}
@@ -790,7 +847,7 @@ export default function EditorialWorkspace({
                   variant="primary"
                   className="w-full justify-center py-2.5 text-sm font-semibold"
                 >
-                  Start Free
+                  {tEditor('demoSignupStartFree')}
                 </Button>
                 <Button
                   type="button"
@@ -798,7 +855,7 @@ export default function EditorialWorkspace({
                   variant="ghost"
                   className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center py-1 transition-colors border-none w-full"
                 >
-                  Maybe Later
+                  {tEditor('demoSignupMaybeLater')}
                 </Button>
               </div>
             </div>
@@ -849,9 +906,9 @@ export default function EditorialWorkspace({
               </div>
 
               {/* Copy */}
-              <h2 className="text-base font-bold text-[var(--foreground)] mb-1.5">Source Missing Detected</h2>
+              <h2 className="text-base font-bold text-[var(--foreground)] mb-1.5">{tEditor('missingSourcesTitle')}</h2>
               <p className="text-sm text-[var(--muted-foreground)] mb-3 leading-relaxed">
-                We detected that some reference links from your research notes have been deleted from the draft:
+                {tEditor('missingSourcesDescription')}
               </p>
 
               {/* List of missing domains */}
@@ -859,37 +916,39 @@ export default function EditorialWorkspace({
                 {missingSources.map((src, idx) => (
                   <div key={idx} className="text-xs text-[var(--muted-foreground)] flex items-center gap-1.5 truncate">
                     <span className="w-1 h-1 rounded-full bg-amber-500 shrink-0" />
-                    <span className="font-semibold text-[var(--foreground)] shrink-0">{src.domain || 'Source'}:</span>
+                    <span className="font-semibold text-[var(--foreground)] shrink-0">{src.domain || tEditor('sourceLabel')}:</span>
                     <span className="truncate">{src.url}</span>
                   </div>
                 ))}
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col sm:flex-row gap-2.5">
                 <Button
                   type="button"
                   onClick={() => handleProceedRefinement({ restore: true })}
                   variant="primary"
-                  className="w-full justify-center py-2.5 text-sm font-semibold"
+                  className="flex-1 justify-center py-2.5 text-sm font-semibold"
                 >
-                  Restore Sources & Refine
+                  {tEditor('missingSourcesRestore')}
                 </Button>
                 <Button
                   type="button"
                   onClick={() => handleProceedRefinement({ restore: false })}
                   variant="outline"
-                  className="w-full justify-center py-2.5 text-sm font-semibold"
+                  className="flex-1 justify-center py-2.5 text-sm font-semibold text-amber-500 hover:text-amber-600 hover:bg-amber-50 border-amber-200"
                 >
-                  Refine Anyway
+                  {tEditor('missingSourcesRefineAnyway')}
                 </Button>
+              </div>
+              <div className="mt-2.5 pt-2.5 border-t border-[var(--border)]">
                 <Button
                   type="button"
                   onClick={() => setShowMissingSourcesModal(false)}
                   variant="ghost"
-                  className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-center py-1 transition-colors border-none w-full"
+                  className="w-full text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] justify-center py-2 border-none"
                 >
-                  Cancel
+                  {tEditor('missingSourcesCancel')}
                 </Button>
               </div>
             </div>
@@ -899,14 +958,14 @@ export default function EditorialWorkspace({
         <InPlaceRefineFeedbackModal
           open={showInPlaceModal}
           onOpenChange={(open) => {
-            if (!open && editorHandoff) {
-              setDismissedHandoffId(editorHandoff.analysisLogId);
+            if (!open && resolvedEditorHandoff) {
+              setDismissedHandoffId(resolvedEditorHandoff.analysisLogId);
             }
           }}
-          destination={editorHandoff?.destination}
+          destination={resolvedEditorHandoff?.destination}
           onViewResults={() => {
-            if (editorHandoff) {
-              router.push(`/${editorHandoff.destination}?history=${encodeURIComponent(editorHandoff.analysisLogId)}`);
+            if (resolvedEditorHandoff) {
+              router.push(`/${resolvedEditorHandoff.destination}?history=${encodeURIComponent(resolvedEditorHandoff.analysisLogId)}`);
             } else if (analysis.analysisLogId) {
               router.push(`/review?history=${encodeURIComponent(analysis.analysisLogId)}`);
             }

@@ -5,6 +5,7 @@ import type {
   FeedbackItem,
   ResearchNote,
   EditorialProcessStage,
+  AnalysisResult,
 } from '@eai/shared';
 import type { AnalysisCompletion, EditorHandoffState } from './types';
 import { findTargetMatch } from '@eai/shared';
@@ -261,3 +262,28 @@ export const checkMissingSources = (draftText: string, notes: ResearchNote[]) =>
   });
   return missing;
 };
+
+export function deriveHandoffDestination(input: {
+  readiness: EditorialReadiness;
+  hasPublicationPackage: boolean;
+}): 'review' | 'publication' {
+  if (input.readiness !== 'ready') return 'review';
+  if (!input.hasPublicationPackage) return 'review';
+  return 'publication';
+}
+
+export function isCandidatePendingReview(
+  analysis: AnalysisResult,
+  state: {
+    isStreaming: boolean;
+    isRefining: boolean;
+  }
+): boolean {
+  return Boolean(
+    analysis.polishedDraft?.trim() &&
+    analysis.status === 'success' &&
+    analysis.readiness !== 'ready' &&
+    !state.isStreaming &&
+    !state.isRefining
+  );
+}

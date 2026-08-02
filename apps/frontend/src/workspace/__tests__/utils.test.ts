@@ -10,8 +10,10 @@ import {
   isFeedbackResolved,
   markFeedbackApplied,
   normalizeHttpSourceUrl,
+  isCandidatePendingReview,
+  deriveHandoffDestination,
 } from '../utils';
-import type { FeedbackItem, ResearchNote } from '@eai/shared';
+import type { FeedbackItem, ResearchNote, AnalysisResult } from '@eai/shared';
 
 describe('checkMissingSources', () => {
   it('should return empty array if draftText is empty', () => {
@@ -234,5 +236,56 @@ describe('extractQualityGate', () => {
       readiness: 'ready',
       changes: ['fixed spelling', 'added citation']
     });
+  });
+});
+
+describe('isCandidatePendingReview', () => {
+  it('should return true when analysis succeeds, draft exists, and not ready', () => {
+    expect(isCandidatePendingReview(
+      { polishedDraft: 'Candidate content', status: 'success', readiness: 'needs_review' } as unknown as AnalysisResult,
+      { isStreaming: false, isRefining: false }
+    )).toBe(true);
+  });
+
+  it('should return false if currently streaming or refining', () => {
+    expect(isCandidatePendingReview(
+      { polishedDraft: 'Candidate content', status: 'success', readiness: 'needs_review' } as unknown as AnalysisResult,
+      { isStreaming: true, isRefining: false }
+    )).toBe(false);
+
+    expect(isCandidatePendingReview(
+      { polishedDraft: 'Candidate content', status: 'success', readiness: 'needs_review' } as unknown as AnalysisResult,
+      { isStreaming: false, isRefining: true }
+    )).toBe(false);
+  });
+
+  it('should return false if readiness is already ready', () => {
+    expect(isCandidatePendingReview(
+      { polishedDraft: 'Candidate content', status: 'success', readiness: 'ready' } as unknown as AnalysisResult,
+      { isStreaming: false, isRefining: false }
+    )).toBe(false);
+  });
+});
+
+describe('deriveHandoffDestination', () => {
+  it('returns publication when ready and has publication package', () => {
+    expect(deriveHandoffDestination({
+      readiness: 'ready',
+      hasPublicationPackage: true,
+    })).toBe('publication');
+  });
+
+  it('returns review when missing publication package', () => {
+    expect(deriveHandoffDestination({
+      readiness: 'ready',
+      hasPublicationPackage: false,
+    })).toBe('review');
+  });
+
+  it('returns review when not ready', () => {
+    expect(deriveHandoffDestination({
+      readiness: 'needs_review',
+      hasPublicationPackage: true,
+    })).toBe('review');
   });
 });
