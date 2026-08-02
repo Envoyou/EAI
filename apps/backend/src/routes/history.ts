@@ -480,6 +480,63 @@ router.get('/:id', requireAuth, async (req, res) => {
   }
 });
 
+// POST /api/history/bulk-delete
+router.post('/bulk-delete', requireAuth, async (req, res) => {
+  try {
+    const { userId, orgId, orgSlug, orgRole } = req.auth!;
+    const workspace = await getWorkspaceState(userId, {
+      clerkOrganizationId: orgId,
+      clerkOrganizationSlug: orgSlug,
+      clerkOrganizationRole: orgRole,
+    });
+    
+    if (!workspace || workspace.needsOnboarding || !workspace.organizationId) {
+      return res.status(409).json({ error: 'Workspace onboarding required' });
+    }
+
+    const { ids, deleteFamily } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'No IDs provided' });
+    }
+
+    const logs = await prisma.analysisLog.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, sourceRef: true, organizationId: true, userId: true, isGuestLog: true }
+    });
+
+    for (const log of logs) {
+      if (!canAccessLog(log, workspace.organizationId, userId)) {
+        return res.status(403).json({ error: 'Unauthorized' });
+      }
+    }
+
+    if (deleteFamily) {
+      const familyKeys = logs.map(l => l.sourceRef?.trim() || l.id);
+      await prisma.analysisLog.deleteMany({
+        where: {
+          OR: [
+            { sourceRef: { in: familyKeys } },
+            { id: { in: familyKeys } }
+          ],
+          organizationId: workspace.organizationId
+        }
+      });
+    } else {
+      await prisma.analysisLog.deleteMany({
+        where: {
+          id: { in: ids },
+          organizationId: workspace.organizationId
+        }
+      });
+    }
+
+    return res.json({ success: true, deletedCount: ids.length });
+  } catch (error) {
+    console.error('[HISTORY_BULK_DELETE]', error);
+    return res.status(500).json({ error: 'Failed to delete history' });
+  }
+});
+
 // DELETE /api/history/:id
 router.delete('/:id', requireAuth, async (req, res) => {
   try {

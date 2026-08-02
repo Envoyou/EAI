@@ -228,7 +228,9 @@
     },
     "filter": { "all": "All", "draft": "Draft", "review": "Review", "blocked": "Blocked", "ready": "Ready" },
     "stage": { "draft": "Draft", "review": "Review", "blocked": "Blocked", "ready": "Ready" },
-    "open": { "draft": "Continue editing", "review": "Open review", "blocked": "Resolve findings", "ready": "Open publication" }
+    "open": { "draft": "Continue editing", "review": "Open review", "blocked": "Resolve findings", "ready": "Open publication" },
+    "itemsCount": "{count, plural, one {1 item} other {{count} items}}",
+    "lastEdit": "Last edit {time}"
   },
   "ReviewWorkspace": {
     "complete": "Editorial review complete",
@@ -292,6 +294,9 @@
     "pinFailed": "Could not update the article pin.",
     "deleteTitle": "Delete this article?",
     "deleteDescription": "This action cannot be undone.",
+    "bulkDeleteTitle": "Delete {count} articles?",
+    "bulkDelete": "Delete selected",
+    "itemsSelected": "{count} selected",
     "cancel": "Cancel",
     "deleting": "Deleting…",
     "searchLabel": "Search saved articles",

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { ActionButton } from '@/components/ui/action-button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AdaptiveActionMenu } from '@/components/ui/adaptive-action-menu';
 import { DeleteDocumentDialog } from '@/components/document-history/DeleteDocumentDialog';
 import { DocumentHistorySearch } from '@/components/document-history/DocumentHistorySearch';
@@ -90,6 +91,8 @@ export default function DocumentHistoryPanel({
 
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitleValue, setEditTitleValue] = useState('');
@@ -166,6 +169,40 @@ export default function DocumentHistoryPanel({
     } finally {
       setIsDeleting(false);
       setItemToDelete(null);
+    }
+  };
+
+  const toggleSelection = (id: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetchWithTimeout('/api/history/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedIds), deleteFamily: false }),
+      });
+      if (!response.ok) throw new Error('Failed to bulk delete');
+      
+      setHistory(prev => prev.filter(item => !selectedIds.has(item.id)));
+      if (activeId && selectedIds.has(activeId)) {
+        onNew();
+      }
+      setSelectedIds(new Set());
+      setBulkDeleteConfirmOpen(false);
+      toast.success(t('deleteSuccess'));
+    } catch {
+      toast.error(t('deleteFailed'));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -307,6 +344,12 @@ export default function DocumentHistoryPanel({
             isActive ? 'is-active' : ''
           }`}
         >
+          <div className="flex-none pr-3 pt-0.5" onClick={e => e.stopPropagation()}>
+            <Checkbox
+              checked={selectedIds.has(item.id)}
+              onCheckedChange={(checked) => toggleSelection(item.id, checked === true)}
+            />
+          </div>
           <div className="min-w-0 flex-1 pr-7">
             {editingId === item.id ? (
               <Input
@@ -420,6 +463,32 @@ export default function DocumentHistoryPanel({
       isDemoMode={isDemoMode}
       style={{ width: '100%', minWidth: '0' }}
     >
+      {/* Bottom bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="absolute bottom-6 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 items-center justify-between gap-3 rounded-full border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 shadow-xl">
+          <span className="text-xs font-medium">{t('itemsSelected', { count: selectedIds.size })}</span>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="destructive"
+              size="xs"
+              onClick={() => setBulkDeleteConfirmOpen(true)}
+            >
+              <DeleteActionIcon className="mr-1.5 h-3.5 w-3.5" />
+              {t('bulkDelete')}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              {t('cancel')}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       <DeleteDocumentDialog
         open={Boolean(itemToDelete)}
@@ -428,6 +497,12 @@ export default function DocumentHistoryPanel({
         }}
         pending={isDeleting}
         onConfirm={confirmDelete}
+      />
+      <DeleteDocumentDialog
+        open={bulkDeleteConfirmOpen}
+        onOpenChange={setBulkDeleteConfirmOpen}
+        pending={isDeleting}
+        onConfirm={handleBulkDelete}
       />
 
       <div className="px-1 pt-1">

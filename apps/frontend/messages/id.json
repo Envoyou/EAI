@@ -228,7 +228,9 @@
     },
     "filter": { "all": "Semua", "draft": "Draft", "review": "Review", "blocked": "Diblokir", "ready": "Siap" },
     "stage": { "draft": "Draft", "review": "Review", "blocked": "Diblokir", "ready": "Siap" },
-    "open": { "draft": "Lanjutkan penyuntingan", "review": "Buka review", "blocked": "Selesaikan temuan", "ready": "Buka publikasi" }
+    "open": { "draft": "Lanjutkan penyuntingan", "review": "Buka review", "blocked": "Selesaikan temuan", "ready": "Buka publikasi" },
+    "itemsCount": "{count, plural, other {{count} item}}",
+    "lastEdit": "Terakhir diedit {time}"
   },
   "ReviewWorkspace": {
     "complete": "Review editorial selesai",
@@ -292,6 +294,9 @@
     "pinFailed": "Sematan artikel tidak dapat diperbarui.",
     "deleteTitle": "Hapus artikel ini?",
     "deleteDescription": "Tindakan ini tidak dapat dibatalkan.",
+    "bulkDeleteTitle": "Hapus {count} artikel?",
+    "bulkDelete": "Hapus terpilih",
+    "itemsSelected": "{count} terpilih",
     "cancel": "Batal",
     "deleting": "Menghapus…",
     "searchLabel": "Cari artikel tersimpan",
