@@ -207,9 +207,7 @@
     "tabSource": "Draft Awal (Source)",
     "tabBlueprint": "Blueprint & Catatan",
     "tabTimeline": "Version Timeline",
-    "qualityScoreSubtitle": "Penilaian Kualitas & Perbandingan Transformasi",
     "readinessScoreLabel": "Skor Kelayakan",
-    "findingsEvaluatedLabel": "Temuan Dievaluasi",
     "blueprintTitle": "Research Blueprint & Topic Specification",
     "blueprintDesc": "Catatan riset dan spesifikasi awal yang digunakan untuk memformulasikan draf artikel ini.",
     "noNotes": "Tidak ada catatan riset tambahan yang dilampirkan pada draf ini.",
@@ -223,7 +221,13 @@
     "step4Title": "Step 4: Final Ready Polish",
     "step4Desc": "Artikel siap dipublikasikan ke CMS.",
     "initialDraftLabel": "Draft Awal",
-    "finalDraftLabel": "Draft Final Polish"
+    "finalDraftLabel": "Draft Final Polish",
+    "wordCount": "{count} kata",
+    "untitledArticle": "Artikel tanpa judul",
+    "identicalDraftsTitle": "Draft awal tidak tersedia untuk dibandingkan",
+    "identicalDraftsDescription": "Draft awal sebelum refinement AI tidak tersimpan untuk artikel ini. Hanya draft saat ini yang tersedia.",
+    "loadFailed": "Riwayat artikel tidak dapat dimuat.",
+    "networkError": "Terjadi gangguan jaringan saat memuat artikel."
   },
   "DocumentHistory": {
     "title": "Artikel tersimpan",

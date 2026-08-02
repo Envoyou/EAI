@@ -207,9 +207,7 @@
     "tabSource": "Initial Draft (Source)",
     "tabBlueprint": "Blueprint & Notes",
     "tabTimeline": "Version Timeline",
-    "qualityScoreSubtitle": "Quality Assessment & Transformation Comparison",
     "readinessScoreLabel": "Readiness Score",
-    "findingsEvaluatedLabel": "Evaluated Findings",
     "blueprintTitle": "Research Blueprint & Topic Specification",
     "blueprintDesc": "Research notes and initial specifications used to formulate this draft.",
     "noNotes": "No additional research notes attached to this draft.",
@@ -223,7 +221,13 @@
     "step4Title": "Step 4: Final Ready Polish",
     "step4Desc": "Article is ready for CMS publication.",
     "initialDraftLabel": "Initial Draft",
-    "finalDraftLabel": "Final Polish Draft"
+    "finalDraftLabel": "Final Polish Draft",
+    "wordCount": "{count, plural, one {# word} other {# words}}",
+    "untitledArticle": "Untitled article",
+    "identicalDraftsTitle": "No source draft available for comparison",
+    "identicalDraftsDescription": "The initial draft before AI refinement is not stored for this article. Only the current draft is available.",
+    "loadFailed": "Could not load article history.",
+    "networkError": "A network error occurred while loading the article."
   },
   "DocumentHistory": {
     "title": "Saved articles",

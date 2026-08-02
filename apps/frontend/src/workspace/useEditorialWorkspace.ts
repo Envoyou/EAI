@@ -123,6 +123,8 @@ export function useEditorialWorkspace({
   const tFeedbackWorkflow = useTranslations('FeedbackWorkflow');
   const tContentMemory = useTranslations('ContentMemory');
   const tFinalDraftPanel = useTranslations('FinalDraftPanel');
+  // Used for i18n error messages in loadHistory
+  const tReviewWorkspace = useTranslations('ReviewWorkspace');
   const directFetch = useDirectFetch();
 
   // 1. Storage State Management
@@ -1578,10 +1580,10 @@ export function useEditorialWorkspace({
         });
         if (log.status === 'success') setActiveTab('refined');
       } else {
-        toast.error('Failed to load history');
+        toast.error(tReviewWorkspace('loadFailed'));
       }
     } catch {
-      toast.error('A network error occurred');
+      toast.error(tReviewWorkspace('networkError'));
     }
   };
 

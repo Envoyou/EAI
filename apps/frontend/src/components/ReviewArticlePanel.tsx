@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { useTranslations } from 'next-intl';
 import type { ResearchNote } from '@eai/shared';
 import { Button } from '@/components/ui/button';
-import { CompleteStatusIcon, QualityPassedStatusIcon } from '@/components/ui/icons/status';
+import { CompleteStatusIcon, QualityPassedStatusIcon, WarningStatusIcon } from '@/components/ui/icons/status';
 import { ForwardNavigationIcon, HistoryNavigationIcon, AuditLogsNavigationIcon } from '@/components/ui/icons/navigation';
 import { RevisionComparisonIcon, DocumentIcon } from '@/components/ui/icons/content';
 
@@ -39,6 +39,13 @@ export function ReviewArticlePanel({
   const initialText = sourceDraft?.trim() || body;
   const finalPolishedText = body;
 
+  // Guard against showing a meaningless "compare" when source draft is absent or
+  // identical to the final body — both panels would render the same content.
+  const hasDistinctSourceDraft =
+    Boolean(sourceDraft?.trim()) && sourceDraft!.trim() !== finalPolishedText.trim();
+
+  const countWords = (text: string) => text.split(/\s+/).filter(Boolean).length;
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--background)]">
       {/* Article Family Audit Header */}
@@ -53,7 +60,10 @@ export function ReviewArticlePanel({
               </span>
             )}
           </div>
-          <h1 className="mt-1 truncate text-base font-bold text-[var(--foreground)]">{title || 'Untitled Article'}</h1>
+          {/* Use i18n fallback instead of hardcoded 'Untitled Article' */}
+          <h1 className="mt-1 truncate text-base font-bold text-[var(--foreground)]">
+            {title || t('untitledArticle')}
+          </h1>
           <p className="mt-1 text-xs text-[var(--muted-foreground)]">
             {t('completeDescription', { count: findingCount })} • {t('readinessScoreLabel')}: <span className="font-semibold text-[var(--success)]">{readinessScore}%</span>
           </p>
@@ -121,35 +131,63 @@ export function ReviewArticlePanel({
       {/* Tab Contents */}
       <div className="min-h-0 flex-1 overflow-y-auto p-6">
         {activeReviewTab === 'comparison' && (
-          <div className="mx-auto max-w-6xl space-y-4">
-            <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)] px-2">
-              <span className="font-semibold text-[var(--foreground)]">{t('initialDraftLabel')}</span>
-              <span className="font-semibold text-[var(--primary)]">{t('finalDraftLabel')}</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Left: Source Draft */}
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-5 shadow-sm">
-                <div className="mb-3 flex items-center justify-between border-b border-[var(--border)]/60 pb-2">
-                  <span className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">{t('initialDraftLabel')}</span>
-                  <span className="text-[11px] font-mono text-[var(--muted-foreground)]">{initialText.split(/\s+/).filter(Boolean).length} words</span>
-                </div>
-                <div className="prose prose-neutral dark:prose-invert max-w-none text-xs leading-relaxed">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{initialText}</ReactMarkdown>
-                </div>
+          hasDistinctSourceDraft ? (
+            <div className="mx-auto max-w-6xl space-y-4">
+              <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)] px-2">
+                <span className="font-semibold text-[var(--foreground)]">{t('initialDraftLabel')}</span>
+                <span className="font-semibold text-[var(--primary)]">{t('finalDraftLabel')}</span>
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Left: Source Draft */}
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-5 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between border-b border-[var(--border)]/60 pb-2">
+                    <span className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">{t('initialDraftLabel')}</span>
+                    {/* i18n word count — was previously hardcoded "words" */}
+                    <span className="text-[11px] font-mono text-[var(--muted-foreground)]">
+                      {t('wordCount', { count: countWords(initialText) })}
+                    </span>
+                  </div>
+                  <div className="prose prose-neutral dark:prose-invert max-w-none text-xs leading-relaxed">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{initialText}</ReactMarkdown>
+                  </div>
+                </div>
 
-              {/* Right: Polished Final Draft */}
-              <div className="rounded-2xl border border-[var(--primary)]/30 bg-[var(--surface-1)] p-5 shadow-sm ring-1 ring-[var(--primary)]/20">
-                <div className="mb-3 flex items-center justify-between border-b border-[var(--border)]/60 pb-2">
-                  <span className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider">{t('finalDraftLabel')}</span>
-                  <span className="text-[11px] font-mono text-[var(--primary)]">{finalPolishedText.split(/\s+/).filter(Boolean).length} words</span>
-                </div>
-                <div className="prose prose-neutral dark:prose-invert max-w-none text-xs leading-relaxed">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{finalPolishedText}</ReactMarkdown>
+                {/* Right: Polished Final Draft */}
+                <div className="rounded-2xl border border-[var(--primary)]/30 bg-[var(--surface-1)] p-5 shadow-sm ring-1 ring-[var(--primary)]/20">
+                  <div className="mb-3 flex items-center justify-between border-b border-[var(--border)]/60 pb-2">
+                    <span className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider">{t('finalDraftLabel')}</span>
+                    {/* i18n word count — was previously hardcoded "words" */}
+                    <span className="text-[11px] font-mono text-[var(--primary)]">
+                      {t('wordCount', { count: countWords(finalPolishedText) })}
+                    </span>
+                  </div>
+                  <div className="prose prose-neutral dark:prose-invert max-w-none text-xs leading-relaxed">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{finalPolishedText}</ReactMarkdown>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            /* Empty state: source draft is absent or identical to final body */
+            <div className="mx-auto max-w-lg py-16 text-center">
+              <WarningStatusIcon className="mx-auto h-8 w-8 text-[var(--muted-foreground)]" />
+              <h2 className="mt-4 text-sm font-semibold text-[var(--foreground)]">
+                {t('identicalDraftsTitle')}
+              </h2>
+              <p className="mt-2 text-xs leading-relaxed text-[var(--muted-foreground)]">
+                {t('identicalDraftsDescription')}
+              </p>
+              <Button
+                type="button"
+                variant="muted"
+                size="sm"
+                className="mt-6"
+                onClick={() => setActiveReviewTab('final')}
+              >
+                {t('tabFinal')}
+              </Button>
+            </div>
+          )
         )}
 
         {activeReviewTab === 'final' && (
