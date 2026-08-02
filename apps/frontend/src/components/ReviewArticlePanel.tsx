@@ -132,7 +132,7 @@ export function ReviewArticlePanel({
       <div className="min-h-0 flex-1 overflow-y-auto p-6">
         {activeReviewTab === 'comparison' && (
           hasDistinctSourceDraft ? (
-            <div className="mx-auto max-w-6xl space-y-4">
+            <div className="mx-auto w-full space-y-4">
               <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)] px-2">
                 <span className="font-semibold text-[var(--foreground)]">{t('initialDraftLabel')}</span>
                 <span className="font-semibold text-[var(--primary)]">{t('finalDraftLabel')}</span>

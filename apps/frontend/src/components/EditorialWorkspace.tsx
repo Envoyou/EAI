@@ -770,7 +770,7 @@ export default function EditorialWorkspace({
           )}
 
           {/* Bottom-Right Floating Trigger Button (when AI Copilot Panel is hidden) */}
-          {stage === 'editor' && !rightPanelOpen && (
+          {stage !== 'publication' && !rightPanelOpen && (
             <div className="fixed right-5 top-1/2 z-40 -translate-y-1/2">
               <Tooltip>
                 <TooltipTrigger
