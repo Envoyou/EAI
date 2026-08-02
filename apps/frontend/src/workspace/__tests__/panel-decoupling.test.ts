@@ -34,7 +34,8 @@ describe('Workspace Panel Decoupling Contract', () => {
 
     // ThreeColumnLayout should receive decoupled leftPanelOpen prop
     expect(componentSource).toMatch(/leftPanelOpen=\{leftPanelOpen && !isDemoMode\}/);
-    expect(componentSource).toContain("rightPanelOpen={stage !== 'publication' && rightPanelOpen}");
+    expect(componentSource).toContain('rightPanelOpen={rightPanelOpen}');
+    expect(componentSource).toContain('<PublicationSeoPanel');
 
     expect(componentSource).toContain('<AppSidebarShell');
     expect(componentSource).not.toContain('<DocumentHistoryPanel');

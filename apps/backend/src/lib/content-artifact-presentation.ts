@@ -88,7 +88,11 @@ const loadAnalysisPresentationRows = async (
   const sourceRefs = [
     ...new Set(
       artifacts
-        .filter((artifact) => artifact.sourceType === 'ANALYSIS')
+        .filter(
+          (artifact) =>
+            artifact.sourceType !== 'STRATEGIST_BLUEPRINT' &&
+            artifact.sourceType !== 'CMS_IMPORT'
+        )
         .map((artifact) => artifact.sourceId)
         .filter((value): value is string => Boolean(value))
     ),

@@ -11,6 +11,7 @@ export type StrategistPlanResult<TPlan = unknown> = {
   suggestions?: string[];
   plan?: TPlan;
   sessionId?: string | null;
+  sourceRef?: string;
   duplicateGuard?: DuplicateGuardResult | null;
 };
 

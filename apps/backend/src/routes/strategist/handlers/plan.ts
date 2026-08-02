@@ -747,6 +747,7 @@ router.post(
           const responsePayload = {
             ...sanitizedData,
             sessionId: dbSessionId,
+            sourceRef: requestId,
             duplicateGuard: duplicateGuardResult,
           };
 
@@ -830,6 +831,7 @@ router.post(
       res.json({
         ...sanitizedData,
         sessionId: dbSessionId === 'new' ? null : dbSessionId,
+        sourceRef: requestId,
         duplicateGuard: duplicateGuardResult,
       });
     } catch (error) {

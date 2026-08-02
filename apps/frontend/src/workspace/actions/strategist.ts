@@ -16,6 +16,7 @@ interface StrategistContext {
   metadata: ArticleMetadata;
   directFetch: DirectFetchType;
   setDraft: (d: string) => void;
+  setMetadata: React.Dispatch<React.SetStateAction<ArticleMetadata>>;
   setIsGeneratingDraftFromNotes: (g: boolean) => void;
   generateAbortControllerRef: React.MutableRefObject<AbortController | null>;
   duplicateGuardWarning: string;
@@ -43,6 +44,7 @@ export async function executeGenerateDraftFromNotes(
     metadata,
     directFetch,
     setDraft,
+    setMetadata,
     setIsGeneratingDraftFromNotes,
     generateAbortControllerRef,
     duplicateGuardWarning,
@@ -67,6 +69,7 @@ export async function executeGenerateDraftFromNotes(
   setDraft('');
   let currentDraft = '';
   let receivedDone = false;
+  let lifecycleSourceRef: string | undefined;
   let duplicateGuardFeedbackCandidate: DuplicateGuardResult | null = null;
 
   const controller = new AbortController();
@@ -166,6 +169,10 @@ export async function executeGenerateDraftFromNotes(
             throw new Error(data.message || data.error || 'Draft generation failed.');
           } else if (data.type === 'done') {
             receivedDone = true;
+            lifecycleSourceRef =
+              typeof data.sourceRef === 'string' && data.sourceRef.trim()
+                ? data.sourceRef.trim()
+                : undefined;
           }
         }
       }
@@ -177,6 +184,13 @@ export async function executeGenerateDraftFromNotes(
 
     if (!receivedDone) {
       throw new Error('Connection lost. Please retry.');
+    }
+
+    if (lifecycleSourceRef) {
+      setMetadata(current => ({
+        ...current,
+        sourceRef: current.sourceRef ?? lifecycleSourceRef,
+      }));
     }
 
     toast.success('Draft generated successfully!');

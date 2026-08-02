@@ -51,6 +51,7 @@ export type Recommendation = {
 };
 
 export type PreEditorPlan = {
+  sourceRef?: string;
   angle: string;
   audience: string;
   hook: string;
@@ -129,7 +130,14 @@ export interface ChatSession {
 }
 
 interface UseContentStrategistOptions {
-  onComplete: (topic: string, outline: string, draft: string, notes: ResearchNote[], attachments: Attachment[]) => void;
+  onComplete: (
+    topic: string,
+    outline: string,
+    draft: string,
+    notes: ResearchNote[],
+    attachments: Attachment[],
+    sourceRef?: string
+  ) => void;
   notes?: ResearchNote[];
   onNotesChange?: (notes: ResearchNote[]) => void;
   documentId?: string;
@@ -768,7 +776,14 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     const allNotes = [...savedNotes, blueprintNote];
     updateSavedNotes(allNotes);
 
-    onComplete(currentPlan.angle, currentPlan.outline, currentPlan.draft, allNotes, uploadedAttachment ? [uploadedAttachment] : []);
+    onComplete(
+      currentPlan.angle,
+      currentPlan.outline,
+      currentPlan.draft,
+      allNotes,
+      uploadedAttachment ? [uploadedAttachment] : [],
+      currentPlan.sourceRef
+    );
   }, [currentPlan, savedNotes, uploadedAttachment, onComplete, updateSavedNotes]);
 
   const handleSaveToNotesOnly = useCallback(() => {
@@ -834,7 +849,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       }
 
       if (data.plan) {
-        setCurrentPlan(data.plan);
+        setCurrentPlan({ ...data.plan, sourceRef: data.sourceRef ?? data.plan.sourceRef });
         if (data.plan.sources?.length > 0) {
           const fakeDomains = data.plan.sources.map((url: string) => {
             let domain = 'Source';
@@ -1395,6 +1410,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       let buf = '';
       let output = '';
       let receivedComplete = false;
+      let completedSourceRef: string | undefined;
       let duplicateGuardFeedbackCandidate:
         | DuplicateGuardResult
         | null = null;
@@ -1434,6 +1450,8 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
             });
           } else if (event.type === 'complete') {
             receivedComplete = true;
+            const completion = event.data as { sourceRef?: string } | undefined;
+            completedSourceRef = completion?.sourceRef;
           } else if (event.type === 'error') {
             throw new Error(event.data as string);
           }
@@ -1459,6 +1477,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       });
 
       setCurrentPlan({
+        sourceRef: completedSourceRef,
         angle: quickDraftTopic,
         audience: '',
         hook: '',

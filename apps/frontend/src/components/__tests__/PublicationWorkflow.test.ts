@@ -8,6 +8,7 @@ const readFrontendSource = (path: string) =>
 describe('revision-safe publication workflow', () => {
   it('offers draft editing, quality-only checks, and independent SEO regeneration', () => {
     const panel = readFrontendSource('components/FinalDraftPanel.tsx');
+    const seoPanel = readFrontendSource('components/PublicationSeoPanel.tsx');
     const inlineEditor = readFrontendSource(
       'components/final-draft/InlineFinalDraftEditor.tsx'
     );
@@ -31,10 +32,10 @@ describe('revision-safe publication workflow', () => {
     expect(editorStyles).toContain('caret-color: var(--primary)');
     expect(panel).toContain("t('qualityCheck')");
     expect(panel).toContain("t('regenerateSeo')");
-    expect(panel).toContain('Save Publication Metadata');
+    expect(seoPanel).toContain("t('savePublicationMetadata')");
     expect(panel).toContain("t('prepareForExport')");
-    expect(panel).toContain("t('confirmMetadataCurrent')");
-    expect(panel).toContain('onConfirmPublicationMetadata');
+    expect(seoPanel).toContain("t('confirmMetadataCurrent')");
+    expect(seoPanel).toContain('onConfirm');
     expect(panel).toContain(
       'icon={PreparePublicationIcon}'
     );
@@ -58,16 +59,17 @@ describe('revision-safe publication workflow', () => {
 
   it('maps technical validation state to user-facing publication outcomes', () => {
     const panel = readFrontendSource('components/FinalDraftPanel.tsx');
+    const seoPanel = readFrontendSource('components/PublicationSeoPanel.tsx');
     const uxState = readFrontendSource('workspace/publication-ux-state.ts');
 
     expect(panel).toContain('derivePublicationUxState({');
     expect(panel).toContain("publicationUxState === 'checking'");
     expect(panel).toContain("publicationUxState === 'content_decision_required'");
-    expect(panel).toContain("publicationUxState === 'metadata_decision_required'");
+    expect(seoPanel).toContain("uxState === 'metadata_decision_required'");
     expect(panel).not.toContain("t('runOptionalQualityCheck')");
     expect(uxState).toContain("qualityGateState === 'stale'");
     expect(uxState).toContain("seoReviewState === 'possibly_stale'");
-    expect(panel).toContain("t('seoReviewRecommendedDescription')");
+    expect(seoPanel).toContain("t('seoReviewRecommendedDescription')");
   });
 
   it('keeps secondary final-draft actions in an adaptive portalled menu', () => {

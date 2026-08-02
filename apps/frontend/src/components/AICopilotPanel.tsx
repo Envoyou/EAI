@@ -18,7 +18,14 @@ export type RightTab = 'strategist' | 'feedback' | 'notes' | 'deep_report';
 interface AICopilotPanelProps {
   activeTab?: RightTab;
   onTabChange?: (tab: RightTab) => void;
-  onStrategistComplete?: (topic: string, outline: string, draft: string, notes: ResearchNote[], attachments: Attachment[]) => void;
+  onStrategistComplete?: (
+    topic: string,
+    outline: string,
+    draft: string,
+    notes: ResearchNote[],
+    attachments: Attachment[],
+    sourceRef?: string
+  ) => void;
   feedbackResult?: AnalysisResult | null;
   feedbackTitle?: string;
   onApplyFix?: (targetText: string, replacementText: string, operation: 'replace' | 'insert_before' | 'insert_after' | 'manual', index: number) => Promise<boolean>;
@@ -109,8 +116,8 @@ export default function AICopilotPanel({
   };
 
   const strategist = useContentStrategist({
-    onComplete: (topic, outline, draft, notes, attachments) => {
-      onStrategistComplete?.(topic, outline, draft, notes, attachments);
+    onComplete: (topic, outline, draft, notes, attachments, sourceRef) => {
+      onStrategistComplete?.(topic, outline, draft, notes, attachments, sourceRef);
     },
     notes: researchNotes,
     onNotesChange,

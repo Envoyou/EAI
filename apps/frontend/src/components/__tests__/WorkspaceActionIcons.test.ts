@@ -19,7 +19,7 @@ describe('workspace semantic action icons', () => {
     const workspace = readSource('../EditorialWorkspace.tsx');
     const finalDraft = readSource('../FinalDraftPanel.tsx');
 
-    expect(workspace).toContain('icon={AssistantChatIcon}');
+    expect(workspace).toContain("stage === 'publication' ? DocumentIcon : AssistantChatIcon");
     expect(workspace).toContain(': RefineDraftIcon');
     expect(finalDraft.match(/icon=\{PreparePublicationIcon\}/g)).toHaveLength(2);
     expect(finalDraft).not.toContain('<Sparkles');

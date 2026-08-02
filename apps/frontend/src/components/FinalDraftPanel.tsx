@@ -12,13 +12,11 @@ import {
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
 import { buildParagraphDiff } from '@eai/shared';
-import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackage, PublicationPackageStatus, RevisionValidationState, SeoFieldStates, SeoReviewState } from '@eai/shared';
-import { getProtectedSeoReviewFields } from '@/workspace/seo-field-state';
+import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackageStatus, RevisionValidationState, SeoFieldStates, SeoReviewState } from '@eai/shared';
 import { derivePublicationUxState } from '@/workspace/publication-ux-state';
 import EditorialProgress from '@/components/EditorialProgress';
 import { Alert } from '@/components/ui/alert';
@@ -78,8 +76,6 @@ interface FinalDraftPanelProps {
   onSaveFinalDraft?: (draft: string) => Promise<boolean>;
   onQualityCheck?: () => Promise<unknown>;
   onRegenerateSeo?: () => Promise<void>;
-  onSavePublicationMetadata?: (metadata: PublicationPackage) => Promise<boolean>;
-  onConfirmPublicationMetadata?: () => Promise<void>;
   onPrepareForExport?: () => Promise<void>;
   onFinishLater?: () => void;
   onOpenCmsSettings?: () => void;
@@ -196,16 +192,6 @@ const sectionStyles = {
 
 type TabType = 'preview' | 'raw' | 'diff';
 
-const toSeoEditValue = (metadata?: PublicationPackage) => ({
-  title: metadata?.title || '',
-  slug: metadata?.slug || '',
-  excerpt: metadata?.excerpt || '',
-  metaTitle: metadata?.metaTitle || '',
-  metaDescription: metadata?.metaDescription || '',
-  coverImageAltText: metadata?.coverImageAltText || '',
-  tags: metadata?.tags?.join(', ') || '',
-});
-
 export default function FinalDraftPanel({
   originalDraft,
   polishedDraft,
@@ -235,8 +221,6 @@ export default function FinalDraftPanel({
   onSaveFinalDraft,
   onQualityCheck,
   onRegenerateSeo,
-  onSavePublicationMetadata,
-  onConfirmPublicationMetadata,
   onPrepareForExport,
   onFinishLater,
   onOpenCmsSettings,
@@ -259,16 +243,10 @@ export default function FinalDraftPanel({
   const [showStats, setShowStats] = useState(true);
   const [editingDraft, setEditingDraft] = useState(false);
   const [draftEditValue, setDraftEditValue] = useState(polishedDraft);
-  const [editingSeo, setEditingSeo] = useState(false);
-  const [isConfirmingMetadata, setIsConfirmingMetadata] = useState(false);
-  const [seoEditValue, setSeoEditValue] = useState(() =>
-    toSeoEditValue(generatedMetadata)
-  );
   const isGeneratingDraft = Boolean(isStreaming || isRefining);
   const isBackgroundValidation = Boolean(
     isCheckingQuality && !isAiBusy && !isGeneratingDraft
   );
-  const protectedSeoFields = getProtectedSeoReviewFields(seoFieldStates);
   const publicationUxState = derivePublicationUxState({
     isChecking: isBackgroundValidation,
     qualityGateState,
@@ -1137,113 +1115,6 @@ export default function FinalDraftPanel({
             </div>
           )}
 
-        {generatedMetadata && qualityReady && onSavePublicationMetadata && (
-          <div className="ui-card mt-3 mb-3 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold ui-text">Publication Metadata</p>
-                <p className="text-[11px] ui-muted">
-                  Edit SEO fields without running Analyze again.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="muted"
-                size="xs"
-                onClick={() => {
-                  if (!editingSeo) setSeoEditValue(toSeoEditValue(generatedMetadata));
-                  setEditingSeo((current) => !current);
-                }}
-                aria-expanded={editingSeo}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                {editingSeo ? 'Close' : 'Edit SEO'}
-              </Button>
-            </div>
-            {editingSeo && (
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                {[
-                  ['title', 'Title'],
-                  ['slug', 'Slug'],
-                  ['metaTitle', 'Meta Title'],
-                  ['coverImageAltText', 'Cover Image Alt'],
-                ].map(([field, label]) => (
-                  <Input
-                    key={field}
-                    variant="surface"
-                    value={seoEditValue[field as keyof typeof seoEditValue]}
-                    onChange={(event) =>
-                      setSeoEditValue((current) => ({
-                        ...current,
-                        [field]: event.target.value,
-                      }))
-                    }
-                    aria-label={label}
-                    placeholder={label}
-                  />
-                ))}
-                <Textarea
-                  variant="surface"
-                  value={seoEditValue.excerpt}
-                  onChange={(event) =>
-                    setSeoEditValue((current) => ({ ...current, excerpt: event.target.value }))
-                  }
-                  rows={3}
-                  aria-label="Excerpt"
-                  placeholder="Excerpt"
-                />
-                <Textarea
-                  variant="surface"
-                  value={seoEditValue.metaDescription}
-                  onChange={(event) =>
-                    setSeoEditValue((current) => ({
-                      ...current,
-                      metaDescription: event.target.value,
-                    }))
-                  }
-                  rows={3}
-                  aria-label="Meta description"
-                  placeholder="Meta Description"
-                />
-                <Input
-                  variant="surface"
-                  value={seoEditValue.tags}
-                  onChange={(event) =>
-                    setSeoEditValue((current) => ({ ...current, tags: event.target.value }))
-                  }
-                  aria-label="Tags"
-                  placeholder="Tags separated by commas"
-                  className="md:col-span-2"
-                />
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  className="md:col-span-2"
-                  onClick={async () => {
-                    const saved = await onSavePublicationMetadata({
-                      title: seoEditValue.title,
-                      slug: seoEditValue.slug,
-                      excerpt: seoEditValue.excerpt,
-                      metaTitle: seoEditValue.metaTitle,
-                      metaDescription: seoEditValue.metaDescription,
-                      coverImageAltText: seoEditValue.coverImageAltText,
-                      tags: seoEditValue.tags
-                        .split(',')
-                        .map((tag) => tag.trim())
-                        .filter(Boolean),
-                    });
-                    if (saved) setEditingSeo(false);
-                  }}
-                >
-                  <Save className="h-3.5 w-3.5" />
-                  Save Publication Metadata
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Export Warning */}
         {exportStatus?.blogEditUrl && (
           <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
@@ -1277,81 +1148,6 @@ export default function FinalDraftPanel({
             </div>
           </Alert>
         )}
-        {publicationUxState === 'metadata_decision_required' && (
-          <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <strong>{t('seoFieldsNeedReviewTitle')}</strong>{' '}
-              {protectedSeoFields.length > 0
-                ? t('seoFieldsNeedReviewDescription', {
-                    fields: protectedSeoFields.map((field) => t(`seoField.${field}`)).join(', '),
-                  })
-                : t('seoReviewRecommendedDescription')}
-              {onConfirmPublicationMetadata && generatedMetadata && (
-                <Button
-                  type="button"
-                  variant="muted"
-                  size="xs"
-                  className="mt-2"
-                  disabled={isConfirmingMetadata}
-                  onClick={async () => {
-                    setIsConfirmingMetadata(true);
-                    try {
-                      await onConfirmPublicationMetadata();
-                      toast.success(t('confirmMetadataSuccess'));
-                    } catch {
-                      toast.error(t('confirmMetadataFailed'));
-                    } finally {
-                      setIsConfirmingMetadata(false);
-                    }
-                  }}
-                >
-                  {isConfirmingMetadata
-                    ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
-                    : <ShieldCheck className="h-3.5 w-3.5" />}
-                  {t('confirmMetadataCurrent')}
-                </Button>
-              )}
-            </div>
-          </Alert>
-        )}
-        {publicationUxState === 'metadata_attention_required' && (
-          <Alert variant="warning" className="mb-3 px-3 py-2 text-xs">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <div>
-                <strong>{t('staleMetadataTitle')}</strong>{' '}
-                {t('staleMetadataDescription')}
-              </div>
-              {onConfirmPublicationMetadata && generatedMetadata && (
-                <Button
-                  type="button"
-                  variant="muted"
-                  size="xs"
-                  className="mt-2"
-                  disabled={isConfirmingMetadata}
-                  onClick={async () => {
-                    setIsConfirmingMetadata(true);
-                    try {
-                      await onConfirmPublicationMetadata();
-                      toast.success(t('confirmMetadataSuccess'));
-                    } catch {
-                      toast.error(t('confirmMetadataFailed'));
-                    } finally {
-                      setIsConfirmingMetadata(false);
-                    }
-                  }}
-                >
-                  {isConfirmingMetadata
-                    ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
-                    : <ShieldCheck className="h-3.5 w-3.5" />}
-                  {t('confirmMetadataCurrent')}
-                </Button>
-              )}
-            </div>
-          </Alert>
-        )}
-
         {/* Diff Stats (Compact inline row to save vertical space) */}
         {ready && showStats && (
           <div className="final-draft-stats flex flex-wrap items-center gap-4 pt-3 mt-3 border-t border-[var(--border-subtle)]">

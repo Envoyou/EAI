@@ -15,7 +15,7 @@ import { DocumentIcon } from '@/components/ui/icons/content';
 import { ReviewArticlePanel } from '@/components/ReviewArticlePanel';
 import { useTranslations } from 'next-intl';
 import type { PanelTab } from '@/components/PanelTabBar';
-import type { AnalysisResult, ArticleMetadata, EditorialProcessStage, PublicationPackage } from '@eai/shared';
+import type { AnalysisResult, ArticleMetadata, EditorialProcessStage } from '@eai/shared';
 
 export interface EditorialOptions {
   brandName: string;
@@ -64,8 +64,6 @@ interface EditorCanvasProps {
   onSaveFinalDraft: (draft: string) => Promise<boolean>;
   onQualityCheck: () => Promise<unknown>;
   onRegenerateSeo: () => Promise<void>;
-  onSavePublicationMetadata: (metadata: PublicationPackage) => Promise<boolean>;
-  onConfirmPublicationMetadata: () => Promise<void>;
   onPrepareForExport: () => Promise<void>;
   isSavingFinalDraft: boolean;
   isCheckingQuality: boolean;
@@ -116,8 +114,6 @@ export default function EditorCanvas({
   onSaveFinalDraft,
   onQualityCheck,
   onRegenerateSeo,
-  onSavePublicationMetadata,
-  onConfirmPublicationMetadata,
   onPrepareForExport,
   isSavingFinalDraft,
   isCheckingQuality,
@@ -413,8 +409,6 @@ export default function EditorCanvas({
                       onSaveFinalDraft={onSaveFinalDraft}
                       onQualityCheck={onQualityCheck}
                       onRegenerateSeo={onRegenerateSeo}
-                      onSavePublicationMetadata={onSavePublicationMetadata}
-                      onConfirmPublicationMetadata={onConfirmPublicationMetadata}
                       onPrepareForExport={isCandidatePendingReview ? undefined : onPrepareForExport}
                       onFinishLater={
                         !isCandidatePendingReview && !isDemoMode && analysis.analysisLogId

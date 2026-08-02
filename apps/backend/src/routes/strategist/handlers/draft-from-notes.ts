@@ -39,6 +39,7 @@ import {
   buildRelatedContentContext,
   recordContentGuardOutcome,
   releaseContentReservation,
+  resolveLifecycleRootArtifactId,
   upsertContentArtifact,
 } from '@/lib/content-memory';
 
@@ -82,6 +83,8 @@ router.post(
     const { notes, metadata } = parsedInput.data;
     const contentGuardRequestId =
       parsedInput.data.requestId ?? randomUUID();
+    const lifecycleSourceRef =
+      metadata?.sourceRef?.trim() || contentGuardRequestId;
 
     if (!userId) {
       const cookies = Object.fromEntries(
@@ -321,7 +324,6 @@ ${buildRelatedContentContext(duplicateGuardResult)}
               }`
             );
           }
-          res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
         }
       }
     } else {
@@ -342,13 +344,11 @@ ${buildRelatedContentContext(duplicateGuardResult)}
           );
         }
       }
-      if (!requestAbort.isDisconnected()) {
-        res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
-      }
     }
 
     if (requestAbort.isDisconnected()) return;
 
+    let savedLogId: string | undefined;
     if (userId && generatedText.trim()) {
       const savedLog = await prisma.analysisLog.create({
         data: {
@@ -356,19 +356,29 @@ ${buildRelatedContentContext(duplicateGuardResult)}
           organizationId: billingOrgId,
           role: 'draft_generation',
           content: generatedText,
-          metadata: { source: 'strategist_notes' },
+          metadata: JSON.parse(JSON.stringify({
+            source: 'strategist_notes',
+            sourceRef: lifecycleSourceRef,
+            metadataInput: metadata,
+          })),
           promptVersion: PROMPT_VERSION,
           modelName,
           status: 'success',
         },
       });
+      savedLogId = savedLog.id;
       if (billingOrgId) {
+        const rootArtifactId = await resolveLifecycleRootArtifactId({
+          organizationId: billingOrgId,
+          sourceRef: lifecycleSourceRef,
+        });
         const artifact = await upsertContentArtifact({
           organizationId: billingOrgId,
           createdByUserId: userId,
           artifactType: ContentArtifactType.DRAFT,
           sourceType: ContentSourceType.DRAFT_FROM_NOTES,
-          sourceId: savedLog.id,
+          sourceId: lifecycleSourceRef,
+          rootArtifactId,
           currentStage: ContentArtifactStage.DRAFTING,
           title: metadata?.workingTitle,
           topic: metadata?.workingTitle ?? metadata?.brief,
@@ -407,6 +417,14 @@ ${buildRelatedContentContext(duplicateGuardResult)}
         'Draft generation from strategist notes',
         savedLog.id
       );
+    }
+
+    if (!requestAbort.isDisconnected()) {
+      res.write(`data: ${JSON.stringify({
+        type: 'done',
+        analysisLogId: savedLogId,
+        sourceRef: lifecycleSourceRef,
+      })}\n\n`);
     }
 
     res.end();

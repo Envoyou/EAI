@@ -204,6 +204,7 @@ apps/backend/
 - **Shared types**: Import domain types and Zod schemas from `@eai/shared`. Import server-only utilities (encryption, admin guards) from `@eai/shared/server`.
 - **Publication finding persistence**: Keep the general `update_publication_package` readiness guard intact. Applying a prepared or manually edited publication-field finding must use `apply_publication_metadata_finding`, validate against the server-stored finding and current draft revision, and persist the metadata value plus finding resolution in one serializable transaction.
 - **Current article history projection**: `GET /api/history?view=current` must return only the newest successful AnalysisLog per tenant-scoped `metadata.sourceRef`, falling back to the log ID only when lineage is absent. Rank within the organization boundary before filtering current verdicts, and include current feedback so active queues can require unresolved decisions. Do not delete or rewrite older logs; they remain revision and audit history.
+- **Article-family lineage**: A persisted Strategist Blueprint, Quick Draft, or Draft from Notes is an article origin and must issue a durable `sourceRef`; raw chat sessions are not article families. Persist that value in the originating AnalysisLog metadata and ContentArtifact `sourceId`, return it only after durable completion, and resolve later Analysis artifacts to the earliest matching tenant-scoped root artifact. Retain direct AnalysisLog-ID presentation lookup for legacy artifacts.
 
 ## 4. Database & ORM Conventions (Prisma & Neon)
 

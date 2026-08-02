@@ -7,6 +7,7 @@ describe('recoverStrategistPlanResult', () => {
       reply: 'Blueprint ready',
       plan: { angle: 'Recovered angle' },
       sessionId: 'session-1',
+      sourceRef: 'article-family-1',
     };
     const directFetch = vi.fn().mockResolvedValue(
       new Response(

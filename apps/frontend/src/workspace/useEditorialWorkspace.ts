@@ -58,9 +58,10 @@ import {
   normalizeHttpSourceUrl,
   addSourceLinkToDraft,
   markFeedbackApplied,
+  buildEditorHandoff,
 } from './utils';
 
-import type { PendingRefineAction } from './types';
+import type { AnalysisCompletion, EditorHandoffState, PendingRefineAction } from './types';
 
 type EditorialResolutionResult = {
   readiness: EditorialReadiness;
@@ -173,6 +174,7 @@ export function useEditorialWorkspace({
   const [hoveredFeedbackIndex, setHoveredFeedbackIndex] = useState<number | null>(null);
   const [activeFeedbackIndex, setActiveFeedbackIndex] = useState<number | null>(null);
   const [rightPanelTab, setRightPanelTab] = useState<'strategist' | 'feedback' | 'notes' | 'deep_report'>('strategist');
+  const [editorHandoff, setEditorHandoff] = useState<EditorHandoffState | null>(null);
 
   // Refresh trigger for DocumentHistoryPanel
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -338,6 +340,7 @@ export function useEditorialWorkspace({
     cancelBackgroundValidation();
     setHoveredFeedbackIndex(null);
     setActiveFeedbackIndex(null);
+    setEditorHandoff(null);
     const ctx = {
       analysis,
       draft,
@@ -361,7 +364,6 @@ export function useEditorialWorkspace({
       setProcessStartedAt,
       setActiveTab,
       setRightPanelOpen,
-      setRightPanelTab,
       setMobileViewTab,
       setDemoRefineCount,
       setShowDemoSignupModal: () => {
@@ -376,10 +378,14 @@ export function useEditorialWorkspace({
       setMissingSources,
       setPendingRefineAction,
       setShowMissingSourcesModal,
-      notifyDraftReady: () => toast.success(
-        tFinalDraftPanel('draftReady'),
-        { description: tFinalDraftPanel('draftReadyDescription') }
-      ),
+      onAnalysisComplete: (completion: AnalysisCompletion) => {
+        const handoff = buildEditorHandoff(completion);
+        setEditorHandoff(handoff);
+        toast.success(
+          tFinalDraftPanel('draftReady'),
+          { description: tFinalDraftPanel('draftReadyDescription') }
+        );
+      },
     };
     await executeAnalyze(ctx, overrideDraft, forceSkipCheck);
   };
@@ -1416,6 +1422,7 @@ export function useEditorialWorkspace({
     setActiveTab('draft');
     setHoveredFeedbackIndex(null);
     setActiveFeedbackIndex(null);
+    setEditorHandoff(null);
 
     setResearchNotes([]);
     setAttachments([]);
@@ -1436,6 +1443,7 @@ export function useEditorialWorkspace({
       metadata,
       directFetch,
       setDraft,
+      setMetadata,
       setIsGeneratingDraftFromNotes,
       generateAbortControllerRef,
       duplicateGuardWarning: tContentMemory('relatedWarning'),
@@ -1504,6 +1512,7 @@ export function useEditorialWorkspace({
   const loadHistory = async (id: string) => {
     if (hasBlockingWorkspaceOperation()) return;
     cancelBackgroundValidation();
+    setEditorHandoff(null);
     try {
       const res = await fetchWithTimeout(`/api/history/${id}`);
       if (res.ok) {
@@ -1852,6 +1861,8 @@ export function useEditorialWorkspace({
     setRightPanelOpen,
     rightPanelTab,
     setRightPanelTab,
+    editorHandoff,
+    setEditorHandoff,
     layoutReversed,
     setLayoutReversed,
     showMissingSourcesModal,

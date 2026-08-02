@@ -4,6 +4,10 @@ import type {
   ResearchNote,
   Attachment,
   EditorialProcessStage,
+  EditorialReadiness,
+  FeedbackItem,
+  PublicationPackage,
+  PublicationPackageStatus,
 } from '@eai/shared';
 import type { AppSettings } from '@/lib/preferences';
 import type { PanelTab } from '@/components/PanelTabBar';
@@ -27,6 +31,23 @@ export interface PendingRefineAction {
   type: 'analyze' | 'refine_again';
   overrideDraft?: string;
   instruction?: string;
+}
+
+export type EditorHandoffDestination = 'review' | 'publication';
+
+export interface AnalysisCompletion {
+  analysisLogId: string;
+  readiness?: EditorialReadiness;
+  feedback: FeedbackItem[];
+  generatedMetadata?: PublicationPackage;
+  publicationPackageStatus: PublicationPackageStatus;
+}
+
+export interface EditorHandoffState extends AnalysisCompletion {
+  destination: EditorHandoffDestination;
+  unresolvedFindingCount: number;
+  blockingFindingCount: number;
+  hasSeoPackage: boolean;
 }
 
 export type DirectFetchType = (path: string, options?: TimeoutRequestInit) => Promise<Response>;

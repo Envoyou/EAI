@@ -2,6 +2,10 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const finalDraftSource = readFileSync(new URL('../FinalDraftPanel.tsx', import.meta.url), 'utf8');
+const publicationSeoSource = readFileSync(
+  new URL('../PublicationSeoPanel.tsx', import.meta.url),
+  'utf8',
+);
 const inlineFinalDraftEditorSource = readFileSync(
   new URL('../final-draft/InlineFinalDraftEditor.tsx', import.meta.url),
   'utf8',
@@ -19,12 +23,16 @@ const activationStep = onboardingSource.slice(
 describe('remaining legacy feature form-control contract', () => {
   it('uses canonical controls for revision and publication fields in Final Draft', () => {
     expect(finalDraftSource).not.toMatch(/<textarea\b/);
-    expect(finalDraftSource.match(/<Textarea\b/g)).toHaveLength(3);
-    expect(finalDraftSource.match(/<Input\b/g)).toHaveLength(2);
-    expect(finalDraftSource.match(/variant="surface"/g)).toHaveLength(5);
+    expect(publicationSeoSource).not.toMatch(/<textarea\b|<input\b/);
+    expect(finalDraftSource.match(/<Textarea\b/g)).toHaveLength(1);
+    expect(publicationSeoSource.match(/<Textarea\b/g)).toHaveLength(1);
+    expect(publicationSeoSource.match(/<Input\b/g)).toHaveLength(2);
+    expect(finalDraftSource).toContain('variant="surface"');
+    expect(publicationSeoSource.match(/variant="surface"/g)).toHaveLength(3);
     expect(finalDraftSource).toContain('<InlineFinalDraftEditor');
     expect(inlineFinalDraftEditorSource).toContain('<EditorContent editor={editor} />');
     expect(finalDraftSource).not.toMatch(/ui-control|ui-input|ui-textarea|ui-select/);
+    expect(publicationSeoSource).not.toMatch(/ui-control|ui-input|ui-textarea|ui-select/);
   });
 
   it('uses canonical surface inputs for the Onboarding activation fields', () => {

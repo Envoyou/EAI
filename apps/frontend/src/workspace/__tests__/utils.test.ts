@@ -3,6 +3,7 @@ import {
   addSourceLinkToDraft,
   checkMissingSources,
   calculateReadiness,
+  buildEditorHandoff,
   extractArticleMetadata,
   extractQualityGate,
   extractPublicationState,
@@ -114,6 +115,40 @@ describe('extractPublicationState', () => {
       publicationPackageStatus: 'current',
       qualityGateState: 'validation_recommended',
       seoReviewState: 'possibly_stale',
+    });
+  });
+});
+
+describe('buildEditorHandoff', () => {
+  it('sends a ready article and its current SEO package to Publication', () => {
+    expect(buildEditorHandoff({
+      analysisLogId: 'ready-log',
+      readiness: 'ready',
+      feedback: [],
+      generatedMetadata: { title: 'Ready article', slug: 'ready-article' },
+      publicationPackageStatus: 'current',
+    })).toMatchObject({
+      destination: 'publication',
+      unresolvedFindingCount: 0,
+      hasSeoPackage: true,
+    });
+  });
+
+  it('sends unresolved current findings to Review even if readiness is contradictory', () => {
+    expect(buildEditorHandoff({
+      analysisLogId: 'review-log',
+      readiness: 'ready',
+      feedback: [{
+        category: 'Source fidelity',
+        status: 'fail',
+        message: 'A source decision is required.',
+      }],
+      publicationPackageStatus: 'not_generated',
+    })).toMatchObject({
+      destination: 'review',
+      unresolvedFindingCount: 1,
+      blockingFindingCount: 1,
+      hasSeoPackage: false,
     });
   });
 });

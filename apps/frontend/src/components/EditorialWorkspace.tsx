@@ -21,6 +21,8 @@ import {
 import ThreeColumnLayout from '@/components/ThreeColumnLayout';
 import EditorCanvas from '@/components/EditorCanvas';
 import AICopilotPanel from '@/components/AICopilotPanel';
+import { EditorWorkflowPanel } from '@/components/EditorWorkflowPanel';
+import { PublicationSeoPanel } from '@/components/PublicationSeoPanel';
 import { AppSidebarShell, type WorkspacePage } from '@/components/AppSidebarShell';
 import ShortcutsModal from '@/components/ShortcutsModal';
 import { EAILogo } from '@/components/EAILogo';
@@ -31,6 +33,7 @@ import { ActionButton } from '@/components/ui/action-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AssistantChatIcon, RefineDraftIcon } from '@/components/ui/icons/ai';
 import { CancelActionIcon } from '@/components/ui/icons/actions';
+import { DocumentIcon } from '@/components/ui/icons/content';
 
 import { useEditorialWorkspace } from '@/workspace/useEditorialWorkspace';
 import { editorStatusBadgeVariant } from '@/workspace/utils';
@@ -89,6 +92,8 @@ export default function EditorialWorkspace({
     setRightPanelOpen,
     rightPanelTab,
     setRightPanelTab,
+    editorHandoff,
+    setEditorHandoff,
     showMissingSourcesModal,
     setShowMissingSourcesModal,
     missingSources,
@@ -150,7 +155,7 @@ export default function EditorialWorkspace({
       setRightPanelOpen(true);
     }
     if (stage === 'editor') setRightPanelOpen(false);
-    if (stage === 'publication') setRightPanelOpen(false);
+    if (stage === 'publication') setRightPanelOpen(true);
   }, [effectiveActiveTab, isDemoMode, setActiveTab, setRightPanelOpen, setRightPanelTab, stage, workspaceChecking]);
 
   useEffect(() => {
@@ -393,7 +398,7 @@ export default function EditorialWorkspace({
             </div>}
 
             {/* Refine Draft CTA */}
-            {stage === 'editor' && <Tooltip>
+            {stage === 'editor' && !editorHandoff && <Tooltip>
               <TooltipTrigger
                 render={
                   <ActionButton
@@ -463,7 +468,7 @@ export default function EditorialWorkspace({
       onTabChange={setActiveTab}
       workspaceStage={stage}
       isGeneratingDraft={isGeneratingDraftFromNotes}
-      isAiBusy={isAiBusy}
+      isAiBusy={isAiBusy || (stage === 'editor' && Boolean(editorHandoff))}
       hasResult={hasResult}
       sidebarOpen={leftPanelOpen}
       onToggleSidebar={() => setLeftPanelOpen(current => !current)}
@@ -498,8 +503,6 @@ export default function EditorialWorkspace({
       onSaveFinalDraft={handleSaveFinalDraft}
       onQualityCheck={handleQualityCheck}
       onRegenerateSeo={handleRegenerateSeo}
-      onSavePublicationMetadata={handleSavePublicationMetadata}
-      onConfirmPublicationMetadata={handleConfirmPublicationMetadata}
       onPrepareForExport={handlePrepareForExport}
       isSavingFinalDraft={isSavingFinalDraft}
       isCheckingQuality={isCheckingQuality}
@@ -510,16 +513,59 @@ export default function EditorialWorkspace({
     />
   );
 
-  const renderContextPanel = () => (
-    <AICopilotPanel
+  const renderContextPanel = () => {
+    if (stage === 'publication') {
+      return (
+        <PublicationSeoPanel
+          metadata={analysis.generatedMetadata}
+          onSave={handleSavePublicationMetadata}
+          onConfirm={handleConfirmPublicationMetadata}
+          publicationPackageStatus={analysis.publicationPackageStatus}
+          qualityGateState={analysis.qualityGateState}
+          seoReviewState={analysis.seoReviewState}
+          seoFieldStates={analysis.seoFieldStates}
+          isChecking={isCheckingQuality && !isAiBusy}
+        />
+      );
+    }
+
+    if (stage === 'editor' && (isStreaming || editorHandoff)) {
+      return (
+        <EditorWorkflowPanel
+          isProcessing={isStreaming}
+          processStage={processStage}
+          processStartedAt={processStartedAt}
+          includeSeoStage={analysisSpeed !== 'fast'}
+          handoff={editorHandoff}
+          onOpenDestination={() => {
+            if (!editorHandoff) return;
+            router.push(`/${editorHandoff.destination}?history=${encodeURIComponent(editorHandoff.analysisLogId)}`);
+          }}
+          onFinishLater={() => router.push('/workspace')}
+          onContinueEditing={() => {
+            setEditorHandoff(null);
+            setRightPanelOpen(false);
+            if (isMobile) setMobileViewTab('editor');
+          }}
+        />
+      );
+    }
+
+    return <AICopilotPanel
       key={activeHistoryId || 'new'}
       activeTab={stage === 'review' ? 'feedback' : rightPanelTab}
       onTabChange={setRightPanelTab}
       allowedTabs={stage === 'review' ? ['feedback'] : ['strategist', 'notes', 'deep_report']}
       panelTitle={stage === 'review' ? tWorkspace('evaluationPanel') : undefined}
       activeHistoryId={activeHistoryId}
-      onStrategistComplete={(topic, outline, draftVal, notes, wizardAttachments) => {
+      onStrategistComplete={(topic, outline, draftVal, notes, wizardAttachments, sourceRef) => {
         setDraft(draftVal || outline || topic);
+        if (sourceRef) {
+          setMetadata(current => ({
+            ...current,
+            sourceRef: current.sourceRef ?? sourceRef,
+          }));
+        }
         if (notes && notes.length > 0) handleNotesChange(notes);
         if (wizardAttachments && wizardAttachments.length > 0) setAttachments(wizardAttachments);
       }}
@@ -550,8 +596,8 @@ export default function EditorialWorkspace({
       onCancelGenerateDraft={handleCancelGenerateDraft}
       onInsertToDraft={text => setDraft(previous => previous + text)}
       onToggleSidebar={() => setRightPanelOpen(false)}
-    />
-  );
+    />;
+  };
 
   return (
     <MotionConfig reducedMotion="user">
@@ -572,13 +618,13 @@ export default function EditorialWorkspace({
                   </div>
                 )}
                 <div className="flex-1 min-h-0 overflow-hidden w-full max-w-full overflow-x-hidden">
-                  {mobileViewTab === 'copilot' && stage !== 'publication'
+                  {mobileViewTab === 'copilot'
                     ? renderContextPanel()
                     : renderEditorSurface()}
                 </div>
 
               {/* Bottom Tab Bar Navigation for Mobile */}
-              {stage !== 'publication' && <div className="fixed bottom-0 left-0 right-0 h-16 border-t border-[var(--border)] bg-[var(--surface-1)] flex items-center justify-around z-[100] px-4 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+              <div className="fixed bottom-0 left-0 right-0 h-16 border-t border-[var(--border)] bg-[var(--surface-1)] flex items-center justify-around z-[100] px-4 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
                 {!isDemoMode && stage === 'editor' && (
                   <Button
                     type="button"
@@ -606,19 +652,23 @@ export default function EditorialWorkspace({
                   variant="muted"
                   className="workspace-mobile-nav-action flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer"
                   aria-pressed={mobileViewTab === 'copilot'}
-                  icon={AssistantChatIcon}
+                  icon={stage === 'publication' ? DocumentIcon : AssistantChatIcon}
                   iconClassName="w-5 h-5"
-                  label={stage === 'review' ? tWorkspace('findings') : tWorkspace('tools')}
+                  label={stage === 'publication'
+                    ? tWorkspace('seoPack')
+                    : stage === 'review'
+                      ? tWorkspace('findings')
+                      : tWorkspace('tools')}
                 />
-              </div>}
+              </div>
             </div>
           ) : (
             <ThreeColumnLayout
               leftPanelOpen={leftPanelOpen && !isDemoMode}
-              rightPanelOpen={stage !== 'publication' && rightPanelOpen}
+              rightPanelOpen={rightPanelOpen}
               reversed={false}
               leftDefaultSize={17}
-              rightDefaultSize={stage === 'review' ? 32 : 28}
+              rightDefaultSize={stage === 'review' ? 32 : stage === 'publication' ? 30 : 28}
               leftPanel={
                 !isDemoMode ? (
                   <AppSidebarShell
@@ -635,7 +685,7 @@ export default function EditorialWorkspace({
                   {renderEditorSurface()}
                 </div>
               }
-              rightPanel={stage === 'publication' ? null : renderContextPanel()}
+              rightPanel={renderContextPanel()}
             />
           )}
 

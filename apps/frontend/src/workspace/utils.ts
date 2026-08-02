@@ -6,6 +6,7 @@ import type {
   ResearchNote,
   EditorialProcessStage,
 } from '@eai/shared';
+import type { AnalysisCompletion, EditorHandoffState } from './types';
 import { findTargetMatch } from '@eai/shared';
 import { parseSeoFieldStates } from './seo-field-state';
 
@@ -130,6 +131,33 @@ export const normalizeProcessStage = (status: unknown): EditorialProcessStage | 
   if (status === 'quality_gate') return 'quality_gate';
   if (status === 'generating_seo') return 'seo';
   return null;
+};
+
+const isUnresolvedFeedback = (item: FeedbackItem) =>
+  item.status !== 'pass'
+  && !item.isApplied
+  && !item.isAccepted
+  && !item.isVerified;
+
+export const buildEditorHandoff = (
+  completion: AnalysisCompletion
+): EditorHandoffState => {
+  const unresolvedFeedback = completion.feedback.filter(isUnresolvedFeedback);
+  const destination = completion.readiness === 'ready' && unresolvedFeedback.length === 0
+    ? 'publication'
+    : 'review';
+
+  return {
+    ...completion,
+    destination,
+    unresolvedFindingCount: unresolvedFeedback.length,
+    blockingFindingCount: unresolvedFeedback.filter(item => item.status === 'fail').length,
+    hasSeoPackage: Boolean(
+      completion.generatedMetadata
+      && Object.keys(completion.generatedMetadata).length > 0
+      && completion.publicationPackageStatus === 'current'
+    ),
+  };
 };
 
 export const getApiErrorMessage = async (response: Response, fallback: string) => {

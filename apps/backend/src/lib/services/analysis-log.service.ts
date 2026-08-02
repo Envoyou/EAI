@@ -17,7 +17,10 @@ import {
   ContentArtifactType,
   ContentSourceType,
 } from '@prisma/client';
-import { upsertContentArtifact } from '@/lib/content-memory';
+import {
+  resolveLifecycleRootArtifactId,
+  upsertContentArtifact,
+} from '@/lib/content-memory';
 
 export type CreateAnalysisLogInput = {
   userId: string;
@@ -184,6 +187,10 @@ export async function createAnalysisLogAndDebitCredit(data: CreateAnalysisLogInp
       typeof metadata.sourceRef === 'string' && metadata.sourceRef.trim()
         ? metadata.sourceRef
         : savedLog.id;
+    const rootArtifactId = await resolveLifecycleRootArtifactId({
+      organizationId: data.organizationId,
+      sourceRef: lifecycleSourceId,
+    });
 
     await upsertContentArtifact({
       organizationId: data.organizationId,
@@ -191,6 +198,7 @@ export async function createAnalysisLogAndDebitCredit(data: CreateAnalysisLogInp
       artifactType: ContentArtifactType.DRAFT,
       sourceType: ContentSourceType.ANALYSIS,
       sourceId: lifecycleSourceId,
+      rootArtifactId,
       currentStage:
         data.editorStatus === 'ready' || data.verdict === 'ready'
           ? ContentArtifactStage.READY

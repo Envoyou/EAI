@@ -62,6 +62,36 @@ export interface ContentArtifactWriteInput extends ContentMemoryInput {
   reservationKey?: string | null;
 }
 
+export const resolveLifecycleRootArtifactId = async ({
+  organizationId,
+  sourceRef,
+}: {
+  organizationId: string;
+  sourceRef: string | null | undefined;
+}): Promise<string | null> => {
+  const normalizedSourceRef = sourceRef?.trim();
+  if (!normalizedSourceRef) return null;
+
+  const origin = await prisma.contentArtifact.findFirst({
+    where: {
+      organizationId,
+      sourceId: normalizedSourceRef,
+      sourceType: {
+        in: [
+          ContentSourceType.STRATEGIST_BLUEPRINT,
+          ContentSourceType.QUICK_DRAFT,
+          ContentSourceType.DRAFT_FROM_NOTES,
+          ContentSourceType.MANUAL_DRAFT,
+        ],
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, rootArtifactId: true },
+  });
+
+  return origin?.rootArtifactId ?? origin?.id ?? null;
+};
+
 type Candidate = {
   id: string;
   title: string | null;

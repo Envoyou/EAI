@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { AnalysisResult } from '@eai/shared';
 import { executeAnalyze } from '../actions/analyze';
+import { executeGenerateDraftFromNotes } from '../actions/strategist';
 
 const createAnalyzeContext = (
   draft: string,
@@ -63,7 +64,6 @@ const createAnalyzeContext = (
       setProcessStartedAt: vi.fn(),
       setActiveTab: vi.fn(),
       setRightPanelOpen: vi.fn(),
-      setRightPanelTab: vi.fn(),
       setMobileViewTab: vi.fn(),
       setDemoRefineCount: vi.fn(),
       setShowDemoSignupModal: vi.fn(),
@@ -77,7 +77,7 @@ const createAnalyzeContext = (
       setMissingSources: vi.fn(),
       setPendingRefineAction: vi.fn(),
       setShowMissingSourcesModal: vi.fn(),
-      notifyDraftReady: vi.fn(),
+      onAnalysisComplete: vi.fn(),
   };
 
   return {
@@ -129,5 +129,81 @@ describe('executeAnalyze', () => {
 
     expect(context.directFetch).not.toHaveBeenCalled();
     expect(context.setAnalysis).not.toHaveBeenCalled();
+  });
+
+  it('hands off only the durable final result with its SEO package', async () => {
+    const { context } = createAnalyzeContext('Draft to analyze');
+    context.directFetch.mockResolvedValue(new Response([
+      JSON.stringify({ type: 'seo_metadata', data: {
+        title: 'Final title',
+        slug: 'final-title',
+        excerpt: 'Final excerpt',
+        metaTitle: 'Final title',
+        metaDescription: 'Final description',
+        tags: ['editorial'],
+      } }),
+      JSON.stringify({ type: 'publication_package_status', data: 'current' }),
+      JSON.stringify({ type: 'feedback_reset', data: null }),
+      JSON.stringify({ type: 'readiness', data: 'ready' }),
+      JSON.stringify({ type: 'complete', data: {
+        analysisLogId: 'log-current',
+        sourceRef: 'article-family',
+      } }),
+      '',
+    ].join('\n')));
+
+    await executeAnalyze(context);
+
+    expect(context.onAnalysisComplete).toHaveBeenCalledWith(expect.objectContaining({
+      analysisLogId: 'log-current',
+      readiness: 'ready',
+      feedback: [],
+      publicationPackageStatus: 'current',
+      generatedMetadata: expect.objectContaining({ slug: 'final-title' }),
+    }));
+  });
+});
+
+describe('executeGenerateDraftFromNotes', () => {
+  it('adopts the durable article family returned after persistence', async () => {
+    let metadata = { workingTitle: 'Family article' };
+    const setMetadata = vi.fn((updater) => {
+      metadata = updater(metadata);
+    });
+    const directFetch = vi.fn().mockResolvedValue(
+      new Response([
+        `data: ${JSON.stringify({ type: 'text', chunk: 'Generated draft.' })}`,
+        `data: ${JSON.stringify({
+          type: 'done',
+          analysisLogId: 'draft-log-1',
+          sourceRef: 'article-family-1',
+        })}`,
+        '',
+      ].join('\n\n'))
+    );
+
+    await executeGenerateDraftFromNotes({
+      researchNotes: [{ content: 'Research material.' }],
+      metadata,
+      directFetch,
+      setDraft: vi.fn(),
+      setMetadata,
+      setIsGeneratingDraftFromNotes: vi.fn(),
+      generateAbortControllerRef: { current: null },
+      duplicateGuardWarning: 'Related content',
+      suggestedAngleLabel: 'Suggested angle',
+      controlledBlockWarning: 'Possible duplicate',
+      continueAnywayLabel: 'Continue',
+      feedbackQuestion: 'Was this a duplicate?',
+      yesDuplicateLabel: 'Yes',
+      notDuplicateLabel: 'No',
+      feedbackSaved: 'Saved',
+      feedbackFailed: 'Failed',
+    });
+
+    expect(metadata).toEqual(expect.objectContaining({
+      sourceRef: 'article-family-1',
+    }));
+    expect(setMetadata).toHaveBeenCalledTimes(1);
   });
 });

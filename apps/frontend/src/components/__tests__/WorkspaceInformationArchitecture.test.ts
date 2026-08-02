@@ -10,6 +10,8 @@ describe('editorial workspace information architecture', () => {
   const reviewPage = read('../../app/[locale]/review/page.tsx');
   const publicationPage = read('../../app/[locale]/publication/page.tsx');
   const workspace = read('../EditorialWorkspace.tsx');
+  const editorWorkflow = read('../EditorWorkflowPanel.tsx');
+  const publicationSeo = read('../PublicationSeoPanel.tsx');
   const finalDraft = read('../FinalDraftPanel.tsx');
   const library = read('../SavedArticlesLibrary.tsx');
   const storage = read('../../workspace/hooks/useWorkspaceStorage.ts');
@@ -32,7 +34,19 @@ describe('editorial workspace information architecture', () => {
   it('keeps history out of the editor and scopes contextual tools by stage', () => {
     expect(workspace).not.toContain('<DocumentHistoryPanel');
     expect(workspace).toContain("allowedTabs={stage === 'review' ? ['feedback'] : ['strategist', 'notes', 'deep_report']}");
-    expect(workspace).toContain("rightPanel={stage === 'publication' ? null : renderContextPanel()}");
+    expect(workspace).toContain('rightPanel={renderContextPanel()}');
+    expect(workspace).toContain("if (stage === 'publication')");
+    expect(publicationSeo).toContain("t('seoPackTitle')");
+    expect(finalDraft).not.toContain('publicationMetadataRows.map');
+    expect(workspace).toContain("stage === 'editor' && (isStreaming || editorHandoff)");
+    expect(editorWorkflow).toContain('<EditorialProgress');
+    expect(editorWorkflow).toContain("handoff.hasSeoPackage ? t('seoIncluded') : t('seoPending')");
+  });
+
+  it('hands a durable refinement to Review or Publication instead of leaving it in Editor', () => {
+    expect(workspace).toContain('router.push(`/${editorHandoff.destination}?history=');
+    expect(editorWorkflow).toContain("opensPublication ? t('openPublication') : t('openReview')");
+    expect(workspace).toContain('onSave={handleSavePublicationMetadata}');
   });
 
   it('uses a compact publication command instead of another decision card', () => {

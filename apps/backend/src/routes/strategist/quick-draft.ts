@@ -42,6 +42,7 @@ import {
   buildRelatedContentContext,
   recordContentGuardOutcome,
   releaseContentReservation,
+  resolveLifecycleRootArtifactId,
   upsertContentArtifact,
 } from '@/lib/content-memory';
 
@@ -206,6 +207,7 @@ router.post(
       draftMode = 'topic',
       mode = 'draft',
     } = parsedInput.data;
+    const lifecycleSourceRef = metadata?.sourceRef?.trim() || contentGuardRequestId;
 
     if (userId && workspaceOrganizationId) {
       const guard = await beginContentGenerationGuard({
@@ -338,6 +340,7 @@ router.post(
               role: mode === 'outline' ? 'outline_generation' : 'draft_generation',
               content: mockContent,
               metadata: JSON.parse(JSON.stringify({
+                sourceRef: lifecycleSourceRef,
                 topic,
                 outline,
                 referenceText,
@@ -354,12 +357,17 @@ router.post(
           });
           savedLogId = savedLog.id;
           if (workspaceOrganizationId) {
+            const rootArtifactId = await resolveLifecycleRootArtifactId({
+              organizationId: workspaceOrganizationId,
+              sourceRef: lifecycleSourceRef,
+            });
             const artifact = await upsertContentArtifact({
               organizationId: workspaceOrganizationId,
               createdByUserId: userId,
               artifactType: ContentArtifactType.DRAFT,
               sourceType: ContentSourceType.QUICK_DRAFT,
-              sourceId: savedLog.id,
+              sourceId: lifecycleSourceRef,
+              rootArtifactId,
               currentStage: ContentArtifactStage.DRAFTING,
               title: metadata?.workingTitle ?? topic,
               topic,
@@ -404,7 +412,10 @@ router.post(
         }
       }
 
-      sendEvent('complete', { analysisLogId: savedLogId });
+      sendEvent('complete', {
+        analysisLogId: savedLogId,
+        sourceRef: lifecycleSourceRef,
+      });
       res.end();
       return;
     }
@@ -497,6 +508,7 @@ router.post(
             role: mode === 'outline' ? 'outline_generation' : 'draft_generation',
             content: draftText,
             metadata: JSON.parse(JSON.stringify({
+              sourceRef: lifecycleSourceRef,
               topic,
               outline,
               referenceText,
@@ -513,12 +525,17 @@ router.post(
         });
         savedLogId = savedLog.id;
         if (workspaceOrganizationId) {
+          const rootArtifactId = await resolveLifecycleRootArtifactId({
+            organizationId: workspaceOrganizationId,
+            sourceRef: lifecycleSourceRef,
+          });
           const artifact = await upsertContentArtifact({
             organizationId: workspaceOrganizationId,
             createdByUserId: userId,
             artifactType: ContentArtifactType.DRAFT,
             sourceType: ContentSourceType.QUICK_DRAFT,
-            sourceId: savedLog.id,
+            sourceId: lifecycleSourceRef,
+            rootArtifactId,
             currentStage: ContentArtifactStage.DRAFTING,
             title: metadata?.workingTitle ?? topic,
             topic,
@@ -563,7 +580,10 @@ router.post(
       }
     }
 
-    sendEvent('complete', { analysisLogId: savedLogId });
+    sendEvent('complete', {
+      analysisLogId: savedLogId,
+      sourceRef: lifecycleSourceRef,
+    });
     res.end();
   } catch (error) {
     if (requestAbort.signal.aborted) return;

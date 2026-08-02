@@ -1,8 +1,24 @@
 'use client';
 
 import { toast } from 'sonner';
-import type { ArticleMetadata, ResearchNote, Attachment, EditorialProcessStage, AnalysisResult, EditorialReadiness } from '@eai/shared';
-import type { EditorialOptions, AnalysisSpeed, PendingRefineAction, DirectFetchType } from '../types';
+import type {
+  ArticleMetadata,
+  ResearchNote,
+  Attachment,
+  EditorialProcessStage,
+  AnalysisResult,
+  EditorialReadiness,
+  FeedbackItem,
+  PublicationPackage,
+  PublicationPackageStatus,
+} from '@eai/shared';
+import type {
+  EditorialOptions,
+  AnalysisSpeed,
+  PendingRefineAction,
+  DirectFetchType,
+  AnalysisCompletion,
+} from '../types';
 import type { AppSettings } from '@/lib/preferences';
 import type { PanelTab } from '@/components/PanelTabBar';
 import { readWithTimeout, StreamIdleTimeoutError } from '@/lib/stream-utils';
@@ -31,7 +47,6 @@ interface AnalyzeContext {
   setProcessStartedAt: (t: number | null) => void;
   setActiveTab: (t: PanelTab) => void;
   setRightPanelOpen: (o: boolean) => void;
-  setRightPanelTab: (t: 'strategist' | 'feedback' | 'notes' | 'deep_report') => void;
   setMobileViewTab: (t: 'history' | 'editor' | 'copilot') => void;
   setDemoRefineCount: (c: number) => void;
   setShowDemoSignupModal: (o: boolean) => void;
@@ -43,7 +58,7 @@ interface AnalyzeContext {
   setMissingSources: (s: { url: string; domain: string }[]) => void;
   setPendingRefineAction: (a: PendingRefineAction | null) => void;
   setShowMissingSourcesModal: (o: boolean) => void;
-  notifyDraftReady: () => void;
+  onAnalysisComplete: (completion: AnalysisCompletion) => void;
 }
 
 export async function executeAnalyze(
@@ -74,7 +89,6 @@ export async function executeAnalyze(
     setProcessStartedAt,
     setActiveTab,
     setRightPanelOpen,
-    setRightPanelTab,
     setMobileViewTab,
     setDemoRefineCount,
     setShowDemoSignupModal,
@@ -86,6 +100,7 @@ export async function executeAnalyze(
     setMissingSources,
     setPendingRefineAction,
     setShowMissingSourcesModal,
+    onAnalysisComplete,
   } = ctx;
 
   const textToAnalyze = overrideDraft ?? draft;
@@ -123,7 +138,6 @@ export async function executeAnalyze(
   setProcessStartedAt(Date.now());
   setActiveTab('refined');
   setRightPanelOpen(true);
-  setRightPanelTab('feedback');
   if (isMobile) {
     setMobileViewTab('copilot');
   }
@@ -182,6 +196,11 @@ export async function executeAnalyze(
     const decoder = new TextDecoder();
     let buffer = '';
     let receivedComplete = false;
+    let completedAnalysisLogId: string | undefined;
+    let streamedReadiness: EditorialReadiness | undefined;
+    let streamedFeedback: FeedbackItem[] = [];
+    let streamedGeneratedMetadata: PublicationPackage | undefined;
+    let streamedPublicationPackageStatus: PublicationPackageStatus = 'not_generated';
 
     while (true) {
       const { done, value } = await readWithTimeout(
@@ -207,16 +226,27 @@ export async function executeAnalyze(
           }
           case 'score': setAnalysis(prev => ({ ...prev, status: 'success', score: event.data as number })); break;
           case 'verdict': setAnalysis(prev => ({ ...prev, status: 'success', verdict: event.data as 'approve' | 'revise' | 'reject' })); break;
-          case 'readiness': setAnalysis(prev => ({ ...prev, status: 'success', readiness: event.data as EditorialReadiness, verdict: event.data as EditorialReadiness, score: undefined })); break;
+          case 'readiness': {
+            streamedReadiness = event.data as EditorialReadiness;
+            setAnalysis(prev => ({ ...prev, status: 'success', readiness: streamedReadiness, verdict: streamedReadiness, score: undefined }));
+            break;
+          }
           case 'changes': setAnalysis(prev => ({ ...prev, status: 'success', changes: event.data as string[] })); break;
-          case 'feedback_reset': setAnalysis(prev => ({ ...prev, status: 'success', feedback: [], flags: [] })); break;
+          case 'feedback_reset':
+            streamedFeedback = [];
+            setAnalysis(prev => ({ ...prev, status: 'success', feedback: [], flags: [] }));
+            break;
           case 'summary': setAnalysis(prev => ({ ...prev, status: 'success', summary: event.data as string })); break;
-          case 'feedback_item': setAnalysis(prev => {
-            const currentFeedback = prev.feedback ? [...prev.feedback] : [];
+          case 'feedback_item': {
             const { item, index } = event.data as { item: import('@eai/shared').FeedbackItem; index: number };
-            currentFeedback[index] = item;
-            return { ...prev, status: 'success', feedback: currentFeedback };
-          }); break;
+            streamedFeedback[index] = item;
+            setAnalysis(prev => {
+              const currentFeedback = prev.feedback ? [...prev.feedback] : [];
+              currentFeedback[index] = item;
+              return { ...prev, status: 'success', feedback: currentFeedback };
+            });
+            break;
+          }
           case 'flags': setAnalysis(prev => ({ ...prev, status: 'success', flags: event.data as string[] })); break;
           case 'draft_chunk': {
             draftChunkBufferRef.current += event.data as string;
@@ -242,24 +272,35 @@ export async function executeAnalyze(
             }
             setAnalysis(prev => ({ ...prev, status: 'success', polishedDraft: event.data as string }));
             break;
-          case 'seo_metadata': setAnalysis(prev => ({ ...prev, status: 'success', generatedMetadata: event.data as Record<string, unknown> })); break;
+          case 'seo_metadata':
+            streamedGeneratedMetadata = event.data as PublicationPackage;
+            setAnalysis(prev => ({ ...prev, status: 'success', generatedMetadata: streamedGeneratedMetadata }));
+            break;
           case 'working_title': setAnalysis(prev => ({ ...prev, workingTitle: event.data as string })); break;
-          case 'publication_package_status': setAnalysis(prev => ({
-            ...prev,
-            publicationPackageStatus: event.data as import('@eai/shared').PublicationPackageStatus,
-          })); break;
+          case 'publication_package_status':
+            streamedPublicationPackageStatus = event.data as PublicationPackageStatus;
+            setAnalysis(prev => ({
+              ...prev,
+              publicationPackageStatus: streamedPublicationPackageStatus,
+            }));
+            break;
           case 'reset':
             setProcessStage('reviewing');
+            streamedReadiness = undefined;
+            streamedFeedback = [];
+            streamedGeneratedMetadata = undefined;
+            streamedPublicationPackageStatus = 'not_generated';
             setAnalysis(() => ({ status: 'loading', readiness: undefined, changes: [], summary: '', polishedDraft: '', feedback: [], flags: [], publicationPackageStatus: 'not_generated' }));
             break;
           case 'complete': {
             receivedComplete = true;
             setProcessStage('finalizing');
             const { analysisLogId, sourceRef, draftRevision } = event.data as {
-              analysisLogId: string;
+              analysisLogId?: string;
               sourceRef: string;
               draftRevision?: import('@eai/shared').DraftRevisionIdentity;
             };
+            completedAnalysisLogId = analysisLogId;
             setAnalysis(prev => ({
               ...prev,
               status: 'success',
@@ -282,7 +323,17 @@ export async function executeAnalyze(
       throw new Error('Connection lost. Please retry.');
     }
 
-    ctx.notifyDraftReady();
+    if (!completedAnalysisLogId) {
+      throw new Error('The refined draft completed but could not be saved. Please retry before leaving the Editor.');
+    }
+
+    onAnalysisComplete({
+      analysisLogId: completedAnalysisLogId,
+      readiness: streamedReadiness,
+      feedback: streamedFeedback.filter((item): item is FeedbackItem => Boolean(item)),
+      generatedMetadata: streamedGeneratedMetadata,
+      publicationPackageStatus: streamedPublicationPackageStatus,
+    });
     if (overrideDraft) {
       setDraftHistory(prev => [...prev, draft]);
       setDraft(overrideDraft);
