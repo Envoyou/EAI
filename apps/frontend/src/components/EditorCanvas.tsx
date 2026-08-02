@@ -8,9 +8,9 @@ import FinalDraftPanel from '@/components/FinalDraftPanel';
 import PanelTabBar from '@/components/PanelTabBar';
 import StatusBar from '@/components/StatusBar';
 import { Button } from '@/components/ui/button';
-import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
-import { WarningStatusIcon } from '@/components/ui/icons/status';
-import { EditActionIcon } from '@/components/ui/icons/actions';
+import { EAILoaderStatusIcon, WarningStatusIcon, CompleteStatusIcon, QualityPassedStatusIcon } from '@/components/ui/icons/status';
+import { EditActionIcon, AddActionIcon, DeleteActionIcon } from '@/components/ui/icons/actions';
+import { ApplyAiSuggestionIcon } from '@/components/ui/icons/ai';
 import { DocumentIcon } from '@/components/ui/icons/content';
 import { ReviewArticlePanel } from '@/components/ReviewArticlePanel';
 import { useTranslations } from 'next-intl';
@@ -342,7 +342,7 @@ export default function EditorCanvas({
                               {onApplyAllFixes && (
                                 <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 shadow-xs">
                                   <span className="text-xs font-semibold text-[var(--foreground)]">
-                                    Terdapat {unresolvedFeedback.length} keputusan editorial yang memerlukan persetujuan Anda
+                                    {t('description', { count: unresolvedFeedback.length })}
                                   </span>
                                   <Button
                                     type="button"
@@ -350,7 +350,8 @@ export default function EditorCanvas({
                                     size="xs"
                                     onClick={onApplyAllFixes}
                                   >
-                                    ⚡ Terima Semua Perbaikan
+                                    <ApplyAiSuggestionIcon className="h-3.5 w-3.5 mr-1" />
+                                    {t('acceptAllFixes', { count: unresolvedFeedback.length })}
                                   </Button>
                                 </div>
                               )}
@@ -421,7 +422,12 @@ export default function EditorCanvas({
                                               }
                                             })}
                                           >
-                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : '🚀 Gunakan Proposal'}
+                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : (
+                                              <>
+                                                <ApplyAiSuggestionIcon className="h-3.5 w-3.5 mr-1" />
+                                                {t('applyProposal')}
+                                              </>
+                                            )}
                                           </Button>
                                           <Button
                                             type="button"
@@ -432,7 +438,8 @@ export default function EditorCanvas({
                                               if (onAcceptFeedback) await onAcceptFeedback(index);
                                             })}
                                           >
-                                            🛡️ Pertahankan Nilai Saat Ini
+                                            <QualityPassedStatusIcon className="h-3.5 w-3.5 mr-1" />
+                                            {t('keepCurrentValue')}
                                           </Button>
                                         </>
                                       ) : item.replacementText || item.operation === 'replace' ? (
@@ -455,7 +462,12 @@ export default function EditorCanvas({
                                               }
                                             })}
                                           >
-                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : '✅ Terima Perubahan'}
+                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : (
+                                              <>
+                                                <CompleteStatusIcon className="h-3.5 w-3.5 mr-1" />
+                                                {t('acceptChanges')}
+                                              </>
+                                            )}
                                           </Button>
                                           <Button
                                             type="button"
@@ -466,7 +478,8 @@ export default function EditorCanvas({
                                               if (onAcceptFeedback) await onAcceptFeedback(index);
                                             })}
                                           >
-                                            🛡️ Pertahankan Teks Saat Ini
+                                            <QualityPassedStatusIcon className="h-3.5 w-3.5 mr-1" />
+                                            {t('keepCurrentText')}
                                           </Button>
                                         </>
                                       ) : item.operation === 'insert_before' || item.operation === 'insert_after' ? (
@@ -480,7 +493,12 @@ export default function EditorCanvas({
                                               if (onRemoveFeedbackAddition) await onRemoveFeedbackAddition(index);
                                             })}
                                           >
-                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : '🗑️ Hapus Detail Ini'}
+                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : (
+                                              <>
+                                                <DeleteActionIcon className="h-3.5 w-3.5 mr-1" />
+                                                {t('removeDetail')}
+                                              </>
+                                            )}
                                           </Button>
                                           <Button
                                             type="button"
@@ -491,7 +509,8 @@ export default function EditorCanvas({
                                               if (onAcceptFeedback) await onAcceptFeedback(index);
                                             })}
                                           >
-                                            🛡️ Pertahankan Teks
+                                            <QualityPassedStatusIcon className="h-3.5 w-3.5 mr-1" />
+                                            {t('keepCurrentText')}
                                           </Button>
                                         </>
                                       ) : (
@@ -506,7 +525,12 @@ export default function EditorCanvas({
                                                 await onFixFeedbackWithEAI(index);
                                               })}
                                             >
-                                              {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : '🪄 Usulkan Perbaikan AI'}
+                                              {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : (
+                                                <>
+                                                  <ApplyAiSuggestionIcon className="h-3.5 w-3.5 mr-1" />
+                                                  {t('fixWithAi')}
+                                                </>
+                                              )}
                                             </Button>
                                           )}
                                           {onAddFeedbackSource && (
@@ -520,7 +544,8 @@ export default function EditorCanvas({
                                                 setCanvasSourceText('');
                                               }}
                                             >
-                                              🔗 Tambah Sumber Manual
+                                              <AddActionIcon className="h-3.5 w-3.5 mr-1" />
+                                              {t('addManualSource')}
                                             </Button>
                                           )}
                                           <Button
@@ -532,7 +557,12 @@ export default function EditorCanvas({
                                               if (onAcceptFeedback) await onAcceptFeedback(index);
                                             })}
                                           >
-                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : '🛡️ Pertahankan Teks Saat Ini'}
+                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : (
+                                              <>
+                                                <QualityPassedStatusIcon className="h-3.5 w-3.5 mr-1" />
+                                                {t('keepCurrentText')}
+                                              </>
+                                            )}
                                           </Button>
                                         </>
                                       )}
@@ -545,7 +575,7 @@ export default function EditorCanvas({
                                           type="url"
                                           value={canvasSourceText}
                                           onChange={(e) => setCanvasSourceText(e.target.value)}
-                                          placeholder="https://example.com/source-reference"
+                                          placeholder={t('sourceUrlPlaceholder')}
                                           className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                                         />
                                         <Button
@@ -567,7 +597,7 @@ export default function EditorCanvas({
                                             }
                                           }}
                                         >
-                                          {submittingCanvasSource === index ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : 'Simpan Sumber'}
+                                          {submittingCanvasSource === index ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : t('saveSource')}
                                         </Button>
                                       </div>
                                     )}

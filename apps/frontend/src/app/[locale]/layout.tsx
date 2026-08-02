@@ -87,7 +87,10 @@ export default async function RootLayout({
         <head>
           <meta name="color-scheme" content="dark light" />
         </head>
-        <body className={`min-h-full flex flex-col bg-background text-foreground font-sans ${inter.className}`}>
+        <body
+          className={`min-h-full flex flex-col bg-background text-foreground font-sans ${inter.className}`}
+          suppressHydrationWarning
+        >
           <NextIntlClientProvider messages={messages}>
             <ThemeProvider
               attribute="class"

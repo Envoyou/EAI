@@ -6,8 +6,9 @@ import remarkGfm from 'remark-gfm';
 import { useTranslations } from 'next-intl';
 import type { ResearchNote } from '@eai/shared';
 import { Button } from '@/components/ui/button';
-import { CompleteStatusIcon } from '@/components/ui/icons/status';
-import { ForwardNavigationIcon } from '@/components/ui/icons/navigation';
+import { CompleteStatusIcon, QualityPassedStatusIcon } from '@/components/ui/icons/status';
+import { ForwardNavigationIcon, HistoryNavigationIcon, AuditLogsNavigationIcon } from '@/components/ui/icons/navigation';
+import { RevisionComparisonIcon, DocumentIcon } from '@/components/ui/icons/content';
 
 type ReviewTab = 'comparison' | 'final' | 'source' | 'blueprint' | 'timeline';
 
@@ -45,7 +46,7 @@ export function ReviewArticlePanel({
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[var(--success)]">
             <CompleteStatusIcon className="h-4 w-4 shrink-0" />
-            <p className="text-xs font-semibold uppercase tracking-wider">Article Family History Audit</p>
+            <p className="text-xs font-semibold uppercase tracking-wider">{t('historyAuditTitle')}</p>
             {analysisLogId && (
               <span className="rounded bg-[var(--surface-2)] px-2 py-0.5 font-mono text-[10px] font-medium text-[var(--muted-foreground)]">
                 {analysisLogId.slice(-8)}
@@ -54,12 +55,12 @@ export function ReviewArticlePanel({
           </div>
           <h1 className="mt-1 truncate text-base font-bold text-[var(--foreground)]">{title || 'Untitled Article'}</h1>
           <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-            {t('completeDescription', { count: findingCount })} • Readiness Score: <span className="font-semibold text-[var(--success)]">{readinessScore}%</span>
+            {t('completeDescription', { count: findingCount })} • {t('readinessScoreLabel')}: <span className="font-semibold text-[var(--success)]">{readinessScore}%</span>
           </p>
         </div>
         <Button type="button" variant="primary" size="sm" onClick={onOpenPublication}>
           {t('openPublication')}
-          <ForwardNavigationIcon className="h-3.5 w-3.5" />
+          <ForwardNavigationIcon className="h-3.5 w-3.5 ml-1" />
         </Button>
       </header>
 
@@ -72,7 +73,8 @@ export function ReviewArticlePanel({
           onClick={() => setActiveReviewTab('comparison')}
           className="text-xs"
         >
-          🔍 Bandingkan (Initial vs Final)
+          <RevisionComparisonIcon className="h-3.5 w-3.5 mr-1" />
+          {t('tabComparison')}
         </Button>
         <Button
           type="button"
@@ -81,7 +83,8 @@ export function ReviewArticlePanel({
           onClick={() => setActiveReviewTab('final')}
           className="text-xs"
         >
-          ✨ Draft Final Ready
+          <QualityPassedStatusIcon className="h-3.5 w-3.5 mr-1" />
+          {t('tabFinal')}
         </Button>
         <Button
           type="button"
@@ -90,7 +93,8 @@ export function ReviewArticlePanel({
           onClick={() => setActiveReviewTab('source')}
           className="text-xs"
         >
-          📄 Draft Awal (Source)
+          <DocumentIcon className="h-3.5 w-3.5 mr-1" />
+          {t('tabSource')}
         </Button>
         <Button
           type="button"
@@ -99,7 +103,8 @@ export function ReviewArticlePanel({
           onClick={() => setActiveReviewTab('blueprint')}
           className="text-xs"
         >
-          📜 Blueprint & Catatan
+          <AuditLogsNavigationIcon className="h-3.5 w-3.5 mr-1" />
+          {t('tabBlueprint')}
         </Button>
         <Button
           type="button"
@@ -108,7 +113,8 @@ export function ReviewArticlePanel({
           onClick={() => setActiveReviewTab('timeline')}
           className="text-xs"
         >
-          ⏱️ Version Timeline
+          <HistoryNavigationIcon className="h-3.5 w-3.5 mr-1" />
+          {t('tabTimeline')}
         </Button>
       </div>
 
@@ -117,14 +123,14 @@ export function ReviewArticlePanel({
         {activeReviewTab === 'comparison' && (
           <div className="mx-auto max-w-6xl space-y-4">
             <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)] px-2">
-              <span className="font-semibold text-[var(--foreground)]">Draft Awal (Sebelum Refine)</span>
-              <span className="font-semibold text-[var(--primary)]">Draft Final Ready (Hasil Polish & Governed)</span>
+              <span className="font-semibold text-[var(--foreground)]">{t('initialDraftLabel')}</span>
+              <span className="font-semibold text-[var(--primary)]">{t('finalDraftLabel')}</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Left: Source Draft */}
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-5 shadow-sm">
                 <div className="mb-3 flex items-center justify-between border-b border-[var(--border)]/60 pb-2">
-                  <span className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Source Draft</span>
+                  <span className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider">{t('initialDraftLabel')}</span>
                   <span className="text-[11px] font-mono text-[var(--muted-foreground)]">{initialText.split(/\s+/).filter(Boolean).length} words</span>
                 </div>
                 <div className="prose prose-neutral dark:prose-invert max-w-none text-xs leading-relaxed">
@@ -135,7 +141,7 @@ export function ReviewArticlePanel({
               {/* Right: Polished Final Draft */}
               <div className="rounded-2xl border border-[var(--primary)]/30 bg-[var(--surface-1)] p-5 shadow-sm ring-1 ring-[var(--primary)]/20">
                 <div className="mb-3 flex items-center justify-between border-b border-[var(--border)]/60 pb-2">
-                  <span className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider">Polished Final Draft</span>
+                  <span className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider">{t('finalDraftLabel')}</span>
                   <span className="text-[11px] font-mono text-[var(--primary)]">{finalPolishedText.split(/\s+/).filter(Boolean).length} words</span>
                 </div>
                 <div className="prose prose-neutral dark:prose-invert max-w-none text-xs leading-relaxed">
@@ -161,9 +167,9 @@ export function ReviewArticlePanel({
         {activeReviewTab === 'blueprint' && (
           <div className="mx-auto max-w-3xl space-y-4">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-6 shadow-sm">
-              <h2 className="text-sm font-bold text-[var(--foreground)] mb-2">Research Blueprint & Topic Specification</h2>
+              <h2 className="text-sm font-bold text-[var(--foreground)] mb-2">{t('blueprintTitle')}</h2>
               <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
-                Catatan riset dan spesifikasi awal yang digunakan untuk memformulasikan draf artikel ini.
+                {t('blueprintDesc')}
               </p>
             </div>
             {researchNotes.length > 0 ? (
@@ -179,7 +185,7 @@ export function ReviewArticlePanel({
               </div>
             ) : (
               <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-6 text-center text-xs text-[var(--muted-foreground)]">
-                Tidak ada catatan riset tambahan yang dilampirkan pada draf ini.
+                {t('noNotes')}
               </div>
             )}
           </div>
@@ -187,27 +193,27 @@ export function ReviewArticlePanel({
 
         {activeReviewTab === 'timeline' && (
           <div className="mx-auto max-w-2xl space-y-4 py-4">
-            <h2 className="text-sm font-bold text-[var(--foreground)] mb-4">Article Revision Audit Trail</h2>
+            <h2 className="text-sm font-bold text-[var(--foreground)] mb-4">{t('auditTrailTitle')}</h2>
             <div className="relative border-l-2 border-[var(--border)] pl-6 space-y-6">
               <div className="relative">
                 <span className="absolute -left-[31px] top-1.5 h-3 w-3 rounded-full bg-[var(--primary)]" />
-                <h3 className="text-xs font-bold text-[var(--foreground)]">Step 1: Blueprint & Topic Formulated</h3>
-                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Topik riset dan konteks awal disimpan ke dalam pustaka dokumen.</p>
+                <h3 className="text-xs font-bold text-[var(--foreground)]">{t('step1Title')}</h3>
+                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">{t('step1Desc')}</p>
               </div>
               <div className="relative">
                 <span className="absolute -left-[31px] top-1.5 h-3 w-3 rounded-full bg-[var(--primary)]" />
-                <h3 className="text-xs font-bold text-[var(--foreground)]">Step 2: Initial Source Draft Generated</h3>
-                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Draf awal ({initialText.split(/\s+/).filter(Boolean).length} kata) dibuat dari catatan riset.</p>
+                <h3 className="text-xs font-bold text-[var(--foreground)]">{t('step2Title')}</h3>
+                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">{t('step2Desc')}</p>
               </div>
               <div className="relative">
                 <span className="absolute -left-[31px] top-1.5 h-3 w-3 rounded-full bg-[var(--primary)]" />
-                <h3 className="text-xs font-bold text-[var(--foreground)]">Step 3: AI Refinement & Editorial Governance</h3>
-                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Evaluasi temuan diselesaikan dan disetujui di canvas Editor.</p>
+                <h3 className="text-xs font-bold text-[var(--foreground)]">{t('step3Title')}</h3>
+                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">{t('step3Desc')}</p>
               </div>
               <div className="relative">
                 <span className="absolute -left-[31px] top-1.5 h-3 w-3 rounded-full bg-[var(--success)]" />
-                <h3 className="text-xs font-bold text-[var(--success)]">Step 4: Final Draft Ready for Publication</h3>
-                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Draf akhir disetujui ({finalPolishedText.split(/\s+/).filter(Boolean).length} kata, 100% readiness score).</p>
+                <h3 className="text-xs font-bold text-[var(--success)]">{t('step4Title')}</h3>
+                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">{t('step4Desc')}</p>
               </div>
             </div>
           </div>
