@@ -16,6 +16,7 @@ import {
   getHistoryItemPresentation,
   type HistoryItem,
   type HistoryStage,
+  type HistoryItemPresentation,
 } from '@/components/document-history-utils';
 
 type LibraryFilter = 'all' | HistoryStage;
@@ -27,10 +28,12 @@ const stageBadge: Record<HistoryStage, BadgeVariant> = {
   ready: 'success',
 };
 
-const destinationFor = (stage: HistoryStage, id: string) => {
+const destinationFor = (presentation: HistoryItemPresentation, id: string) => {
   const query = `?history=${encodeURIComponent(id)}`;
-  if (stage === 'ready') return `/publication${query}`;
-  if (stage === 'review' || stage === 'blocked') return `/review${query}`;
+  if (presentation.stage === 'ready') {
+    return presentation.hasPublicationMetadata ? `/publication${query}` : `/review${query}`;
+  }
+  // Draft, review (needs_review), blocked -> all go to editor
   return `/editor${query}`;
 };
 
@@ -198,7 +201,7 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
                     variant="muted"
                     size="sm"
                     className="w-full justify-between"
-                    onClick={() => router.push(destinationFor(presentation.stage, item.id))}
+                    onClick={() => router.push(destinationFor(presentation, item.id))}
                   >
                     {t(`open.${presentation.stage}`)}
                     <ForwardNavigationIcon className="h-3.5 w-3.5" />

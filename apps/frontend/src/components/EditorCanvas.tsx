@@ -317,9 +317,9 @@ export default function EditorCanvas({
                           variant="primary"
                           size="sm"
                           className="mt-4"
-                          onClick={() => router.push(`/review${analysis.analysisLogId ? `?history=${encodeURIComponent(analysis.analysisLogId)}` : ''}`)}
+                          onClick={() => router.push(`/editor${analysis.analysisLogId ? `?history=${encodeURIComponent(analysis.analysisLogId)}` : ''}`)}
                         >
-                          {t('returnToReview')}
+                          {t('returnToEditor', { defaultValue: 'Return to Editor' })}
                         </Button>
                       </div>
                     ) : isCandidatePendingReview && !showCandidateEditor ? (
