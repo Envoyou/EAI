@@ -5,7 +5,7 @@ import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Plus, FileText, Search, X } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/button';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { ActionButton } from '@/components/ui/action-button';
 import { AdaptiveActionMenu } from '@/components/ui/adaptive-action-menu';
+import { DeleteDocumentDialog } from '@/components/document-history/DeleteDocumentDialog';
+import { DocumentHistorySearch } from '@/components/document-history/DocumentHistorySearch';
 import {
   DeleteActionIcon,
   EditActionIcon,
@@ -254,6 +256,15 @@ export default function DocumentHistoryPanel({
     closeAfterMobileSelection();
   };
 
+  const handleExpandAndFocusSearch = () => {
+    if (onToggle) {
+      onToggle();
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  };
+
   const renderItemStatus = (stage: HistoryStage) => {
     const variants: Record<HistoryStage, BadgeVariant> = {
       ready: 'success',
@@ -409,47 +420,15 @@ export default function DocumentHistoryPanel({
       isDemoMode={isDemoMode}
       style={{ width: '100%', minWidth: '0' }}
     >
-      {/* Delete Confirmation */}
-      {itemToDelete && (
-        <div
-          className="absolute inset-0 z-50 flex items-center justify-center p-5"
-          style={{ background: 'rgba(9,9,9,0.85)', backdropFilter: 'blur(6px)' }}
-        >
-          <div
-            className="w-full max-w-[260px] rounded-lg border border-[var(--border)] p-5 space-y-4 shadow-xl"
-            style={{ background: 'var(--card)' }}
-          >
-            <div>
-              <h3 className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>
-                  {t('deleteTitle')}
-              </h3>
-              <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
-                  {t('deleteDescription')}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setItemToDelete(null)}
-                disabled={isDeleting}
-                variant="surface"
-                size="sm"
-                className="flex-1"
-              >
-                 {t('cancel')}
-              </Button>
-              <Button
-                onClick={confirmDelete}
-                disabled={isDeleting}
-                variant="danger"
-                size="sm"
-                className="flex-1"
-              >
-                 {isDeleting ? t('deleting') : t('delete')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete Confirmation Modal */}
+      <DeleteDocumentDialog
+        open={Boolean(itemToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setItemToDelete(null);
+        }}
+        pending={isDeleting}
+        onConfirm={confirmDelete}
+      />
 
       <div className="px-1 pt-1">
         <p className="text-xs font-semibold text-[var(--foreground)]">{t('title')}</p>
@@ -475,55 +454,38 @@ export default function DocumentHistoryPanel({
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="pt-2">
-        <div className="relative flex items-center">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted-foreground)] pointer-events-none z-10" />
-          <Input
-            variant="surface"
-            ref={searchInputRef}
-            type="text"
-            name="draft-search"
-            autoComplete="off"
-             aria-label={t('searchLabel')}
-            placeholder={t('searchPlaceholder')}
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="!pl-8 !pr-8 text-xs"
-          />
-          {searchQuery && (
+      {/* Search Input / Collapsed Icon */}
+      <DocumentHistorySearch
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sidebarOpen={sidebarOpen}
+        onExpandAndFocus={handleExpandAndFocusSearch}
+        inputRef={searchInputRef}
+        searchLabel={t('searchLabel')}
+        searchPlaceholder={t('searchPlaceholder')}
+      />
+
+      {/* Filter Chips (Visible when expanded) */}
+      {sidebarOpen && (
+        <div className="flex gap-1 mt-2 bg-[var(--surface-2)] rounded-full p-1 border border-[var(--border)]">
+          {FILTERS.map(f => (
             <Button
               type="button"
-              onClick={() => setSearchQuery('')}
-              variant="ghost"
-              size="icon-xs"
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-[var(--muted-foreground)] hover:bg-[var(--surface-3)]"
+              key={f.key}
+              onClick={() => setActiveFilter(f.key)}
+              variant="muted"
+              className={`sidebar-filter-pill min-w-0 flex-1 px-1.5 py-1 text-[10px] rounded-full border-none h-auto${
+                activeFilter === f.key ? ' active' : ''
+              }`}
             >
-              <X className="w-3.5 h-3.5" />
+              {t(`filter.${f.key}`)}
             </Button>
-          )}
+          ))}
         </div>
-      </div>
-
-      {/* Filter Chips */}
-      <div className="flex gap-1 mt-2 bg-[var(--surface-2)] rounded-full p-1 border border-[var(--border)]">
-        {FILTERS.map(f => (
-          <Button
-            type="button"
-            key={f.key}
-            onClick={() => setActiveFilter(f.key)}
-            variant="muted"
-            className={`sidebar-filter-pill min-w-0 flex-1 px-1.5 py-1 text-[10px] rounded-full border-none h-auto${
-              activeFilter === f.key ? ' active' : ''
-            }`}
-          >
-            {t(`filter.${f.key}`)}
-          </Button>
-        ))}
-      </div>
+      )}
 
       {/* Document List */}
-      <ScrollArea className="flex-1 min-h-0 mt-3 -mx-3 px-3">
+      <ScrollArea className={`flex-1 min-h-0 mt-3 -mx-3 px-3 ${!sidebarOpen ? 'hidden' : ''}`}>
         {loading ? (
           <div className="space-y-2 py-1">
             {[1, 2, 3, 4].map(i => (

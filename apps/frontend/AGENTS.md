@@ -293,6 +293,12 @@ New or migrated feature controls must import intent-named icon tokens from `@/co
 * **Loading indicators**: Use `EAILoaderStatusIcon` from `@/components/ui/icons/status` for compact progress indicators. `LoadingStatusIcon` is a compatibility alias for the same component. Do not import Lucide `Loader2` or add an external `animate-spin` class to the EAI loader.
 * **Migration boundary**: Existing direct `lucide-react` imports are legacy inventory. Migrate them in bounded feature batches; do not perform shape-based global replacement because the same shape can represent different intents.
 
+### 🚫 RULE 14: Do Not Trigger Premature Navigation or Modal Interference During Editor Refinement
+Refinement and AI execution within `/editor` must follow a 3-Phase Sequential UX Architecture:
+1. **Refinement Execution**: Render inline loading overlays (*"EAI is Analyzing & Refining..."*) directly over the active editor draft without triggering unprompted route transitions to `/review` or `/publication`.
+2. **In-Place Feedback Review Phase**: When refinement yields findings requiring user decisions (`isCandidatePendingReview === true`), render decision cards directly on the center editor canvas without premature modal pop-up interference (`showInPlaceModal = false`).
+3. **Completion Handoff Dialog**: Open the completion handoff modal (`InPlaceRefineFeedbackModal`) **only** after all pending feedback decisions on the canvas are resolved (`analysis.readiness === 'ready'`), offering clear choices to proceed to Review/Publication or stay in Editor.
+
 ---
 
 ## Security

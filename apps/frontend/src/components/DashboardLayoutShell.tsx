@@ -2,26 +2,17 @@
 
 import React from 'react';
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
-import { Activity, FileText, CheckCircle, Users, Download, ShieldAlert, LibraryBig } from 'lucide-react';
-import Link from 'next/link';
+import { Download } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { WorkspacePageShell } from '@/components/WorkspacePageShell';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useDashboard } from './DashboardProvider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useTranslations } from 'next-intl';
-
-const sections = [
-  { id: 'overview', label: 'Overview', icon: Activity, href: '/dashboard/overview' },
-  { id: 'performance', label: 'Performance', icon: FileText, href: '/dashboard/performance' },
-  { id: 'trends', label: 'Trends & Verdicts', icon: CheckCircle, href: '/dashboard/trends' },
-  { id: 'productivity', label: 'Productivity & Coach', icon: Users, href: '/dashboard/productivity' },
-] as const;
+import { DashboardNavigation } from '@/components/app-shell/navigation/DashboardNavigation';
 
 export function DashboardLayoutShell({ children, isSuperAdmin }: { children: React.ReactNode; isSuperAdmin?: boolean }) {
   const pathname = usePathname();
-  const tContentMap = useTranslations('ContentMap');
   const {
     data,
     loading,
@@ -104,56 +95,7 @@ export function DashboardLayoutShell({ children, isSuperAdmin }: { children: Rea
           </Button>
         </div>
       )}
-      sidebar={
-        <>
-
-
-          <nav aria-label="Dashboard sections" className="settings-page-nav">
-            {sections.map((section) => {
-              const Icon = section.icon;
-              const isActive = pathname.startsWith(section.href);
-              return (
-                <Link
-                  key={section.id}
-                  href={section.href}
-                  data-active={isActive}
-                  aria-current={isActive ? 'page' : undefined}
-                  prefetch={false}
-                >
-                  <Icon className="h-4 w-4" />
-                  {section.label}
-                </Link>
-              );
-            })}
-            <Link
-              href="/dashboard/content-map"
-              data-active={pathname.startsWith('/dashboard/content-map')}
-              aria-current={pathname.startsWith('/dashboard/content-map') ? 'page' : undefined}
-              prefetch={false}
-            >
-              <LibraryBig className="h-4 w-4" />
-              {tContentMap('nav')}
-            </Link>
-
-            {isSuperAdmin && (
-              <>
-                <div className="mt-6 mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Internal
-                </div>
-                <Link
-                  href="/dashboard/validation"
-                  data-active={pathname.startsWith('/dashboard/validation')}
-                  aria-current={pathname.startsWith('/dashboard/validation') ? 'page' : undefined}
-                  prefetch={false}
-                >
-                  <ShieldAlert className="h-4 w-4" />
-                  Validation
-                </Link>
-              </>
-            )}
-          </nav>
-        </>
-      }
+      sidebar={<DashboardNavigation isSuperAdmin={isSuperAdmin} />}
     >
       <div className="settings-page-content scroll-y-auto">
         <div className="settings-page-intro">

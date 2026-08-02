@@ -55,7 +55,7 @@ interface EditorCanvasProps {
   onActiveFeedbackChange: (index: number | null) => void;
   isStreaming: boolean;
   isRefining: boolean;
-  processStage: EditorialProcessStage;
+  processStage?: EditorialProcessStage;
   processStartedAt: number | null;
   includeSeoStage: boolean;
   onAnalyze: (overrideDraft?: string) => Promise<void>;
@@ -217,7 +217,7 @@ export default function EditorCanvas({
       >
         <AnimatePresence mode="wait">
           {/* Draft Tab */}
-          {(workspaceStage === 'editor' || (isDemoMode && activeTab === 'draft')) && (
+          {(activeTab === 'draft' || (workspaceStage === 'editor' && activeTab !== 'refined')) && (
             <motion.div
               key="draft-tab"
               initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
@@ -244,7 +244,7 @@ export default function EditorCanvas({
           )}
 
           {/* Refined Draft Tab */}
-          {(workspaceStage !== 'editor' || (isDemoMode && activeTab === 'refined')) && (
+          {(activeTab === 'refined' || workspaceStage !== 'editor') && (
             <motion.div
               key="refined-tab"
               initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}

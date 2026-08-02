@@ -6,7 +6,27 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Modular App Shell & Navigation Infrastructure**:
+  - `apps/frontend/src/components/app-shell/AppShell.tsx`: Root App Shell wrapper providing global navigation rail and context sidebar integration.
+  - `apps/frontend/src/components/app-shell/GlobalNavigationRail.tsx` & `ContextSidebar.tsx`: Global navigation rail and dynamic contextual sidebar primitives.
+  - `apps/frontend/src/components/app-shell/navigation/`: Added structured typed navigation configs `main-navigation.ts`, `dashboard-navigation.ts`, `settings-navigation.ts`, `navigation-types.ts`, `route-matching.ts`, `DashboardNavigation.tsx`, and `SettingsNavigation.tsx`.
+  - `apps/frontend/src/components/admin-shell/`: Added `AdminNavigation.tsx` and `admin-navigation-config.ts` for isolated admin navigation.
+- **Modular Sidebar Primitives & Responsive Layout (`apps/frontend/src/components/ui/sidebar/`)**:
+  - Added sidebar UI primitives `SidebarSurface.tsx`, `SidebarSection.tsx`, `SidebarNav.tsx`, `SidebarItem.tsx`, `SidebarDrawer.tsx`, and `useResponsiveAppLayout.ts` hook for standardized locked vs resizable sidebar widths and mobile drawer responsiveness.
+- **Isolated Destructive Confirmation Dialog Primitives**:
+  - `apps/frontend/src/components/ui/ConfirmDestructiveDialog.tsx`: Reusable generic modal dialog for high-risk actions.
+  - `apps/frontend/src/components/document-history/DeleteDocumentDialog.tsx`: Document deletion dialog with safe confirmation.
+  - `apps/frontend/src/components/document-history/DocumentHistorySearch.tsx`: Isolated document history search input component.
+  - `apps/frontend/src/components/strategist-tab/components/DeleteSessionDialog.tsx`: Strategist session deletion confirmation dialog.
+  - `apps/frontend/src/components/InPlaceRefineFeedbackModal.tsx`: Dedicated post-refinement completion dialog (*"Open Review/Publication"* vs *"Stay in Editor"*).
+
 ### Changed
+- **Interactive In-Place Refinement & 3-Phase Sequential UX Architecture**:
+  - Running **Refine Draft** within `/editor` no longer forces an unprompted route change. The center canvas displays an inline loading overlay (*"EAI is Analyzing & Refining..."*) directly over the active draft.
+  - Separated the feedback review phase from the completion handoff dialog. When refinement produces findings requiring editorial approval (e.g. `Source Fidelity` or `Unsupported Entity Detail`), decision cards render unobstructedly **on the center editor canvas** without premature modal pop-up interference.
+  - The completion handoff dialog (`InPlaceRefineFeedbackModal`) appears ONLY after all pending feedback decisions on the canvas have been approved/resolved (`readiness === 'ready'`), offering clear choices to 🚀 **"Open Review / Publication"** or ✏️ **"Stay in Editor"**.
+  - Updated TypeScript prop typing `processStage?: EditorialProcessStage` across `EditorCanvas`, `EditorWorkflowPanel`, and `EditorialProgress`, and utilized derived state for `showInPlaceModal` to eliminate React 19 `setState`-in-effect warnings.
 - **Separated editorial workspaces**:
   - Replaced the permanent History + Editor + all-purpose Copilot composition with distinct document-home, editor, review, and publication destinations.
   - Made `/workspace` a Grammarly-style document home with title search, status filters, durable asset summaries, and stage-aware open actions; legacy document links forward to `/editor` without losing parameters.

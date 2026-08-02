@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { ChatSession } from '@/lib/hooks/useContentStrategist';
 import {
@@ -10,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ActionButton } from '@/components/ui/action-button';
 import { AdaptiveActionMenu } from '@/components/ui/adaptive-action-menu';
+import { DeleteSessionDialog } from './DeleteSessionDialog';
 import {
   DeleteActionIcon,
   EditActionIcon,
@@ -36,8 +38,33 @@ export function SessionSidebar({
   deleteSession,
   onStartRename,
 }: SessionSidebarProps) {
+  const [sessionToDelete, setSessionToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    if (!sessionToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteSession(sessionToDelete.id);
+    } finally {
+      setIsDeleting(false);
+      setSessionToDelete(null);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* Delete Confirmation Modal */}
+      <DeleteSessionDialog
+        open={Boolean(sessionToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setSessionToDelete(null);
+        }}
+        sessionTitle={sessionToDelete?.title}
+        pending={isDeleting}
+        onConfirm={handleConfirmDelete}
+      />
+
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] shrink-0">
         <div className="font-bold text-xs text-[var(--foreground)]">
           EAI Research History
@@ -142,9 +169,7 @@ export function SessionSidebar({
                         danger: true,
                         separatorBefore: true,
                         onSelect: () => {
-                          if (confirm('Permanently delete this chat session?')) {
-                            return deleteSession(s.id);
-                          }
+                          setSessionToDelete({ id: s.id, title: s.title });
                         },
                       },
                     ]}

@@ -11,7 +11,7 @@ import { ForwardNavigationIcon } from '@/components/ui/icons/navigation';
 
 interface EditorWorkflowPanelProps {
   isProcessing: boolean;
-  processStage: EditorialProcessStage;
+  processStage?: EditorialProcessStage;
   processStartedAt: number | null;
   includeSeoStage: boolean;
   handoff: EditorHandoffState | null;
@@ -37,7 +37,7 @@ export function EditorWorkflowPanel({
       <div className="h-full min-h-0 overflow-hidden border-l border-[var(--border)] bg-[var(--surface-1)]">
         <EditorialProgress
           compact
-          stage={processStage}
+          stage={processStage ?? 'reviewing'}
           startedAt={processStartedAt}
           includeSeoStage={includeSeoStage}
         />

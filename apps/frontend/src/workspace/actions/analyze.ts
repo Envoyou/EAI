@@ -376,10 +376,12 @@ export async function executeAnalyze(
         polishedDraft: (prev.polishedDraft || '') + remaining,
       }));
     }
-    if (analyzeAbortControllerRef.current === controller) {
+    if (analyzeAbortControllerRef.current === controller || controller.signal.aborted) {
       setIsStreaming(false);
       setProcessStartedAt(null);
-      analyzeAbortControllerRef.current = null;
+      if (analyzeAbortControllerRef.current === controller) {
+        analyzeAbortControllerRef.current = null;
+      }
     }
   }
 }

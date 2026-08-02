@@ -2,6 +2,10 @@
    Workspace & Settings Sidebar Navigation
    ============================================================ */
 
+.workspace-page-sidebar-backdrop {
+  display: none;
+}
+
 .workspace-page-sidebar-panel {
   display: flex;
   width: var(--sidebar-panel-width);

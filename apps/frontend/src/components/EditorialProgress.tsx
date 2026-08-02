@@ -50,7 +50,7 @@ const formatElapsed = (seconds: number) => {
 };
 
 interface EditorialProgressProps {
-  stage: EditorialProcessStage;
+  stage?: EditorialProcessStage;
   startedAt?: number | null;
   compact?: boolean;
   refining?: boolean;

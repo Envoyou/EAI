@@ -12,11 +12,12 @@ describe('Content Map frontend contract', () => {
   );
   const drawer = readSource('components/ui/side-drawer.tsx');
   const shell = readSource('components/DashboardLayoutShell.tsx');
+  const dashboardNav = readSource('components/app-shell/navigation/DashboardNavigation.tsx');
 
   it('exposes the tenant Content Map from the dashboard navigation', () => {
-    expect(shell).toContain('href="/dashboard/content-map"');
-    expect(shell).toContain("useTranslations('ContentMap')");
-    expect(shell).toContain('isContentMap ? undefined');
+    expect(dashboardNav).toContain('href={section.href}');
+    expect(dashboardNav).toContain("useTranslations('ContentMap')");
+    expect(shell).toContain('<DashboardNavigation');
   });
 
   it('loads only the Content Memory registry API and renders safe metadata', () => {

@@ -381,6 +381,7 @@ export function useEditorialWorkspace({
       onAnalysisComplete: (completion: AnalysisCompletion) => {
         const handoff = buildEditorHandoff(completion);
         setEditorHandoff(handoff);
+        setActiveTab('refined');
         toast.success(
           tFinalDraftPanel('draftReady'),
           { description: tFinalDraftPanel('draftReadyDescription') }
@@ -1473,7 +1474,18 @@ export function useEditorialWorkspace({
       cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
     }
-    toast.info('AI request cancelled');
+    setIsStreaming(false);
+    setIsRefining(false);
+    setProcessStage(undefined);
+    setProcessStartedAt(null);
+    setActiveTab('draft');
+    setAnalysis(prev => (prev.status === 'loading' ? { ...prev, status: 'idle' } : prev));
+    if (!draft.trim() && sourceDraft.trim()) {
+      setDraft(sourceDraft);
+      toast.success('Original draft restored');
+    } else {
+      toast.info('AI request cancelled');
+    }
   };
 
   const handleAddNewCategoryOrType = async (type: 'category' | 'articleType', value: string) => {

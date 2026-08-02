@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 const readComponent = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 const documentHistory = readComponent('../DocumentHistoryPanel.tsx');
-const historySidebar = readComponent('../HistorySidebar.tsx');
+const documentSearch = readComponent('../document-history/DocumentHistorySearch.tsx');
 const userDirectory = readComponent('../UserDirectory.tsx');
 const userTable = readComponent('../user-directory/components/UserTable.tsx');
 const creditAdjustment = readComponent('../user-directory/components/CreditAdjustmentModal.tsx');
@@ -14,8 +14,8 @@ const cancellation = readComponent('../CancelSubscriptionButton.tsx');
 
 describe('standard text-control migration contract', () => {
   it.each([
-    ['Document History', documentHistory, 2],
-    ['History Sidebar', historySidebar, 2],
+    ['Document History title edit', documentHistory, 1],
+    ['Document History search input', documentSearch, 1],
     ['User Table', userTable, 1],
     ['Strategist session rename', strategist, 1],
     ['Bubble Menu link editing', bubbleMenu, 1],
@@ -46,7 +46,7 @@ describe('standard text-control migration contract', () => {
 
   it('preserves keyboard-owned interactions', () => {
     expect(documentHistory).toContain("if (e.key === 'Enter') handleTitleEdit(item.id)");
-    expect(historySidebar).toContain("if (e.key === 'Escape') setEditingId(null)");
+    expect(documentHistory).toContain("if (e.key === 'Escape') setEditingId(null)");
     expect(strategist).toContain("if (e.key === 'Enter')");
     expect(bubbleMenu).toContain("if (e.key === 'Enter')");
     expect(bubbleMenu).toContain('className="not-prose');

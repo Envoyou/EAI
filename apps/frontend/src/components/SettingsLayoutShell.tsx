@@ -2,24 +2,14 @@
 
 import React from 'react';
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
-import { Link } from '@/i18n/routing';
-import { usePathname } from 'next/navigation';
-import {
-  Building2,
-  Check,
-  CircleUserRound,
-  FileText,
-  Workflow,
-  CreditCard,
-  Settings,
-  Activity,
-} from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 
 import { WorkspacePageShell } from '@/components/WorkspacePageShell';
 import { useSettings } from '@/components/SettingsProvider';
 import { useSettingsAction } from '@/components/SettingsActionProvider';
 import { Button } from '@/components/ui/button';
+import { SettingsNavigation } from '@/components/app-shell/navigation/SettingsNavigation';
 
 type SettingsLayoutShellProps = {
   children: React.ReactNode;
@@ -27,34 +17,8 @@ type SettingsLayoutShellProps = {
   isSuperAdmin: boolean;
 };
 
-type SidebarSection = {
-  id: string;
-  label: string;
-  href?: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  heading?: boolean;
-  requireAdmin?: boolean;
-  requireSuperAdmin?: boolean;
-};
-
-const SECTIONS: SidebarSection[] = [
-  { id: 'general_heading', label: 'My Preferences', heading: true },
-  { id: 'account', href: '/settings/account', label: 'Preferences', icon: CircleUserRound },
-  { id: 'general', href: '/settings/general', label: 'General', icon: Settings },
-  { id: 'workflow', href: '/settings/workflow', label: 'Workflow', icon: Workflow },
-  { id: 'defaults', href: '/settings/defaults', label: 'Article Defaults', icon: FileText },
-  
-  { id: 'organization', label: 'Organization', heading: true, requireAdmin: true },
-  { id: 'workspace', href: '/settings/workspace', label: 'Workspace', icon: Building2, requireAdmin: true },
-  { id: 'billing', href: '/settings/billing', label: 'Billing & Plans', icon: CreditCard, requireAdmin: true },
-  { id: 'usage', href: '/settings/usage', label: 'Credit Usage', icon: Activity, requireAdmin: true },
-  { id: 'publication', href: '/settings/publication/identity', label: 'Publication Standards', icon: FileText, requireAdmin: true },
-];
-
 export function SettingsLayoutShell({ children, isAdmin, isSuperAdmin }: SettingsLayoutShellProps) {
-  const pathname = usePathname();
   const { isLoaded } = useUser();
-  
   const { isMounted } = useSettings();
   const { isDirty, isSaving, triggerSave } = useSettingsAction();
 
@@ -65,7 +29,6 @@ export function SettingsLayoutShell({ children, isAdmin, isSuperAdmin }: Setting
       </div>
     );
   }
-
 
   return (
     <WorkspacePageShell
@@ -84,43 +47,7 @@ export function SettingsLayoutShell({ children, isAdmin, isSuperAdmin }: Setting
           <span>Save Changes</span>
         </Button>
       }
-      sidebar={
-        <>
-
-
-          <nav aria-label="Settings sections" className="settings-page-nav flex flex-col gap-1">
-            {SECTIONS.map((section) => {
-              if (section.requireAdmin && !isAdmin) return null;
-              if (section.requireSuperAdmin && !isSuperAdmin) return null;
-
-              if (section.heading) {
-                return (
-                  <div key={section.id} className="mt-4 mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                    {section.label}
-                  </div>
-                );
-              }
-
-              const Icon = section.icon;
-              const isActive = pathname?.startsWith(section.href!);
-              return (
-                <Link
-                  key={section.id}
-                  href={section.href!}
-                  data-active={isActive}
-                  aria-current={isActive ? 'page' : undefined}
-                  prefetch={false}
-                >
-                  {Icon && <Icon className="h-4 w-4" />}
-                  {section.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-
-        </>
-      }
+      sidebar={<SettingsNavigation isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />}
       footer={
         <div className="settings-page-status">
           {isDirty ? (

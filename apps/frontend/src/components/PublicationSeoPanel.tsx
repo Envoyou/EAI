@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { Copy, Check } from 'lucide-react';
 import type {
   PublicationPackage,
   PublicationPackageStatus,
@@ -62,6 +63,7 @@ export function PublicationSeoPanel({
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [value, setValue] = useState(() => toEditValue(metadata));
   const protectedFields = getProtectedSeoReviewFields(seoFieldStates);
   const uxState = derivePublicationUxState({
@@ -91,6 +93,37 @@ export function PublicationSeoPanel({
     setValue((current) => ({ ...current, [field]: nextValue }));
   };
 
+  const handleCopyAll = async () => {
+    if (!metadata) return;
+    const formattedText = rows
+      .filter((r) => r.value?.trim())
+      .map((r) => `[${t(`seoField.${r.field}`)}]\n${r.value!.trim()}`)
+      .join('\n\n');
+    if (formattedText) {
+      try {
+        await navigator.clipboard.writeText(formattedText);
+        setCopiedField('all');
+        toast.success(t('copySuccess'));
+        setTimeout(() => setCopiedField(null), 2000);
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to copy');
+      }
+    }
+  };
+
+  const handleCopyField = async (field: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      toast.success(t('copyFieldSuccess', { field: t(`seoField.${field}`) }));
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to copy field');
+    }
+  };
+
   return (
     <section
       className="flex h-full min-h-0 flex-col border-l border-[var(--border)] bg-[var(--surface-1)]"
@@ -106,21 +139,37 @@ export function PublicationSeoPanel({
             {t('seoPackTitle')}
           </h2>
           {metadata && (
-            <Button
-              type="button"
-              variant="muted"
-              size="xs"
-              onClick={() => {
-                if (!editing) setValue(toEditValue(metadata));
-                setEditing((current) => !current);
-              }}
-              aria-expanded={editing}
-            >
-              <EditActionIcon className="h-3.5 w-3.5" />
-              {editing
-                ? t('closePublicationMetadata')
-                : t('editPublicationMetadata')}
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="muted"
+                size="xs"
+                onClick={handleCopyAll}
+                title={t('copySeoPack')}
+              >
+                {copiedField === 'all' ? (
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+                {t('copySeoPack')}
+              </Button>
+              <Button
+                type="button"
+                variant="muted"
+                size="xs"
+                onClick={() => {
+                  if (!editing) setValue(toEditValue(metadata));
+                  setEditing((current) => !current);
+                }}
+                aria-expanded={editing}
+              >
+                <EditActionIcon className="h-3.5 w-3.5" />
+                {editing
+                  ? t('closePublicationMetadata')
+                  : t('editPublicationMetadata')}
+              </Button>
+            </div>
           )}
         </div>
         <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--muted-foreground)]">
@@ -193,19 +242,42 @@ export function PublicationSeoPanel({
 
         {metadata && !editing && (
           <dl className="space-y-2.5">
-            {rows.map((row) => (
-              <div
-                key={row.field}
-                className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3"
-              >
-                <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
-                  {t(`seoField.${row.field}`)}
-                </dt>
-                <dd className="mt-1.5 whitespace-pre-wrap break-words text-xs leading-relaxed text-[var(--foreground)]">
-                  {row.value?.trim() || t('publicationMetadataEmptyValue')}
-                </dd>
-              </div>
-            ))}
+            {rows.map((row) => {
+              const textVal = row.value?.trim();
+              const isCopied = copiedField === row.field;
+              return (
+                <div
+                  key={row.field}
+                  className="group relative rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3 transition-colors hover:border-[var(--primary)]/30"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                      {t(`seoField.${row.field}`)}
+                    </dt>
+                    {textVal ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        className="h-5 px-1.5 text-[10px] opacity-70 hover:opacity-100 group-hover:opacity-100"
+                        onClick={() => handleCopyField(row.field, textVal)}
+                        title={`Copy ${t(`seoField.${row.field}`)}`}
+                      >
+                        {isCopied ? (
+                          <Check className="h-3 w-3 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                        <span>{t('copyField')}</span>
+                      </Button>
+                    ) : null}
+                  </div>
+                  <dd className="mt-1.5 whitespace-pre-wrap break-words text-xs leading-relaxed text-[var(--foreground)]">
+                    {textVal || t('publicationMetadataEmptyValue')}
+                  </dd>
+                </div>
+              );
+            })}
           </dl>
         )}
 

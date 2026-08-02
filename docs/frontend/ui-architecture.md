@@ -218,8 +218,12 @@ and persistent Save/Cancel actions. The article canvas contains only the TipTap
 document and never inserts or overlays an edit-warning card among the content.
 Other draft views and actions that operate on the persisted article are held
 until the user saves or cancels, preventing a visible unsaved revision from
-being confused with the last durable Quality Check, SEO package, export, copy,
-or download state.
+being bypassed or lost.
+
+In-place Refinement within `/editor` follows a 3-Phase Sequential UX Architecture:
+1. **Refinement Execution**: The center editor canvas displays an inline loading overlay (*"EAI is Analyzing & Refining..."*) directly over the draft without triggering an unprompted page jump.
+2. **Feedback Decision Phase**: When refinement produces findings requiring editorial decisions (`isCandidatePendingReview === true`), the decision feedback cards render unobstructedly on the center editor canvas without premature modal pop-up obstruction.
+3. **Completion Handoff Dialog**: The `InPlaceRefineFeedbackModal` completion dialog pops up **only** after all pending feedback decisions on the canvas have been approved or resolved (`analysis.readiness === 'ready'`), offering clear options to proceed to Review/Publication or stay in Editor.
 
 The localized `/[locale]/dashboard/content-map` route is a bounded client view
 over the authenticated Content Memory API. It exposes collaboration-safe

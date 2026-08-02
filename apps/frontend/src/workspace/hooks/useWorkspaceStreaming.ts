@@ -6,7 +6,7 @@ import type { EditorialProcessStage, AnalysisResult } from '@eai/shared';
 export function useWorkspaceStreaming() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
-  const [processStage, setProcessStage] = useState<EditorialProcessStage>('reviewing');
+  const [processStage, setProcessStage] = useState<EditorialProcessStage | undefined>('reviewing');
   const [processStartedAt, setProcessStartedAt] = useState<number | null>(null);
 
   const generateAbortControllerRef = useRef<AbortController | null>(null);
@@ -29,10 +29,16 @@ export function useWorkspaceStreaming() {
   const cancelPendingStreams = () => {
     if (generateAbortControllerRef.current) {
       generateAbortControllerRef.current.abort();
+      generateAbortControllerRef.current = null;
     }
     if (analyzeAbortControllerRef.current) {
       analyzeAbortControllerRef.current.abort();
+      analyzeAbortControllerRef.current = null;
     }
+    setIsStreaming(false);
+    setIsRefining(false);
+    setProcessStage(undefined);
+    setProcessStartedAt(null);
   };
 
   const flushRemainingDraftChunks = (setAnalysis: Dispatch<SetStateAction<AnalysisResult>>) => {

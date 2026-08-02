@@ -119,7 +119,11 @@
     "openReview": "Buka Review",
     "openPublication": "Buka Publikasi",
     "finishLater": "Selesaikan nanti",
-    "continueEditing": "Lanjutkan mengedit sumber"
+    "continueEditing": "Lanjutkan mengedit sumber",
+    "viewResults": "Lihat Hasil",
+    "stayInEditor": "Tetap di Editor",
+    "inPlaceRefineCompleteTitle": "Perbaikan Draf Selesai",
+    "inPlaceRefineCompleteDescription": "Semua temuan editorial telah dievaluasi. Pilih langkah selanjutnya."
   },
   "AppNavigation": {
     "create": "Alur kerja",
@@ -132,7 +136,26 @@
     "dashboard": "Dashboard",
     "settings": "Pengaturan",
     "lightMode": "Mode Terang",
-    "darkMode": "Mode Gelap"
+    "darkMode": "Mode Gelap",
+    "expandSidebar": "Buka sidebar",
+    "collapseSidebar": "Tutup sidebar",
+    "mainNavigation": "Navigasi utama",
+    "signIn": "Masuk Akun"
+  },
+  "DashboardNavigation": {
+    "sections": "Bagian dashboard",
+    "overview": "Ringkasan",
+    "performance": "Performa",
+    "trends": "Tren",
+    "productivity": "Produktivitas",
+    "contentMap": "Peta Konten",
+    "validation": "Validasi",
+    "internal": "Kontrol Internal"
+  },
+  "ConfirmDestructiveDialog": {
+    "cancel": "Batal",
+    "confirm": "Hapus",
+    "deleting": "Menghapus…"
   },
   "SavedArticlesPage": {
     "eyebrow": "Library artikel",
@@ -265,6 +288,10 @@
     "editPublicationMetadata": "Edit detail",
     "closePublicationMetadata": "Tutup editor",
     "savePublicationMetadata": "Simpan detail publikasi",
+    "copySeoPack": "Salin Paket SEO",
+    "copyField": "Salin",
+    "copySuccess": "Paket SEO berhasil disalin",
+    "copyFieldSuccess": "{field} berhasil disalin",
     "publicationMetadataEmptyValue": "Belum diisi",
     "confirmMetadataCurrent": "Pertahankan metadata saat ini",
     "confirmMetadataSuccess": "Metadata publikasi saat ini berhasil dikonfirmasi.",

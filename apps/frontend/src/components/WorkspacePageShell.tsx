@@ -1,11 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Menu } from 'lucide-react';
-import { AppSidebarShell, WorkspacePage } from '@/components/AppSidebarShell';
-import { Button } from '@/components/ui/button';
-
-
+import React from 'react';
+import { AppShell } from '@/components/app-shell/AppShell';
+import { WorkspacePage } from '@/components/AppSidebarShell';
 
 type WorkspacePageShellProps = {
   title: string;
@@ -17,8 +14,6 @@ type WorkspacePageShellProps = {
   children: React.ReactNode;
 };
 
-
-
 export function WorkspacePageShell({
   title,
   description,
@@ -28,93 +23,16 @@ export function WorkspacePageShell({
   footer,
   children,
 }: WorkspacePageShellProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 860px)').matches) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSidebarOpen(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!sidebarOpen) return;
-
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setSidebarOpen(false);
-    };
-
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [sidebarOpen]);
-
   return (
-    <div className="workspace-page-shell">
-      <div className="workspace-page-body">
-        <Button
-          type="button"
-          variant="ghost"
-          className="workspace-page-sidebar-backdrop"
-          data-open={sidebarOpen}
-          aria-label="Close page navigation"
-          onClick={() => setSidebarOpen(false)}
-        />
-
-        <AppSidebarShell
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen((current) => !current)}
-          currentPage={currentPage}
-        >
-          {/* MIDDLE SECTION CONTENT SPECIFIC TO THIS PAGE */}
-          <div className={`transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
-             <div className="mb-4 px-2 mt-2">
-               <h1 className="text-xs font-bold tracking-tight">{title}</h1>
-               {description ? <p className="text-[10px] text-[var(--muted-foreground)] mt-1">{description}</p> : null}
-             </div>
-             <div
-               onClickCapture={(event) => {
-                 if (
-                   window.matchMedia('(max-width: 860px)').matches &&
-                   (event.target as HTMLElement).closest('a')
-                 ) {
-                   setSidebarOpen(false);
-                 }
-               }}
-             >
-               {sidebar}
-             </div>
-          </div>
-        </AppSidebarShell>
-
-
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <header className="ide-titlebar workspace-page-titlebar" role="banner">
-            <div className="flex min-w-0 items-center gap-2">
-              <Button
-                type="button"
-                onClick={() => setSidebarOpen((current) => !current)}
-                variant="muted"
-                size="icon-xs"
-                className="workspace-page-sidebar-toggle shrink-0"
-                aria-label="Toggle page navigation"
-              >
-                <Menu className="h-4 w-4" />
-              </Button>
-              <span className="hidden sm:inline text-sm font-semibold text-[var(--foreground)]">Workspace</span>
-              <span className="hidden sm:inline text-[11px] text-[var(--muted-foreground)]">/</span>
-              <span className="truncate text-xs sm:text-[13px] font-medium text-[var(--muted-foreground)] max-w-[120px] sm:max-w-none">
-                {title}
-              </span>
-            </div>
-            <div className="flex-1" />
-            <div className="flex items-center gap-1.5">{actions}</div>
-          </header>
-
-          <div className="workspace-page-main">
-            <div className="workspace-page-scroll">{children}</div>
-            {footer ? <div className="workspace-page-footer">{footer}</div> : null}
-          </div>
-        </div>
-      </div>
-    </div>
+    <AppShell
+      title={title}
+      description={description}
+      currentPage={currentPage}
+      contextSidebar={sidebar}
+      actions={actions}
+      footer={footer}
+    >
+      {children}
+    </AppShell>
   );
 }

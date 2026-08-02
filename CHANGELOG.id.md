@@ -6,7 +6,27 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+- **Komponen Modular App Shell & Navigasi**:
+  - `apps/frontend/src/components/app-shell/AppShell.tsx`: Pembungkus utama App Shell dengan dukungan rel navigasi global dan sidebar konteks.
+  - `apps/frontend/src/components/app-shell/GlobalNavigationRail.tsx` & `ContextSidebar.tsx`: Rel navigasi global samping dan sidebar konteks dinamis.
+  - `apps/frontend/src/components/app-shell/navigation/`: Menambahkan konfigurasi navigasi terstruktur `main-navigation.ts`, `dashboard-navigation.ts`, `settings-navigation.ts`, `navigation-types.ts`, `route-matching.ts`, `DashboardNavigation.tsx`, dan `SettingsNavigation.tsx`.
+  - `apps/frontend/src/components/admin-shell/`: Menambahkan `AdminNavigation.tsx` dan `admin-navigation-config.ts` untuk navigasi konsol admin terisolasi.
+- **Sistem Sidebar Modular & Layout Responsif (`apps/frontend/src/components/ui/sidebar/`)**:
+  - Menambahkan primitif UI sidebar `SidebarSurface.tsx`, `SidebarSection.tsx`, `SidebarNav.tsx`, `SidebarItem.tsx`, `SidebarDrawer.tsx`, dan hook `useResponsiveAppLayout.ts` untuk mengelola standar lebar sidebar yang konsisten dan responsif di mobile.
+- **Komponen Dialog Konfirmasi Destruktif Terisolasi**:
+  - `apps/frontend/src/components/ui/ConfirmDestructiveDialog.tsx`: Dialog modal generik untuk tindakan berisiko tinggi.
+  - `apps/frontend/src/components/document-history/DeleteDocumentDialog.tsx`: Dialog hapus dokumen dengan konfirmasi aman.
+  - `apps/frontend/src/components/document-history/DocumentHistorySearch.tsx`: Input pencarian riwayat dokumen terisolasi.
+  - `apps/frontend/src/components/strategist-tab/components/DeleteSessionDialog.tsx`: Dialog hapus sesi Strategist.
+  - `apps/frontend/src/components/InPlaceRefineFeedbackModal.tsx`: Modal pilihan handoff pasca-perbaikan (*"Buka Review/Publikasi"* vs *"Tetap di Editor"*).
+
 ### Changed
+- **Alur Perbaikan Refine Interaktif & Arsitektur UX 3-Fase Berurutan**:
+  - Pengguna yang mengeklik **Refine Draft** di halaman `/editor` tidak lagi dipaksa mengalami perpindahan halaman (*route jump*). Canvas tengah di `/editor` menampilkan *loading overlay* (*"EAI is Analyzing & Refining..."*) di atas draf awal tanpa mengganggu alur penulisan.
+  - Memisahkan fase evaluasi temuan dari modal pop-up handoff. Jika perbaikan menghasilkan temuan persetujuan editorial (seperti `Source Fidelity` atau `Unsupported Entity Detail`), kartu keputusan akan langsung ditampilkan **di canvas tengah halaman Editor** tanpa modal pop-up yang menghalangi (*modal blocking*).
+  - Pop-up modal handoff *"Perbaikan Draf Selesai"* (`InPlaceRefineFeedbackModal`) HANYA muncul setelah seluruh temuan persetujuan pada canvas diselesaikan/disetujui oleh pengguna (status `readiness === 'ready'`), memberikan pilihan bersih antara 🚀 **"Buka Review / Publikasi"** atau ✏️ **"Tetap di Editor"**.
+  - Memperbarui pengetikan TypeScript `processStage?: EditorialProcessStage` pada `EditorCanvas`, `EditorWorkflowPanel`, dan `EditorialProgress`, serta menggunakan state terderivasi (*derived state*) `showInPlaceModal` untuk mencegah peringatan `setState` dalam `useEffect` pada React 19.
 - **Pemisahan Ruang Kerja Editorial**:
   - Mengganti komposisi permanen History + Editor + Copilot serbaguna dengan destinasi terpisah untuk document home, editor, review, dan publikasi.
   - Menjadikan `/workspace` sebagai document home bergaya Grammarly dengan pencarian judul, filter status, ringkasan aset durable, dan aksi buka sesuai tahap; link dokumen lama diteruskan ke `/editor` tanpa kehilangan parameter.

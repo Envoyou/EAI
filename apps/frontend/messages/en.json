@@ -119,7 +119,11 @@
     "openReview": "Open Review",
     "openPublication": "Open Publication",
     "finishLater": "Finish later",
-    "continueEditing": "Continue editing source"
+    "continueEditing": "Continue editing source",
+    "viewResults": "View Results",
+    "stayInEditor": "Stay in Editor",
+    "inPlaceRefineCompleteTitle": "Refinement Complete",
+    "inPlaceRefineCompleteDescription": "All feedback items have been evaluated. Choose where to proceed next."
   },
   "AppNavigation": {
     "create": "Workflow",
@@ -132,7 +136,26 @@
     "dashboard": "Dashboard",
     "settings": "Settings",
     "lightMode": "Light Mode",
-    "darkMode": "Dark Mode"
+    "darkMode": "Dark Mode",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "mainNavigation": "Main navigation",
+    "signIn": "Sign In"
+  },
+  "DashboardNavigation": {
+    "sections": "Dashboard sections",
+    "overview": "Overview",
+    "performance": "Performance",
+    "trends": "Trends",
+    "productivity": "Productivity",
+    "contentMap": "Content Map",
+    "validation": "Validation",
+    "internal": "Internal Control"
+  },
+  "ConfirmDestructiveDialog": {
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "deleting": "Deleting…"
   },
   "SavedArticlesPage": {
     "eyebrow": "Article library",
@@ -265,6 +288,10 @@
     "editPublicationMetadata": "Edit details",
     "closePublicationMetadata": "Close editor",
     "savePublicationMetadata": "Save publication details",
+    "copySeoPack": "Copy SEO Pack",
+    "copyField": "Copy",
+    "copySuccess": "SEO Pack copied to clipboard",
+    "copyFieldSuccess": "{field} copied to clipboard",
     "publicationMetadataEmptyValue": "Not provided",
     "confirmMetadataCurrent": "Keep current metadata",
     "confirmMetadataSuccess": "Current publication metadata confirmed.",

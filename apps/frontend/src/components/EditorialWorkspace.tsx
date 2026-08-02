@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -25,6 +25,7 @@ import { EditorWorkflowPanel } from '@/components/EditorWorkflowPanel';
 import { PublicationSeoPanel } from '@/components/PublicationSeoPanel';
 import { AppSidebarShell, type WorkspacePage } from '@/components/AppSidebarShell';
 import ShortcutsModal from '@/components/ShortcutsModal';
+import { InPlaceRefineFeedbackModal } from '@/components/InPlaceRefineFeedbackModal';
 import { EAILogo } from '@/components/EAILogo';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
@@ -145,7 +146,22 @@ export default function EditorialWorkspace({
   const showDemoSignupModal = demoRefineCount >= 3;
   const initialContentMapNavigationHandled = useRef(false);
   const currentPage = stage as WorkspacePage;
-  const effectiveActiveTab = isDemoMode ? activeTab : stage === 'editor' ? 'draft' : 'refined';
+  const effectiveActiveTab = (stage === 'review' || stage === 'publication') ? 'refined' : activeTab;
+  const [dismissedHandoffId, setDismissedHandoffId] = useState<string | null>(null);
+  const isCandidatePendingReview = Boolean(
+    analysis.polishedDraft?.trim() &&
+    analysis.status === 'success' &&
+    analysis.readiness !== 'ready' &&
+    !isStreaming &&
+    !isRefining
+  );
+  const showInPlaceModal = Boolean(
+    stage === 'editor' &&
+    editorHandoff &&
+    !isCandidatePendingReview &&
+    analysis.readiness === 'ready' &&
+    dismissedHandoffId !== editorHandoff.analysisLogId
+  );
 
   useEffect(() => {
     if (workspaceChecking || isDemoMode) return;
@@ -667,8 +683,8 @@ export default function EditorialWorkspace({
               leftPanelOpen={leftPanelOpen && !isDemoMode}
               rightPanelOpen={rightPanelOpen}
               reversed={false}
-              leftDefaultSize={17}
               rightDefaultSize={stage === 'review' ? 32 : stage === 'publication' ? 30 : 28}
+              leftResizable={stage === 'editor' || Boolean(initialHistoryId || activeHistoryId)}
               leftPanel={
                 !isDemoMode ? (
                   <AppSidebarShell
@@ -872,6 +888,26 @@ export default function EditorialWorkspace({
             </div>
           </div>
         )}
+
+        <InPlaceRefineFeedbackModal
+          open={showInPlaceModal}
+          onOpenChange={(open) => {
+            if (!open && editorHandoff) {
+              setDismissedHandoffId(editorHandoff.analysisLogId);
+            }
+          }}
+          destination={editorHandoff?.destination}
+          onViewResults={() => {
+            if (editorHandoff) {
+              router.push(`/${editorHandoff.destination}?history=${encodeURIComponent(editorHandoff.analysisLogId)}`);
+            } else if (analysis.analysisLogId) {
+              router.push(`/review?history=${encodeURIComponent(analysis.analysisLogId)}`);
+            }
+          }}
+          onStayInEditor={() => {
+            setActiveTab('refined');
+          }}
+        />
       </div>
     </div>
   </MotionConfig>
