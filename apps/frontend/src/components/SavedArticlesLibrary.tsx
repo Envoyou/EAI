@@ -160,6 +160,15 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
     });
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = filtered.map(f => f.item.id);
+      setSelectedIds(new Set(allIds));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
   const handleSingleDelete = async () => {
     if (!itemToDelete) return;
     try {
@@ -178,9 +187,9 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
         return iKey !== familyKey;
       }));
       setItemToDelete(null);
-      toast.success(t('deleteSuccess'));
+      toast.success(tHistory('deleteSuccess'));
     } catch {
-      toast.error(t('deleteFailed'));
+      toast.error(tHistory('deleteFailed'));
     }
   };
 
@@ -204,9 +213,9 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
       }));
       setSelectedIds(new Set());
       setBulkDeleteConfirmOpen(false);
-      toast.success(t('deleteSuccess'));
+      toast.success(tHistory('deleteSuccess'));
     } catch {
-      toast.error(t('deleteFailed'));
+      toast.error(tHistory('deleteFailed'));
     }
   };
 
@@ -225,7 +234,7 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="w-full px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-2xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--primary)]">{t(`scope.${scope}.eyebrow`)}</p>
@@ -239,15 +248,29 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
       </div>
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-sm">
-          <SearchActionIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
-          <Input
-            value={query}
-            onChange={event => setQuery(event.target.value)}
-            placeholder={t('searchPlaceholder')}
-            aria-label={t('searchLabel')}
-            className="pl-9"
-          />
+        <div className="flex w-full items-center gap-4 sm:max-w-md">
+          <div className="relative w-full">
+            <SearchActionIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+            <Input
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              placeholder={t('searchPlaceholder')}
+              aria-label={t('searchLabel')}
+              className="pl-9"
+            />
+          </div>
+          {filtered.length > 0 && (
+            <div className="flex shrink-0 items-center gap-2">
+              <Checkbox
+                id="select-all"
+                checked={selectedIds.size === filtered.length}
+                onCheckedChange={handleSelectAll}
+              />
+              <label htmlFor="select-all" className="cursor-pointer text-sm font-medium text-[var(--muted-foreground)]">
+                {tHistory('selectAll')}
+              </label>
+            </div>
+          )}
         </div>
         {scope === 'all' && <div className="flex max-w-full gap-1 overflow-x-auto" aria-label={t('filterLabel')}>
           {(['all', 'draft', 'review', 'blocked', 'ready'] as const).map(key => (
@@ -299,7 +322,7 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
                 </div>
 
                 {!isCollapsed && (
-                  <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {group.items.map(({ item, presentation }) => {
                       const details = [
                         scope === 'review'

@@ -272,6 +272,7 @@
     "savedArticles": "Article library",
     "pinned": "Pinned",
     "recent": "Recent",
+    "selectAll": "Select all",
     "openNow": "Open now",
     "created": "Created {time}",
     "workingDraftSaved": "Working draft",
