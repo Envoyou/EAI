@@ -7,6 +7,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Bulk Delete and Date Grouping in Library & History Surfaces**:
+  - Added checkboxes and bulk deletion action bars to both `SavedArticlesLibrary` and `DocumentHistoryPanel`.
+  - Added a backend `POST /api/history/bulk-delete` endpoint for safe, batched document removal.
+  - Revamped `SavedArticlesLibrary` layout to be full-width rather than grid-based.
+  - Implemented automatic date-based grouping for saved articles with collapsible separators. By default, only the most recent date group is expanded. Separators now summarize the item count and the latest edit time for their respective dates.
 - **In-Canvas Interactive Editorial Decision Cards on Editor Canvas (`/editor`)**:
   - Embedded direct action buttons (🚀 *Use Proposal*, 🛡️ *Keep Current Text*, 🔗 *Add Manual Source*, 🪄 *Suggest AI Fix*, 🗑️ *Remove Detail*) directly inside each decision card on the `/editor` center canvas.
   - Added a batch `⚡ Accept All Fixes` action banner for fast 1-click feedback approval without page navigation.

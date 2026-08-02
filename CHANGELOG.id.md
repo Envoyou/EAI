@@ -7,6 +7,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Hapus Massal (Bulk Delete) dan Pengelompokan Tanggal di Halaman Library & History**:
+  - Menambahkan *checkbox* dan bar aksi hapus massal pada komponen `SavedArticlesLibrary` dan `DocumentHistoryPanel`.
+  - Menambahkan *endpoint* backend `POST /api/history/bulk-delete` untuk penghapusan dokumen secara aman dan massal.
+  - Mengubah *layout* `SavedArticlesLibrary` menjadi rentang penuh (*full-width*) dan tidak lagi menggunakan sistem *grid*.
+  - Mengimplementasikan pengelompokan otomatis berdasarkan tanggal untuk artikel-artikel tersimpan dengan pemisah (*separator*) yang dapat dilipat (*collapsible*). Secara default, hanya kelompok tanggal terbaru yang terbuka. Setiap pemisah kini menampilkan jumlah item dan waktu edit terakhir pada kelompok hari tersebut.
 - **Kartu Keputusan Editorial Interaktif In-Canvas pada Canvas Editor (`/editor`)**:
   - Menyematkan tombol aksi langsung (🚀 *Gunakan Proposal*, 🛡️ *Pertahankan Teks*, 🔗 *Tambah Sumber Manual*, 🪄 *Usulan Perbaikan AI*, 🗑️ *Hapus Detail*) pada setiap kartu keputusan temuan langsung di canvas tengah halaman `/editor`.
   - Menambahkan banner tombol aksi batch `⚡ Terima Semua Perbaikan` untuk mempercepat persetujuan temuan editorial tanpa perlu berpindah halaman.
