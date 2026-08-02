@@ -7,9 +7,18 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Changed
+- **Pemisahan Ruang Kerja Editorial**:
+  - Mengganti komposisi permanen History + Editor + Copilot serbaguna dengan destinasi terpisah untuk document home, editor, review, dan publikasi.
+  - Menjadikan `/workspace` sebagai document home bergaya Grammarly dengan pencarian judul, filter status, ringkasan aset durable, dan aksi buka sesuai tahap; link dokumen lama diteruskan ke `/editor` tanpa kehilangan parameter.
+  - Memfokuskan editor pada penulisan dengan alat Chat, Notes, dan Deep Research yang dibuka sesuai kebutuhan; Review hanya menampilkan temuan editorial, sedangkan Publikasi menangani metadata dan ekspor serta menolak artikel yang review-nya belum selesai.
+  - Menghapus card keputusan Final Draft tambahan dan menggantinya dengan bar perintah publikasi yang ringkas; aksi dokumen dan unduhan sekunder tetap berada di menu overflow.
+  - Membuat Artikel baru selalu membuka sesi editor kosong secara eksplisit dengan membersihkan hanya state pemulihan dokumen lokal, lalu menormalkan URL kembali ke `/editor`; artikel yang sudah disimpan tetap tersedia di document library.
+  - Mengubah antrean Workspace, Review, dan Publikasi agar membaca satu snapshot terkini yang tenant-scoped untuk setiap family `sourceRef`, bukan merender setiap revisi AnalysisLog. Review kini mensyaratkan finding unresolved pada snapshot current, sedangkan Publikasi mensyaratkan snapshot current yang ready tanpa finding tersisa; warning historis tetap berada di history/audit.
+  - Mempertahankan lineage artikel pada Analyze, Refine, analisis ulang, cloud save manual, dan pemuatan History sehingga revisi berikutnya memperbarui kartu antrean yang sama alih-alih membuat family artikel baru.
 - **Tinjauan Pra-final Berbasis Keputusan**:
   - Menahan hasil Refine yang masih memiliki keputusan blocking di antrean Tinjauan Draft dan memberi label Draft Kandidat pada akses edit manual; tampilan Draft Final normal baru muncul setelah revisi tersimpan berstatus `ready`.
   - Mengganti kontrol feedback teknis dengan hasil editorial seperti Terima perubahan, Pertahankan teks, Tambah sumber manual, dan Hapus detail tanpa dukungan; penerapan keputusan tetap memicu validasi otomatis.
+  - Mengembalikan aksi `Pertahankan teks saat ini` untuk warning Source Fidelity kebutuhan sitasi yang terbatas, memiliki target terlihat, dan tidak membawa patch perubahan body; jalur tambah sumber dan usulan penghapusan tetap tersedia. Finding faktual high-risk dan kegagalan blocking tetap tidak dapat diterima.
   - Menerapkan patch Before/After yang sudah siap secara optimistis di editor sebelum persistence. Kegagalan penyimpanan memulihkan snapshot sebelumnya, konflik revisi memuat revisi tersimpan terbaru, sedangkan warning validasi mempertahankan edit yang sudah diterima.
   - Memisahkan generasi AI dari persetujuan: temuan tanpa replacement konkret kini menampilkan Buat usulan perbaikan yang hanya menghasilkan preview tanpa menyimpan; Terima perubahan baru muncul setelah patch siap dan tidak memanggil model kembali.
   - Mengarahkan temuan field publikasi hanya ke field metadata yang sesuai. Slug terlalu panjang kini mendapat kandidat maksimal enam kata secara deterministik dan lokal, dengan keputusan langsung gunakan/pertahankan/edit manual; temuan tersebut tidak pernah lagi jatuh ke penulisan ulang body artikel oleh AI.
@@ -35,7 +44,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan pemeriksaan blocking deterministik untuk heading Markdown berulang yang bersebelahan, sehingga draft yang terlihat rusak tidak dapat dilaporkan siap.
   - Mengubah Refine Draft menjadi pipeline yang bertanggung jawab sampai hasil. Rewrite awal tetap internal sementara Quality Gate body menjalankan maksimal dua putaran remediasi terbatas: edit terstruktur lengkap dan netralisasi sumber yang aman berjalan deterministik, URL research note hanya boleh dipasang ketika gate mengembalikan sumber persis dari allowlist, dan koreksi targeted non-faktual memakai Targeted Fix yang dijaga. SEO lalu dibuat dari body final dan paket publish-ready lengkap diperiksa sebelum satu hasil akhir dikirim.
   - Mengganti kontrol terpisah antara accept dan rewrite untuk keputusan editorial tersisa dengan aksi persetujuan yang langsung menerapkan koreksi serta memulai validasi otomatis. Temuan yang tidak dapat diperbaiki secara aman tetap menjadi keputusan manusia eksplisit dan tidak pernah diterima otomatis.
-  - Menambahkan bar Save/Cancel yang sticky dan menahan sementara aksi workflow, ekspor, salin, serta perpindahan tampilan selama revisi belum disimpan.
+  - Memindahkan status edit Final Draft beserta aksi Save/Cancel ke bar perintah pada header dokumen. Kanvas artikel yang dapat diedit kini hanya berisi artikel, sedangkan aksi workflow, ekspor, salin, dan perpindahan tampilan untuk draft tersimpan tetap ditahan sampai revisi disimpan atau dibatalkan.
 
 ## [3.21.0] - 2026-07-30
 

@@ -1,0 +1,18 @@
+import EditorialWorkspace from '@/components/EditorialWorkspace';
+import { SavedArticlesLibrary } from '@/components/SavedArticlesLibrary';
+import { WorkspacePageShell } from '@/components/WorkspacePageShell';
+import { getTranslations } from 'next-intl/server';
+
+type SearchParams = { history?: string | string[] };
+
+export default async function PublicationPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const params = await searchParams;
+  const history = Array.isArray(params.history) ? params.history[0] : params.history;
+  if (history) return <EditorialWorkspace mode="workspace" stage="publication" initialHistoryId={history.slice(0, 200)} />;
+  const t = await getTranslations('SavedArticlesPage.scope.publication');
+  return (
+    <WorkspacePageShell title={t('title')} description={t('description')} currentPage="publication" sidebar={null}>
+      <SavedArticlesLibrary scope="publication" />
+    </WorkspacePageShell>
+  );
+}

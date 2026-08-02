@@ -26,14 +26,23 @@ export const countAutoApplicableFeedback = (
   ? 0
   : feedback.filter(canAutoApplyFeedback).length;
 
-export const canAcceptEditorialDecision = (item: FeedbackItem) =>
-  item.status === 'warning'
-  && !isResolvedFeedback(item)
-  && !item.verificationStatus
-  && item.category !== 'Editorial Addition'
-  && !SENSITIVE_EDITORIAL_DECISION_PATTERN.test(
-    `${item.category} ${item.message} ${item.reason ?? ''}`
+export const canAcceptEditorialDecision = (item: FeedbackItem) => {
+  if (item.status !== 'warning' || isResolvedFeedback(item)) return false;
+
+  const isBoundedCitationDecision =
+    item.category === 'Source Fidelity'
+    && item.verificationStatus === 'needs_citation'
+    && Boolean(item.targetText?.trim())
+    && !item.replacementText;
+
+  return isBoundedCitationDecision || (
+    !item.verificationStatus
+    && item.category !== 'Editorial Addition'
+    && !SENSITIVE_EDITORIAL_DECISION_PATTERN.test(
+      `${item.category} ${item.message} ${item.reason ?? ''}`
+    )
   );
+};
 
 export const canRequestEAIRevision = (item: FeedbackItem) =>
   (item.status === 'warning' || item.status === 'fail')

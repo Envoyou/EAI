@@ -601,7 +601,9 @@ export function FeedbackItemCard({
                       ) : (
                         <Check className="w-3.5 h-3.5" />
                       )}
-                      {t('acceptEditorialDecision')}
+                      {item.verificationStatus
+                        ? t('keepCurrentText')
+                        : t('acceptEditorialDecision')}
                     </Button>
                   )}
 

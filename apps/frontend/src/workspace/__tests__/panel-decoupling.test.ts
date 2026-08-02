@@ -29,22 +29,23 @@ describe('Workspace Panel Decoupling Contract', () => {
     expect(facadeSource).toContain('setRightPanelOpen,');
   });
 
-  it('EditorialWorkspace maps leftPanelOpen to ThreeColumnLayout and DocumentHistoryPanel', () => {
+  it('EditorialWorkspace separates application navigation from contextual tools', () => {
     const componentSource = readFileSync(`${componentsRoot}/EditorialWorkspace.tsx`, 'utf8');
 
     // ThreeColumnLayout should receive decoupled leftPanelOpen prop
     expect(componentSource).toMatch(/leftPanelOpen=\{leftPanelOpen && !isDemoMode\}/);
-    expect(componentSource).toMatch(/rightPanelOpen=\{rightPanelOpen\}/);
+    expect(componentSource).toContain("rightPanelOpen={stage !== 'publication' && rightPanelOpen}");
 
-    // DocumentHistoryPanel toggle must use setLeftPanelOpen
-    expect(componentSource).toContain('onToggle={() => setLeftPanelOpen');
+    expect(componentSource).toContain('<AppSidebarShell');
+    expect(componentSource).not.toContain('<DocumentHistoryPanel');
+    expect(componentSource).toContain("allowedTabs={stage === 'review' ? ['feedback']");
 
     // Titlebar menu toggle must use setLeftPanelOpen
     expect(componentSource).toContain('onClick={() => setLeftPanelOpen(true)}');
 
     // Bottom-Right Floating Trigger when rightPanelOpen is false
     expect(componentSource).toContain('!rightPanelOpen &&');
-    expect(componentSource).toContain('Open EAI Chat');
+    expect(componentSource).toContain("tWorkspace('openTools')");
   });
 
   it('PanelTabBar keeps only document tabs and removes redundant toggle icons', () => {

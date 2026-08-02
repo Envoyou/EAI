@@ -18,27 +18,30 @@ describe('revision-safe publication workflow', () => {
     expect(panel).toContain('saveDraftRevision');
     expect(panel).toContain('cancelDraftEditing');
     expect(panel).toContain("t('saveInvalidatesReview')");
-    expect(panel).toContain("t('revisionImpactPolicy')");
+    expect(panel).toContain('final-draft-edit-command');
+    expect(panel.indexOf('final-draft-edit-command')).toBeLessThan(
+      panel.indexOf('document-tabs')
+    );
     expect(panel).not.toContain('final-draft-editor-textarea');
     expect(inlineEditor).toContain('useEditor({');
     expect(inlineEditor).toContain('Markdown.configure({');
     expect(inlineEditor).toContain('onChange(readMarkdown(currentEditor.storage))');
-    expect(editorStyles).toContain('.final-draft-inline-editor-toolbar');
-    expect(editorStyles).toContain('position: sticky');
+    expect(editorStyles).not.toContain('.final-draft-inline-editor-toolbar');
     expect(editorStyles).toContain('.final-draft-inline-editor');
     expect(editorStyles).toContain('caret-color: var(--primary)');
     expect(panel).toContain("t('qualityCheck')");
     expect(panel).toContain("t('regenerateSeo')");
     expect(panel).toContain('Save Publication Metadata');
-    expect(panel).toContain('Prepare current draft for export');
+    expect(panel).toContain("t('prepareForExport')");
     expect(panel).toContain("t('confirmMetadataCurrent')");
     expect(panel).toContain('onConfirmPublicationMetadata');
     expect(panel).toContain(
       'icon={PreparePublicationIcon}'
     );
-    expect(panel).toContain(
-      'labelClassName="hidden md:inline"'
-    );
+    expect(panel).toContain('publication-command-row');
+    expect(panel).toContain("t('readyToPublishTitle')");
+    expect(panel).toContain("t('finishLater')");
+    expect(panel).toContain("t('documentActions')");
   });
 
   it('retains publication readiness for backend-classified safe edits', () => {

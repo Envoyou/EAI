@@ -61,11 +61,12 @@ describe('feedback preview auto-apply contract', () => {
     expect(canAcceptEditorialDecision(structuralFinding)).toBe(true);
   });
 
-  it('does not allow factual or blocking findings to be accepted as editorial decisions', () => {
+  it('allows a bounded citation warning to be kept while blocking high-risk factual findings', () => {
     const sourceFinding: FeedbackItem = {
       category: 'Source Fidelity',
       status: 'warning',
       message: 'This factual claim needs source verification.',
+      targetText: 'ERP adoption is accelerating across the sector.',
       verificationStatus: 'needs_citation',
       operation: 'manual',
     };
@@ -81,9 +82,20 @@ describe('feedback preview auto-apply contract', () => {
       message: 'The market-size claim lacks attribution.',
       operation: 'manual',
     };
+    const highRiskClaim: FeedbackItem = {
+      ...sourceFinding,
+      verificationStatus: 'high_risk_factual_claim',
+    };
+    const preparedSourceChange: FeedbackItem = {
+      ...sourceFinding,
+      replacementText: 'A source-safe replacement.',
+      operation: 'replace',
+    };
 
     expect(canRequestEAIRevision(sourceFinding)).toBe(false);
-    expect(canAcceptEditorialDecision(sourceFinding)).toBe(false);
+    expect(canAcceptEditorialDecision(sourceFinding)).toBe(true);
+    expect(canAcceptEditorialDecision(highRiskClaim)).toBe(false);
+    expect(canAcceptEditorialDecision(preparedSourceChange)).toBe(false);
     expect(canRequestEAIRevision(blockingFinding)).toBe(true);
     expect(canAcceptEditorialDecision(blockingFinding)).toBe(false);
     expect(canAcceptEditorialDecision(unsupportedClaim)).toBe(false);

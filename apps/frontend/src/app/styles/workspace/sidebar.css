@@ -85,6 +85,24 @@
   font-weight: 600;
 }
 
+.document-history-item-button.ui-btn-ghost {
+  background: transparent;
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.document-history-item-button.ui-btn-ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.document-history-item-button.ui-btn-ghost.is-active {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface-2));
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.document-history-item-button.ui-btn-ghost.is-active:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 11%, var(--surface-2));
+}
+
 /* Sidebar Header Radial Glow */
 .sidebar-header-glow {
   position: absolute;

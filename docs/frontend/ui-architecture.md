@@ -96,6 +96,40 @@ default pattern for mostly static route shells or read-only views.
 
 ### Final Draft editing boundary
 
+Editorial work is separated by route and responsibility rather than presented
+as three permanent tool columns. `/workspace` is the document home: it lists
+durable article records, searches actual saved titles, and sends each record to
+its next valid destination. `/editor` is the writing canvas and opens Chat,
+Notes, or Deep Research only as contextual tools. `/review` is the evaluation
+queue and exposes only the Feedback decision surface beside the reviewed
+article. `/publication` contains publication metadata, downloads, and CMS
+export, and redirects unresolved content back to Review.
+
+The global application sidebar navigates these destinations; it never contains
+the full saved-document history while an article is being edited. Legacy
+`/workspace?history=...`, Content Map, title, and brief links are forwarded to
+`/editor` with their parameters intact. This retains the canonical History API
+and durable analysis record while changing only where each responsibility is
+presented. The document-home New Article action uses a one-shot `new=1` intent:
+the editor skips and clears only local document recovery keys, opens an empty
+draft, and immediately replaces the URL with `/editor`. Direct editor
+navigation without that intent continues to recover the active local draft.
+
+Publication completion uses a compact command row rather than a second status
+card. One contextual prepare/export/CMS action remains visible; document and
+download utilities remain in the categorized overflow menu. Draft refinement
+controls are not rendered in the Publication workspace.
+
+The document-home and workflow queues consume the History API's `view=current`
+projection. The backend ranks successful AnalysisLogs inside the active
+organization by durable `metadata.sourceRef` and returns only the newest log in
+each family; logs without lineage fall back to their own ID and remain separate
+articles. The frontend also collapses by the same key as a compatibility guard.
+Review cards require a current review/blocked snapshot with at least one
+unresolved finding, and Publication cards require current `ready` state with no
+unresolved finding. Past revisions and resolved findings remain durable but do
+not re-enter active queues.
+
 `FinalDraftPanel` keeps reading and persisting the final article as Markdown,
 but its edit state is rendered by a dedicated TipTap client component in the
 same Preview surface used for reading. The editor serializes every update back
@@ -144,12 +178,19 @@ fallback for saved feedback created before persistent editorial identities.
 Client code may transport these identifiers but must not mint them or treat
 them as authorization for acceptance, verification, or suppression; the
 History API restores trusted identifiers from persisted server findings.
+Bounded Source Fidelity warnings with `needs_citation`, an exact visible target,
+and no prepared body patch expose three distinct editor choices: keep the
+current text, attach a source, or generate a removal suggestion. Keeping text is
+stored as pure acceptance and never as an applied body mutation. Failures and
+`high_risk_factual_claim` findings remain outside this acceptance path.
 
-While a revision is open, Save and Cancel remain visible in a sticky local
-toolbar. Other draft views and actions that operate on the persisted article
-are held until the user saves or cancels, preventing a visible unsaved revision
-from being confused with the last durable Quality Check, SEO package, export,
-copy, or download state.
+While a revision is open, the document header command row owns the edit status
+and persistent Save/Cancel actions. The article canvas contains only the TipTap
+document and never inserts or overlays an edit-warning card among the content.
+Other draft views and actions that operate on the persisted article are held
+until the user saves or cancels, preventing a visible unsaved revision from
+being confused with the last durable Quality Check, SEO package, export, copy,
+or download state.
 
 The localized `/[locale]/dashboard/content-map` route is a bounded client view
 over the authenticated Content Memory API. It exposes collaboration-safe

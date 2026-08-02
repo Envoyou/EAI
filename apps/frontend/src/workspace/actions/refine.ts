@@ -135,6 +135,7 @@ export async function executeRefine(
   try {
     const requestMetadata: ArticleMetadata = {
       ...metadata,
+      sourceRef: analysis.sourceRef ?? metadata.sourceRef,
       strictness: editorialOptions.sourcePolicy === 'strict' ? 'strict' : 'balanced',
       outputLanguage: appSettings.outputLanguage,
       workingTitle: analysis.workingTitle || analysis.generatedMetadata?.title,

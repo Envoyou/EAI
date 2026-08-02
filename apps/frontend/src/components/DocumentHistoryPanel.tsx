@@ -4,6 +4,7 @@ import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { fetchWithTimeout } from '@/lib/fetch-utils';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { Plus, FileText, Search, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -11,6 +12,7 @@ import { toast } from 'sonner';
 import { AppSidebarShell } from '@/components/AppSidebarShell';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { ActionButton } from '@/components/ui/action-button';
 import { AdaptiveActionMenu } from '@/components/ui/adaptive-action-menu';
 import {
@@ -19,24 +21,11 @@ import {
   MoreActionsIcon,
   PinActionIcon,
 } from '@/components/ui/icons/actions';
-
-export interface HistoryItem {
-  id: string;
-  createdAt: string;
-  role: string;
-  verdict?: string;
-  summary?: string;
-  isPinned: boolean;
-  metadata?: {
-    title?: string;
-    type?: string;
-    category?: string;
-    exportStatus?: {
-      lastExportStatus?: 'success' | 'failed';
-      lastExportedAt?: string;
-    };
-  };
-}
+import {
+  getHistoryItemPresentation,
+  type HistoryItem,
+  type HistoryStage,
+} from '@/components/document-history-utils';
 
 interface DocumentHistoryPanelProps {
   onSelect: (id: string) => void;
@@ -48,22 +37,23 @@ interface DocumentHistoryPanelProps {
   sidebarOpen?: boolean;
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, locale: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
   const h = Math.floor(m / 60);
   const d = Math.floor(h / 24);
-  if (d > 0) return `${d}d ago`;
-  if (h > 0) return `${h}h ago`;
-  if (m > 0) return `${m}m ago`;
-  return 'just now';
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  if (d > 0) return formatter.format(-d, 'day');
+  if (h > 0) return formatter.format(-h, 'hour');
+  if (m > 0) return formatter.format(-m, 'minute');
+  return formatter.format(0, 'minute');
 }
 
 const FILTERS = [
-  { key: 'All', label: 'All' },
-  { key: 'ready', label: 'Ready' },
-  { key: 'needs_review', label: 'Review' },
-  { key: 'blocked', label: 'Blocked' },
+  { key: 'All' },
+  { key: 'ready' },
+  { key: 'needs_review' },
+  { key: 'blocked' },
 ] as const;
 
 const PAGE_SIZE = 20;
@@ -83,6 +73,8 @@ export default function DocumentHistoryPanel({
   isDemoMode = false,
   sidebarOpen = true,
 }: DocumentHistoryPanelProps) {
+  const t = useTranslations('DocumentHistory');
+  const locale = useLocale();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -134,10 +126,10 @@ export default function DocumentHistoryPanel({
         else setHistory(sortHistoryItems(data));
         setNextCursor(newNextCursor);
       } else {
-        setError('Failed to fetch history');
+        setError(t('fetchFailed'));
       }
     } catch {
-      setError('Failed to load history');
+      setError(t('loadFailed'));
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -162,13 +154,13 @@ export default function DocumentHistoryPanel({
       const res = await fetchWithTimeout(`/api/history/${itemToDelete}`, { method: 'DELETE' });
       if (res.ok) {
         setHistory(prev => prev.filter(item => item.id !== itemToDelete));
-        toast.success('Draft deleted from history.');
+        toast.success(t('deleteSuccess'));
         if (activeId === itemToDelete) onNew();
       } else {
-        toast.error('Failed to delete draft.');
+        toast.error(t('deleteFailed'));
       }
     } catch {
-      toast.error('A network error occurred.');
+      toast.error(t('networkError'));
     } finally {
       setIsDeleting(false);
       setItemToDelete(null);
@@ -203,11 +195,11 @@ export default function DocumentHistoryPanel({
         body: JSON.stringify({ title: editTitleValue.trim() })
       });
       if (!res.ok) {
-        toast.error('Failed to update title');
+        toast.error(t('renameFailed'));
         fetchHistory();
       }
     } catch {
-      toast.error('Network error while updating title');
+      toast.error(t('renameNetworkError'));
       fetchHistory();
     }
   };
@@ -228,14 +220,14 @@ export default function DocumentHistoryPanel({
       });
 
       if (!res.ok) throw new Error('Failed to update pin state');
-      toast.success(nextPinned ? 'Draft pinned.' : 'Draft unpinned.');
+      toast.success(nextPinned ? t('pinSuccess') : t('unpinSuccess'));
     } catch {
       setHistory(prev => sortHistoryItems(prev.map(historyItem =>
         historyItem.id === item.id
           ? { ...historyItem, isPinned: item.isPinned }
           : historyItem
       )));
-      toast.error('Failed to update draft pin.');
+      toast.error(t('pinFailed'));
     }
   };
 
@@ -262,22 +254,150 @@ export default function DocumentHistoryPanel({
     closeAfterMobileSelection();
   };
 
-  const renderItemStatus = (item: HistoryItem) => {
-    const verdict = item.verdict;
-    if (!verdict) return null;
-    const colors: Record<string, string> = {
-      ready: 'bg-emerald-500/10 text-emerald-600',
-      needs_review: 'bg-amber-500/10 text-amber-600',
-      blocked: 'bg-red-500/10 text-red-600',
-      approve: 'bg-emerald-500/10 text-emerald-600',
-      revise: 'bg-amber-500/10 text-amber-600',
-      reject: 'bg-red-500/10 text-red-600',
+  const renderItemStatus = (stage: HistoryStage) => {
+    const variants: Record<HistoryStage, BadgeVariant> = {
+      ready: 'success',
+      review: 'warning',
+      blocked: 'danger',
+      draft: 'muted',
     };
-    const label = verdict === 'needs_review' ? 'Review' : verdict.charAt(0).toUpperCase() + verdict.slice(1);
     return (
-      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${colors[verdict] || 'bg-slate-500/10 text-slate-500'}`}>
-        {label}
-      </span>
+      <Badge variant={variants[stage]} size="xs">
+        {t(`stage.${stage}`)}
+      </Badge>
+    );
+  };
+
+  const renderHistoryItem = (item: HistoryItem) => {
+    const isActive = activeId === item.id;
+    const presentation = getHistoryItemPresentation(item, t('untitledArticle'));
+    const savedDetails = [
+      presentation.hasFinalDraft ? t('finalDraftSaved') : t('workingDraftSaved'),
+      presentation.wordCount > 0
+        ? t('wordCount', { count: presentation.wordCount })
+        : null,
+      presentation.hasPublicationMetadata ? t('seoSaved') : null,
+      presentation.noteCount > 0
+        ? t('notesSaved', { count: presentation.noteCount })
+        : null,
+      presentation.attachmentCount > 0
+        ? t('attachmentsSaved', { count: presentation.attachmentCount })
+        : null,
+      presentation.wasExported ? t('exported') : null,
+    ].filter((detail): detail is string => Boolean(detail));
+
+    return (
+      <div key={item.id} className="document-history-item relative group">
+        <Button
+          type="button"
+          onClick={() => handleHistoryItemSelect(item.id)}
+          variant="ghost"
+          className={`document-history-item-button w-full text-left justify-start px-3 py-2.5 h-auto rounded-lg border-none ${
+            isActive ? 'is-active' : ''
+          }`}
+        >
+          <div className="min-w-0 flex-1 pr-7">
+            {editingId === item.id ? (
+              <Input
+                type="text"
+                name={`draft-title-${item.id}`}
+                autoComplete="off"
+                value={editTitleValue}
+                onChange={event => setEditTitleValue(event.target.value)}
+                onBlur={() => handleTitleEdit(item.id)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleTitleEdit(item.id);
+                  if (e.key === 'Escape') setEditingId(null);
+                }}
+                onClick={event => event.stopPropagation()}
+                autoFocus
+                className="h-auto min-w-0 border-none bg-transparent px-1 py-0 text-[13px] font-medium shadow-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:bg-transparent"
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                {item.isPinned && (
+                  <PinActionIcon className="h-3 w-3 shrink-0 fill-current text-[var(--primary)]" />
+                )}
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <span
+                        className={`min-w-0 flex-1 truncate text-[13px] leading-tight text-[var(--foreground)] ${
+                          isActive ? 'font-semibold' : 'font-medium'
+                        }`}
+                        onDoubleClick={event => {
+                          event.stopPropagation();
+                          setEditingId(item.id);
+                          setEditTitleValue(presentation.title);
+                        }}
+                      >
+                        {presentation.title}
+                      </span>
+                    }
+                  />
+                  <TooltipContent>{t('renameHint')}</TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+
+            <div className="mt-1 flex items-center gap-1.5">
+              {renderItemStatus(presentation.stage)}
+              <span className="truncate text-[10px] text-[var(--muted-foreground)]">
+                {isActive ? t('openNow') : t('created', { time: timeAgo(item.createdAt, locale) })}
+              </span>
+            </div>
+            <p className="mt-1.5 line-clamp-2 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+              {savedDetails.join(' · ')}
+            </p>
+          </div>
+        </Button>
+
+        <div
+          className="absolute right-2 top-2 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+          onClick={event => event.stopPropagation()}
+        >
+          <AdaptiveActionMenu
+            title={t('actionsFor', { title: presentation.title })}
+            trigger={
+              <ActionButton
+                type="button"
+                variant="muted"
+                size="icon-xs"
+                aria-label={t('actionsFor', { title: presentation.title })}
+                icon={MoreActionsIcon}
+                label={t('actionsFor', { title: presentation.title })}
+                labelClassName="sr-only"
+              />
+            }
+            items={[
+              {
+                key: 'pin',
+                label: item.isPinned ? t('unpin') : t('pin'),
+                icon: PinActionIcon,
+                onSelect: () => handleTogglePin(item),
+              },
+              {
+                key: 'rename',
+                label: t('rename'),
+                icon: EditActionIcon,
+                onSelect: () => {
+                  setEditingId(item.id);
+                  setEditTitleValue(presentation.title);
+                },
+              },
+              {
+                key: 'delete',
+                label: t('delete'),
+                icon: DeleteActionIcon,
+                danger: true,
+                separatorBefore: true,
+                onSelect: () => handleDelete(item.id),
+              },
+            ]}
+            contentClassName="w-40"
+          />
+        </div>
+      </div>
     );
   };
 
@@ -301,10 +421,10 @@ export default function DocumentHistoryPanel({
           >
             <div>
               <h3 className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>
-                Delete this draft?
+                  {t('deleteTitle')}
               </h3>
               <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
-                This action cannot be undone.
+                  {t('deleteDescription')}
               </p>
             </div>
             <div className="flex gap-2">
@@ -315,7 +435,7 @@ export default function DocumentHistoryPanel({
                 size="sm"
                 className="flex-1"
               >
-                Cancel
+                 {t('cancel')}
               </Button>
               <Button
                 onClick={confirmDelete}
@@ -324,12 +444,19 @@ export default function DocumentHistoryPanel({
                 size="sm"
                 className="flex-1"
               >
-                {isDeleting ? 'Deleting…' : 'Delete'}
+                 {isDeleting ? t('deleting') : t('delete')}
               </Button>
             </div>
           </div>
         </div>
       )}
+
+      <div className="px-1 pt-1">
+        <p className="text-xs font-semibold text-[var(--foreground)]">{t('title')}</p>
+        <p className="mt-1 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+          {t('description')}
+        </p>
+      </div>
 
       {/* New Article Button */}
       <div className="pt-1">
@@ -344,7 +471,7 @@ export default function DocumentHistoryPanel({
           className="w-full justify-center gap-1.5 text-xs font-medium bg-[var(--primary)]/5 border border-[var(--primary)]/15 text-[var(--primary)] hover:bg-[var(--primary)]/10"
         >
           <Plus className="w-3.5 h-3.5" />
-          New Article
+          {t('newArticle')}
         </Button>
       </div>
 
@@ -358,8 +485,8 @@ export default function DocumentHistoryPanel({
             type="text"
             name="draft-search"
             autoComplete="off"
-            aria-label="Search drafts"
-            placeholder="Search drafts…"
+             aria-label={t('searchLabel')}
+            placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="!pl-8 !pr-8 text-xs"
@@ -390,7 +517,7 @@ export default function DocumentHistoryPanel({
               activeFilter === f.key ? ' active' : ''
             }`}
           >
-            {f.label}
+            {t(`filter.${f.key}`)}
           </Button>
         ))}
       </div>
@@ -411,8 +538,8 @@ export default function DocumentHistoryPanel({
         ) : isDemoMode ? (
           <div className="flex flex-col items-center justify-center py-10 text-center px-4">
             <FileText className="w-8 h-8 mx-auto text-[var(--primary)]/30 mb-3" />
-            <p className="text-xs font-medium text-[var(--foreground)] mb-1">History Locked</p>
-            <p className="text-xs text-[var(--muted-foreground)]">Sign up to save and browse your article history.</p>
+             <p className="text-xs font-medium text-[var(--foreground)] mb-1">{t('historyLocked')}</p>
+             <p className="text-xs text-[var(--muted-foreground)]">{t('historyLockedDescription')}</p>
           </div>
         ) : (
           <div className="space-y-1">
@@ -427,8 +554,8 @@ export default function DocumentHistoryPanel({
                 <div className="flex items-center gap-2 w-full">
                   <FileText className="w-3.5 h-3.5 text-[var(--primary)] shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-medium text-[var(--primary)] truncate">Unsaved Draft</div>
-                    <div className="text-[10px] text-[var(--muted-foreground)] mt-0.5">Click to continue editing</div>
+                     <div className="text-[13px] font-medium text-[var(--primary)] truncate">{t('unsavedDraft')}</div>
+                     <div className="text-[10px] text-[var(--muted-foreground)] mt-0.5">{t('continueEditing')}</div>
                   </div>
                 </div>
               </Button>
@@ -438,134 +565,37 @@ export default function DocumentHistoryPanel({
             {history.length === 0 && !hasUnsavedDraft ? (
               <div className="flex flex-col items-center justify-center py-10 text-center px-4">
                 <FileText className="w-7 h-7 mx-auto text-[var(--muted-foreground)]/30 mb-2" />
-                <p className="text-xs text-[var(--muted-foreground)]">No documents found</p>
+                 <p className="text-xs text-[var(--muted-foreground)]">{t('empty')}</p>
               </div>
             ) : (
               <>
                 {history.length > 0 && (
                   <p className="px-2 pt-1 text-[11px] font-medium text-[var(--muted-foreground)]">
-                    Draft History
+                    {t('savedArticles')}
                   </p>
                 )}
-                <div className="space-y-0.5">
-                  {history.map(item => {
-                    const isActive = activeId === item.id;
-                    const displayTitle = item.metadata?.title || (item.metadata?.type || item.metadata?.category ? `${item.metadata?.type || 'Draft'} · ${item.metadata?.category || 'General'}` : null) || item.summary || 'Draft · General';
-
-                    return (
-                      <div key={item.id} className="relative group">
-                        <Button
-                          type="button"
-                          onClick={() => handleHistoryItemSelect(item.id)}
-                          variant="ghost"
-                          className={`w-full text-left justify-start px-3 py-2 h-auto rounded-md transition-colors border-none ${
-                            isActive
-                              ? 'bg-[var(--primary)]/10'
-                              : 'hover:bg-[var(--surface-2)]'
-                          }`}
-                        >
-                          <div className="flex items-start gap-2 w-full">
-                            <div className="flex-1 min-w-0">
-                              {editingId === item.id ? (
-                                <Input
-                                  type="text"
-                                  name={`draft-title-${item.id}`}
-                                  autoComplete="off"
-                                  value={editTitleValue}
-                                  onChange={e => setEditTitleValue(e.target.value)}
-                                  onBlur={() => handleTitleEdit(item.id)}
-                                  onKeyDown={e => {
-                                    if (e.key === 'Enter') handleTitleEdit(item.id);
-                                    if (e.key === 'Escape') setEditingId(null);
-                                  }}
-                                  onClick={e => e.stopPropagation()}
-                                  autoFocus
-                                  className="h-auto min-w-0 border-none bg-transparent px-1 py-0 text-[13px] font-medium shadow-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:bg-transparent"
-                                />
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  {item.isPinned && (
-                                    <PinActionIcon className="h-3 w-3 shrink-0 fill-current text-[var(--primary)]" />
-                                  )}
-                                  <Tooltip>
-                                    <TooltipTrigger
-                                      render={
-                                        <span
-                                          className={`text-[13px] leading-tight truncate flex-1 min-w-0 cursor-default ${
-                                            isActive ? 'font-semibold text-[var(--foreground)]' : 'font-medium text-[var(--foreground)]'
-                                          }`}
-                                          onDoubleClick={(e) => {
-                                            e.stopPropagation();
-                                            setEditingId(item.id);
-                                            setEditTitleValue(displayTitle);
-                                          }}
-                                        >
-                                          {displayTitle}
-                                        </span>
-                                      }
-                                    />
-                                    <TooltipContent>Double-click to edit title</TooltipContent>
-                                  </Tooltip>
-                                </div>
-                              )}
-                              <div className="flex items-center gap-2 mt-1">
-                                {renderItemStatus(item)}
-                                <span className="text-[10px] text-[var(--muted-foreground)]">
-                                  {timeAgo(item.createdAt)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </Button>
-
-                        <div
-                          className="absolute right-2 top-2 opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <AdaptiveActionMenu
-                            title={`Actions for ${displayTitle}`}
-                            trigger={
-                              <ActionButton
-                                type="button"
-                                variant="muted"
-                                size="icon-xs"
-                                aria-label={`Actions for ${displayTitle}`}
-                                icon={MoreActionsIcon}
-                                label={`Actions for ${displayTitle}`}
-                                labelClassName="sr-only"
-                              />
-                            }
-                            items={[
-                              {
-                                key: 'pin',
-                                label: item.isPinned ? 'Unpin' : 'Pin',
-                                icon: PinActionIcon,
-                                onSelect: () => handleTogglePin(item),
-                              },
-                              {
-                                key: 'rename',
-                                label: 'Rename',
-                                icon: EditActionIcon,
-                                onSelect: () => {
-                                  setEditingId(item.id);
-                                  setEditTitleValue(displayTitle);
-                                },
-                              },
-                              {
-                                key: 'delete',
-                                label: 'Delete',
-                                icon: DeleteActionIcon,
-                                danger: true,
-                                separatorBefore: true,
-                                onSelect: () => handleDelete(item.id),
-                              },
-                            ]}
-                            contentClassName="w-40"
-                          />
-                        </div>
+                <div className="space-y-3">
+                  {[
+                    {
+                      key: 'pinned',
+                      label: t('pinned'),
+                      items: history.filter(item => item.isPinned),
+                    },
+                    {
+                      key: 'recent',
+                      label: t('recent'),
+                      items: history.filter(item => !item.isPinned),
+                    },
+                  ].filter(group => group.items.length > 0).map(group => (
+                    <section key={group.key} aria-label={group.label}>
+                      <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">
+                        {group.label}
+                      </p>
+                      <div className="space-y-1">
+                        {group.items.map(renderHistoryItem)}
                       </div>
-                    );
-                  })}
+                    </section>
+                  ))}
                 </div>
               </>
             )}
@@ -581,7 +611,7 @@ export default function DocumentHistoryPanel({
                   className="w-full rounded-full"
                 >
                   {loadingMore && <EAILoaderStatusIcon className="w-3 h-3" />}
-                  {loadingMore ? 'Loading…' : 'Load More'}
+                   {loadingMore ? t('loading') : t('loadMore')}
                 </Button>
               </div>
             )}

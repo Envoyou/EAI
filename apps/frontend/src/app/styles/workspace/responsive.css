@@ -353,12 +353,6 @@
     gap: 8px;
   }
 
-  .final-draft-actions .ui-btn {
-    width: 36px;
-    height: 36px;
-    padding: 0;
-  }
-
   .final-draft-actions .relative {
     flex: 0 0 auto;
   }

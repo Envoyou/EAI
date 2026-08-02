@@ -111,7 +111,13 @@ class EditorialResolutionPersistenceError extends Error {
   }
 }
 
-export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) {
+export function useEditorialWorkspace({
+  mode,
+  startNewDraft = false,
+}: {
+  mode: 'demo' | 'workspace';
+  startNewDraft?: boolean;
+}) {
   const router = useRouter();
   const tFeedbackWorkflow = useTranslations('FeedbackWorkflow');
   const tContentMemory = useTranslations('ContentMemory');
@@ -119,7 +125,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
   const directFetch = useDirectFetch();
 
   // 1. Storage State Management
-  const storage = useWorkspaceStorage({ mode });
+  const storage = useWorkspaceStorage({ mode, startNewDraft });
   const {
     workspaceChecking,
     setWorkspaceChecking,
@@ -301,6 +307,10 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
       const result = await response.json();
       if (result.id) {
         setActiveHistoryId(result.id);
+        setMetadata(current => ({
+          ...current,
+          sourceRef: current.sourceRef ?? result.id,
+        }));
         if (typeof window !== 'undefined') {
           localStorage.setItem('eai-active-history-id', result.id);
         }
@@ -1501,7 +1511,9 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
         setActiveHistoryId(log.id);
         setDraft(log.content || '');
         setSourceDraft(log.content || '');
-        setMetadata(extractArticleMetadata(log.metadata));
+        const loadedMetadata = extractArticleMetadata(log.metadata);
+        const loadedSourceRef = loadedMetadata.sourceRef ?? log.id;
+        setMetadata({ ...loadedMetadata, sourceRef: loadedSourceRef });
 
         const logMetadata = log.metadata as Record<string, unknown> | null;
         const loadedNotes = (logMetadata?.researchNotes || []) as ResearchNote[];
@@ -1532,7 +1544,7 @@ export function useEditorialWorkspace({ mode }: { mode: 'demo' | 'workspace' }) 
           errorMessage: log.errorMessage,
           responseMode: log.responseMode || extractResponseMode(log.metadata),
           analysisLogId: log.id,
-          sourceRef: (log.metadata as Record<string, unknown>)?.sourceRef as string | undefined,
+          sourceRef: loadedSourceRef,
           exportStatus: (log.metadata as Record<string, unknown>)?.exportStatus as ArticleMetadata['exportStatus'],
           generatedMetadata: extractGeneratedMetadata(log.metadata) as Record<string, unknown>,
           workingTitle: publicationState.workingTitle,

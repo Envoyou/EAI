@@ -6,4 +6,5 @@ export {
   Eye as PreviewViewIcon,
   SplitSquareHorizontal as RevisionComparisonIcon,
   FileText as WordDocumentIcon,
+  BookOpen as WorkspaceLibraryIcon,
 } from 'lucide-react';

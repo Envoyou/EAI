@@ -1,4 +1,7 @@
-import EditorialWorkspace from '@/components/EditorialWorkspace';
+import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
+import { SavedArticlesLibrary } from '@/components/SavedArticlesLibrary';
+import { WorkspacePageShell } from '@/components/WorkspacePageShell';
 
 type WorkspaceSearchParams = {
   history?: string | string[];
@@ -6,21 +9,26 @@ type WorkspaceSearchParams = {
   brief?: string | string[];
 };
 
-const firstValue = (value: string | string[] | undefined) =>
-  Array.isArray(value) ? value[0] : value;
-
-export default async function WorkspacePage({
-  searchParams,
-}: {
-  searchParams: Promise<WorkspaceSearchParams>;
-}) {
+export default async function WorkspaceHomePage({ searchParams }: { searchParams: Promise<WorkspaceSearchParams> }) {
   const params = await searchParams;
+  if (params.history || params.title || params.brief) {
+    const forwarded = new URLSearchParams();
+    for (const key of ['history', 'title', 'brief'] as const) {
+      const value = Array.isArray(params[key]) ? params[key][0] : params[key];
+      if (value) forwarded.set(key, value);
+    }
+    redirect(`/editor?${forwarded.toString()}`);
+  }
+
+  const t = await getTranslations('SavedArticlesPage.scope.all');
   return (
-    <EditorialWorkspace
-      mode="workspace"
-      initialHistoryId={firstValue(params.history)?.slice(0, 200)}
-      initialTitle={firstValue(params.title)?.slice(0, 500)}
-      initialBrief={firstValue(params.brief)?.slice(0, 2_000)}
-    />
+    <WorkspacePageShell
+      title={t('title')}
+      description={t('description')}
+      currentPage="workspace"
+      sidebar={null}
+    >
+      <SavedArticlesLibrary />
+    </WorkspacePageShell>
   );
 }

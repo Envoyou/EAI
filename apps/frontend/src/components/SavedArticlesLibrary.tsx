@@ -1,0 +1,214 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { fetchWithTimeout } from '@/lib/fetch-utils';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
+import { AddDocumentActionIcon, SearchActionIcon } from '@/components/ui/icons/actions';
+import { WorkspaceLibraryIcon } from '@/components/ui/icons/content';
+import { ForwardNavigationIcon } from '@/components/ui/icons/navigation';
+import {
+  getCurrentArticleHistoryItems,
+  getHistoryItemPresentation,
+  type HistoryItem,
+  type HistoryStage,
+} from '@/components/document-history-utils';
+
+type LibraryFilter = 'all' | HistoryStage;
+
+const stageBadge: Record<HistoryStage, BadgeVariant> = {
+  draft: 'muted',
+  review: 'warning',
+  blocked: 'danger',
+  ready: 'success',
+};
+
+const destinationFor = (stage: HistoryStage, id: string) => {
+  const query = `?history=${encodeURIComponent(id)}`;
+  if (stage === 'ready') return `/publication${query}`;
+  if (stage === 'review' || stage === 'blocked') return `/review${query}`;
+  return `/editor${query}`;
+};
+
+export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'review' | 'publication' }) {
+  const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations('SavedArticlesPage');
+  const tHistory = useTranslations('DocumentHistory');
+  const [items, setItems] = useState<HistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<LibraryFilter>('all');
+
+  useEffect(() => {
+    let active = true;
+    fetchWithTimeout('/api/history?limit=100&view=current')
+      .then(async response => {
+        if (!response.ok) throw new Error('history');
+        const result = await response.json();
+        if (active) setItems(Array.isArray(result) ? result : result.data ?? []);
+      })
+      .catch(() => {
+        if (active) setError(true);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const presentations = useMemo(() => getCurrentArticleHistoryItems(items).map(item => ({
+    item,
+    presentation: getHistoryItemPresentation(item, tHistory('untitledArticle')),
+  })), [items, tHistory]);
+
+  const filtered = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase(locale);
+    return presentations.filter(({ presentation }) => {
+      if (
+        scope === 'review'
+        && (
+          (presentation.stage !== 'review' && presentation.stage !== 'blocked')
+          || (
+            presentation.hasFindingSnapshot
+            && presentation.unresolvedFindingCount === 0
+          )
+        )
+      ) return false;
+      if (
+        scope === 'publication'
+        && (
+          presentation.stage !== 'ready'
+          || (
+            presentation.hasFindingSnapshot
+            && presentation.unresolvedFindingCount > 0
+          )
+        )
+      ) return false;
+      if (filter !== 'all' && presentation.stage !== filter) return false;
+      return !normalizedQuery
+        || presentation.title.toLocaleLowerCase(locale).includes(normalizedQuery);
+    });
+  }, [filter, locale, presentations, query, scope]);
+
+  const counts = useMemo(() => ({
+    all: presentations.length,
+    draft: presentations.filter(entry => entry.presentation.stage === 'draft').length,
+    review: presentations.filter(entry => entry.presentation.stage === 'review').length,
+    blocked: presentations.filter(entry => entry.presentation.stage === 'blocked').length,
+    ready: presentations.filter(entry => entry.presentation.stage === 'ready').length,
+  }), [presentations]);
+
+  if (loading) {
+    return <div className="flex min-h-[320px] items-center justify-center"><EAILoaderStatusIcon className="h-6 w-6" /></div>;
+  }
+
+  if (error) {
+    return (
+      <div className="ui-state-card mx-auto max-w-xl p-8 text-center">
+        <WorkspaceLibraryIcon className="mx-auto h-7 w-7 text-[var(--muted-foreground)]" />
+        <h2 className="mt-3 text-sm font-semibold">{t('loadErrorTitle')}</h2>
+        <p className="mt-1 text-xs text-[var(--muted-foreground)]">{t('loadErrorDescription')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--primary)]">{t(`scope.${scope}.eyebrow`)}</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[var(--foreground)]">{t(`scope.${scope}.title`)}</h1>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--muted-foreground)]">{t(`scope.${scope}.description`)}</p>
+        </div>
+        {scope === 'all' && <Button type="button" variant="primary" size="sm" onClick={() => router.push('/editor?new=1')}>
+          <AddDocumentActionIcon className="h-4 w-4" />
+          {t('newArticle')}
+        </Button>}
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-sm">
+          <SearchActionIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+          <Input
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+            placeholder={t('searchPlaceholder')}
+            aria-label={t('searchLabel')}
+            className="pl-9"
+          />
+        </div>
+        {scope === 'all' && <div className="flex max-w-full gap-1 overflow-x-auto" aria-label={t('filterLabel')}>
+          {(['all', 'draft', 'review', 'blocked', 'ready'] as const).map(key => (
+            <Button
+              key={key}
+              type="button"
+              variant={filter === key ? 'surface' : 'muted'}
+              size="xs"
+              onClick={() => setFilter(key)}
+              aria-pressed={filter === key}
+              className="shrink-0"
+            >
+              {t(`filter.${key}`)}
+              <span className="font-mono text-[10px] text-[var(--muted-foreground)]">{counts[key]}</span>
+            </Button>
+          ))}
+        </div>}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="mt-8 rounded-xl border border-dashed border-[var(--border)] px-6 py-16 text-center">
+          <WorkspaceLibraryIcon className="mx-auto h-8 w-8 text-[var(--muted-foreground)]" />
+          <h2 className="mt-3 text-sm font-semibold">{t(`scope.${scope}.emptyTitle`)}</h2>
+          <p className="mt-1 text-xs text-[var(--muted-foreground)]">{t(`scope.${scope}.emptyDescription`)}</p>
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {filtered.map(({ item, presentation }) => {
+            const details = [
+              scope === 'review'
+                ? t('decisionsRemaining', { count: presentation.unresolvedFindingCount })
+                : null,
+              presentation.hasFinalDraft ? tHistory('finalDraftSaved') : tHistory('workingDraftSaved'),
+              presentation.wordCount > 0 ? tHistory('wordCount', { count: presentation.wordCount }) : null,
+              presentation.hasPublicationMetadata ? tHistory('seoSaved') : null,
+              presentation.noteCount > 0 ? tHistory('notesSaved', { count: presentation.noteCount }) : null,
+              presentation.wasExported ? tHistory('exported') : null,
+            ].filter((detail): detail is string => Boolean(detail));
+            return (
+              <article key={item.id} className="flex min-h-44 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <Badge variant={stageBadge[presentation.stage]} size="xs">{t(`stage.${presentation.stage}`)}</Badge>
+                  <span className="text-[10px] text-[var(--muted-foreground)]">
+                    {new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(item.createdAt))}
+                  </span>
+                </div>
+                <h2 className="mt-3 line-clamp-2 text-sm font-semibold leading-snug text-[var(--foreground)]">{presentation.title}</h2>
+                <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-[var(--muted-foreground)]">{details.join(' · ')}</p>
+                <div className="mt-auto pt-4">
+                  <Button
+                    type="button"
+                    variant="muted"
+                    size="sm"
+                    className="w-full justify-between"
+                    onClick={() => router.push(destinationFor(presentation.stage, item.id))}
+                  >
+                    {t(`open.${presentation.stage}`)}
+                    <ForwardNavigationIcon className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

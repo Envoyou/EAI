@@ -203,6 +203,7 @@ apps/backend/
 - **Prisma**: Always call `prisma.$disconnect()` in graceful shutdown. Use `$transaction([])` for multi-step writes.
 - **Shared types**: Import domain types and Zod schemas from `@eai/shared`. Import server-only utilities (encryption, admin guards) from `@eai/shared/server`.
 - **Publication finding persistence**: Keep the general `update_publication_package` readiness guard intact. Applying a prepared or manually edited publication-field finding must use `apply_publication_metadata_finding`, validate against the server-stored finding and current draft revision, and persist the metadata value plus finding resolution in one serializable transaction.
+- **Current article history projection**: `GET /api/history?view=current` must return only the newest successful AnalysisLog per tenant-scoped `metadata.sourceRef`, falling back to the log ID only when lineage is absent. Rank within the organization boundary before filtering current verdicts, and include current feedback so active queues can require unresolved decisions. Do not delete or rewrite older logs; they remain revision and audit history.
 
 ## 4. Database & ORM Conventions (Prisma & Neon)
 

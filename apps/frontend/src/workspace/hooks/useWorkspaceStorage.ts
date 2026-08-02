@@ -14,7 +14,21 @@ import {
 } from '@/lib/preferences';
 import type { PanelTab } from '@/components/PanelTabBar';
 
-export function useWorkspaceStorage({ mode }: { mode: 'demo' | 'workspace' }) {
+const DOCUMENT_RECOVERY_KEYS = [
+  'eai-draft',
+  'eai-metadata',
+  'eai-analysis',
+  'eai-active-history-id',
+  'eai-source-draft',
+] as const;
+
+export function useWorkspaceStorage({
+  mode,
+  startNewDraft = false,
+}: {
+  mode: 'demo' | 'workspace';
+  startNewDraft?: boolean;
+}) {
   const [workspaceChecking, setWorkspaceChecking] = useState(true);
   const [editorialOptions, setEditorialOptions] = useState<EditorialOptions>({
     brandName: 'Envoyou',
@@ -56,6 +70,7 @@ export function useWorkspaceStorage({ mode }: { mode: 'demo' | 'workspace' }) {
   const [layoutReversed, setLayoutReversed] = useState(false);
 
   const [researchNotes, setResearchNotes] = useState<ResearchNote[]>(() => {
+    if (startNewDraft) return [];
     if (typeof window === 'undefined') return [];
     try {
       return JSON.parse(sessionStorage.getItem('eai_research_notes') || '[]');
@@ -65,6 +80,7 @@ export function useWorkspaceStorage({ mode }: { mode: 'demo' | 'workspace' }) {
   });
 
   const [hasNotes, setHasNotes] = useState(() => {
+    if (startNewDraft) return false;
     if (typeof window === 'undefined') return false;
     try {
       const notes = JSON.parse(sessionStorage.getItem('eai_research_notes') || '[]');
@@ -90,11 +106,11 @@ export function useWorkspaceStorage({ mode }: { mode: 'demo' | 'workspace' }) {
           nextSettings = DEFAULT_APP_SETTINGS;
         }
       }
-      const savedDraft = localStorage.getItem('eai-draft');
-      const savedMeta = localStorage.getItem('eai-metadata');
-      const savedAnalysis = localStorage.getItem('eai-analysis');
-      const savedHistoryId = localStorage.getItem('eai-active-history-id');
-      const savedSourceDraft = localStorage.getItem('eai-source-draft');
+      const savedDraft = startNewDraft ? null : localStorage.getItem('eai-draft');
+      const savedMeta = startNewDraft ? null : localStorage.getItem('eai-metadata');
+      const savedAnalysis = startNewDraft ? null : localStorage.getItem('eai-analysis');
+      const savedHistoryId = startNewDraft ? null : localStorage.getItem('eai-active-history-id');
+      const savedSourceDraft = startNewDraft ? null : localStorage.getItem('eai-source-draft');
       const savedActiveTab = localStorage.getItem('eai-active-tab');
       const savedShowLeftSidebar = localStorage.getItem('eai-show-left-sidebar');
       const savedShowSidebar = localStorage.getItem('eai-show-feedback-sidebar');
@@ -102,6 +118,11 @@ export function useWorkspaceStorage({ mode }: { mode: 'demo' | 'workspace' }) {
       const savedDemoCount = localStorage.getItem('eai-demo-refine-count');
 
       setAppSettings(nextSettings);
+      if (startNewDraft) {
+        DOCUMENT_RECOVERY_KEYS.forEach(key => localStorage.removeItem(key));
+        sessionStorage.removeItem('eai_research_notes');
+        setMetadata(applyDefaultMetadata(nextSettings.defaultMetadata));
+      }
       if (savedDraft !== null) setDraft(savedDraft);
       if (savedMeta !== null) {
         try { setMetadata(JSON.parse(savedMeta)); } catch { }
@@ -113,7 +134,8 @@ export function useWorkspaceStorage({ mode }: { mode: 'demo' | 'workspace' }) {
       }
       if (savedHistoryId !== null) setActiveHistoryId(savedHistoryId || null);
       if (savedSourceDraft !== null) setSourceDraft(savedSourceDraft);
-      if (savedActiveTab !== null) setActiveTab(savedActiveTab as PanelTab);
+      if (startNewDraft) setActiveTab('draft');
+      else if (savedActiveTab !== null) setActiveTab(savedActiveTab as PanelTab);
       if (savedShowLeftSidebar !== null) {
         setLeftPanelOpen(savedShowLeftSidebar === 'true');
       } else if (window.innerWidth <= 1024) {
@@ -133,7 +155,7 @@ export function useWorkspaceStorage({ mode }: { mode: 'demo' | 'workspace' }) {
 
       setIsLoaded(true);
     }
-  }, []);
+  }, [startNewDraft]);
 
   // Autosave settings to localStorage
   useEffect(() => {

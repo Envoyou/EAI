@@ -7,9 +7,18 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Changed
+- **Separated editorial workspaces**:
+  - Replaced the permanent History + Editor + all-purpose Copilot composition with distinct document-home, editor, review, and publication destinations.
+  - Made `/workspace` a Grammarly-style document home with title search, status filters, durable asset summaries, and stage-aware open actions; legacy document links forward to `/editor` without losing parameters.
+  - Kept the editor focused on writing with opt-in Chat, Notes, and Deep Research tools; Review exposes only editorial findings, while Publication owns metadata and export and rejects articles with unresolved review state.
+  - Removed the added Final Draft decision card in favor of a compact publication command row and kept secondary document/download actions in the overflow menu.
+  - Made New Article open an explicitly fresh editor session, clearing only local document recovery state before normalizing the URL back to `/editor`; previously saved articles remain in the document library.
+  - Changed the Workspace, Review, and Publication queues to consume one tenant-scoped current snapshot per durable `sourceRef` family instead of rendering every AnalysisLog revision. Review now requires unresolved findings on that current snapshot, while Publication requires a current ready snapshot with none; historical warnings remain available through history/audit surfaces.
+  - Preserved article lineage across Analyze, Refine, re-analysis, manual cloud save, and History reload so later revisions update the same queue card rather than creating a new article family.
 - **Decision-oriented pre-final review**:
   - Kept unresolved Refine output behind a Draft Review queue and labeled explicit manual access as Candidate Draft; the normal Final Draft surface now appears only after the saved revision reaches `ready`.
   - Replaced technical feedback controls with editorial outcomes such as Accept change, Keep current text, Add source manually, and Remove unsupported detail; applying a decision continues to trigger automatic validation.
+  - Restored `Keep current text` for bounded Source Fidelity citation warnings with a visible target and no prepared body change, alongside add-source and removal-suggestion paths. High-risk factual findings and blocking failures remain non-acceptable.
   - Made prepared Before/After patches apply optimistically in the editor before persistence. Persistence failures restore the prior snapshot, revision conflicts reload the latest saved revision, and validation warnings keep the accepted edit.
   - Split AI generation from approval: findings without a concrete replacement now expose Generate suggestion, which creates a non-persisted preview; Accept change appears only after that patch is ready and applies without another model call.
   - Routed publication-field findings exclusively to their matching metadata field. Overlong slugs now receive a deterministic six-word proposal locally, with immediate use/keep/manual-edit decisions; they never fall back to an AI rewrite of the article body.
@@ -35,7 +44,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added a deterministic blocking check for adjacent duplicate Markdown headings, preventing visibly corrupted drafts from being reported as ready.
   - Turned Refine Draft into an outcome-owned pipeline. The initial rewrite stays internal while body-only Quality Gate checks run up to two bounded remediation rounds: complete structured edits and safe source neutralizations are deterministic, supplied research-note URLs may be attached only when the gate returns that exact allowlisted source, and non-factual targeted corrections use guarded Targeted Fix. SEO is then generated from the final body and the complete publish-ready package is checked before one final result is emitted.
   - Replaced separate accept-versus-rewrite controls for residual editorial decisions with approval actions that immediately apply the proposed correction and start automatic validation. Findings that cannot be corrected safely remain explicit human decisions and are never auto-accepted.
-  - Added a sticky Save/Cancel bar and temporarily holds Preview-adjacent workflow, export, copy, and view actions while an unsaved revision is open.
+  - Moved the Final Draft edit state and Save/Cancel actions into the document header command row. The editable article canvas now contains only the article, while persisted-draft workflow, export, copy, and view actions remain temporarily held until the revision is saved or cancelled.
 
 ## [3.21.0] - 2026-07-30
 

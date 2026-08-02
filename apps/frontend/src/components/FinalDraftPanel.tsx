@@ -8,7 +8,7 @@ import {
   FileDiff, CheckCircle2, PlusCircle, MinusCircle,
   Eye, Code, SplitSquareHorizontal, Send, Maximize2, Minimize2,
   FileText, Download, ChevronDown, ChevronUp, AlertTriangle, RefreshCw,
-  Pencil, ShieldCheck, Wand2, Save
+  Pencil, ShieldCheck, Wand2, Save, Clock3, Settings2
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Textarea } from '@/components/ui/textarea';
@@ -81,6 +81,8 @@ interface FinalDraftPanelProps {
   onSavePublicationMetadata?: (metadata: PublicationPackage) => Promise<boolean>;
   onConfirmPublicationMetadata?: () => Promise<void>;
   onPrepareForExport?: () => Promise<void>;
+  onFinishLater?: () => void;
+  onOpenCmsSettings?: () => void;
   isSavingFinalDraft?: boolean;
   isCheckingQuality?: boolean;
   isGeneratingSeo?: boolean;
@@ -236,6 +238,8 @@ export default function FinalDraftPanel({
   onSavePublicationMetadata,
   onConfirmPublicationMetadata,
   onPrepareForExport,
+  onFinishLater,
+  onOpenCmsSettings,
   isSavingFinalDraft = false,
   isCheckingQuality = false,
   isGeneratingSeo = false,
@@ -617,6 +621,18 @@ export default function FinalDraftPanel({
   const canDownload =
     !isDemoMode &&
     Boolean(polishedDraft.trim());
+  const publicationDetailsReady = Boolean(
+    ready
+    && !exportBlocked
+    && analysisLogId
+    && sourceRef
+    && publicationPackageStatus === 'current'
+    && generatedMetadata?.title
+    && generatedMetadata?.excerpt
+    && generatedMetadata?.metaTitle
+    && generatedMetadata?.metaDescription
+    && polishedDraft.trim()
+  );
   const exportUnavailableReason = isDemoMode
     ? t('exportRequiresAccount')
     : !cmsConnected
@@ -746,7 +762,7 @@ export default function FinalDraftPanel({
       {/* ── Header ── */}
       <div className="ui-panel-header [container-type:inline-size] px-4 py-3 md:px-5">
         {/* Title row */}
-        <div className="final-draft-header-row flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="final-draft-header-row">
           <div className="final-draft-title min-w-0 w-full">
             <p className="mb-0.5 text-[11px] font-medium text-[var(--muted-foreground)]">
               {reviewMode ? t('candidateDraft') : t('finalDraft')}
@@ -755,61 +771,75 @@ export default function FinalDraftPanel({
               {generatedMetadata?.title || workingTitle || (isGeneratingDraft ? 'Preparing refined draft' : 'Refined Article')}
             </h2>
           </div>
+        </div>
 
-          {/* Actions */}
-          {polishedDraft.trim() && (
-            <div className="final-draft-actions flex flex-wrap sm:flex-nowrap items-center gap-1 shrink-0 w-full sm:w-auto">
-            {/* Quick actions */}
-            {!reviewMode && (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <ActionButton
-                    type="button"
-                    onClick={handleCopy}
-                    disabled={editingDraft || !polishedDraft.trim() || isDemoMode || isAiBusy}
-                    variant="muted"
-                    size="sm"
-                    aria-label="Copy refined draft"
-                    icon={CopyActionIcon}
-                    iconClassName="h-3.5 w-3.5"
-                    label="Copy refined draft"
-                    labelClassName="sr-only"
-                  />
-                }
+          {/* Draft edit command row */}
+          {polishedDraft.trim() && editingDraft && onSaveFinalDraft && (
+            <div className="publication-command-row final-draft-edit-command mt-3">
+              <div className="flex min-w-0 items-center gap-2" aria-live="polite">
+                <Pencil className="h-4 w-4 shrink-0 text-[var(--primary)]" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-[var(--foreground)]">
+                    {t('editingInline')}
+                  </p>
+                  <p className="text-[11px] text-[var(--muted-foreground)]">
+                    {t('saveInvalidatesReview')}
+                  </p>
+                </div>
+              </div>
+              <div className="final-draft-actions flex shrink-0 items-center justify-end gap-1.5">
+                <Button
+                  type="button"
+                  variant="muted"
+                  size="sm"
+                  onClick={cancelDraftEditing}
+                  disabled={isSavingFinalDraft}
+                >
+                  {t('cancelEdit')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => void saveDraftRevision()}
+                  disabled={!draftEditValue.trim() || !hasUnsavedDraftEdits || isSavingFinalDraft}
+                >
+                  {isSavingFinalDraft
+                    ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
+                    : <Save className="h-3.5 w-3.5" />}
+                  {t('saveRevision')}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Publication command row */}
+          {polishedDraft.trim() && !editingDraft && (
+            <div className="publication-command-row mt-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  {ready
+                    ? <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--success)]" />
+                    : <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--primary)]" />}
+                  <p className="text-xs font-semibold text-[var(--foreground)]">
+                    {ready ? t('readyToPublishTitle') : t('finalStageTitle')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="final-draft-actions flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+            {publicationDetailsReady && !cmsConnected && onOpenCmsSettings ? (
+              <ActionButton
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={onOpenCmsSettings}
+                disabled={editingDraft || isAiBusy}
+                icon={Settings2}
+                iconClassName="h-3.5 w-3.5"
+                label={t('connectCms')}
               />
-              <TooltipContent side="bottom" className="text-xs">
-                {isDemoMode ? 'Sign up to copy the refined draft' : 'Copy refined draft'}
-              </TooltipContent>
-            </Tooltip>
-            )}
-
-            {onSaveFinalDraft && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <ActionButton
-                      type="button"
-                      variant={editingDraft ? 'surface' : 'muted'}
-                      size="sm"
-                      onClick={startDraftEditing}
-                      disabled={editingDraft || isGeneratingDraft || isAiBusy}
-                      aria-pressed={editingDraft}
-                      aria-label="Edit final draft"
-                      icon={EditActionIcon}
-                      iconClassName="h-3.5 w-3.5"
-                      label={t('editDraft')}
-                      labelClassName="hidden @[460px]:inline"
-                    />
-                  }
-                />
-                <TooltipContent side="bottom" className="text-xs">
-                  {editingDraft ? t('editingInline') : t('editDraftInlineHint')}
-                </TooltipContent>
-              </Tooltip>
-            )}
-
-            {!canExport && onPrepareForExport ? (
+            ) : !canExport && onPrepareForExport ? (
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -819,16 +849,15 @@ export default function FinalDraftPanel({
                       size="sm"
                       onClick={onPrepareForExport}
                       disabled={editingDraft || isGeneratingDraft || isSavingFinalDraft || isAiBusy}
-                      aria-label="Prepare current draft for export"
+                      aria-label={t('prepareForExport')}
                       icon={PreparePublicationIcon}
-                      iconClassName="h-3.5 w-3.5 md:hidden"
+                      iconClassName="h-3.5 w-3.5"
                       label={t('prepare')}
-                      labelClassName="hidden md:inline"
                     />
                   }
                 />
                 <TooltipContent side="bottom" className="text-xs">
-                  Run only the checks needed for this draft revision, then refresh SEO
+                  {t('prepareHint')}
                 </TooltipContent>
               </Tooltip>
             ) : (
@@ -841,10 +870,10 @@ export default function FinalDraftPanel({
                       disabled={editingDraft || !canExport || isExporting || isAiBusy}
                       variant={canExport && !isExporting ? 'primary' : 'surface'}
                       size="sm"
-                      aria-label={exportStatus?.blogEditUrl ? 'Update CMS Draft' : 'Export to CMS'}
+                      aria-label={exportStatus?.blogEditUrl ? t('updateCmsDraft') : t('exportToCms')}
                       icon={PublishActionIcon}
                       iconClassName="h-3.5 w-3.5"
-                      label={exportStatus?.blogEditUrl ? t('update') : t('exportToCms')}
+                      label={exportStatus?.blogEditUrl ? t('updateCmsDraft') : t('exportToCms')}
                       labelClassName="hidden @[420px]:inline"
                       loading={isExporting}
                     />
@@ -852,9 +881,22 @@ export default function FinalDraftPanel({
                 />
                 <TooltipContent side="bottom" className="text-xs">
                   {exportUnavailableReason ||
-                    (exportStatus?.blogEditUrl ? 'Update CMS Draft' : 'Export to CMS')}
+                    (exportStatus?.blogEditUrl ? t('updateCmsDraft') : t('exportToCms'))}
                 </TooltipContent>
               </Tooltip>
+            )}
+
+            {ready && onFinishLater && !reviewMode && (
+              <ActionButton
+                type="button"
+                onClick={onFinishLater}
+                disabled={editingDraft || isAiBusy}
+                variant="muted"
+                size="sm"
+                icon={Clock3}
+                iconClassName="h-3.5 w-3.5"
+                label={t('finishLater')}
+              />
             )}
 
             {/* Secondary actions */}
@@ -886,6 +928,40 @@ export default function FinalDraftPanel({
                 initialFocus={false}
                 aria-label={t('moreActions')}
               >
+                    {!reviewMode && (
+                      <>
+                        <div className="ui-menu-label">{t('documentActions')}</div>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setMenuOpen(false);
+                            void handleCopy();
+                          }}
+                          disabled={!polishedDraft.trim() || isDemoMode || isAiBusy}
+                          variant="muted"
+                          className="ui-menu-item justify-start w-full font-normal border-none"
+                        >
+                          <CopyActionIcon className="h-3.5 w-3.5" />
+                          <span>{t('copyDraft')}</span>
+                        </Button>
+                        {onSaveFinalDraft && (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              setMenuOpen(false);
+                              startDraftEditing();
+                            }}
+                            disabled={editingDraft || isGeneratingDraft || isAiBusy}
+                            variant="muted"
+                            className="ui-menu-item justify-start w-full font-normal border-none"
+                          >
+                            <EditActionIcon className="h-3.5 w-3.5" />
+                            <span>{t('editDraft')}</span>
+                          </Button>
+                        )}
+                        <div className="ui-menu-divider" />
+                      </>
+                    )}
                     {(onReanalyze || onQualityCheck || onRegenerateSeo || (canExport && onPrepareForExport)) && (
                       <>
                         <div className="ui-menu-label">{t('workflowActions')}</div>
@@ -1057,9 +1133,9 @@ export default function FinalDraftPanel({
                     </Button>
               </PopoverContent>
             </Popover>
+              </div>
             </div>
           )}
-        </div>
 
         {generatedMetadata && qualityReady && onSavePublicationMetadata && (
           <div className="ui-card mt-3 mb-3 p-3">
@@ -1410,42 +1486,6 @@ export default function FinalDraftPanel({
                 {polishedDraft ? (
                   editingDraft && onSaveFinalDraft ? (
                     <div className="final-draft-inline-editor-shell">
-                      <div className="final-draft-inline-editor-toolbar not-prose">
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-[var(--foreground)]">
-                            {t('editingInline')}
-                          </p>
-                          <p className="text-[11px] text-[var(--muted-foreground)]">
-                            {t('saveInvalidatesReview')}
-                          </p>
-                          <p className="mt-1 text-[10px] text-[var(--muted-foreground)]">
-                            {t('revisionImpactPolicy')}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1.5">
-                          <Button
-                            type="button"
-                            variant="muted"
-                            size="sm"
-                            onClick={cancelDraftEditing}
-                            disabled={isSavingFinalDraft}
-                          >
-                            {t('cancelEdit')}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="primary"
-                            size="sm"
-                            onClick={() => void saveDraftRevision()}
-                            disabled={!draftEditValue.trim() || !hasUnsavedDraftEdits || isSavingFinalDraft}
-                          >
-                            {isSavingFinalDraft
-                              ? <EAILoaderStatusIcon className="h-3.5 w-3.5" />
-                              : <Save className="h-3.5 w-3.5" />}
-                            {t('saveRevision')}
-                          </Button>
-                        </div>
-                      </div>
                       <InlineFinalDraftEditor
                         value={draftEditValue}
                         onChange={setDraftEditValue}

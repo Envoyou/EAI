@@ -3,11 +3,11 @@
 import { useEffect, useRef } from 'react';
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MotionConfig } from 'framer-motion';
 import {
   RotateCcw,
   Sparkles,
-  Megaphone,
   Lock,
   Menu,
   Zap,
@@ -18,10 +18,10 @@ import {
   FileEdit,
 } from 'lucide-react';
 
-import DocumentHistoryPanel from '@/components/DocumentHistoryPanel';
 import ThreeColumnLayout from '@/components/ThreeColumnLayout';
 import EditorCanvas from '@/components/EditorCanvas';
 import AICopilotPanel from '@/components/AICopilotPanel';
+import { AppSidebarShell, type WorkspacePage } from '@/components/AppSidebarShell';
 import ShortcutsModal from '@/components/ShortcutsModal';
 import { EAILogo } from '@/components/EAILogo';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -37,17 +37,22 @@ import { editorStatusBadgeVariant } from '@/workspace/utils';
 
 export default function EditorialWorkspace({
   mode,
+  stage = 'editor',
+  startNewDraft = false,
   initialHistoryId,
   initialTitle,
   initialBrief,
 }: {
   mode: 'demo' | 'workspace';
+  stage?: 'editor' | 'review' | 'publication';
+  startNewDraft?: boolean;
   initialHistoryId?: string;
   initialTitle?: string;
   initialBrief?: string;
 }) {
   const router = useRouter();
-  const workspace = useEditorialWorkspace({ mode });
+  const tWorkspace = useTranslations('WorkspaceShell');
+  const workspace = useEditorialWorkspace({ mode, startNewDraft });
 
   const {
     workspaceChecking,
@@ -58,7 +63,6 @@ export default function EditorialWorkspace({
     setMetadata,
     analysis,
     activeHistoryId,
-    refreshTrigger,
     draftHistory,
     sourceDraft,
     isStreaming,
@@ -85,8 +89,6 @@ export default function EditorialWorkspace({
     setRightPanelOpen,
     rightPanelTab,
     setRightPanelTab,
-    layoutReversed,
-    setLayoutReversed,
     showMissingSourcesModal,
     setShowMissingSourcesModal,
     missingSources,
@@ -137,6 +139,19 @@ export default function EditorialWorkspace({
 
   const showDemoSignupModal = demoRefineCount >= 3;
   const initialContentMapNavigationHandled = useRef(false);
+  const currentPage = stage as WorkspacePage;
+  const effectiveActiveTab = isDemoMode ? activeTab : stage === 'editor' ? 'draft' : 'refined';
+
+  useEffect(() => {
+    if (workspaceChecking || isDemoMode) return;
+    setActiveTab(effectiveActiveTab);
+    if (stage === 'review') {
+      setRightPanelTab('feedback');
+      setRightPanelOpen(true);
+    }
+    if (stage === 'editor') setRightPanelOpen(false);
+    if (stage === 'publication') setRightPanelOpen(false);
+  }, [effectiveActiveTab, isDemoMode, setActiveTab, setRightPanelOpen, setRightPanelTab, stage, workspaceChecking]);
 
   useEffect(() => {
     if (
@@ -146,6 +161,11 @@ export default function EditorialWorkspace({
       return;
     }
     initialContentMapNavigationHandled.current = true;
+    if (startNewDraft) {
+      handleNewDraft();
+      router.replace('/editor', { scroll: false });
+      return;
+    }
     if (initialHistoryId) {
       void loadHistory(initialHistoryId);
       return;
@@ -161,8 +181,11 @@ export default function EditorialWorkspace({
     initialBrief,
     initialHistoryId,
     initialTitle,
+    handleNewDraft,
     loadHistory,
+    router,
     setMetadata,
+    startNewDraft,
     workspaceChecking,
   ]);
 
@@ -206,10 +229,14 @@ export default function EditorialWorkspace({
               </>
             ) : (
               <>
-                <span className="titlebar-workspace text-sm font-semibold text-[var(--foreground)]">Workspace</span>
+                <span className="titlebar-workspace text-sm font-semibold text-[var(--foreground)]">{tWorkspace('workspace')}</span>
                 <span className="text-[11px] text-[var(--muted-foreground)]">/</span>
                 <span className="titlebar-current truncate text-[13px] font-medium text-[var(--muted-foreground)]">
-                  {activeTab === 'draft' ? 'Draft Article' : 'Refined Draft'}
+                  {stage === 'editor'
+                    ? tWorkspace('draftArticle')
+                    : stage === 'review'
+                      ? tWorkspace('draftReview')
+                      : tWorkspace('finalDraft')}
                 </span>
               </>
             )}
@@ -225,31 +252,8 @@ export default function EditorialWorkspace({
 
           {/* Global Actions */}
           <div className="titlebar-actions flex shrink-0 items-center gap-1.5 min-w-0">
-            {/* What's New */}
-            {!isDemoMode && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      id="titlebar-whats-new"
-                      render={<a href="https://envoyou.com/changelog" target="_blank" rel="noopener noreferrer" />}
-                      variant="muted"
-                      size="sm"
-                      className="no-underline"
-                    >
-                      <Megaphone className="w-3.5 h-3.5" />
-                      <span className="hidden @[640px]:inline">What&apos;s New</span>
-                    </Button>
-                  }
-                />
-                <TooltipContent side="bottom" className="text-xs">
-                  View latest platform updates
-                </TooltipContent>
-              </Tooltip>
-            )}
-
             {/* Undo */}
-            {!isDemoMode && (
+            {!isDemoMode && stage === 'editor' && (
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -320,7 +324,7 @@ export default function EditorialWorkspace({
             )}
 
             {/* Adaptive Mode Selector (desktop popover, mobile bottom sheet) */}
-            <div>
+            {stage === 'editor' && <div>
               <Select
                 value={analysisSpeed}
                 onValueChange={(val) => {
@@ -386,10 +390,10 @@ export default function EditorialWorkspace({
                   </SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </div>}
 
             {/* Refine Draft CTA */}
-            <Tooltip>
+            {stage === 'editor' && <Tooltip>
               <TooltipTrigger
                 render={
                   <ActionButton
@@ -423,7 +427,7 @@ export default function EditorialWorkspace({
               <TooltipContent side="bottom" className="text-xs">
                 {isAiBusy ? 'Cancel current AI request' : 'Refine Draft (Ctrl+Enter)'}
               </TooltipContent>
-            </Tooltip>
+            </Tooltip>}
           </div>
 
           {/* Demo CTAs */}
@@ -446,6 +450,109 @@ export default function EditorialWorkspace({
         </header>
   );
 
+  const renderEditorSurface = () => (
+    <EditorCanvas
+      draft={draft}
+      onDraftChange={setDraft}
+      metadata={metadata}
+      onMetadataChange={setMetadata}
+      analysis={analysis}
+      sourceDraft={sourceDraft}
+      editorialOptions={editorialOptions}
+      activeTab={isDemoMode ? activeTab : effectiveActiveTab}
+      onTabChange={setActiveTab}
+      workspaceStage={stage}
+      isGeneratingDraft={isGeneratingDraftFromNotes}
+      isAiBusy={isAiBusy}
+      hasResult={hasResult}
+      sidebarOpen={leftPanelOpen}
+      onToggleSidebar={() => setLeftPanelOpen(current => !current)}
+      showFeedbackSidebar={showFeedbackSidebar}
+      onToggleFeedbackSidebar={() => setRightPanelOpen(current => !current)}
+      onOpenFeedbackSidebar={() => {
+        setRightPanelOpen(true);
+        setRightPanelTab('feedback');
+        if (isMobile) setMobileViewTab('copilot');
+      }}
+      showNotesSidebar={showNotesSidebar}
+      onToggleNotesSidebar={() => {
+        setRightPanelOpen(current => !current);
+        setRightPanelTab('notes');
+      }}
+      hasNotes={hasNotes}
+      isDemoMode={isDemoMode}
+      wordCount={wordCount}
+      charCount={charCount}
+      charLimit={MAX_TEXT_LENGTH}
+      hoveredFeedbackIndex={hoveredFeedbackIndex}
+      activeFeedbackIndex={activeFeedbackIndex}
+      onActiveFeedbackChange={setActiveFeedbackIndex}
+      isStreaming={isStreaming}
+      isRefining={isRefining}
+      processStage={processStage}
+      processStartedAt={processStartedAt}
+      includeSeoStage={analysisSpeed !== 'fast'}
+      onAnalyze={handleAnalyze}
+      onRefineAgain={handleRefineAgain}
+      onReanalyze={handleReanalyze}
+      onSaveFinalDraft={handleSaveFinalDraft}
+      onQualityCheck={handleQualityCheck}
+      onRegenerateSeo={handleRegenerateSeo}
+      onSavePublicationMetadata={handleSavePublicationMetadata}
+      onConfirmPublicationMetadata={handleConfirmPublicationMetadata}
+      onPrepareForExport={handlePrepareForExport}
+      isSavingFinalDraft={isSavingFinalDraft}
+      isCheckingQuality={isCheckingQuality}
+      isGeneratingSeo={isGeneratingSeo}
+      onAddNewMetadataOption={handleAddNewCategoryOrType}
+      onOpenShortcuts={() => setIsShortcutModalOpen(true)}
+      layoutReversed={false}
+    />
+  );
+
+  const renderContextPanel = () => (
+    <AICopilotPanel
+      key={activeHistoryId || 'new'}
+      activeTab={stage === 'review' ? 'feedback' : rightPanelTab}
+      onTabChange={setRightPanelTab}
+      allowedTabs={stage === 'review' ? ['feedback'] : ['strategist', 'notes', 'deep_report']}
+      panelTitle={stage === 'review' ? tWorkspace('evaluationPanel') : undefined}
+      activeHistoryId={activeHistoryId}
+      onStrategistComplete={(topic, outline, draftVal, notes, wizardAttachments) => {
+        setDraft(draftVal || outline || topic);
+        if (notes && notes.length > 0) handleNotesChange(notes);
+        if (wizardAttachments && wizardAttachments.length > 0) setAttachments(wizardAttachments);
+      }}
+      feedbackResult={hasResult || analysis.status === 'loading' ? analysis : null}
+      feedbackTitle={(analysis.generatedMetadata?.title || analysis.workingTitle) as string | undefined}
+      onApplyFix={handleApplyFix}
+      onApplyPublicationFix={handleApplyPublicationFix}
+      onApplyAll={handleApplyAllFixes}
+      hoveredFeedbackIndex={hoveredFeedbackIndex}
+      onHoveredFeedbackChange={setHoveredFeedbackIndex}
+      activeFeedbackIndex={activeFeedbackIndex}
+      onActiveFeedbackChange={setActiveFeedbackIndex}
+      isProcessing={isStreaming || isRefining}
+      processStage={processStage}
+      processStartedAt={processStartedAt}
+      includeSeoStage={analysisSpeed !== 'fast'}
+      isRefining={isRefining}
+      onAcceptFeedback={handleAcceptFeedback}
+      onRemoveFeedbackAddition={index => handleTargetedFix(index, 'remove')}
+      onAddFeedbackSource={handleAddFeedbackSource}
+      onFixFeedbackWithEAI={index => handleTargetedFix(index, 'fix')}
+      isTargetedFixing={isTargetedFixing}
+      researchNotes={researchNotes}
+      onNotesChange={handleNotesChange}
+      onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
+      isGeneratingDraft={isGeneratingDraftFromNotes}
+      isWorkspaceAiBusy={isAiBusy}
+      onCancelGenerateDraft={handleCancelGenerateDraft}
+      onInsertToDraft={text => setDraft(previous => previous + text)}
+      onToggleSidebar={() => setRightPanelOpen(false)}
+    />
+  );
+
   return (
     <MotionConfig reducedMotion="user">
       <div className="workspace-page-shell">
@@ -455,142 +562,32 @@ export default function EditorialWorkspace({
             {isMobile ? (
               <div className="flex flex-col flex-1 min-h-0 pb-16 relative bg-[var(--background)] mobile-workspace-container">
                 {renderHeader()}
-              <div className="flex-1 min-h-0 overflow-hidden w-full max-w-full overflow-x-hidden">
-                {mobileViewTab === 'history' && !isDemoMode && (
-                  <DocumentHistoryPanel
-                    onSelect={loadHistory}
-                    onNew={handleNewDraft}
-                    activeId={activeHistoryId}
-                    refreshTrigger={refreshTrigger}
-                    onToggle={() => {}}
-                    isDemoMode={isDemoMode}
-                  />
+                {leftPanelOpen && !isDemoMode && (
+                  <div className="fixed inset-0 z-[120] bg-[var(--background)]">
+                    <AppSidebarShell
+                      sidebarOpen
+                      onToggleSidebar={() => setLeftPanelOpen(false)}
+                      currentPage={currentPage}
+                    />
+                  </div>
                 )}
-                {mobileViewTab === 'editor' && (
-                  <EditorCanvas
-                    draft={draft}
-                    onDraftChange={setDraft}
-                    metadata={metadata}
-                    onMetadataChange={setMetadata}
-                    analysis={analysis}
-                    sourceDraft={sourceDraft}
-                    editorialOptions={editorialOptions}
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                    isGeneratingDraft={isGeneratingDraftFromNotes}
-                    isAiBusy={isAiBusy}
-                    hasResult={hasResult}
-                    sidebarOpen={leftPanelOpen}
-                    onToggleSidebar={() => setLeftPanelOpen(p => !p)}
-                    showFeedbackSidebar={showFeedbackSidebar}
-                    onToggleFeedbackSidebar={() => {
-                      if (rightPanelOpen) {
-                        setRightPanelOpen(false);
-                      } else {
-                        setRightPanelOpen(true);
-                        setRightPanelTab('feedback');
-                      }
-                    }}
-                    onOpenFeedbackSidebar={() => {
-                      setRightPanelOpen(true);
-                      setRightPanelTab('feedback');
-                      setMobileViewTab('copilot');
-                    }}
-                    showNotesSidebar={showNotesSidebar}
-                    onToggleNotesSidebar={() => {
-                      if (rightPanelOpen) {
-                        setRightPanelOpen(false);
-                      } else {
-                        setRightPanelOpen(true);
-                        setRightPanelTab('notes');
-                      }
-                    }}
-                    hasNotes={hasNotes}
-                    isDemoMode={isDemoMode}
-                    wordCount={wordCount}
-                    charCount={charCount}
-                    charLimit={MAX_TEXT_LENGTH}
-                    hoveredFeedbackIndex={hoveredFeedbackIndex}
-                    activeFeedbackIndex={activeFeedbackIndex}
-                    onActiveFeedbackChange={setActiveFeedbackIndex}
-                    isStreaming={isStreaming}
-                    isRefining={isRefining}
-                    processStage={processStage}
-                    processStartedAt={processStartedAt}
-                    includeSeoStage={analysisSpeed !== 'fast'}
-                    onAnalyze={handleAnalyze}
-                    onRefineAgain={handleRefineAgain}
-                    onReanalyze={handleReanalyze}
-                    onSaveFinalDraft={handleSaveFinalDraft}
-                    onQualityCheck={handleQualityCheck}
-                    onRegenerateSeo={handleRegenerateSeo}
-                    onSavePublicationMetadata={handleSavePublicationMetadata}
-                    onConfirmPublicationMetadata={handleConfirmPublicationMetadata}
-                    onPrepareForExport={handlePrepareForExport}
-                    isSavingFinalDraft={isSavingFinalDraft}
-                    isCheckingQuality={isCheckingQuality}
-                    isGeneratingSeo={isGeneratingSeo}
-                    onAddNewMetadataOption={handleAddNewCategoryOrType}
-                    onOpenShortcuts={() => setIsShortcutModalOpen(true)}
-                    layoutReversed={layoutReversed}
-                    onToggleLayoutReversed={() => setLayoutReversed(p => !p)}
-                  />
-                )}
-                {mobileViewTab === 'copilot' && (
-                  <AICopilotPanel
-                    key={activeHistoryId || 'new'}
-                    activeTab={rightPanelTab}
-                    onTabChange={setRightPanelTab}
-                    activeHistoryId={activeHistoryId}
-                    onStrategistComplete={(topic, outline, draftVal, notes, wizardAttachments) => {
-                      setDraft(draftVal || outline || topic);
-                      if (notes && notes.length > 0) handleNotesChange(notes);
-                      if (wizardAttachments && wizardAttachments.length > 0) setAttachments(wizardAttachments);
-                    }}
-                    feedbackResult={hasResult || analysis.status === 'loading' ? analysis : null}
-                    feedbackTitle={(analysis.generatedMetadata?.title || analysis.workingTitle) as string | undefined}
-                    onApplyFix={handleApplyFix}
-                    onApplyPublicationFix={handleApplyPublicationFix}
-                    onApplyAll={handleApplyAllFixes}
-                    hoveredFeedbackIndex={hoveredFeedbackIndex}
-                    onHoveredFeedbackChange={setHoveredFeedbackIndex}
-                    activeFeedbackIndex={activeFeedbackIndex}
-                    onActiveFeedbackChange={setActiveFeedbackIndex}
-                    isProcessing={isStreaming || isRefining}
-                    processStage={processStage}
-                    processStartedAt={processStartedAt}
-                    includeSeoStage={analysisSpeed !== 'fast'}
-                    isRefining={isRefining}
-                    onAcceptFeedback={handleAcceptFeedback}
-                    onRemoveFeedbackAddition={idx => handleTargetedFix(idx, 'remove')}
-                    onAddFeedbackSource={handleAddFeedbackSource}
-                    onFixFeedbackWithEAI={idx => handleTargetedFix(idx, 'fix')}
-                    isTargetedFixing={isTargetedFixing}
-                    researchNotes={researchNotes}
-                    onNotesChange={handleNotesChange}
-                    onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
-                    isGeneratingDraft={isGeneratingDraftFromNotes}
-                    isWorkspaceAiBusy={isAiBusy}
-                    onCancelGenerateDraft={handleCancelGenerateDraft}
-                    onInsertToDraft={text => {
-                      setDraft(prev => prev + text);
-                    }}
-                  />
-                )}
-              </div>
+                <div className="flex-1 min-h-0 overflow-hidden w-full max-w-full overflow-x-hidden">
+                  {mobileViewTab === 'copilot' && stage !== 'publication'
+                    ? renderContextPanel()
+                    : renderEditorSurface()}
+                </div>
 
               {/* Bottom Tab Bar Navigation for Mobile */}
-              <div className="fixed bottom-0 left-0 right-0 h-16 border-t border-[var(--border)] bg-[var(--surface-1)] flex items-center justify-around z-[100] px-4 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
-                {!isDemoMode && (
+              {stage !== 'publication' && <div className="fixed bottom-0 left-0 right-0 h-16 border-t border-[var(--border)] bg-[var(--surface-1)] flex items-center justify-around z-[100] px-4 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+                {!isDemoMode && stage === 'editor' && (
                   <Button
                     type="button"
-                    onClick={() => setMobileViewTab('history')}
+                    onClick={() => router.push('/workspace')}
                     variant="muted"
                     className="workspace-mobile-nav-action flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors cursor-pointer"
-                    aria-pressed={mobileViewTab === 'history'}
                   >
                     <History className="w-5 h-5" />
-                    <span>History</span>
+                    <span>{tWorkspace('savedArticles')}</span>
                   </Button>
                 )}
                 <Button
@@ -601,7 +598,7 @@ export default function EditorialWorkspace({
                   aria-pressed={mobileViewTab === 'editor'}
                 >
                   <FileEdit className="w-5 h-5" />
-                  <span>Editor</span>
+                  <span>{stage === 'review' ? tWorkspace('draftReview') : tWorkspace('draftArticle')}</span>
                 </Button>
                 <ActionButton
                   type="button"
@@ -611,147 +608,40 @@ export default function EditorialWorkspace({
                   aria-pressed={mobileViewTab === 'copilot'}
                   icon={AssistantChatIcon}
                   iconClassName="w-5 h-5"
-                  label="EAI Chat"
+                  label={stage === 'review' ? tWorkspace('findings') : tWorkspace('tools')}
                 />
-              </div>
+              </div>}
             </div>
           ) : (
             <ThreeColumnLayout
               leftPanelOpen={leftPanelOpen && !isDemoMode}
-              rightPanelOpen={rightPanelOpen}
-              reversed={layoutReversed}
+              rightPanelOpen={stage !== 'publication' && rightPanelOpen}
+              reversed={false}
+              leftDefaultSize={17}
+              rightDefaultSize={stage === 'review' ? 32 : 28}
               leftPanel={
                 !isDemoMode ? (
-                  <DocumentHistoryPanel
-                    onSelect={loadHistory}
-                    onNew={handleNewDraft}
-                    activeId={activeHistoryId}
-                    refreshTrigger={refreshTrigger}
-                    onToggle={() => setLeftPanelOpen(p => !p)}
-                    isDemoMode={isDemoMode}
+                  <AppSidebarShell
+                    sidebarOpen={leftPanelOpen}
+                    onToggleSidebar={() => setLeftPanelOpen(current => !current)}
+                    currentPage={currentPage}
+                    style={{ width: '100%', minWidth: 0 }}
                   />
                 ) : null
               }
               centerPanel={
                 <div className="flex flex-col h-full overflow-hidden">
                   {renderHeader()}
-                  <EditorCanvas
-                    draft={draft}
-                    onDraftChange={setDraft}
-                    metadata={metadata}
-                    onMetadataChange={setMetadata}
-                    analysis={analysis}
-                    sourceDraft={sourceDraft}
-                    editorialOptions={editorialOptions}
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                    isGeneratingDraft={isGeneratingDraftFromNotes}
-                    isAiBusy={isAiBusy}
-                    hasResult={hasResult}
-                    sidebarOpen={leftPanelOpen}
-                    onToggleSidebar={() => setLeftPanelOpen(p => !p)}
-                    showFeedbackSidebar={showFeedbackSidebar}
-                    onToggleFeedbackSidebar={() => {
-                      if (rightPanelOpen) {
-                        setRightPanelOpen(false);
-                      } else {
-                        setRightPanelOpen(true);
-                        setRightPanelTab('feedback');
-                      }
-                    }}
-                    onOpenFeedbackSidebar={() => {
-                      setRightPanelOpen(true);
-                      setRightPanelTab('feedback');
-                    }}
-                    showNotesSidebar={showNotesSidebar}
-                    onToggleNotesSidebar={() => {
-                      if (rightPanelOpen) {
-                        setRightPanelOpen(false);
-                      } else {
-                        setRightPanelOpen(true);
-                        setRightPanelTab('notes');
-                      }
-                    }}
-                    hasNotes={hasNotes}
-                    isDemoMode={isDemoMode}
-                    wordCount={wordCount}
-                    charCount={charCount}
-                    charLimit={MAX_TEXT_LENGTH}
-                    hoveredFeedbackIndex={hoveredFeedbackIndex}
-                    activeFeedbackIndex={activeFeedbackIndex}
-                    onActiveFeedbackChange={setActiveFeedbackIndex}
-                    isStreaming={isStreaming}
-                    isRefining={isRefining}
-                    processStage={processStage}
-                    processStartedAt={processStartedAt}
-                    includeSeoStage={analysisSpeed !== 'fast'}
-                    onAnalyze={handleAnalyze}
-                    onRefineAgain={handleRefineAgain}
-                    onReanalyze={handleReanalyze}
-                    onSaveFinalDraft={handleSaveFinalDraft}
-                    onQualityCheck={handleQualityCheck}
-                    onRegenerateSeo={handleRegenerateSeo}
-                    onSavePublicationMetadata={handleSavePublicationMetadata}
-                    onConfirmPublicationMetadata={handleConfirmPublicationMetadata}
-                    onPrepareForExport={handlePrepareForExport}
-                    isSavingFinalDraft={isSavingFinalDraft}
-                    isCheckingQuality={isCheckingQuality}
-                    isGeneratingSeo={isGeneratingSeo}
-                    onAddNewMetadataOption={handleAddNewCategoryOrType}
-                    onOpenShortcuts={() => setIsShortcutModalOpen(true)}
-                    layoutReversed={layoutReversed}
-                    onToggleLayoutReversed={() => setLayoutReversed(p => !p)}
-                  />
+                  {renderEditorSurface()}
                 </div>
               }
-              rightPanel={
-                <AICopilotPanel
-                  key={activeHistoryId || 'new'}
-                  activeTab={rightPanelTab}
-                  onTabChange={setRightPanelTab}
-                  activeHistoryId={activeHistoryId}
-                  onStrategistComplete={(topic, outline, draftVal, notes, wizardAttachments) => {
-                    setDraft(draftVal || outline || topic);
-                    if (notes && notes.length > 0) handleNotesChange(notes);
-                    if (wizardAttachments && wizardAttachments.length > 0) setAttachments(wizardAttachments);
-                  }}
-                  feedbackResult={hasResult || analysis.status === 'loading' ? analysis : null}
-                  feedbackTitle={(analysis.generatedMetadata?.title || analysis.workingTitle) as string | undefined}
-                  onApplyFix={handleApplyFix}
-                  onApplyPublicationFix={handleApplyPublicationFix}
-                  onApplyAll={handleApplyAllFixes}
-                  hoveredFeedbackIndex={hoveredFeedbackIndex}
-                  onHoveredFeedbackChange={setHoveredFeedbackIndex}
-                  activeFeedbackIndex={activeFeedbackIndex}
-                  onActiveFeedbackChange={setActiveFeedbackIndex}
-                  isProcessing={isStreaming || isRefining}
-                  processStage={processStage}
-                  processStartedAt={processStartedAt}
-                  includeSeoStage={analysisSpeed !== 'fast'}
-                  isRefining={isRefining}
-                  onAcceptFeedback={handleAcceptFeedback}
-                  onRemoveFeedbackAddition={idx => handleTargetedFix(idx, 'remove')}
-                  onAddFeedbackSource={handleAddFeedbackSource}
-                  onFixFeedbackWithEAI={idx => handleTargetedFix(idx, 'fix')}
-                  isTargetedFixing={isTargetedFixing}
-                  researchNotes={researchNotes}
-                  onNotesChange={handleNotesChange}
-                  onGenerateDraftFromNotes={handleGenerateDraftFromNotes}
-                  isGeneratingDraft={isGeneratingDraftFromNotes}
-                  isWorkspaceAiBusy={isAiBusy}
-                  onCancelGenerateDraft={handleCancelGenerateDraft}
-                  onInsertToDraft={text => {
-                    setDraft(prev => prev + text);
-                  }}
-                  onToggleSidebar={() => setRightPanelOpen(p => !p)}
-                />
-              }
+              rightPanel={stage === 'publication' ? null : renderContextPanel()}
             />
           )}
 
           {/* Bottom-Right Floating Trigger Button (when AI Copilot Panel is hidden) */}
-          {!rightPanelOpen && (
-            <div className="fixed right-6 bottom-11 z-40 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {stage === 'editor' && !rightPanelOpen && (
+            <div className="fixed right-5 top-1/2 z-40 -translate-y-1/2">
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -759,40 +649,18 @@ export default function EditorialWorkspace({
                       type="button"
                       onClick={() => setRightPanelOpen(true)}
                       variant="primary"
-                      className="
-                        group
-                        flex items-center justify-center
-                        size-10 hover:w-[108px]
-                        shrink-0
-                        rounded-full
-                        p-0 hover:px-4
-                        gap-0 hover:gap-2
-                        overflow-hidden
-
-                        shadow-2xl
-                        opacity-30 hover:opacity-100
-                        hover:scale-105
-                        transition-all duration-300 ease-in-out
-                        cursor-pointer
-                      "
-                      aria-label="Open EAI Chat"
+                      size="icon"
+                      className="rounded-full border border-[var(--border)] shadow-sm"
+                      aria-label={tWorkspace('openTools')}
                       icon={EAILogo}
                       iconClassName="size-[18px] shrink-0"
-                      label="EAI Chat"
-                      labelClassName="
-                          w-0 opacity-0
-                          group-hover:w-[58px]
-                          group-hover:opacity-100
-                          overflow-hidden
-                          whitespace-nowrap
-                          text-xs font-bold
-                          transition-all duration-300 ease-in-out
-                        "
+                      label={tWorkspace('tools')}
+                      labelClassName="sr-only"
                     />
                   }
                 />
                 <TooltipContent side="top" className="text-xs font-medium">
-                  Open EAI Chat
+                  {tWorkspace('openTools')}
                 </TooltipContent>
               </Tooltip>
             </div>

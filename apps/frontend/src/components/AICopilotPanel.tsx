@@ -13,7 +13,7 @@ import { useContentStrategist, type Attachment } from '@/lib/hooks/useContentStr
 import type { ResearchNote } from '@/lib/hooks/useContentStrategist';
 import type { AnalysisResult, EditorialProcessStage, FindingTarget } from '@eai/shared';
 
-type RightTab = 'strategist' | 'feedback' | 'notes' | 'deep_report';
+export type RightTab = 'strategist' | 'feedback' | 'notes' | 'deep_report';
 
 interface AICopilotPanelProps {
   activeTab?: RightTab;
@@ -47,6 +47,8 @@ interface AICopilotPanelProps {
   onInsertToDraft?: (text: string) => void;
   activeHistoryId?: string | null;
   onToggleSidebar?: () => void;
+  allowedTabs?: RightTab[];
+  panelTitle?: string;
 }
 
 export default function AICopilotPanel({
@@ -81,17 +83,22 @@ export default function AICopilotPanel({
   onInsertToDraft,
   activeHistoryId,
   onToggleSidebar,
+  allowedTabs,
+  panelTitle,
 }: AICopilotPanelProps) {
   const t = useTranslations('AICopilotPanel');
   const reportT = useTranslations('DeepResearchReport');
   const [internalTab, setInternalTab] = useState<RightTab>('strategist');
   const activeTab = controlledTab ?? internalTab;
-  const tabs: { key: RightTab; label: string; icon: React.ReactNode }[] = [
+  const allTabs: { key: RightTab; label: string; icon: React.ReactNode }[] = [
     { key: 'strategist', label: t('chat'), icon: <MessagesSquare className="w-3.5 h-3.5" /> },
     { key: 'feedback', label: t('feedback'), icon: <MessageCircle className="w-3.5 h-3.5" /> },
     { key: 'notes', label: t('notes'), icon: <Notebook className="w-3.5 h-3.5" /> },
     { key: 'deep_report', label: t('deepReport'), icon: <FileSearch className="w-3.5 h-3.5" /> },
   ];
+  const tabs = allowedTabs
+    ? allTabs.filter(tab => allowedTabs.includes(tab.key))
+    : allTabs;
 
   const handleTabChange = (tab: RightTab) => {
     if (onTabChange) {
@@ -213,7 +220,9 @@ export default function AICopilotPanel({
   return (
     <div className="flex flex-col h-full min-w-0 w-full overflow-hidden [container-type:inline-size]">
       <div className="flex items-center justify-between border-b border-[var(--border)] px-1">
-        <div className="flex items-center min-w-0" role="tablist">
+        {panelTitle && tabs.length === 1 ? (
+          <p className="px-3 py-2.5 text-xs font-semibold text-[var(--foreground)]">{panelTitle}</p>
+        ) : <div className="flex items-center min-w-0" role="tablist">
           {tabs.map((tab) => (
             <Tooltip key={tab.key}>
               <TooltipTrigger
@@ -239,7 +248,7 @@ export default function AICopilotPanel({
               </TooltipContent>
             </Tooltip>
           ))}
-        </div>
+        </div>}
 
         {onToggleSidebar && (
           <Tooltip>

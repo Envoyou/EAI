@@ -23,4 +23,5 @@ export {
   Share2 as ShareActionIcon,
   UserMinus as SuspendUserActionIcon,
   UserCheck as RestoreUserActionIcon,
+  FilePlus2 as AddDocumentActionIcon,
 } from 'lucide-react';

@@ -6,7 +6,8 @@ import React from 'react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useUser, UserButton, OrganizationSwitcher } from '@clerk/nextjs';
-import { FilePenLine, LayoutDashboard, Moon, PanelLeft, Settings, Sun } from 'lucide-react';
+import { BookOpen, ClipboardCheck, FilePenLine, LayoutDashboard, Moon, PanelLeft, Send, Settings, Sun } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { EAILogo } from '@/components/EAILogo';
@@ -17,7 +18,7 @@ import { SidebarItem } from '@/components/ui/sidebar-item';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-export type WorkspacePage = 'editor' | 'dashboard' | 'publication' | 'settings';
+export type WorkspacePage = 'workspace' | 'editor' | 'review' | 'dashboard' | 'publication' | 'settings';
 
 export interface AppSidebarShellProps {
   sidebarOpen: boolean;
@@ -40,7 +41,13 @@ export function AppSidebarShell({
 }: AppSidebarShellProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
-  const isDark = resolvedTheme === 'dark';
+  const t = useTranslations('AppNavigation');
+  const isHydrated = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  const isDark = isHydrated && resolvedTheme === 'dark';
 
   const { user, isLoaded } = useUser();
 
@@ -176,18 +183,60 @@ export function AppSidebarShell({
           </div>
         )}
 
+        {sidebarOpen && (
+          <p className="px-3 pb-1 pt-2 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
+            {t('create')}
+          </p>
+        )}
+
+        <SidebarItem
+          icon={BookOpen}
+          label={t('workspace')}
+          sidebarOpen={sidebarOpen}
+          href={isDemoMode ? undefined : '/workspace'}
+          onClick={isDemoMode ? () => handleDemoLock(t('workspace')) : closeAfterMobileNavigation}
+          isActive={currentPage === 'workspace'}
+          disabled={isDemoMode}
+        />
+
         <SidebarItem
           icon={FilePenLine}
-          label="Editor"
+          label={t('editor')}
           sidebarOpen={sidebarOpen}
-          href="/"
+          href="/editor"
           onClick={closeAfterMobileNavigation}
           isActive={currentPage === 'editor'}
         />
 
         <SidebarItem
+          icon={ClipboardCheck}
+          label={t('review')}
+          sidebarOpen={sidebarOpen}
+          href={isDemoMode ? undefined : '/review'}
+          onClick={isDemoMode ? () => handleDemoLock(t('review')) : closeAfterMobileNavigation}
+          isActive={currentPage === 'review'}
+          disabled={isDemoMode}
+        />
+
+        <SidebarItem
+          icon={Send}
+          label={t('publication')}
+          sidebarOpen={sidebarOpen}
+          href={isDemoMode ? undefined : '/publication'}
+          onClick={isDemoMode ? () => handleDemoLock(t('publication')) : closeAfterMobileNavigation}
+          isActive={currentPage === 'publication'}
+          disabled={isDemoMode}
+        />
+
+        {sidebarOpen && (
+          <p className="px-3 pb-1 pt-4 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
+            {t('manage')}
+          </p>
+        )}
+
+        <SidebarItem
           icon={LayoutDashboard}
-          label="Dashboard"
+          label={t('dashboard')}
           sidebarOpen={sidebarOpen}
           href={isDemoMode ? undefined : "/dashboard"}
           onClick={
@@ -209,7 +258,7 @@ export function AppSidebarShell({
       <div className="shrink-0 flex flex-col px-3 py-3 max-sm:pb-20 gap-1">
         <SidebarItem
           icon={Settings}
-          label="Settings"
+          label={t('settings')}
           sidebarOpen={sidebarOpen}
           href={isDemoMode ? undefined : "/settings"}
           onClick={
@@ -223,7 +272,7 @@ export function AppSidebarShell({
 
         <SidebarItem
           icon={isDark ? Sun : Moon}
-          label={isDark ? 'Light Mode' : 'Dark Mode'}
+          label={isDark ? t('lightMode') : t('darkMode')}
           sidebarOpen={sidebarOpen}
           onClick={toggleTheme}
         />

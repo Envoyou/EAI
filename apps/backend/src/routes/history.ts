@@ -151,6 +151,76 @@ const canAccessLog = (
 ) => Boolean(workspaceOrganizationId && log.organizationId === workspaceOrganizationId)
   || (!log.organizationId && log.userId === userId);
 
+type CurrentArticleHistoryRow = {
+  id: string;
+  createdAt: Date;
+  role: string;
+  metadata: unknown;
+  score: number | null;
+  verdict: string | null;
+  summary: string | null;
+  feedback: unknown;
+  isPinned: boolean;
+};
+
+const listCurrentArticleHistory = async ({
+  organizationId,
+  search,
+  filter,
+  limit,
+}: {
+  organizationId: string;
+  search: string;
+  filter: string;
+  limit: number;
+}) => {
+  const currentPredicates = [Prisma.sql`ranked."revisionRank" = 1`];
+  if (filter !== 'All') {
+    currentPredicates.push(Prisma.sql`ranked."verdict" = ${filter}`);
+  }
+  if (search) {
+    currentPredicates.push(
+      Prisma.sql`ranked."summary" ILIKE ${`%${search}%`}`
+    );
+  }
+
+  return prisma.$queryRaw<CurrentArticleHistoryRow[]>(Prisma.sql`
+    WITH ranked AS (
+      SELECT
+        log."id",
+        log."createdAt",
+        log."role",
+        log."metadata",
+        log."score",
+        log."verdict",
+        log."summary",
+        log."feedback",
+        log."isPinned",
+        ROW_NUMBER() OVER (
+          PARTITION BY COALESCE(NULLIF(log."metadata"->>'sourceRef', ''), log."id")
+          ORDER BY log."createdAt" DESC, log."id" DESC
+        ) AS "revisionRank"
+      FROM "AnalysisLog" AS log
+      WHERE log."status" = 'success'
+        AND log."organizationId" = ${organizationId}
+    )
+    SELECT
+      ranked."id",
+      ranked."createdAt",
+      ranked."role",
+      ranked."metadata",
+      ranked."score",
+      ranked."verdict",
+      ranked."summary",
+      ranked."feedback",
+      ranked."isPinned"
+    FROM ranked
+    WHERE ${Prisma.join(currentPredicates, ' AND ')}
+    ORDER BY ranked."isPinned" DESC, ranked."createdAt" DESC
+    LIMIT ${limit + 1}
+  `);
+};
+
 const updateAnalysisLogIfRevisionCurrent = async ({
   id,
   expectedRevisionId,
@@ -291,8 +361,27 @@ router.get('/', requireAuth, async (req, res) => {
 
     const search = (req.query.search as string) || '';
     const filter = (req.query.filter as string) || 'All';
-    const limit = parseInt((req.query.limit as string) || '20', 10);
+    const requestedLimit = parseInt((req.query.limit as string) || '20', 10);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), 100)
+      : 20;
     const cursor = req.query.cursor as string | undefined;
+    const view = req.query.view === 'current' ? 'current' : 'history';
+
+    if (view === 'current') {
+      const history = await listCurrentArticleHistory({
+        organizationId: workspace.organizationId,
+        search,
+        filter,
+        limit,
+      });
+      let nextCursor = null;
+      if (history.length > limit) {
+        const nextItem = history.pop();
+        nextCursor = nextItem?.id ?? null;
+      }
+      return res.json({ data: history, nextCursor });
+    }
 
     const whereClause: Prisma.AnalysisLogWhereInput = {
       status: 'success',
@@ -320,6 +409,7 @@ router.get('/', requireAuth, async (req, res) => {
         score: true,
         verdict: true,
         summary: true,
+        feedback: true,
         isPinned: true,
       },
       orderBy: [

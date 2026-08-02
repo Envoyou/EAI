@@ -12,6 +12,7 @@ import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { WarningStatusIcon } from '@/components/ui/icons/status';
 import { EditActionIcon } from '@/components/ui/icons/actions';
 import { DocumentIcon } from '@/components/ui/icons/content';
+import { ReviewArticlePanel } from '@/components/ReviewArticlePanel';
 import { useTranslations } from 'next-intl';
 import type { PanelTab } from '@/components/PanelTabBar';
 import type { AnalysisResult, ArticleMetadata, EditorialProcessStage, PublicationPackage } from '@eai/shared';
@@ -75,6 +76,7 @@ interface EditorCanvasProps {
   layoutReversed?: boolean;
   onToggleLayoutReversed?: () => void;
   isGeneratingDraft?: boolean;
+  workspaceStage?: 'editor' | 'review' | 'publication';
 }
 
 export default function EditorCanvas({
@@ -126,6 +128,7 @@ export default function EditorCanvas({
   layoutReversed,
   onToggleLayoutReversed,
   isGeneratingDraft = false,
+  workspaceStage = 'editor',
 }: EditorCanvasProps) {
   const router = useRouter();
   const t = useTranslations('DraftReview');
@@ -193,7 +196,7 @@ export default function EditorCanvas({
       )}
 
       {/* Tab Bar */}
-      <PanelTabBar
+      {isDemoMode && <PanelTabBar
         activeTab={activeTab}
         onTabChange={onTabChange}
         hasResult={hasResult}
@@ -207,7 +210,7 @@ export default function EditorCanvas({
         hasNotes={hasNotes}
         layoutReversed={layoutReversed}
         reviewPending={isCandidatePendingReview}
-      />
+      />}
 
       {/* Workspace */}
       <div
@@ -218,7 +221,7 @@ export default function EditorCanvas({
       >
         <AnimatePresence mode="wait">
           {/* Draft Tab */}
-          {activeTab === 'draft' && (
+          {(workspaceStage === 'editor' || (isDemoMode && activeTab === 'draft')) && (
             <motion.div
               key="draft-tab"
               initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
@@ -245,7 +248,7 @@ export default function EditorCanvas({
           )}
 
           {/* Refined Draft Tab */}
-          {activeTab === 'refined' && (
+          {(workspaceStage !== 'editor' || (isDemoMode && activeTab === 'refined')) && (
             <motion.div
               key="refined-tab"
               initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
@@ -264,7 +267,29 @@ export default function EditorCanvas({
                       marginRight: 'auto',
                     }}
                   >
-                    {isCandidatePendingReview && !showCandidateEditor ? (
+                    {workspaceStage === 'review' && !isCandidatePendingReview ? (
+                      <ReviewArticlePanel
+                        title={(analysis.generatedMetadata?.title || analysis.workingTitle || t('articleFallbackTitle')) as string}
+                        body={analysis.polishedDraft || ''}
+                        findingCount={decisionFeedback.length}
+                        onOpenPublication={() => router.push(`/publication${analysis.analysisLogId ? `?history=${encodeURIComponent(analysis.analysisLogId)}` : ''}`)}
+                      />
+                    ) : workspaceStage === 'publication' && isCandidatePendingReview ? (
+                      <div className="ui-state-card mx-auto flex max-w-xl flex-col items-center justify-center p-8 text-center">
+                        <WarningStatusIcon className="mb-3 h-6 w-6 text-[var(--warning)]" />
+                        <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('publicationBlockedTitle')}</h2>
+                        <p className="mt-1.5 text-xs leading-relaxed text-[var(--muted-foreground)]">{t('publicationBlockedDescription')}</p>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          className="mt-4"
+                          onClick={() => router.push(`/review${analysis.analysisLogId ? `?history=${encodeURIComponent(analysis.analysisLogId)}` : ''}`)}
+                        >
+                          {t('returnToReview')}
+                        </Button>
+                      </div>
+                    ) : isCandidatePendingReview && !showCandidateEditor ? (
                       <div className="ui-panel flex h-full min-h-0 flex-col overflow-hidden">
                         <div className="ui-panel-header px-5 py-4">
                           <p className="text-[11px] font-medium text-[var(--muted-foreground)]">
@@ -383,14 +408,24 @@ export default function EditorCanvas({
                       processStage={processStage}
                       processStartedAt={processStartedAt}
                       includeSeoStage={includeSeoStage}
-                      onRefineAgain={isCandidatePendingReview ? undefined : onRefineAgain}
-                      onReanalyze={onReanalyze}
+                      onRefineAgain={isCandidatePendingReview || workspaceStage === 'publication' ? undefined : onRefineAgain}
+                      onReanalyze={workspaceStage === 'publication' ? undefined : onReanalyze}
                       onSaveFinalDraft={onSaveFinalDraft}
                       onQualityCheck={onQualityCheck}
                       onRegenerateSeo={onRegenerateSeo}
                       onSavePublicationMetadata={onSavePublicationMetadata}
                       onConfirmPublicationMetadata={onConfirmPublicationMetadata}
                       onPrepareForExport={isCandidatePendingReview ? undefined : onPrepareForExport}
+                      onFinishLater={
+                        !isCandidatePendingReview && !isDemoMode && analysis.analysisLogId
+                          ? () => router.push('/workspace')
+                          : undefined
+                      }
+                      onOpenCmsSettings={
+                        !isCandidatePendingReview && !isDemoMode
+                          ? () => router.push('/settings/publication/identity')
+                          : undefined
+                      }
                       isSavingFinalDraft={isSavingFinalDraft}
                       isCheckingQuality={isCheckingQuality}
                       isGeneratingSeo={isGeneratingSeo}
