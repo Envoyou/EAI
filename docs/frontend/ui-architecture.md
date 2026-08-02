@@ -99,11 +99,7 @@ default pattern for mostly static route shells or read-only views.
 Editorial work is separated by route and responsibility rather than presented
 as three permanent tool columns. `/workspace` is the document home: it lists
 durable article records, searches actual saved titles, and sends each record to
-its next valid destination. `/editor` is the writing canvas and opens Chat,
-Notes, or Deep Research only as contextual tools. `/review` is the evaluation
-queue and exposes only the Feedback decision surface beside the reviewed
-article. `/publication` contains publication metadata, downloads, and CMS
-export, and redirects unresolved content back to Review.
+its next valid destination. `/editor` is the active writing canvas where inline feedback cards and actionable resolution controls (🚀 *Gunakan Proposal*, 🛡️ *Pertahankan Teks*, 🔗 *Tambah Sumber Manual*) are rendered directly on the center canvas alongside the article text. All interactive feedback decisions are resolved on the editor canvas prior to final review. `/review` serves as an audit and historical evaluation console (`ReviewArticlePanel.tsx`) that displays full article family history (Initial Blueprint/Notes vs. Initial Draft vs. Final Polish Draft) along with itemized audit logs and comparative diffs. `/publication` contains publication metadata, downloads, and CMS export, and redirects unresolved content back to Review.
 
 The global application sidebar navigates these destinations; it never contains
 the full saved-document history while an article is being edited. Legacy

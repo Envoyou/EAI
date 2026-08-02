@@ -7,6 +7,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Kartu Keputusan Editorial Interaktif In-Canvas pada Canvas Editor (`/editor`)**:
+  - Menyematkan tombol aksi langsung (🚀 *Gunakan Proposal*, 🛡️ *Pertahankan Teks*, 🔗 *Tambah Sumber Manual*, 🪄 *Usulan Perbaikan AI*, 🗑️ *Hapus Detail*) pada setiap kartu keputusan temuan langsung di canvas tengah halaman `/editor`.
+  - Menambahkan banner tombol aksi batch `⚡ Terima Semua Perbaikan` untuk mempercepat persetujuan temuan editorial tanpa perlu berpindah halaman.
+- **Konsol Audit & Komparasi Riwayat Keluarga Artikel (`/review`)**:
+  - Merestrukturisasi halaman `/review` menjadi konsol audit keluarga artikel lengkap dengan bilah navigasi segmen: 🔍 *Bandingkan (Initial vs Final)*, ✨ *Draft Final Ready*, 📄 *Draft Awal (Source)*, 📜 *Blueprint & Catatan*, serta ⏱️ *Version Timeline*.
 - **Komponen Modular App Shell & Navigasi**:
   - `apps/frontend/src/components/app-shell/AppShell.tsx`: Pembungkus utama App Shell dengan dukungan rel navigasi global dan sidebar konteks.
   - `apps/frontend/src/components/app-shell/GlobalNavigationRail.tsx` & `ContextSidebar.tsx`: Rel navigasi global samping dan sidebar konteks dinamis.

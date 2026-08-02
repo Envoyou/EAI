@@ -7,6 +7,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **In-Canvas Interactive Editorial Decision Cards on Editor Canvas (`/editor`)**:
+  - Embedded direct action buttons (🚀 *Use Proposal*, 🛡️ *Keep Current Text*, 🔗 *Add Manual Source*, 🪄 *Suggest AI Fix*, 🗑️ *Remove Detail*) directly inside each decision card on the `/editor` center canvas.
+  - Added a batch `⚡ Accept All Fixes` action banner for fast 1-click feedback approval without page navigation.
+- **Article Family Audit & Comparison Console (`/review`)**:
+  - Repurposed `/review` into a dedicated Article Family Audit Console featuring segment navigation tabs: 🔍 *Compare (Initial vs Final)*, ✨ *Draft Final Ready*, 📄 *Initial Source Draft*, 📜 *Blueprint & Notes*, and ⏱️ *Version Timeline*.
 - **Modular App Shell & Navigation Infrastructure**:
   - `apps/frontend/src/components/app-shell/AppShell.tsx`: Root App Shell wrapper providing global navigation rail and context sidebar integration.
   - `apps/frontend/src/components/app-shell/GlobalNavigationRail.tsx` & `ContextSidebar.tsx`: Global navigation rail and dynamic contextual sidebar primitives.

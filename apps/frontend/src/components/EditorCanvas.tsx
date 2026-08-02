@@ -15,7 +15,7 @@ import { DocumentIcon } from '@/components/ui/icons/content';
 import { ReviewArticlePanel } from '@/components/ReviewArticlePanel';
 import { useTranslations } from 'next-intl';
 import type { PanelTab } from '@/components/PanelTabBar';
-import type { AnalysisResult, ArticleMetadata, EditorialProcessStage } from '@eai/shared';
+import type { AnalysisResult, ArticleMetadata, EditorialProcessStage, FindingTarget } from '@eai/shared';
 
 export interface EditorialOptions {
   brandName: string;
@@ -75,6 +75,23 @@ interface EditorCanvasProps {
   onToggleLayoutReversed?: () => void;
   isGeneratingDraft?: boolean;
   workspaceStage?: 'editor' | 'review' | 'publication';
+  onAcceptFeedback?: (index: number) => Promise<void>;
+  onApplyFix?: (
+    targetText: string,
+    replacementText: string,
+    operation: 'replace' | 'insert_before' | 'insert_after' | 'manual',
+    index: number
+  ) => Promise<boolean>;
+  onApplyPublicationFix?: (
+    targetField: FindingTarget,
+    targetText: string,
+    replacementText: string,
+    index: number
+  ) => Promise<boolean>;
+  onRemoveFeedbackAddition?: (index: number) => Promise<void>;
+  onAddFeedbackSource?: (index: number, url: string) => Promise<boolean>;
+  onFixFeedbackWithEAI?: (index: number) => Promise<void>;
+  onApplyAllFixes?: () => Promise<void>;
 }
 
 export default function EditorCanvas({
@@ -121,20 +138,37 @@ export default function EditorCanvas({
   isAiBusy,
   onAddNewMetadataOption,
   onOpenShortcuts,
-  layoutReversed,
+  layoutReversed = false,
   onToggleLayoutReversed,
   isGeneratingDraft = false,
   workspaceStage = 'editor',
+  onAcceptFeedback,
+  onApplyFix,
+  onApplyPublicationFix,
+  onRemoveFeedbackAddition,
+  onAddFeedbackSource,
+  onFixFeedbackWithEAI,
+  onApplyAllFixes,
 }: EditorCanvasProps) {
   const router = useRouter();
   const t = useTranslations('DraftReview');
   const [candidateEditorKey, setCandidateEditorKey] = useState<string | null>(null);
+  const [activeCanvasSourceInput, setActiveCanvasSourceInput] = useState<number | null>(null);
+  const [canvasSourceText, setCanvasSourceText] = useState('');
+  const [submittingCanvasSource, setSubmittingCanvasSource] = useState<number | null>(null);
+  const [executingCanvasFix, setExecutingCanvasFix] = useState<number | null>(null);
+
   const decisionFeedback = (analysis.feedback ?? []).filter(
     (item) => item.status !== 'pass'
   );
   const unresolvedFeedback = decisionFeedback.filter(
     (item) => item.status !== 'pass' && !item.isApplied && !item.isAccepted && !item.isVerified
   );
+
+  const candidateReviewKey = analysis.draftRevision?.bodyHash
+    ?? analysis.draftRevision?.revisionId
+    ?? `${analysis.analysisLogId ?? 'candidate'}:${analysis.polishedDraft?.length ?? 0}`;
+    
   const isCandidatePendingReview = Boolean(
     analysis.polishedDraft?.trim()
     && analysis.status === 'success'
@@ -143,9 +177,6 @@ export default function EditorCanvas({
     && !isRefining
   );
 
-  const candidateReviewKey = analysis.draftRevision?.bodyHash
-    ?? analysis.draftRevision?.revisionId
-    ?? `${analysis.analysisLogId ?? 'candidate'}:${analysis.polishedDraft?.length ?? 0}`;
   const showCandidateEditor = isCandidatePendingReview
     && candidateEditorKey === candidateReviewKey;
 
@@ -266,8 +297,12 @@ export default function EditorCanvas({
                     {workspaceStage === 'review' && !isCandidatePendingReview ? (
                       <ReviewArticlePanel
                         title={(analysis.generatedMetadata?.title || analysis.workingTitle || t('articleFallbackTitle')) as string}
-                        body={analysis.polishedDraft || ''}
+                        body={analysis.polishedDraft || draft}
+                        sourceDraft={sourceDraft}
+                        researchNotes={metadata?.researchNotes}
                         findingCount={decisionFeedback.length}
+                        readinessScore={analysis.readiness === 'ready' ? 100 : Math.round(((decisionFeedback.length - unresolvedFeedback.length) / (decisionFeedback.length || 1)) * 100)}
+                        analysisLogId={analysis.analysisLogId}
                         onOpenPublication={() => router.push(`/publication${analysis.analysisLogId ? `?history=${encodeURIComponent(analysis.analysisLogId)}` : ''}`)}
                       />
                     ) : workspaceStage === 'publication' && isCandidatePendingReview ? (
@@ -303,30 +338,240 @@ export default function EditorCanvas({
 
                         <div className="min-h-0 flex-1 overflow-y-auto p-5">
                           {unresolvedFeedback.length > 0 ? (
-                            <div className="mx-auto max-w-2xl space-y-3">
+                            <div className="mx-auto max-w-2xl space-y-4">
+                              {onApplyAllFixes && (
+                                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 shadow-xs">
+                                  <span className="text-xs font-semibold text-[var(--foreground)]">
+                                    Terdapat {unresolvedFeedback.length} keputusan editorial yang memerlukan persetujuan Anda
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    variant="primary"
+                                    size="xs"
+                                    onClick={onApplyAllFixes}
+                                  >
+                                    ⚡ Terima Semua Perbaikan
+                                  </Button>
+                                </div>
+                              )}
                               {unresolvedFeedback.map((item) => {
                                 const index = (analysis.feedback ?? []).indexOf(item);
+                                const isExecuting = executingCanvasFix === index;
+                                const isSourceInputActive = activeCanvasSourceInput === index;
+
+                                const handleAction = async (action: () => Promise<void>) => {
+                                  setExecutingCanvasFix(index);
+                                  try {
+                                    await action();
+                                  } finally {
+                                    setExecutingCanvasFix(null);
+                                  }
+                                };
+
                                 return (
-                                  <Button
+                                  <div
                                     key={item.feedbackId ?? `${item.category}-${index}`}
-                                    type="button"
-                                    variant="surface"
-                                    onClick={() => openFeedbackDecision(index)}
-                                    className="h-auto w-full items-start justify-start gap-3 whitespace-normal p-4 text-left"
+                                    className="rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-5 shadow-sm space-y-3"
                                   >
-                                    <WarningStatusIcon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
-                                    <span className="min-w-0 flex-1">
-                                      <span className="block text-xs font-semibold text-[var(--foreground)]">
-                                        {item.category}
-                                      </span>
-                                      <span className="mt-1 block text-xs font-normal leading-relaxed text-[var(--muted-foreground)]">
-                                        {item.message}
-                                      </span>
-                                      <span className="mt-2 block text-[11px] font-semibold text-[var(--primary)]">
-                                        {t('reviewDecision')}
-                                      </span>
-                                    </span>
-                                  </Button>
+                                    <div
+                                      className="flex items-start gap-3 cursor-pointer"
+                                      onClick={() => openFeedbackDecision(index)}
+                                    >
+                                      <WarningStatusIcon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" />
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className="text-xs font-bold text-[var(--foreground)]">
+                                            {item.category}
+                                          </span>
+                                          <span className="text-[11px] font-semibold text-[var(--primary)]">
+                                            {t('reviewDecision')}
+                                          </span>
+                                        </div>
+                                        <p className="mt-1 text-xs leading-relaxed text-[var(--muted-foreground)]">
+                                          {item.message}
+                                        </p>
+                                        {item.replacementText && (
+                                          <div className="mt-2 rounded-lg bg-[var(--surface-2)] p-2 text-xs font-mono text-[var(--foreground)]">
+                                            <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-wider block mb-0.5">Proposal</span>
+                                            {item.replacementText}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Embedded Action Buttons */}
+                                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[var(--border)]/60">
+                                      {item.targetField === 'publication.slug' || item.targetField === 'publication.metaTitle' ? (
+                                        <>
+                                          <Button
+                                            type="button"
+                                            variant="primary"
+                                            size="sm"
+                                            disabled={isExecuting}
+                                            onClick={() => handleAction(async () => {
+                                              if (onApplyPublicationFix) {
+                                                await onApplyPublicationFix(
+                                                  (item.targetField || 'publication.slug') as FindingTarget,
+                                                  item.targetText || '',
+                                                  item.replacementText || '',
+                                                  index
+                                                );
+                                              } else if (onAcceptFeedback) {
+                                                await onAcceptFeedback(index);
+                                              }
+                                            })}
+                                          >
+                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : '🚀 Gunakan Proposal'}
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={isExecuting}
+                                            onClick={() => handleAction(async () => {
+                                              if (onAcceptFeedback) await onAcceptFeedback(index);
+                                            })}
+                                          >
+                                            🛡️ Pertahankan Nilai Saat Ini
+                                          </Button>
+                                        </>
+                                      ) : item.replacementText || item.operation === 'replace' ? (
+                                        <>
+                                          <Button
+                                            type="button"
+                                            variant="primary"
+                                            size="sm"
+                                            disabled={isExecuting}
+                                            onClick={() => handleAction(async () => {
+                                              if (onApplyFix) {
+                                                await onApplyFix(
+                                                  item.targetText || '',
+                                                  item.replacementText || '',
+                                                  item.operation || 'replace',
+                                                  index
+                                                );
+                                              } else if (onAcceptFeedback) {
+                                                await onAcceptFeedback(index);
+                                              }
+                                            })}
+                                          >
+                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : '✅ Terima Perubahan'}
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={isExecuting}
+                                            onClick={() => handleAction(async () => {
+                                              if (onAcceptFeedback) await onAcceptFeedback(index);
+                                            })}
+                                          >
+                                            🛡️ Pertahankan Teks Saat Ini
+                                          </Button>
+                                        </>
+                                      ) : item.operation === 'insert_before' || item.operation === 'insert_after' ? (
+                                        <>
+                                          <Button
+                                            type="button"
+                                            variant="danger"
+                                            size="sm"
+                                            disabled={isExecuting}
+                                            onClick={() => handleAction(async () => {
+                                              if (onRemoveFeedbackAddition) await onRemoveFeedbackAddition(index);
+                                            })}
+                                          >
+                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : '🗑️ Hapus Detail Ini'}
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={isExecuting}
+                                            onClick={() => handleAction(async () => {
+                                              if (onAcceptFeedback) await onAcceptFeedback(index);
+                                            })}
+                                          >
+                                            🛡️ Pertahankan Teks
+                                          </Button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          {onFixFeedbackWithEAI && (
+                                            <Button
+                                              type="button"
+                                              variant="accent"
+                                              size="sm"
+                                              disabled={isExecuting}
+                                              onClick={() => handleAction(async () => {
+                                                await onFixFeedbackWithEAI(index);
+                                              })}
+                                            >
+                                              {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : '🪄 Usulkan Perbaikan AI'}
+                                            </Button>
+                                          )}
+                                          {onAddFeedbackSource && (
+                                            <Button
+                                              type="button"
+                                              variant="surface"
+                                              size="sm"
+                                              disabled={isExecuting}
+                                              onClick={() => {
+                                                setActiveCanvasSourceInput(isSourceInputActive ? null : index);
+                                                setCanvasSourceText('');
+                                              }}
+                                            >
+                                              🔗 Tambah Sumber Manual
+                                            </Button>
+                                          )}
+                                          <Button
+                                            type="button"
+                                            variant="primary"
+                                            size="sm"
+                                            disabled={isExecuting}
+                                            onClick={() => handleAction(async () => {
+                                              if (onAcceptFeedback) await onAcceptFeedback(index);
+                                            })}
+                                          >
+                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : '🛡️ Pertahankan Teks Saat Ini'}
+                                          </Button>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    {/* Inline Source Input */}
+                                    {isSourceInputActive && (
+                                      <div className="flex items-center gap-2 pt-2 border-t border-[var(--border)]/40">
+                                        <input
+                                          type="url"
+                                          value={canvasSourceText}
+                                          onChange={(e) => setCanvasSourceText(e.target.value)}
+                                          placeholder="https://example.com/source-reference"
+                                          className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                                        />
+                                        <Button
+                                          type="button"
+                                          variant="primary"
+                                          size="sm"
+                                          disabled={!canvasSourceText.trim() || submittingCanvasSource !== null}
+                                          onClick={async () => {
+                                            if (!onAddFeedbackSource || !canvasSourceText.trim()) return;
+                                            setSubmittingCanvasSource(index);
+                                            try {
+                                              const ok = await onAddFeedbackSource(index, canvasSourceText.trim());
+                                              if (ok) {
+                                                setActiveCanvasSourceInput(null);
+                                                setCanvasSourceText('');
+                                              }
+                                            } finally {
+                                              setSubmittingCanvasSource(null);
+                                            }
+                                          }}
+                                        >
+                                          {submittingCanvasSource === index ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : 'Simpan Sumber'}
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
                                 );
                               })}
                               <div className="flex flex-wrap items-center justify-between gap-3 pt-2">

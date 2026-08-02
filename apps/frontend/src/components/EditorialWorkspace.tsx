@@ -526,6 +526,13 @@ export default function EditorialWorkspace({
       onAddNewMetadataOption={handleAddNewCategoryOrType}
       onOpenShortcuts={() => setIsShortcutModalOpen(true)}
       layoutReversed={false}
+      onAcceptFeedback={handleAcceptFeedback}
+      onApplyFix={handleApplyFix}
+      onApplyPublicationFix={handleApplyPublicationFix}
+      onRemoveFeedbackAddition={index => handleTargetedFix(index, 'remove')}
+      onAddFeedbackSource={handleAddFeedbackSource}
+      onFixFeedbackWithEAI={index => handleTargetedFix(index, 'fix')}
+      onApplyAllFixes={handleApplyAllFixes}
     />
   );
 
