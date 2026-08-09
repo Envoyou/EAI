@@ -7,6 +7,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Article Workflow Management**:
+  - Added a shared article workflow snapshot that independently derives workflow, quality, save, and publication states plus the single next action for each current article.
+  - Turned Workspace into actionable queues for attention, continuing work, publication readiness, and completed exports; added a separate Content library and a permanent read-only Draft/Review/Publication progress bar.
+  - Added a four-path New Article launchpad for AI, Write/Paste, Blueprint, and Notes.
 - **Quick Draft entry point in AI Strategist**:
   - Exposed the existing topic, outline, reference, and press-release drafting modes through a localized Strategist dialog, with streamed progress and actionable results that can continue to Editor or Notes.
 - **Bulk Delete and Date Grouping in Library & History Surfaces**:
@@ -31,13 +35,16 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - `apps/frontend/src/components/document-history/DeleteDocumentDialog.tsx`: Document deletion dialog with safe confirmation.
   - `apps/frontend/src/components/document-history/DocumentHistorySearch.tsx`: Isolated document history search input component.
   - `apps/frontend/src/components/strategist-tab/components/DeleteSessionDialog.tsx`: Strategist session deletion confirmation dialog.
-  - `apps/frontend/src/components/InPlaceRefineFeedbackModal.tsx`: Dedicated post-refinement completion dialog (*"Open Review/Publication"* vs *"Stay in Editor"*).
 
 ### Changed
+- **Simplified editorial navigation and transitions**:
+  - Reduced global navigation to Workspace, Content, Analytics, and Settings while retaining Editor, Review, and Publication routes as compatible internal workflow surfaces.
+  - Removed the duplicate post-Refine modal. The workflow panel now owns one primary handoff: unresolved decisions go to Review and ready articles go to Publication, where missing SEO details are prepared before export.
+  - Replaced the ambiguous autosave boolean presentation with explicit dirty, saving, saved, failed, and conflict states. Clearing an article now requires confirmation, preserves planning context, and offers Undo.
 - **Reliable idea-to-publication workflow state**:
   - Made Draft from Notes transactional in the UI: only checked notes are submitted, the current draft remains visible while generation runs, autosave is suspended for the transient stream, and cancellation or failure restores the prior draft.
   - Persisted the complete actionable Blueprint plan and its durable `sourceRef` in the tenant-scoped Strategist session, then restored the latest plan when reopening that session without leaking actions across sessions.
-  - Kept Fast Preview results without a current SEO package in Review instead of routing them prematurely to Publication.
+  - Routes ready Fast Preview results to Publication preparation while keeping export blocked until the publication package is complete.
   - Cancelled stale background validation before publication metadata, Prepare, or other conflicting mutations, and temporarily disabled metadata/Prepare/Export controls while a background result is in flight.
 - **Safe article-library actions and workflow routing**:
   - Limited Select All and bulk deletion to the currently visible filtered result set, clearing stale selections when search or stage filters change and preventing hidden articles from being deleted accidentally.
@@ -45,9 +52,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added keyboard-operable date group controls, accessible checkbox/delete labels, plural destructive confirmations, and pending-state guards against duplicate delete submissions.
 - **Interactive In-Place Refinement & 3-Phase Sequential UX Architecture**:
   - Running **Refine Draft** within `/editor` no longer forces an unprompted route change. The center canvas displays an inline loading overlay (*"EAI is Analyzing & Refining..."*) directly over the active draft.
-  - Separated the feedback review phase from the completion handoff dialog. When refinement produces findings requiring editorial approval (e.g. `Source Fidelity` or `Unsupported Entity Detail`), decision cards render unobstructedly **on the center editor canvas** without premature modal pop-up interference.
-  - The completion handoff dialog (`InPlaceRefineFeedbackModal`) appears ONLY after all pending feedback decisions on the canvas have been approved/resolved (`readiness === 'ready'`), offering clear choices to 🚀 **"Open Review / Publication"** or ✏️ **"Stay in Editor"**.
-  - Updated TypeScript prop typing `processStage?: EditorialProcessStage` across `EditorCanvas`, `EditorWorkflowPanel`, and `EditorialProgress`, and utilized derived state for `showInPlaceModal` to eliminate React 19 `setState`-in-effect warnings.
+  - Separated feedback decisions from completion handoff. Findings requiring editorial approval render unobstructedly **on the center editor canvas**, while `EditorWorkflowPanel` alone owns the deterministic next action after completion.
 - **Separated editorial workspaces**:
   - Replaced the permanent History + Editor + all-purpose Copilot composition with distinct document-home, editor, review, and publication destinations.
   - Made `/workspace` a Grammarly-style document home with title search, status filters, durable asset summaries, and stage-aware open actions; legacy document links forward to `/editor` without losing parameters.

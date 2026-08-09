@@ -71,6 +71,8 @@ interface EditorCanvasProps {
   isAiBusy: boolean;
   onAddNewMetadataOption: (type: 'category' | 'articleType', value: string) => void;
   onOpenShortcuts: () => void;
+  onOpenStrategist?: () => void;
+  onOpenNotes?: () => void;
   layoutReversed?: boolean;
   onToggleLayoutReversed?: () => void;
   isGeneratingDraft?: boolean;
@@ -139,6 +141,8 @@ export default function EditorCanvas({
   isAiBusy,
   onAddNewMetadataOption,
   onOpenShortcuts,
+  onOpenStrategist,
+  onOpenNotes,
   layoutReversed = false,
   onToggleLayoutReversed,
   isGeneratingDraft = false,
@@ -272,6 +276,8 @@ export default function EditorCanvas({
                 isPersonal={editorialOptions.isPersonal}
                 onAddNewMetadataOption={onAddNewMetadataOption}
                 charLimit={editorialOptions.maxTextLength}
+                onOpenStrategist={onOpenStrategist}
+                onOpenNotes={onOpenNotes}
               />
             </motion.div>
           )}

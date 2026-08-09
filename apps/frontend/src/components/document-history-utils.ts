@@ -1,3 +1,6 @@
+import type { ArticleWorkflowSnapshot } from '@eai/shared';
+import { destinationForWorkflow } from '@eai/shared';
+
 export interface HistoryItem {
   id: string;
   createdAt: string;
@@ -6,6 +9,7 @@ export interface HistoryItem {
   verdict?: string;
   summary?: string;
   isPinned: boolean;
+  workflow?: ArticleWorkflowSnapshot;
   feedback?: Array<{
     status?: string;
     isApplied?: boolean;
@@ -48,6 +52,7 @@ export type HistoryItemPresentation = {
   unresolvedFindingCount: number;
   blockingFindingCount: number;
   hasFindingSnapshot: boolean;
+  workflow: ArticleWorkflowSnapshot;
 };
 
 const isUnresolvedFinding = (item: NonNullable<HistoryItem['feedback']>[number]) =>
@@ -113,6 +118,39 @@ export const getHistoryItemPresentation = (
     .map(value => value?.trim())
     .filter((value): value is string => Boolean(value))
     .join(' · ');
+  const fallbackStage = resolveStage(item.verdict, unresolvedFeedback);
+  const workflow = item.workflow ?? {
+    sourceRef: getArticleFamilyKey(item),
+    currentAnalysisLogId: item.id,
+    stage: fallbackStage === 'draft'
+      ? 'drafting'
+      : fallbackStage === 'ready'
+        ? 'ready'
+        : 'review_required',
+    qualityState: fallbackStage === 'ready'
+      ? 'passed'
+      : fallbackStage === 'draft'
+        ? 'unchecked'
+        : 'needs_attention',
+    saveState: 'saved',
+    publicationState: metadata?.exportStatus?.lastExportStatus === 'success'
+      ? 'exported'
+      : metadata?.generatedMetadata
+        ? 'ready'
+        : 'not_started',
+    unresolvedDecisionCount: unresolvedFeedback.length,
+    blockingDecisionCount: unresolvedFeedback.filter(feedback => feedback.status === 'fail').length,
+    nextAction: fallbackStage === 'draft'
+      ? 'continue_writing'
+      : fallbackStage === 'ready'
+        ? 'prepare_publication'
+        : 'resolve_decisions',
+    destination: fallbackStage === 'draft'
+      ? 'editor'
+      : fallbackStage === 'ready'
+        ? 'publication'
+        : 'review',
+  } satisfies ArticleWorkflowSnapshot;
 
   return {
     title:
@@ -122,7 +160,11 @@ export const getHistoryItemPresentation = (
       || metadata?._system?.workingTitle?.trim()
       || fallbackTaxonomy
       || fallbackTitle,
-    stage: resolveStage(item.verdict, unresolvedFeedback),
+    stage: workflow.stage === 'drafting' || workflow.stage === 'refining'
+      ? 'draft'
+      : workflow.stage === 'review_required'
+        ? workflow.blockingDecisionCount > 0 ? 'blocked' : 'review'
+        : 'ready',
     hasFinalDraft: Boolean(polishedDraft),
     hasPublicationMetadata: Boolean(metadata?.generatedMetadata),
     noteCount: Array.isArray(metadata?.researchNotes) ? metadata.researchNotes.length : 0,
@@ -132,5 +174,10 @@ export const getHistoryItemPresentation = (
     unresolvedFindingCount: unresolvedFeedback.length,
     blockingFindingCount: unresolvedFeedback.filter(feedback => feedback.status === 'fail').length,
     hasFindingSnapshot: Object.prototype.hasOwnProperty.call(item, 'feedback'),
+    workflow,
   };
 };
+
+export const destinationForArticleWorkflow = (
+  presentation: Pick<HistoryItemPresentation, 'workflow'>
+) => destinationForWorkflow(presentation.workflow);

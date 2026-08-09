@@ -19,6 +19,7 @@ import type {
   SeoField,
   SeoFieldStates,
   DraftRevisionIdentity,
+  ArticleSaveState,
 } from '@eai/shared';
 import {
   applyAllFeedbackOperations,
@@ -189,6 +190,7 @@ export function useEditorialWorkspace({
   // Additional action states
   const [isTargetedFixing, setIsTargetedFixing] = useState<number | null>(null);
   const [isSavingToCloud, setIsSavingToCloud] = useState(false);
+  const [saveState, setSaveState] = useState<ArticleSaveState>('local_only');
   const [isGeneratingDraftFromNotes, setIsGeneratingDraftFromNotes] = useState(false);
   const [isSavingFinalDraft, setIsSavingFinalDraft] = useState(false);
   const [isCheckingQuality, setIsCheckingQuality] = useState(false);
@@ -262,6 +264,7 @@ export function useEditorialWorkspace({
     isDemoMode,
     suspended: isGeneratingDraftFromNotes,
     setIsSavingToCloud,
+    setSaveState,
     setActiveHistoryId,
   });
 
@@ -292,6 +295,7 @@ export function useEditorialWorkspace({
     if (isDemoMode || hasBlockingWorkspaceOperation()) return;
     workspaceMutationRef.current = true;
     setIsSavingToCloud(true);
+    setSaveState('saving');
     try {
       const response = await fetchWithTimeout('/api/history', {
         method: 'POST',
@@ -320,10 +324,12 @@ export function useEditorialWorkspace({
           localStorage.setItem('eai-active-history-id', result.id);
         }
         setRefreshTrigger(prev => prev + 1);
+        setSaveState('saved');
         toast.success('Draft synced to cloud');
       }
     } catch (error) {
       console.error('Error saving to cloud:', error);
+      setSaveState('failed');
       toast.error('Failed to sync draft to cloud');
     } finally {
       workspaceMutationRef.current = false;
@@ -1422,6 +1428,7 @@ export function useEditorialWorkspace({
     if (hasBlockingWorkspaceOperation()) return;
     cancelBackgroundValidation();
     setActiveHistoryId(null);
+    setSaveState('local_only');
     setDraft('');
     setSourceDraft('');
     setMetadata(applyDefaultMetadata(appSettings.defaultMetadata));
@@ -1538,6 +1545,7 @@ export function useEditorialWorkspace({
       if (res.ok) {
         const log = await res.json();
         setActiveHistoryId(log.id);
+        setSaveState('saved');
         setDraft(log.content || '');
         setSourceDraft(log.content || '');
         const loadedMetadata = extractArticleMetadata(log.metadata);
@@ -1897,6 +1905,7 @@ export function useEditorialWorkspace({
     setAnalysisSpeed,
     isTargetedFixing,
     isSavingToCloud,
+    saveState,
     isGeneratingDraftFromNotes,
     isSavingFinalDraft,
     isCheckingQuality,

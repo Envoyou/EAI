@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
+import { useEffect, useRef } from 'react';
+import { EAILoaderStatusIcon, WarningStatusIcon } from '@/components/ui/icons/status';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MotionConfig } from 'framer-motion';
@@ -25,7 +25,6 @@ import { EditorWorkflowPanel } from '@/components/EditorWorkflowPanel';
 import { PublicationSeoPanel } from '@/components/PublicationSeoPanel';
 import { AppSidebarShell, type WorkspacePage } from '@/components/AppSidebarShell';
 import ShortcutsModal from '@/components/ShortcutsModal';
-import { InPlaceRefineFeedbackModal } from '@/components/InPlaceRefineFeedbackModal';
 import { EAILogo } from '@/components/EAILogo';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
@@ -35,10 +34,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AssistantChatIcon, RefineDraftIcon } from '@/components/ui/icons/ai';
 import { CancelActionIcon } from '@/components/ui/icons/actions';
 import { DocumentIcon } from '@/components/ui/icons/content';
+import { ArticleWorkflowBar } from '@/components/ArticleWorkflowBar';
+import { deriveArticleWorkflowSnapshot } from '@eai/shared';
 
 import { useEditorialWorkspace } from '@/workspace/useEditorialWorkspace';
-import { editorStatusBadgeVariant, isCandidatePendingReview, deriveHandoffDestination } from '@/workspace/utils';
-import type { EditorHandoffState } from '@/workspace/types';
+import { editorStatusBadgeVariant, isCandidatePendingReview } from '@/workspace/utils';
 
 export default function EditorialWorkspace({
   mode,
@@ -106,6 +106,7 @@ export default function EditorialWorkspace({
     setAnalysisSpeed,
     isTargetedFixing,
     isSavingToCloud,
+    saveState,
     isGeneratingDraftFromNotes,
     isSavingFinalDraft,
     isCheckingQuality,
@@ -149,65 +150,27 @@ export default function EditorialWorkspace({
   const initialContentMapNavigationHandled = useRef(false);
   const currentPage = stage as WorkspacePage;
   const effectiveActiveTab = (stage === 'review' || stage === 'publication') ? 'refined' : activeTab;
-  const [dismissedHandoffId, setDismissedHandoffId] = useState<string | null>(null);
 
   const isCandidatePending = isCandidatePendingReview(analysis, {
     isStreaming,
     isRefining,
   });
 
-  const completedAnalysisLogId = editorHandoff?.analysisLogId ?? analysis.analysisLogId;
-  const previousIsRefining = useRef(isRefining);
-  const [lastCompletedRefineRunId, setLastCompletedRefineRunId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (previousIsRefining.current && !isRefining) {
-      if (analysis.status === 'success' && analysis.analysisLogId) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLastCompletedRefineRunId(analysis.analysisLogId);
-      }
-    }
-    previousIsRefining.current = isRefining;
-  }, [isRefining, analysis.status, analysis.analysisLogId]);
-
-  const hasCompletedReadyCandidate = Boolean(
-    analysis.polishedDraft?.trim() &&
-    analysis.status === 'success' &&
-    analysis.readiness === 'ready' &&
-    completedAnalysisLogId &&
-    !isStreaming &&
-    !isRefining
-  );
-
-  const isRecentlyCompleted = lastCompletedRefineRunId === completedAnalysisLogId;
-
-  const resolvedEditorHandoff = editorHandoff ?? (
-    hasCompletedReadyCandidate && isRecentlyCompleted
-      ? {
-          analysisLogId: completedAnalysisLogId,
-          destination: deriveHandoffDestination({
-            readiness: analysis.readiness || 'needs_review',
-            hasPublicationPackage: analysis.publicationPackageStatus === 'current'
-          }),
-          unresolvedFindingCount: 0,
-          blockingFindingCount: 0,
-          hasSeoPackage: analysis.publicationPackageStatus === 'current',
-          readiness: analysis.readiness,
-          status: analysis.status,
-          generatedMetadata: analysis.generatedMetadata,
-          publicationPackageStatus: analysis.publicationPackageStatus,
-          feedback: analysis.feedback || [],
-          recovered: true
-        } as unknown as EditorHandoffState
-      : null
-  );
-
-  const showInPlaceModal = Boolean(
-    stage === 'editor' &&
-    resolvedEditorHandoff &&
-    !isCandidatePending &&
-    dismissedHandoffId !== resolvedEditorHandoff.analysisLogId
-  );
+  const articleWorkflow = deriveArticleWorkflowSnapshot({
+    sourceRef: metadata.sourceRef,
+    analysisLogId: analysis.analysisLogId || activeHistoryId || 'local-draft',
+    revisionId: analysis.draftRevision?.revisionId,
+    hasDraft: Boolean(draft.trim() || analysis.polishedDraft?.trim()),
+    isProcessing: isStreaming || isRefining,
+    readiness: analysis.readiness,
+    feedback: analysis.feedback,
+    publicationPackageStatus: analysis.publicationPackageStatus,
+    qualityGateState: analysis.qualityGateState,
+    seoReviewState: analysis.seoReviewState,
+    seoFieldStates: analysis.seoFieldStates,
+    exportStatus: analysis.exportStatus,
+    saveState,
+  });
 
   useEffect(() => {
     if (workspaceChecking || isDemoMode) return;
@@ -361,10 +324,22 @@ export default function EditorialWorkspace({
                   render={
                     activeHistoryId ? (
                       <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--muted-foreground)] bg-[var(--surface-2)]/45 border border-[var(--border)]/75 rounded-full select-none">
-                        {isSavingToCloud ? (
+                        {saveState === 'saving' ? (
                           <>
                             <EAILoaderStatusIcon className="w-3.5 h-3.5 text-[var(--primary)]" />
                             <span className="hidden @[640px]:inline">{tWorkspace('savingToCloud')}</span>
+                          </>
+                        ) : saveState === 'dirty' ? (
+                          <>
+                            <CloudUpload className="w-3.5 h-3.5 text-amber-500" />
+                            <span className="hidden @[640px]:inline">{tWorkspace('unsavedChanges')}</span>
+                          </>
+                        ) : saveState === 'failed' || saveState === 'conflict' ? (
+                          <>
+                            <WarningStatusIcon className="w-3.5 h-3.5 text-red-500" />
+                            <span className="hidden @[640px]:inline">
+                              {tWorkspace(saveState === 'conflict' ? 'saveConflict' : 'syncFailed')}
+                            </span>
                           </>
                         ) : (
                           <>
@@ -394,7 +369,9 @@ export default function EditorialWorkspace({
                 />
                 <TooltipContent side="bottom" className="text-xs">
                   {activeHistoryId
-                    ? tWorkspace('autosaveActiveTooltip')
+                    ? saveState === 'failed'
+                      ? tWorkspace('syncFailedTooltip')
+                      : tWorkspace('autosaveActiveTooltip')
                     : tWorkspace('manualSaveTooltip')}
                 </TooltipContent>
               </Tooltip>
@@ -582,6 +559,16 @@ export default function EditorialWorkspace({
       isGeneratingSeo={isGeneratingSeo}
       onAddNewMetadataOption={handleAddNewCategoryOrType}
       onOpenShortcuts={() => setIsShortcutModalOpen(true)}
+      onOpenStrategist={() => {
+        setRightPanelTab('strategist');
+        setRightPanelOpen(true);
+        if (isMobile) setMobileViewTab('copilot');
+      }}
+      onOpenNotes={() => {
+        setRightPanelTab('notes');
+        setRightPanelOpen(true);
+        if (isMobile) setMobileViewTab('copilot');
+      }}
       layoutReversed={false}
       onAcceptFeedback={handleAcceptFeedback}
       onApplyFix={handleApplyFix}
@@ -624,6 +611,7 @@ export default function EditorialWorkspace({
           onFinishLater={() => router.push('/workspace')}
           onContinueEditing={() => {
             setEditorHandoff(null);
+            setActiveTab('draft');
             setRightPanelOpen(false);
             if (isMobile) setMobileViewTab('editor');
           }}
@@ -688,6 +676,7 @@ export default function EditorialWorkspace({
             {isMobile ? (
               <div className="flex flex-col flex-1 min-h-0 pb-16 relative bg-[var(--background)] mobile-workspace-container">
                 {renderHeader()}
+                {!isDemoMode && <ArticleWorkflowBar workflow={articleWorkflow} />}
                 {leftPanelOpen && !isDemoMode && (
                   <div className="fixed inset-0 z-[120] bg-[var(--background)]">
                     <AppSidebarShell
@@ -762,6 +751,7 @@ export default function EditorialWorkspace({
               centerPanel={
                 <div className="flex flex-col h-full overflow-hidden">
                   {renderHeader()}
+                  {!isDemoMode && <ArticleWorkflowBar workflow={articleWorkflow} />}
                   {renderEditorSurface()}
                 </div>
               }
@@ -955,25 +945,6 @@ export default function EditorialWorkspace({
           </div>
         )}
 
-        <InPlaceRefineFeedbackModal
-          open={showInPlaceModal}
-          onOpenChange={(open) => {
-            if (!open && resolvedEditorHandoff) {
-              setDismissedHandoffId(resolvedEditorHandoff.analysisLogId);
-            }
-          }}
-          destination={resolvedEditorHandoff?.destination}
-          onViewResults={() => {
-            if (resolvedEditorHandoff) {
-              router.push(`/${resolvedEditorHandoff.destination}?history=${encodeURIComponent(resolvedEditorHandoff.analysisLogId)}`);
-            } else if (analysis.analysisLogId) {
-              router.push(`/review?history=${encodeURIComponent(analysis.analysisLogId)}`);
-            }
-          }}
-          onStayInEditor={() => {
-            setActiveTab('refined');
-          }}
-        />
       </div>
     </div>
   </MotionConfig>

@@ -15,6 +15,9 @@ describe('editorial workspace information architecture', () => {
   const finalDraft = read('../FinalDraftPanel.tsx');
   const library = read('../SavedArticlesLibrary.tsx');
   const storage = read('../../workspace/hooks/useWorkspaceStorage.ts');
+  const editor = read('../Editor.tsx');
+  const navigation = read('../app-shell/navigation/main-navigation.ts');
+  const autosave = read('../../workspace/hooks/useWorkspaceAutosave.ts');
 
   it('uses workspace as the document home and preserves legacy document links', () => {
     expect(workspacePage).toContain('<SavedArticlesLibrary />');
@@ -58,6 +61,31 @@ describe('editorial workspace information architecture', () => {
     expect(workspace).toContain('router.push(`/${editorHandoff.destination}?history=');
     expect(editorWorkflow).toContain("opensPublication ? t('openPublication') : t('openReview')");
     expect(workspace).toContain('onSave={handleSavePublicationMetadata}');
+    expect(workspace).not.toContain('InPlaceRefineFeedbackModal');
+  });
+
+  it('keeps workflow stages out of global navigation', () => {
+    expect(navigation).toContain("id: 'workspace'");
+    expect(navigation).toContain("id: 'articles'");
+    expect(navigation).toContain("id: 'dashboard'");
+    expect(navigation).not.toContain("id: 'editor'");
+    expect(navigation).not.toContain("id: 'review'");
+    expect(navigation).not.toContain("id: 'publication'");
+  });
+
+  it('offers explicit creation paths and safe clearing', () => {
+    expect(editor).toContain("useTranslations('ArticleEditor')");
+    expect(editor).toContain("t('startWithAi')");
+    expect(editor).toContain("t('fromBlueprint')");
+    expect(editor).toContain("t('fromNotes')");
+    expect(editor).toContain('<ConfirmDestructiveDialog');
+    expect(editor).not.toContain("sessionStorage.removeItem('eai_strategist_messages')");
+  });
+
+  it('does not equate an idle autosave request with a successful save', () => {
+    expect(autosave).toContain("setSaveState('dirty')");
+    expect(autosave).toContain("setSaveState('failed')");
+    expect(autosave).toContain("setSaveState('saved')");
   });
 
   it('uses a compact publication command instead of another decision card', () => {

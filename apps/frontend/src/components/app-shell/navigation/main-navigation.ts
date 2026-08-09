@@ -1,9 +1,7 @@
 import { NavigationItem } from './navigation-types';
 import {
   WorkspaceNavigationIcon,
-  EditorNavigationIcon,
-  ReviewNavigationIcon,
-  PublicationNavigationIcon,
+  DocumentNavigationIcon,
   DashboardNavigationIcon,
 } from '@/components/ui/icons/navigation';
 
@@ -16,24 +14,10 @@ export const MAIN_NAVIGATION: NavigationItem[] = [
     match: 'exact',
   },
   {
-    id: 'editor',
-    href: '/editor',
-    labelKey: 'editor',
-    icon: EditorNavigationIcon,
-    match: 'section',
-  },
-  {
-    id: 'review',
-    href: '/review',
-    labelKey: 'review',
-    icon: ReviewNavigationIcon,
-    match: 'section',
-  },
-  {
-    id: 'publication',
-    href: '/publication',
-    labelKey: 'publication',
-    icon: PublicationNavigationIcon,
+    id: 'articles',
+    href: '/articles',
+    labelKey: 'articles',
+    icon: DocumentNavigationIcon,
     match: 'section',
   },
   {

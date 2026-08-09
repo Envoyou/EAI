@@ -105,6 +105,10 @@
     "undoTooltip": "Batalkan editan terakhir",
     "savingToCloud": "Menyimpan...",
     "savedToCloud": "Tersimpan di Cloud",
+    "unsavedChanges": "Perubahan belum tersinkron",
+    "syncFailed": "Sinkronisasi gagal",
+    "saveConflict": "Konflik penyimpanan",
+    "syncFailedTooltip": "Perubahan terbaru masih ada di perangkat ini dan belum tersinkron. Edit artikel untuk mencoba autosave lagi.",
     "saveToCloudAction": "Simpan ke Cloud",
     "autosaveActiveTooltip": "Autosave aktif. Editan akan tersinkronisasi ke database otomatis.",
     "manualSaveTooltip": "Simpan draf dan catatan ke database cloud agar bisa dibuka di perangkat lain.",
@@ -137,7 +141,7 @@
     "seoIncluded": "Detail publikasi ikut tersimpan",
     "seoIncludedDescription": "Judul, slug, ringkasan, metadata, dan tag mengikuti artikel ini ke ruang Publikasi.",
     "seoPending": "Detail publikasi perlu disiapkan",
-    "seoPendingDescription": "Artikel tersimpan di Publikasi. Lengkapi detail publikasinya di sana sebelum ekspor.",
+    "seoPendingDescription": "Detail publikasi akan disiapkan di tahap Publikasi sebelum ekspor.",
     "openReview": "Buka Review",
     "openPublication": "Buka Publikasi",
     "finishLater": "Selesaikan nanti",
@@ -158,6 +162,19 @@
     "demoSignupStartFree": "Mulai Gratis",
     "demoSignupMaybeLater": "Mungkin Nanti"
   },
+  "ArticleWorkflow": {
+    "label": "Alur kerja artikel",
+    "phase": { "draft": "Draft", "review": "Review", "publication": "Publikasi" },
+    "nextAction": {
+      "continue_writing": "Lanjutkan menulis draft",
+      "wait_for_refinement": "EAI sedang menyempurnakan artikel",
+      "resolve_decisions": "{count} keputusan editorial tersisa",
+      "prepare_publication": "Review editorial selesai · siapkan publikasi",
+      "complete_metadata": "Lengkapi detail publikasi yang tersisa",
+      "export_to_cms": "Paket publikasi siap diekspor",
+      "open_cms_draft": "Artikel berhasil diekspor"
+    }
+  },
   "AppNavigation": {
     "create": "Alur kerja",
     "manage": "Library & insight",
@@ -165,8 +182,8 @@
     "editor": "Editor",
     "review": "Review",
     "publication": "Publikasi",
-    "articles": "Artikel Tersimpan",
-    "dashboard": "Dashboard",
+    "articles": "Konten",
+    "dashboard": "Analitik",
     "settings": "Pengaturan",
     "lightMode": "Mode Terang",
     "darkMode": "Mode Gelap",
@@ -190,6 +207,23 @@
     "confirm": "Hapus",
     "deleting": "Menghapus…"
   },
+  "ArticleEditor": {
+    "launchpadTitle": "Buat artikel",
+    "launchpadDescription": "Pilih cara memulai. Workspace akan mempertahankan artikel yang sama sepanjang tahap penulisan, review, dan publikasi.",
+    "startWithAi": "Mulai dengan AI",
+    "startWithAiDescription": "Riset, tentukan angle, dan buat draft bersama EAI.",
+    "writeOrPaste": "Tulis atau tempel",
+    "writeOrPasteDescription": "Mulai dari draft Anda sendiri.",
+    "fromBlueprint": "Dari Blueprint",
+    "fromBlueprintDescription": "Lanjutkan dari rencana editorial yang sudah ada.",
+    "fromNotes": "Dari Catatan",
+    "fromNotesDescription": "Ubah catatan riset terpilih menjadi draft.",
+    "clearTitle": "Kosongkan isi artikel ini?",
+    "clearDescription": "Tindakan ini menghapus isi artikel dari editor. Catatan riset dan konteks perencanaan tetap disimpan, dan Anda dapat langsung membatalkannya.",
+    "clearConfirm": "Kosongkan artikel",
+    "clearSuccess": "Isi artikel dikosongkan",
+    "undoClear": "Batalkan"
+  },
   "SavedArticlesPage": {
     "eyebrow": "Library artikel",
     "title": "Artikel Tersimpan",
@@ -203,6 +237,12 @@
     "emptyTitle": "Tidak ada artikel yang cocok",
     "emptyDescription": "Ubah filter atau mulai artikel baru.",
     "decisionsRemaining": "{count} keputusan tersisa",
+    "queue": {
+      "needsAttention": { "title": "Perlu perhatian Anda", "description": "Keputusan atau detail publikasi memerlukan tindakan Anda." },
+      "continueWorking": { "title": "Lanjutkan pekerjaan", "description": "Draft dan pekerjaan aktif yang dapat dilanjutkan." },
+      "readyToPublish": { "title": "Siap dipublikasikan", "description": "Artikel yang sudah selesai secara editorial dan menunggu publikasi." },
+      "recentlyCompleted": { "title": "Baru selesai", "description": "Artikel yang sudah diekspor ke tujuan terhubung." }
+    },
     "scope": {
       "all": {
         "eyebrow": "Library artikel",
@@ -210,6 +250,13 @@
         "description": "Mulai artikel baru atau buka kembali pekerjaan tersimpan pada tahap yang sesuai dengan pekerjaan berikutnya.",
         "emptyTitle": "Tidak ada artikel yang cocok",
         "emptyDescription": "Ubah filter atau mulai artikel baru."
+      },
+      "library": {
+        "eyebrow": "Library konten",
+        "title": "Konten",
+        "description": "Telusuri dan kelola semua artikel tersimpan tanpa memilih tahap workflow internal.",
+        "emptyTitle": "Belum ada artikel tersimpan",
+        "emptyDescription": "Mulai artikel baru untuk membangun library konten Anda."
       },
       "review": {
         "eyebrow": "Evaluasi editorial",
@@ -228,10 +275,28 @@
     },
     "filter": { "all": "Semua", "draft": "Draft", "review": "Review", "blocked": "Diblokir", "ready": "Siap" },
     "stage": { "draft": "Draft", "review": "Review", "blocked": "Diblokir", "ready": "Siap" },
+    "workflowStage": {
+      "drafting": "Draft",
+      "refining": "Sedang diproses",
+      "review_required": "Perlu review",
+      "ready": "Siap",
+      "preparing_publication": "Publikasi",
+      "exported": "Sudah diekspor"
+    },
+    "nextAction": {
+      "continue_writing": "Lanjutkan menulis",
+      "wait_for_refinement": "Lihat progres",
+      "resolve_decisions": "Selesaikan keputusan",
+      "prepare_publication": "Siapkan publikasi",
+      "complete_metadata": "Lengkapi detail publikasi",
+      "export_to_cms": "Ekspor ke CMS",
+      "open_cms_draft": "Buka publikasi"
+    },
     "open": { "draft": "Lanjutkan penyuntingan", "review": "Buka review", "blocked": "Selesaikan temuan", "ready": "Buka publikasi" },
     "itemsCount": "{count, plural, other {{count} item}}",
     "lastEdit": "Terakhir diedit {time}",
     "toggleDateGroup": "Buka atau tutup artikel yang diperbarui pada {date}",
+    "toggleArticleGroup": "Buka atau tutup {group}",
     "selectArticle": "Pilih {title}",
     "deleteArticle": "Hapus {title}"
   },

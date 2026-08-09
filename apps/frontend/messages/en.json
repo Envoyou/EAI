@@ -105,6 +105,10 @@
     "undoTooltip": "Undo last edit",
     "savingToCloud": "Saving...",
     "savedToCloud": "Saved to Cloud",
+    "unsavedChanges": "Changes pending",
+    "syncFailed": "Sync failed",
+    "saveConflict": "Save conflict",
+    "syncFailedTooltip": "The latest changes are still on this device and were not synced. Edit the article to retry autosave.",
     "saveToCloudAction": "Save to Cloud",
     "autosaveActiveTooltip": "Autosave is active. Edits sync to database automatically.",
     "manualSaveTooltip": "Save this draft and notes to the cloud database to work on other devices.",
@@ -137,7 +141,7 @@
     "seoIncluded": "Publication details included",
     "seoIncludedDescription": "Title, slug, excerpt, metadata, and tags travel with this article into Publication.",
     "seoPending": "Publication details need preparation",
-    "seoPendingDescription": "The article is saved in Publication. Complete its publication details there before export.",
+    "seoPendingDescription": "Publication details will be prepared in Publication before export.",
     "openReview": "Open Review",
     "openPublication": "Open Publication",
     "finishLater": "Finish later",
@@ -158,6 +162,19 @@
     "demoSignupStartFree": "Start Free",
     "demoSignupMaybeLater": "Maybe Later"
   },
+  "ArticleWorkflow": {
+    "label": "Article workflow",
+    "phase": { "draft": "Draft", "review": "Review", "publication": "Publication" },
+    "nextAction": {
+      "continue_writing": "Continue writing your draft",
+      "wait_for_refinement": "EAI is refining this article",
+      "resolve_decisions": "{count, plural, one {# editorial decision remaining} other {# editorial decisions remaining}}",
+      "prepare_publication": "Editorial review complete · prepare publication",
+      "complete_metadata": "Complete the remaining publication details",
+      "export_to_cms": "Publication package ready to export",
+      "open_cms_draft": "Article exported successfully"
+    }
+  },
   "AppNavigation": {
     "create": "Workflow",
     "manage": "Library & insights",
@@ -165,8 +182,8 @@
     "editor": "Editor",
     "review": "Review",
     "publication": "Publication",
-    "articles": "Saved Articles",
-    "dashboard": "Dashboard",
+    "articles": "Content",
+    "dashboard": "Analytics",
     "settings": "Settings",
     "lightMode": "Light Mode",
     "darkMode": "Dark Mode",
@@ -190,6 +207,23 @@
     "confirm": "Delete",
     "deleting": "Deleting…"
   },
+  "ArticleEditor": {
+    "launchpadTitle": "Create an article",
+    "launchpadDescription": "Choose how you want to begin. The workspace will keep the same article through writing, review, and publication.",
+    "startWithAi": "Start with AI",
+    "startWithAiDescription": "Research, shape an angle, and build a draft with EAI.",
+    "writeOrPaste": "Write or paste",
+    "writeOrPasteDescription": "Start from your own draft.",
+    "fromBlueprint": "From Blueprint",
+    "fromBlueprintDescription": "Continue from an existing editorial plan.",
+    "fromNotes": "From Notes",
+    "fromNotesDescription": "Turn selected research notes into a draft.",
+    "clearTitle": "Clear this article body?",
+    "clearDescription": "This removes the current body from the editor. Research notes and planning context will be kept, and you can undo immediately afterward.",
+    "clearConfirm": "Clear article",
+    "clearSuccess": "Article body cleared",
+    "undoClear": "Undo"
+  },
   "SavedArticlesPage": {
     "eyebrow": "Article library",
     "title": "Saved Articles",
@@ -203,6 +237,12 @@
     "emptyTitle": "No matching articles",
     "emptyDescription": "Change the filter or start a new article.",
     "decisionsRemaining": "{count, plural, one {# decision remaining} other {# decisions remaining}}",
+    "queue": {
+      "needsAttention": { "title": "Needs your attention", "description": "Decisions or publication details require your input." },
+      "continueWorking": { "title": "Continue working", "description": "Drafts and active work you can resume." },
+      "readyToPublish": { "title": "Ready to publish", "description": "Editorially complete articles awaiting publication." },
+      "recentlyCompleted": { "title": "Recently completed", "description": "Articles already exported to a connected destination." }
+    },
     "scope": {
       "all": {
         "eyebrow": "Article library",
@@ -210,6 +250,13 @@
         "description": "Start a new article or reopen saved work in the stage that matches its next job.",
         "emptyTitle": "No matching articles",
         "emptyDescription": "Change the filter or start a new article."
+      },
+      "library": {
+        "eyebrow": "Content library",
+        "title": "Content",
+        "description": "Browse and manage all saved articles without choosing an internal workflow stage.",
+        "emptyTitle": "No saved articles",
+        "emptyDescription": "Start a new article to build your content library."
       },
       "review": {
         "eyebrow": "Editorial evaluation",
@@ -228,10 +275,28 @@
     },
     "filter": { "all": "All", "draft": "Draft", "review": "Review", "blocked": "Blocked", "ready": "Ready" },
     "stage": { "draft": "Draft", "review": "Review", "blocked": "Blocked", "ready": "Ready" },
+    "workflowStage": {
+      "drafting": "Draft",
+      "refining": "Refining",
+      "review_required": "Review required",
+      "ready": "Ready",
+      "preparing_publication": "Publication",
+      "exported": "Exported"
+    },
+    "nextAction": {
+      "continue_writing": "Continue writing",
+      "wait_for_refinement": "View progress",
+      "resolve_decisions": "Resolve decisions",
+      "prepare_publication": "Prepare publication",
+      "complete_metadata": "Complete publication details",
+      "export_to_cms": "Export to CMS",
+      "open_cms_draft": "Open publication"
+    },
     "open": { "draft": "Continue editing", "review": "Open review", "blocked": "Resolve findings", "ready": "Open publication" },
     "itemsCount": "{count, plural, one {1 item} other {{count} items}}",
     "lastEdit": "Last edit {time}",
     "toggleDateGroup": "Toggle articles updated on {date}",
+    "toggleArticleGroup": "Toggle {group}",
     "selectArticle": "Select {title}",
     "deleteArticle": "Delete {title}"
   },

@@ -154,14 +154,14 @@ describe('buildEditorHandoff', () => {
     });
   });
 
-  it('keeps a ready Fast Preview without an SEO package out of Publication', () => {
+  it('routes a ready Fast Preview to Publication to prepare its missing package', () => {
     expect(buildEditorHandoff({
       analysisLogId: 'fast-log',
       readiness: 'ready',
       feedback: [],
       publicationPackageStatus: 'not_generated',
     })).toMatchObject({
-      destination: 'review',
+      destination: 'publication',
       unresolvedFindingCount: 0,
       hasSeoPackage: false,
     });
@@ -288,11 +288,11 @@ describe('deriveHandoffDestination', () => {
     })).toBe('publication');
   });
 
-  it('returns review when missing publication package', () => {
+  it('returns publication preparation when the publication package is missing', () => {
     expect(deriveHandoffDestination({
       readiness: 'ready',
       hasPublicationPackage: false,
-    })).toBe('review');
+    })).toBe('publication');
   });
 
   it('returns review when not ready', () => {

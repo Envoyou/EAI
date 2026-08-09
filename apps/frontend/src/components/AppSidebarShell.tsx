@@ -4,7 +4,7 @@ import React from 'react';
 import { GlobalNavigationRail } from '@/components/app-shell/GlobalNavigationRail';
 import { ContextSidebar } from '@/components/app-shell/ContextSidebar';
 
-export type WorkspacePage = 'workspace' | 'editor' | 'review' | 'dashboard' | 'publication' | 'settings';
+export type WorkspacePage = 'workspace' | 'articles' | 'editor' | 'review' | 'dashboard' | 'publication' | 'settings';
 
 export interface AppSidebarShellProps {
   sidebarOpen: boolean;

@@ -16,5 +16,7 @@ describe('current article history projection', () => {
     expect(historyRoute).toContain('ranked."feedback"');
     expect(historyRoute).toContain('log."updatedAt"');
     expect(historyRoute).toContain('ORDER BY log."updatedAt" DESC');
+    expect(historyRoute).toContain('deriveArticleWorkflowSnapshot');
+    expect(historyRoute).toContain('history.map(withArticleWorkflow)');
   });
 });

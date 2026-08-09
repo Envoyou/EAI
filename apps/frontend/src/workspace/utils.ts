@@ -272,7 +272,6 @@ export function deriveHandoffDestination(input: {
   hasPublicationPackage: boolean;
 }): 'review' | 'publication' {
   if (input.readiness !== 'ready') return 'review';
-  if (!input.hasPublicationPackage) return 'review';
   return 'publication';
 }
 

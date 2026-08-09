@@ -8,6 +8,7 @@ import { Copy, Trash2, FileEdit, ChevronDown, ChevronUp, BookOpen, Type, Code } 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { useState, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -23,6 +24,7 @@ import { Table } from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
+import { ConfirmDestructiveDialog } from '@/components/ui/ConfirmDestructiveDialog';
 
 interface EditorProps {
   value: string;
@@ -37,6 +39,8 @@ interface EditorProps {
   isPersonal?: boolean;
   onAddNewMetadataOption?: (type: 'category' | 'articleType', value: string) => void;
   charLimit?: number;
+  onOpenStrategist?: () => void;
+  onOpenNotes?: () => void;
 }
 
 
@@ -58,7 +62,10 @@ export default function Editor({
   editorialBrandName = 'the active editorial profile',
   isPersonal = false,
   onAddNewMetadataOption,
+  onOpenStrategist,
+  onOpenNotes,
 }: EditorProps) {
+  const t = useTranslations('ArticleEditor');
   const updateMeta = (field: keyof ArticleMetadata, val: string) => {
     onMetadataChange({ ...metadata, [field]: val });
   };
@@ -66,6 +73,7 @@ export default function Editor({
   const [showBrief, setShowBrief] = useState(false);
   const [isMetadataExpanded, setIsMetadataExpanded] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [placeholder, setPlaceholder] = useState(PLACEHOLDERS[0]);
 
   // Editor mode state: 'tiptap' (Rich Text) or 'markdown' (Raw Markdown)
@@ -324,16 +332,23 @@ export default function Editor({
 
   const handleClear = () => {
     if (!value.trim()) return;
+    setClearConfirmOpen(true);
+  };
+
+  const confirmClear = () => {
+    const previousValue = value;
     onChange('');
     setIsWritingManually(false);
-
-    sessionStorage.removeItem('eai_strategist_messages');
-    sessionStorage.removeItem('eai_strategist_sources');
-    sessionStorage.removeItem('eai_strategist_current_plan');
-    sessionStorage.removeItem('eai_strategist_deep_research');
-    sessionStorage.removeItem('eai_strategist_attachment');
-
-    toast.success('Workspace cleared');
+    setClearConfirmOpen(false);
+    toast.success(t('clearSuccess'), {
+      action: {
+        label: t('undoClear'),
+        onClick: () => {
+          onChange(previousValue);
+          setIsWritingManually(true);
+        },
+      },
+    });
   };
 
   return (
@@ -605,12 +620,15 @@ export default function Editor({
               <EAILogo className="size-5" />
             </div>
             <h3 className="text-lg font-semibold tracking-tight mb-2 text-[var(--foreground)]">
-              Start your article
+              {t('launchpadTitle')}
             </h3>
             <p className="text-sm text-[var(--muted-foreground)] mb-6 leading-relaxed text-pretty">
-              Write or paste an existing draft to get started. You can also chat with EAI to brainstorm ideas, refine your draft, and get editorial feedback.
+              {t('launchpadDescription')}
             </p>
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+              <Button type="button" onClick={onOpenStrategist} variant="surface" className="h-auto items-start justify-start rounded-xl p-3 text-left">
+                <span><span className="block text-sm font-semibold">{t('startWithAi')}</span><span className="mt-0.5 block text-xs font-normal text-[var(--muted-foreground)]">{t('startWithAiDescription')}</span></span>
+              </Button>
               <Button
                 type="button"
                 onClick={() => {
@@ -620,10 +638,16 @@ export default function Editor({
                     if (textareaRef.current) textareaRef.current.focus();
                   }, 50);
                 }}
-                variant="primary"
-                size="sm"
+                variant="surface"
+                className="h-auto items-start justify-start rounded-xl p-3 text-left"
               >
-                Write or Paste
+                <span><span className="block text-sm font-semibold">{t('writeOrPaste')}</span><span className="mt-0.5 block text-xs font-normal text-[var(--muted-foreground)]">{t('writeOrPasteDescription')}</span></span>
+              </Button>
+              <Button type="button" onClick={onOpenStrategist} variant="surface" className="h-auto items-start justify-start rounded-xl p-3 text-left">
+                <span><span className="block text-sm font-semibold">{t('fromBlueprint')}</span><span className="mt-0.5 block text-xs font-normal text-[var(--muted-foreground)]">{t('fromBlueprintDescription')}</span></span>
+              </Button>
+              <Button type="button" onClick={onOpenNotes} variant="surface" className="h-auto items-start justify-start rounded-xl p-3 text-left">
+                <span><span className="block text-sm font-semibold">{t('fromNotes')}</span><span className="mt-0.5 block text-xs font-normal text-[var(--muted-foreground)]">{t('fromNotesDescription')}</span></span>
               </Button>
             </div>
           </div>
@@ -689,6 +713,14 @@ export default function Editor({
 
 
       </div>
+      <ConfirmDestructiveDialog
+        open={clearConfirmOpen}
+        onOpenChange={setClearConfirmOpen}
+        title={t('clearTitle')}
+        description={t('clearDescription')}
+        confirmLabel={t('clearConfirm')}
+        onConfirm={confirmClear}
+      />
     </div>
   );
 }

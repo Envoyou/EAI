@@ -192,7 +192,7 @@ export function GlobalNavigationRail({
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-1 min-h-0">
         <SidebarNav label={tNav('mainNavigation')}>
           <SidebarSection label={tNav('create')} sidebarOpen={sidebarOpen} />
-          {MAIN_NAVIGATION.slice(0, 4).map((item) => {
+          {MAIN_NAVIGATION.slice(0, 1).map((item) => {
             const isActive = currentPage === item.id || isRouteActive(pathname, item.href, item.match);
             return (
               <SidebarItem
@@ -200,20 +200,20 @@ export function GlobalNavigationRail({
                 icon={item.icon}
                 label={tNav(item.labelKey)}
                 sidebarOpen={sidebarOpen}
-                href={isDemoMode && item.id !== 'editor' ? undefined : item.href}
+                href={isDemoMode ? undefined : item.href}
                 onClick={
-                  isDemoMode && item.id !== 'editor'
+                  isDemoMode
                     ? () => handleDemoLock(tNav(item.labelKey))
                     : closeAfterMobileNavigation
                 }
                 isActive={isActive}
-                disabled={isDemoMode && item.id !== 'editor'}
+                disabled={isDemoMode}
               />
             );
           })}
 
           <SidebarSection label={tNav('manage')} sidebarOpen={sidebarOpen} />
-          {MAIN_NAVIGATION.slice(4).map((item) => {
+          {MAIN_NAVIGATION.slice(1).map((item) => {
             const isActive = currentPage === item.id || isRouteActive(pathname, item.href, item.match);
             return (
               <SidebarItem

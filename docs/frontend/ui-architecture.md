@@ -96,13 +96,15 @@ default pattern for mostly static route shells or read-only views.
 
 ### Final Draft editing boundary
 
-Editorial work is separated by route and responsibility rather than presented
-as three permanent tool columns. `/workspace` is the document home: it lists
-durable article records, searches actual saved titles, and sends each record to
-its next valid destination. `/editor` is the active writing canvas where inline feedback cards and actionable resolution controls (🚀 *Gunakan Proposal*, 🛡️ *Pertahankan Teks*, 🔗 *Tambah Sumber Manual*) are rendered directly on the center canvas alongside the article text. All interactive feedback decisions are resolved on the editor canvas prior to final review. `/review` serves as an audit and historical evaluation console (`ReviewArticlePanel.tsx`) that displays full article family history (Initial Blueprint/Notes vs. Initial Draft vs. Final Polish Draft) along with itemized audit logs and comparative diffs. `/publication` contains publication metadata, downloads, and CMS export, and redirects unresolved content back to Review.
+Editorial work is centered on an article lifecycle rather than the route
+structure. `/workspace` is an actionable work queue, `/articles` is the full
+content library, and each card has one next-action CTA derived from the current
+article snapshot. `/editor`, `/review`, and `/publication` remain compatible
+internal surfaces, but they are not global navigation peers. A read-only
+Draft -> Review -> Publication bar keeps the current article phase visible.
 
-The global application sidebar navigates these destinations; it never contains
-the full saved-document history while an article is being edited. Legacy
+The global application sidebar exposes only Workspace, Content, Analytics, and
+Settings; it never asks the user to choose an internal workflow stage. Legacy
 `/workspace?history=...`, Content Map, title, and brief links are forwarded to
 `/editor` with their parameters intact. This retains the canonical History API
 and durable analysis record while changing only where each responsibility is
@@ -136,7 +138,9 @@ download utilities remain in the categorized overflow menu. Draft refinement
 controls are not rendered in the Publication workspace.
 
 The document-home and workflow queues consume the History API's `view=current`
-projection. The backend ranks successful AnalysisLogs inside the active
+projection. Each row includes a shared `ArticleWorkflowSnapshot`, which keeps
+workflow stage, quality state, save state, publication state, unresolved
+decision count, destination, and next action separate. The backend ranks successful AnalysisLogs inside the active
 organization by durable `metadata.sourceRef` and returns only the newest log in
 each family; logs without lineage fall back to their own ID and remain separate
 articles. The frontend also collapses by the same key as a compatibility guard.
@@ -207,11 +211,10 @@ while that background result is in flight; their handlers also cancel the
 controller before mutating state. Draft editing remains available and a newer
 save supersedes the older validation.
 
-Workflow handoff requires both a ready current revision and a current complete
-publication package. Fast Preview may establish editorial readiness without
-generating SEO metadata, so it remains in Review until Prepare creates and
-validates the package; it must not route directly to Publication on readiness
-alone.
+Workflow handoff is deterministic. Unresolved findings route to Review. A ready
+revision routes to Publication even when Fast Preview did not generate SEO;
+Publication then owns package preparation and keeps export blocked until its
+metadata and validation guards are current.
 
 The workspace carries the backend-issued Final Draft revision identity through
 Analyze/Refine completion, History reload, editorial mutations, Quality Check,
@@ -243,7 +246,14 @@ being bypassed or lost.
 In-place Refinement within `/editor` follows a 3-Phase Sequential UX Architecture:
 1. **Refinement Execution**: The center editor canvas displays an inline loading overlay (*"EAI is Analyzing & Refining..."*) directly over the draft without triggering an unprompted page jump.
 2. **Feedback Decision Phase**: When refinement produces findings requiring editorial decisions (`isCandidatePendingReview === true`), the decision feedback cards render unobstructedly on the center editor canvas without premature modal pop-up obstruction.
-3. **Completion Handoff Dialog**: The `InPlaceRefineFeedbackModal` completion dialog pops up **only** after all pending feedback decisions on the canvas have been approved or resolved (`analysis.readiness === 'ready'`), offering clear options to proceed to Review/Publication or stay in Editor.
+3. **Single completion owner**: `EditorWorkflowPanel` presents one primary next action. Unresolved decisions open Review; a ready article opens Publication. Continue editing and Finish later remain secondary actions, and no duplicate completion modal is rendered.
+
+Cloud persistence is represented by an explicit save state rather than a
+`saving` boolean. The header distinguishes local-only, dirty, saving, saved,
+failed, and conflict states, so a failed autosave is never presented as saved.
+The empty editor is a temporary launchpad for AI, Write/Paste, Blueprint, or
+Notes. Clearing the article body requires confirmation, preserves Strategist
+and research context, and offers an immediate undo.
 
 The localized `/[locale]/dashboard/content-map` route is a bounded client view
 over the authenticated Content Memory API. It exposes collaboration-safe

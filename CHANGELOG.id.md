@@ -7,6 +7,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Manajemen Workflow Artikel**:
+  - Menambahkan snapshot workflow artikel bersama yang menurunkan state workflow, quality, penyimpanan, publikasi, dan satu aksi berikutnya secara terpisah untuk setiap artikel current.
+  - Mengubah Workspace menjadi antrean kerja untuk perhatian, pekerjaan lanjutan, kesiapan publikasi, dan ekspor selesai; menambahkan library Konten terpisah serta progress bar Draft/Review/Publikasi yang read-only.
+  - Menambahkan launchpad Artikel Baru dengan empat jalur: AI, Tulis/Tempel, Blueprint, dan Catatan.
 - **Akses Quick Draft di AI Strategist**:
   - Membuka mode draft berbasis topik, outline, referensi, dan siaran pers melalui dialog Strategist yang terlokalisasi, dengan progres streaming dan hasil yang dapat langsung diteruskan ke Editor atau Notes.
 - **Hapus Massal (Bulk Delete) dan Pengelompokan Tanggal di Halaman Library & History**:
@@ -31,13 +35,16 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - `apps/frontend/src/components/document-history/DeleteDocumentDialog.tsx`: Dialog hapus dokumen dengan konfirmasi aman.
   - `apps/frontend/src/components/document-history/DocumentHistorySearch.tsx`: Input pencarian riwayat dokumen terisolasi.
   - `apps/frontend/src/components/strategist-tab/components/DeleteSessionDialog.tsx`: Dialog hapus sesi Strategist.
-  - `apps/frontend/src/components/InPlaceRefineFeedbackModal.tsx`: Modal pilihan handoff pasca-perbaikan (*"Buka Review/Publikasi"* vs *"Tetap di Editor"*).
 
 ### Changed
+- **Navigasi dan transisi editorial yang disederhanakan**:
+  - Menyederhanakan navigasi global menjadi Workspace, Konten, Analitik, dan Pengaturan, sementara route Editor, Review, dan Publikasi tetap kompatibel sebagai surface internal workflow.
+  - Menghapus modal post-Refine yang duplikatif. Panel workflow kini memiliki satu handoff utama: keputusan belum selesai menuju Review, sedangkan artikel ready menuju Publikasi untuk menyiapkan detail SEO yang masih kurang sebelum ekspor.
+  - Mengganti presentasi boolean autosave yang ambigu dengan state dirty, saving, saved, failed, dan conflict. Aksi mengosongkan artikel kini memerlukan konfirmasi, mempertahankan konteks perencanaan, dan menyediakan Undo.
 - **State workflow ide hingga publikasi yang andal**:
   - Membuat Draft from Notes transaksional di UI: hanya note yang dicentang yang dikirim, draft aktif tetap terlihat selama generasi, autosave dihentikan sementara untuk stream transien, dan pembatalan atau kegagalan memulihkan draft sebelumnya.
   - Menyimpan plan Blueprint lengkap beserta `sourceRef` durable pada sesi Strategist yang tenant-scoped, lalu memulihkan plan terbaru ketika sesi dibuka kembali tanpa membocorkan aksi antar-sesi.
-  - Menahan hasil Fast Preview tanpa paket SEO current di Review agar tidak masuk Publikasi terlalu dini.
+  - Mengarahkan hasil Fast Preview yang ready ke persiapan Publikasi, tetapi tetap memblokir ekspor hingga paket publikasi lengkap.
   - Membatalkan background validation lama sebelum mutasi metadata publikasi, Prepare, atau aksi berkonflik lainnya, serta menonaktifkan sementara kontrol metadata/Prepare/Export selama hasil background masih berjalan.
 - **Aksi library artikel dan routing workflow yang aman**:
   - Membatasi Pilih Semua dan bulk delete pada hasil filter yang sedang terlihat, membersihkan selection lama ketika pencarian atau filter tahap berubah, serta mencegah artikel tersembunyi ikut terhapus.
@@ -45,9 +52,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Menambahkan kontrol kelompok tanggal yang dapat digunakan dengan keyboard, label aksesibel untuk checkbox/tombol hapus, konfirmasi destruktif bentuk jamak, dan pending-state guard untuk mencegah submit hapus berulang.
 - **Alur Perbaikan Refine Interaktif & Arsitektur UX 3-Fase Berurutan**:
   - Pengguna yang mengeklik **Refine Draft** di halaman `/editor` tidak lagi dipaksa mengalami perpindahan halaman (*route jump*). Canvas tengah di `/editor` menampilkan *loading overlay* (*"EAI is Analyzing & Refining..."*) di atas draf awal tanpa mengganggu alur penulisan.
-  - Memisahkan fase evaluasi temuan dari modal pop-up handoff. Jika perbaikan menghasilkan temuan persetujuan editorial (seperti `Source Fidelity` atau `Unsupported Entity Detail`), kartu keputusan akan langsung ditampilkan **di canvas tengah halaman Editor** tanpa modal pop-up yang menghalangi (*modal blocking*).
-  - Pop-up modal handoff *"Perbaikan Draf Selesai"* (`InPlaceRefineFeedbackModal`) HANYA muncul setelah seluruh temuan persetujuan pada canvas diselesaikan/disetujui oleh pengguna (status `readiness === 'ready'`), memberikan pilihan bersih antara 🚀 **"Buka Review / Publikasi"** atau ✏️ **"Tetap di Editor"**.
-  - Memperbarui pengetikan TypeScript `processStage?: EditorialProcessStage` pada `EditorCanvas`, `EditorWorkflowPanel`, dan `EditorialProgress`, serta menggunakan state terderivasi (*derived state*) `showInPlaceModal` untuk mencegah peringatan `setState` dalam `useEffect` pada React 19.
+  - Memisahkan keputusan temuan dari handoff penyelesaian. Temuan yang memerlukan persetujuan editorial tampil tanpa halangan **di canvas tengah Editor**, sedangkan `EditorWorkflowPanel` menjadi satu-satunya pemilik aksi berikutnya yang deterministik setelah selesai.
 - **Pemisahan Ruang Kerja Editorial**:
   - Mengganti komposisi permanen History + Editor + Copilot serbaguna dengan destinasi terpisah untuk document home, editor, review, dan publikasi.
   - Menjadikan `/workspace` sebagai document home bergaya Grammarly dengan pencarian judul, filter status, ringkasan aset durable, dan aksi buka sesuai tahap; link dokumen lama diteruskan ke `/editor` tanpa kehilangan parameter.

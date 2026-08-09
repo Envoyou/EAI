@@ -2,7 +2,16 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma, Prisma } from '@/lib/db';
 import { requireAuth } from '@/middleware/auth';
-import { ResearchNotesArraySchema, SeoMetadataSchema } from '@eai/shared';
+import {
+  deriveArticleWorkflowSnapshot,
+  ResearchNotesArraySchema,
+  SeoMetadataSchema,
+  type EditorialReadiness,
+  type FeedbackItem,
+  type PublicationPackageStatus,
+  type RevisionValidationState,
+  type SeoReviewState,
+} from '@eai/shared';
 import { getWorkspaceState } from '@/lib/user-workspace';
 import { preparePublicationDraft, resolvePublicationPackageStatus } from '@/routes/analyze/utils/text';
 import { redisRateLimiter } from '@/middleware/rate-limit';
@@ -178,6 +187,69 @@ type CurrentArticleHistoryRow = {
   summary: string | null;
   feedback: unknown;
   isPinned: boolean;
+};
+
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+
+const withArticleWorkflow = (row: CurrentArticleHistoryRow) => {
+  const metadata = asRecord(row.metadata);
+  const system = asRecord(metadata._system);
+  const draftRevision = asRecord(system.draftRevision);
+  const exportStatus = asRecord(metadata.exportStatus);
+  const feedback = Array.isArray(row.feedback)
+    ? row.feedback.filter(item => item && typeof item === 'object') as FeedbackItem[]
+    : [];
+  const readinessCandidate = system.readiness ?? row.verdict;
+  const readiness = readinessCandidate === 'ready'
+    || readinessCandidate === 'needs_review'
+    || readinessCandidate === 'blocked'
+      ? readinessCandidate as EditorialReadiness
+      : undefined;
+  const packageCandidate = system.publicationPackageStatus
+    ?? metadata.publicationPackageStatus;
+  const publicationPackageStatus = packageCandidate === 'not_generated'
+    || packageCandidate === 'current'
+    || packageCandidate === 'stale'
+      ? packageCandidate as PublicationPackageStatus
+      : undefined;
+  const qualityCandidate = system.qualityGateState;
+  const qualityGateState = qualityCandidate === 'valid'
+    || qualityCandidate === 'validation_recommended'
+    || qualityCandidate === 'stale'
+      ? qualityCandidate as RevisionValidationState
+      : undefined;
+  const seoCandidate = system.seoReviewState;
+  const seoReviewState = seoCandidate === 'valid'
+    || seoCandidate === 'possibly_stale'
+    || seoCandidate === 'stale'
+      ? seoCandidate as SeoReviewState
+      : undefined;
+
+  return {
+    ...row,
+    workflow: deriveArticleWorkflowSnapshot({
+      sourceRef: typeof metadata.sourceRef === 'string' ? metadata.sourceRef : row.id,
+      analysisLogId: row.id,
+      revisionId: typeof draftRevision.revisionId === 'string'
+        ? draftRevision.revisionId
+        : undefined,
+      hasDraft: true,
+      readiness,
+      feedback,
+      publicationPackageStatus,
+      qualityGateState,
+      seoReviewState,
+      seoFieldStates: readSeoFieldStates(system.seoFieldStates),
+      exportStatus: exportStatus.lastExportStatus === 'success'
+        || exportStatus.lastExportStatus === 'failed'
+          ? { lastExportStatus: exportStatus.lastExportStatus }
+          : undefined,
+      saveState: 'saved',
+    }),
+  };
 };
 
 const listCurrentArticleHistory = async ({
@@ -399,7 +471,10 @@ router.get('/', requireAuth, async (req, res) => {
         const nextItem = history.pop();
         nextCursor = nextItem?.id ?? null;
       }
-      return res.json({ data: history, nextCursor });
+      return res.json({
+        data: history.map(withArticleWorkflow),
+        nextCursor,
+      });
     }
 
     const whereClause: Prisma.AnalysisLogWhereInput = {

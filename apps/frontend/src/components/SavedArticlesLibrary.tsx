@@ -15,6 +15,7 @@ import {
   getCurrentArticleHistoryItems,
   getHistoryItemUpdatedAt,
   getHistoryItemPresentation,
+  destinationForArticleWorkflow,
   type HistoryItem,
   type HistoryStage,
   type HistoryItemPresentation,
@@ -34,6 +35,9 @@ const stageBadge: Record<HistoryStage, BadgeVariant> = {
 };
 
 export const destinationFor = (presentation: HistoryItemPresentation, id: string) => {
+  if (presentation.workflow?.currentAnalysisLogId) {
+    return destinationForArticleWorkflow(presentation);
+  }
   const query = `?history=${encodeURIComponent(id)}`;
   if (presentation.stage === 'ready') return `/publication${query}`;
   if (presentation.stage === 'review' || presentation.stage === 'blocked') {
@@ -42,7 +46,7 @@ export const destinationFor = (presentation: HistoryItemPresentation, id: string
   return `/editor${query}`;
 };
 
-export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'review' | 'publication' }) {
+export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'library' | 'review' | 'publication' }) {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('SavedArticlesPage');
@@ -137,6 +141,52 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
 
     return result.sort((left, right) => right.latestUpdate - left.latestUpdate);
   }, [filtered, locale]);
+
+  const displayGroups = useMemo(() => {
+    if (scope !== 'all') {
+      return groupedFiltered.map(group => ({
+        key: group.dateStr,
+        label: group.dateStr,
+        latestUpdate: group.latestUpdate,
+        items: group.items,
+        description: null as string | null,
+      }));
+    }
+
+    const queueOrder = [
+      'needsAttention',
+      'continueWorking',
+      'readyToPublish',
+      'recentlyCompleted',
+    ] as const;
+    type QueueKey = typeof queueOrder[number];
+    const queues = new Map<QueueKey, typeof filtered>();
+    queueOrder.forEach(key => queues.set(key, []));
+
+    filtered.forEach(entry => {
+      const action = entry.presentation.workflow.nextAction;
+      const queue: QueueKey = action === 'resolve_decisions' || action === 'complete_metadata'
+        ? 'needsAttention'
+        : action === 'prepare_publication' || action === 'export_to_cms'
+          ? 'readyToPublish'
+          : action === 'open_cms_draft'
+            ? 'recentlyCompleted'
+            : 'continueWorking';
+      queues.get(queue)?.push(entry);
+    });
+
+    return queueOrder.flatMap(key => {
+      const items = queues.get(key) ?? [];
+      if (items.length === 0) return [];
+      return [{
+        key,
+        label: t(`queue.${key}.title`),
+        description: t(`queue.${key}.description`),
+        latestUpdate: Math.max(...items.map(({ item }) => new Date(getHistoryItemUpdatedAt(item)).getTime())),
+        items,
+      }];
+    });
+  }, [filtered, groupedFiltered, scope, t]);
   const toggleGroup = (dateStr: string) => {
     setCollapsedGroups(prev => ({ ...prev, [dateStr]: !prev[dateStr] }));
   };
@@ -257,7 +307,7 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[var(--foreground)]">{t(`scope.${scope}.title`)}</h1>
           <p className="mt-2 text-sm leading-relaxed text-[var(--muted-foreground)]">{t(`scope.${scope}.description`)}</p>
         </div>
-        {scope === 'all' && <Button type="button" variant="primary" size="sm" onClick={() => router.push('/editor?new=1')}>
+        {(scope === 'all' || scope === 'library') && <Button type="button" variant="primary" size="sm" onClick={() => router.push('/editor?new=1')}>
           <AddDocumentActionIcon className="h-4 w-4" />
           {t('newArticle')}
         </Button>}
@@ -291,7 +341,7 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
             </div>
           )}
         </div>
-        {scope === 'all' && <div className="flex max-w-full gap-1 overflow-x-auto" aria-label={t('filterLabel')}>
+        {(scope === 'all' || scope === 'library') && <div className="flex max-w-full gap-1 overflow-x-auto" aria-label={t('filterLabel')}>
           {(['all', 'draft', 'review', 'blocked', 'ready'] as const).map(key => (
             <Button
               key={key}
@@ -320,26 +370,35 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
         </div>
       ) : (
         <div className="mt-6 flex flex-col gap-6">
-          {groupedFiltered.map((group, index) => {
-            const isCollapsed = collapsedGroups[group.dateStr] !== undefined ? collapsedGroups[group.dateStr] : index !== 0;
+          {displayGroups.map((group, index) => {
+            const isCollapsed = collapsedGroups[group.key] !== undefined
+              ? collapsedGroups[group.key]
+              : scope === 'all' ? false : index !== 0;
             const timeFormatter = new Intl.DateTimeFormat(locale, { timeStyle: 'short' });
             const formattedTime = timeFormatter.format(new Date(group.latestUpdate));
 
             return (
-              <div key={group.dateStr} className="flex flex-col gap-3">
+              <section key={group.key} className="flex flex-col gap-3" aria-labelledby={`article-group-${group.key}`}>
                 <Button
                   type="button"
                   variant="ghost"
                   className="group/separator flex h-auto w-full items-center gap-3 rounded-none p-0 text-left hover:bg-transparent"
-                  onClick={() => toggleGroup(group.dateStr)}
+                  onClick={() => toggleGroup(group.key)}
                   aria-expanded={!isCollapsed}
-                  aria-label={t('toggleDateGroup', { date: group.dateStr })}
+                  aria-label={t('toggleArticleGroup', { group: group.label })}
                 >
-                  <div className="flex items-center gap-1.5 shrink-0 text-sm font-semibold text-[var(--foreground)]">
+                  <div className="flex min-w-0 shrink-0 items-center gap-1.5 text-left text-sm font-semibold text-[var(--foreground)]">
                     <ForwardNavigationIcon
                       className={`h-4 w-4 text-[var(--muted-foreground)] transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
                     />
-                    {group.dateStr}
+                    <span id={`article-group-${group.key}`}>
+                      {group.label}
+                      {group.description && (
+                        <span className="ml-2 hidden text-xs font-normal text-[var(--muted-foreground)] md:inline">
+                          {group.description}
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div className="h-px bg-[var(--border)] flex-1 transition-colors group-hover/separator:bg-[var(--primary)]/30" />
                   <div className="shrink-0 flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
@@ -372,7 +431,9 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
                                 onCheckedChange={(checked) => toggleSelection(item.id, checked === true)}
                                 aria-label={t('selectArticle', { title: presentation.title })}
                               />
-                              <Badge variant={stageBadge[presentation.stage]} size="xs">{t(`stage.${presentation.stage}`)}</Badge>
+                              <Badge variant={stageBadge[presentation.stage]} size="xs">
+                                {t(`workflowStage.${presentation.workflow.stage}`)}
+                              </Badge>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] text-[var(--muted-foreground)]">
@@ -400,7 +461,7 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
                               className="w-full justify-between"
                               onClick={() => router.push(destinationFor(presentation, item.id))}
                             >
-                              {t(`open.${presentation.stage}`)}
+                              {t(`nextAction.${presentation.workflow.nextAction}`)}
                               <ForwardNavigationIcon className="h-3.5 w-3.5" />
                             </Button>
                           </div>
@@ -409,7 +470,7 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
                     })}
                   </div>
                 )}
-              </div>
+              </section>
             );
           })}
         </div>
