@@ -1,5 +1,39 @@
 import { describe, expect, test, vi } from 'vitest';
-import { recoverStrategistPlanResult } from '../strategist-plan-request';
+import {
+  getLatestPersistedStrategistPlan,
+  recoverStrategistPlanResult,
+} from '../strategist-plan-request';
+
+describe('getLatestPersistedStrategistPlan', () => {
+  test('restores the latest session-bound Blueprint and its durable sourceRef', () => {
+    expect(getLatestPersistedStrategistPlan([
+      {
+        role: 'assistant',
+        payload: {
+          plan: { angle: 'Older angle' },
+          sourceRef: 'older-family',
+        },
+      },
+      { role: 'user', payload: null },
+      {
+        role: 'assistant',
+        payload: {
+          plan: { angle: 'Current angle' },
+          sourceRef: 'current-family',
+        },
+      },
+    ])).toEqual({
+      angle: 'Current angle',
+      sourceRef: 'current-family',
+    });
+  });
+
+  test('does not leak a Blueprint into sessions without a persisted plan', () => {
+    expect(getLatestPersistedStrategistPlan([
+      { role: 'assistant', payload: null },
+    ])).toBeNull();
+  });
+});
 
 describe('recoverStrategistPlanResult', () => {
   test('returns a committed blueprint after an ambiguous frontend failure', async () => {

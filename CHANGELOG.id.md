@@ -7,6 +7,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Akses Quick Draft di AI Strategist**:
+  - Membuka mode draft berbasis topik, outline, referensi, dan siaran pers melalui dialog Strategist yang terlokalisasi, dengan progres streaming dan hasil yang dapat langsung diteruskan ke Editor atau Notes.
 - **Hapus Massal (Bulk Delete) dan Pengelompokan Tanggal di Halaman Library & History**:
   - Menambahkan *checkbox* dan bar aksi hapus massal pada komponen `SavedArticlesLibrary` dan `DocumentHistoryPanel`.
   - Menambahkan *endpoint* `POST /api/history/bulk-delete` yang bounded dan tenant-scoped. Penghapusan family membaca `sourceRef` dari metadata tersimpan, menghapus revisi dalam transaksi serializable, serta menandai artifact kanonis Content Memory sebagai deleted agar Content Map tidak menyimpan sumber yatim.
@@ -32,6 +34,11 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - `apps/frontend/src/components/InPlaceRefineFeedbackModal.tsx`: Modal pilihan handoff pasca-perbaikan (*"Buka Review/Publikasi"* vs *"Tetap di Editor"*).
 
 ### Changed
+- **State workflow ide hingga publikasi yang andal**:
+  - Membuat Draft from Notes transaksional di UI: hanya note yang dicentang yang dikirim, draft aktif tetap terlihat selama generasi, autosave dihentikan sementara untuk stream transien, dan pembatalan atau kegagalan memulihkan draft sebelumnya.
+  - Menyimpan plan Blueprint lengkap beserta `sourceRef` durable pada sesi Strategist yang tenant-scoped, lalu memulihkan plan terbaru ketika sesi dibuka kembali tanpa membocorkan aksi antar-sesi.
+  - Menahan hasil Fast Preview tanpa paket SEO current di Review agar tidak masuk Publikasi terlalu dini.
+  - Membatalkan background validation lama sebelum mutasi metadata publikasi, Prepare, atau aksi berkonflik lainnya, serta menonaktifkan sementara kontrol metadata/Prepare/Export selama hasil background masih berjalan.
 - **Aksi library artikel dan routing workflow yang aman**:
   - Membatasi Pilih Semua dan bulk delete pada hasil filter yang sedang terlihat, membersihkan selection lama ketika pencarian atau filter tahap berubah, serta mencegah artikel tersembunyi ikut terhapus.
   - Mengarahkan kartu draft ke Editor, kartu review/blocked yang belum selesai ke Review, dan kartu ready ke Publikasi sesuai label aksi serta ownership workspace.

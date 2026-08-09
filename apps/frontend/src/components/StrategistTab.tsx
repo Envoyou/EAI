@@ -1,6 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
   Download,
@@ -20,6 +21,8 @@ import { ChatInputBar } from './strategist-tab/components/ChatInputBar';
 import { MessageScrollerProvider } from '@/components/ui/message-scroller';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { QuickDraftDialog } from './strategist-tab/components/QuickDraftDialog';
+import { AddDocumentActionIcon } from '@/components/ui/icons/actions';
 
 export default function StrategistTab({
   messages,
@@ -48,8 +51,23 @@ export default function StrategistTab({
   deleteSession,
   startNewChat,
   onCancelChat,
+  quickDraftMode,
+  openQuickDraft,
+  setQuickDraftMode,
+  closeQuickDraft,
+  quickDraftTopic,
+  setQuickDraftTopic,
+  quickDraftOutline,
+  setQuickDraftOutline,
+  quickDraftReference,
+  setQuickDraftReference,
+  quickDraftOutput,
+  quickDraftError,
+  isGeneratingQuickDraft,
+  submitQuickDraft,
 }: StrategistTabProps) {
   const { user } = useUser();
+  const tQuickDraft = useTranslations('QuickDraft');
   const {
     fileInputRef,
     editingSessionId,
@@ -133,6 +151,27 @@ export default function StrategistTab({
             </div>
 
             <div className="flex items-center gap-1.5">
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      onClick={() => openQuickDraft('topic')}
+                      variant="outline"
+                      size="xs"
+                      disabled={isTyping}
+                      aria-label={tQuickDraft('title')}
+                    >
+                      <AddDocumentActionIcon className="w-3 h-3 text-[var(--primary)] shrink-0" />
+                      <span className="strategist-toolbar-label">{tQuickDraft('title')}</span>
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom" className="text-xs">
+                  {tQuickDraft('description')}
+                </TooltipContent>
+              </Tooltip>
+
               {/* Reader position indicator — visible when scrolled away from latest */}
               <ChatPositionIndicator />
 
@@ -280,6 +319,22 @@ export default function StrategistTab({
           </div>
         </div>
       )}
+
+      <QuickDraftDialog
+        mode={quickDraftMode}
+        onModeChange={setQuickDraftMode}
+        onClose={closeQuickDraft}
+        topic={quickDraftTopic}
+        onTopicChange={setQuickDraftTopic}
+        outline={quickDraftOutline}
+        onOutlineChange={setQuickDraftOutline}
+        reference={quickDraftReference}
+        onReferenceChange={setQuickDraftReference}
+        output={quickDraftOutput}
+        error={quickDraftError}
+        generating={isGeneratingQuickDraft}
+        onSubmit={submitQuickDraft}
+      />
     </div>
   );
 }

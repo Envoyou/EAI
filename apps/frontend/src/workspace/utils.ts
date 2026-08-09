@@ -144,8 +144,16 @@ export const buildEditorHandoff = (
   completion: AnalysisCompletion
 ): EditorHandoffState => {
   const unresolvedFeedback = completion.feedback.filter(isUnresolvedFeedback);
-  const destination = completion.readiness === 'ready' && unresolvedFeedback.length === 0
-    ? 'publication'
+  const hasSeoPackage = Boolean(
+    completion.generatedMetadata
+    && Object.keys(completion.generatedMetadata).length > 0
+    && completion.publicationPackageStatus === 'current'
+  );
+  const destination = unresolvedFeedback.length === 0
+    ? deriveHandoffDestination({
+        readiness: completion.readiness || 'needs_review',
+        hasPublicationPackage: hasSeoPackage,
+      })
     : 'review';
 
   return {
@@ -153,11 +161,7 @@ export const buildEditorHandoff = (
     destination,
     unresolvedFindingCount: unresolvedFeedback.length,
     blockingFindingCount: unresolvedFeedback.filter(item => item.status === 'fail').length,
-    hasSeoPackage: Boolean(
-      completion.generatedMetadata
-      && Object.keys(completion.generatedMetadata).length > 0
-      && completion.publicationPackageStatus === 'current'
-    ),
+    hasSeoPackage,
   };
 };
 

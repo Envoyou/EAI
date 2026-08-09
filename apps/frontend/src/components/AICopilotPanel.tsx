@@ -47,7 +47,7 @@ interface AICopilotPanelProps {
   isTargetedFixing?: number | null;
   researchNotes?: ResearchNote[];
   onNotesChange?: (notes: ResearchNote[]) => void;
-  onGenerateDraftFromNotes?: () => void;
+  onGenerateDraftFromNotes?: (notes: ResearchNote[]) => void;
   isGeneratingDraft?: boolean;
   isWorkspaceAiBusy?: boolean;
   onCancelGenerateDraft?: () => void;
@@ -155,6 +155,20 @@ export default function AICopilotPanel({
             deleteSession={strategist.deleteSession}
             startNewChat={strategist.startNewChat}
             onCancelChat={strategist.cancelChat}
+            quickDraftMode={strategist.quickDraftMode}
+            openQuickDraft={strategist.openQuickDraft}
+            setQuickDraftMode={strategist.setQuickDraftMode}
+            closeQuickDraft={strategist.closeQuickDraft}
+            quickDraftTopic={strategist.quickDraftTopic}
+            setQuickDraftTopic={strategist.setQuickDraftTopic}
+            quickDraftOutline={strategist.quickDraftOutline}
+            setQuickDraftOutline={strategist.setQuickDraftOutline}
+            quickDraftReference={strategist.quickDraftReference}
+            setQuickDraftReference={strategist.setQuickDraftReference}
+            quickDraftOutput={strategist.quickDraftOutput}
+            quickDraftError={strategist.quickDraftError}
+            isGeneratingQuickDraft={strategist.isGeneratingQuickDraft}
+            submitQuickDraft={strategist.submitQuickDraft}
           />
         );
       case 'feedback':

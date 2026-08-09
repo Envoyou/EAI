@@ -155,6 +155,20 @@ allows one Strategist conversation to explore several ideas without merging
 them into one article, while every committed article remains one family across
 the complete publication lifecycle.
 
+Strategist sessions persist the complete sanitized Blueprint plan alongside the
+assistant message, including its actionable suggestions and durable
+`sourceRef`. Reopening a session restores only that session's latest plan, so
+Proceed to Editor and Save to Notes remain available after reload without
+reusing a plan from another conversation. Quick Draft is an explicit Strategist
+toolbar flow for topic, outline, reference, and press-release inputs; its
+completed result enters the same plan/action contract.
+
+Draft from Notes submits only the notes selected in `NotesTab`. Generation owns
+a transactional client snapshot: the current editor draft remains intact until
+the response stream is established and is restored on cancellation or failure.
+Workspace autosave is suspended while that transient AI output is being built,
+so neither an empty reset nor a partial stream can become the durable draft.
+
 `FinalDraftPanel` keeps reading and persisting the final article as Markdown,
 but its edit state is rendered by a dedicated TipTap client component in the
 same Preview surface used for reading. The editor serializes every update back
@@ -188,6 +202,16 @@ changes or 800 ms for high-risk changes; safe formatting/copy edits schedule
 nothing. The background controller is separate from foreground AI, so editing
 remains available. A new save or conflicting workspace action cancels and
 coalesces pending work, while backend revision/hash checks reject late results.
+Publication metadata edits, confirmation, Prepare, and Export are disabled
+while that background result is in flight; their handlers also cancel the
+controller before mutating state. Draft editing remains available and a newer
+save supersedes the older validation.
+
+Workflow handoff requires both a ready current revision and a current complete
+publication package. Fast Preview may establish editorial readiness without
+generating SEO metadata, so it remains in Review until Prepare creates and
+validates the package; it must not route directly to Publication on readiness
+alone.
 
 The workspace carries the backend-issued Final Draft revision identity through
 Analyze/Refine completion, History reload, editorial mutations, Quality Check,

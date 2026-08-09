@@ -13,6 +13,7 @@ import { promptContentMemoryFeedback } from '@/lib/content-memory-feedback';
 
 interface StrategistContext {
   researchNotes: ResearchNote[];
+  draft: string;
   metadata: ArticleMetadata;
   directFetch: DirectFetchType;
   setDraft: (d: string) => void;
@@ -41,6 +42,7 @@ export async function executeGenerateDraftFromNotes(
 ) {
   const {
     researchNotes,
+    draft,
     metadata,
     directFetch,
     setDraft,
@@ -66,7 +68,7 @@ export async function executeGenerateDraftFromNotes(
   if (generateAbortControllerRef.current) return;
 
   setIsGeneratingDraftFromNotes(true);
-  setDraft('');
+  const previousDraft = draft;
   let currentDraft = '';
   let receivedDone = false;
   let lifecycleSourceRef: string | undefined;
@@ -133,6 +135,7 @@ export async function executeGenerateDraftFromNotes(
     const reader = response.body?.getReader();
     if (!reader) throw new Error('No reader available');
 
+    setDraft('');
     const decoder = new TextDecoder();
     let buffer = '';
 
@@ -179,6 +182,7 @@ export async function executeGenerateDraftFromNotes(
     }
 
     if (controller.signal.aborted) {
+      setDraft(previousDraft);
       return;
     }
 
@@ -215,9 +219,11 @@ export async function executeGenerateDraftFromNotes(
   } catch (error) {
     if (controller.signal.aborted && !(error instanceof StreamIdleTimeoutError)) {
       console.log('Draft generation aborted by user.');
+      setDraft(previousDraft);
       return;
     }
     console.error(error);
+    setDraft(previousDraft);
     toast.error(error instanceof Error ? error.message : 'Failed to generate draft.');
   } finally {
     if (generateAbortControllerRef.current === controller) {

@@ -260,6 +260,7 @@ export function useEditorialWorkspace({
     activeHistoryId,
     isLoaded,
     isDemoMode,
+    suspended: isGeneratingDraftFromNotes,
     setIsSavingToCloud,
     setActiveHistoryId,
   });
@@ -920,6 +921,7 @@ export function useEditorialWorkspace({
     publicationPackage: PublicationPackage
   ): Promise<boolean> => {
     const logId = analysis.analysisLogId || activeHistoryId;
+    cancelBackgroundValidation();
     if (!logId || hasBlockingWorkspaceOperation()) return false;
     workspaceMutationRef.current = true;
     try {
@@ -959,6 +961,7 @@ export function useEditorialWorkspace({
     replacementText: string,
     index: number
   ): Promise<boolean> => {
+    cancelBackgroundValidation();
     if (hasBlockingWorkspaceOperation()) return false;
     const fieldMap: Partial<Record<FindingTarget, keyof PublicationPackage>> = {
       'publication.title': 'title',
@@ -1103,6 +1106,7 @@ export function useEditorialWorkspace({
     if (!logId) {
       throw new Error('The publication history is not ready yet.');
     }
+    cancelBackgroundValidation();
     if (hasBlockingWorkspaceOperation()) return;
     workspaceMutationRef.current = true;
     try {
@@ -1132,6 +1136,7 @@ export function useEditorialWorkspace({
   };
 
   const handlePrepareForExport = async () => {
+    cancelBackgroundValidation();
     if (hasBlockingWorkspaceOperation()) return;
     const readiness = analysis.readiness === 'ready'
       ? 'ready'
@@ -1438,10 +1443,11 @@ export function useEditorialWorkspace({
     }
   };
 
-  const handleGenerateDraftFromNotes = () => {
+  const handleGenerateDraftFromNotes = (selectedNotes: ResearchNote[] = researchNotes) => {
     if (hasBlockingWorkspaceOperation()) return;
     const ctx = {
-      researchNotes,
+      researchNotes: selectedNotes,
+      draft,
       attachments,
       metadata,
       directFetch,

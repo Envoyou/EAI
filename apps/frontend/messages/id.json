@@ -452,6 +452,27 @@
     "notes": "Catatan",
     "deepReport": "Deep Report"
   },
+  "QuickDraft": {
+    "title": "Draft Cepat",
+    "description": "Buat outline atau draft kasar tanpa meninggalkan Strategist.",
+    "close": "Tutup Draft Cepat",
+    "cancel": "Batal",
+    "generate": "Buat draft",
+    "generating": "Sedang membuat...",
+    "modeLabel": "Jenis draft",
+    "topicLabel": "Topik",
+    "topicPlaceholder": "Apa yang perlu dibahas artikel ini?",
+    "outlineLabel": "Outline atau poin utama opsional",
+    "outlinePlaceholder": "Tambahkan struktur atau poin yang perlu diikuti draft.",
+    "referenceLabel": "Materi referensi",
+    "referencePlaceholder": "Tempel materi sumber yang akan diubah menjadi draft.",
+    "mode": {
+      "topic": "Draft dari topik",
+      "outline": "Outline saja",
+      "reference": "Draft dari referensi",
+      "pressRelease": "Ubah siaran pers"
+    }
+  },
   "FeedbackPanel": {
     "allChecksCompleted": "Semua pemeriksaan selesai",
     "editorDecisionNeeded": "Keputusan Anda diperlukan",

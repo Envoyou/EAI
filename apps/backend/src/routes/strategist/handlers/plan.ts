@@ -766,10 +766,18 @@ router.post(
                 role: 'assistant',
                 type: 'text',
                 content: displayContent,
-                payload:
-                  formattedSources && formattedSources.length > 0
+                payload: {
+                  ...(formattedSources && formattedSources.length > 0
                     ? { sources: formattedSources }
-                    : undefined,
+                    : {}),
+                  ...(Array.isArray(sanitizedData.suggestions)
+                    ? { suggestions: sanitizedData.suggestions }
+                    : {}),
+                  ...(sanitizedData.plan
+                    ? { plan: sanitizedData.plan }
+                    : {}),
+                  sourceRef: requestId,
+                },
               },
             }),
             prisma.strategistPlanRequest.update({

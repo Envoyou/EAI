@@ -7,6 +7,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Quick Draft entry point in AI Strategist**:
+  - Exposed the existing topic, outline, reference, and press-release drafting modes through a localized Strategist dialog, with streamed progress and actionable results that can continue to Editor or Notes.
 - **Bulk Delete and Date Grouping in Library & History Surfaces**:
   - Added checkboxes and bulk deletion action bars to both `SavedArticlesLibrary` and `DocumentHistoryPanel`.
   - Added a bounded, tenant-scoped backend `POST /api/history/bulk-delete` endpoint. Family removal resolves `sourceRef` from persisted metadata, deletes revisions in a serializable transaction, and marks matching canonical Content Memory artifacts as deleted so Content Map cannot retain orphaned sources.
@@ -32,6 +34,11 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - `apps/frontend/src/components/InPlaceRefineFeedbackModal.tsx`: Dedicated post-refinement completion dialog (*"Open Review/Publication"* vs *"Stay in Editor"*).
 
 ### Changed
+- **Reliable idea-to-publication workflow state**:
+  - Made Draft from Notes transactional in the UI: only checked notes are submitted, the current draft remains visible while generation runs, autosave is suspended for the transient stream, and cancellation or failure restores the prior draft.
+  - Persisted the complete actionable Blueprint plan and its durable `sourceRef` in the tenant-scoped Strategist session, then restored the latest plan when reopening that session without leaking actions across sessions.
+  - Kept Fast Preview results without a current SEO package in Review instead of routing them prematurely to Publication.
+  - Cancelled stale background validation before publication metadata, Prepare, or other conflicting mutations, and temporarily disabled metadata/Prepare/Export controls while a background result is in flight.
 - **Safe article-library actions and workflow routing**:
   - Limited Select All and bulk deletion to the currently visible filtered result set, clearing stale selections when search or stage filters change and preventing hidden articles from being deleted accidentally.
   - Routed draft cards to Editor, unresolved review/blocked cards to Review, and ready cards to Publication, matching their visible action labels and workspace ownership.

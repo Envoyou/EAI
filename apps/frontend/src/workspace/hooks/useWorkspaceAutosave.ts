@@ -11,6 +11,7 @@ interface UseWorkspaceAutosaveProps {
   activeHistoryId: string | null;
   isLoaded: boolean;
   isDemoMode: boolean;
+  suspended?: boolean;
   setIsSavingToCloud: Dispatch<SetStateAction<boolean>>;
   setActiveHistoryId: Dispatch<SetStateAction<string | null>>;
 }
@@ -22,12 +23,16 @@ export function useWorkspaceAutosave({
   activeHistoryId,
   isLoaded,
   isDemoMode,
+  suspended = false,
   setIsSavingToCloud,
   setActiveHistoryId,
 }: UseWorkspaceAutosaveProps) {
   // Autosave to cloud database (debounced)
   useEffect(() => {
-    if (!isLoaded || !activeHistoryId || isDemoMode) return;
+    if (!isLoaded || !activeHistoryId || isDemoMode || suspended) {
+      setIsSavingToCloud(false);
+      return;
+    }
 
     const controller = new AbortController();
     setIsSavingToCloud(true);
@@ -68,6 +73,7 @@ export function useWorkspaceAutosave({
     return () => {
       clearTimeout(timer);
       controller.abort();
+      setIsSavingToCloud(false);
     };
-  }, [draft, researchNotes, metadata, activeHistoryId, isLoaded, isDemoMode, setIsSavingToCloud, setActiveHistoryId]);
+  }, [draft, researchNotes, metadata, activeHistoryId, isLoaded, isDemoMode, suspended, setIsSavingToCloud, setActiveHistoryId]);
 }

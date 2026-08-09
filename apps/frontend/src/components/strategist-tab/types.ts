@@ -2,6 +2,7 @@ import type {
   ChatMessage,
   Attachment,
   ChatSession,
+  QuickDraftMode,
 } from '@/lib/hooks/useContentStrategist';
 
 export interface StrategistTabProps {
@@ -31,4 +32,18 @@ export interface StrategistTabProps {
   deleteSession: (id: string) => Promise<void>;
   startNewChat: () => void;
   onCancelChat?: () => void;
+  quickDraftMode: QuickDraftMode | null;
+  openQuickDraft: (mode: QuickDraftMode) => void;
+  setQuickDraftMode: (mode: QuickDraftMode) => void;
+  closeQuickDraft: () => void;
+  quickDraftTopic: string;
+  setQuickDraftTopic: (value: string) => void;
+  quickDraftOutline: string;
+  setQuickDraftOutline: (value: string) => void;
+  quickDraftReference: string;
+  setQuickDraftReference: (value: string) => void;
+  quickDraftOutput: string;
+  quickDraftError: string | null;
+  isGeneratingQuickDraft: boolean;
+  submitQuickDraft: () => Promise<void>;
 }

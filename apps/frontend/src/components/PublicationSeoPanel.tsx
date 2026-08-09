@@ -158,6 +158,7 @@ export function PublicationSeoPanel({
                 type="button"
                 variant="muted"
                 size="xs"
+                disabled={isChecking}
                 onClick={() => {
                   if (!editing) setValue(toEditValue(metadata));
                   setEditing((current) => !current);
@@ -203,7 +204,7 @@ export function PublicationSeoPanel({
                   variant="muted"
                   size="xs"
                   className="mt-2"
-                  disabled={confirming}
+                  disabled={confirming || isChecking}
                   onClick={async () => {
                     setConfirming(true);
                     try {
@@ -292,6 +293,7 @@ export function PublicationSeoPanel({
                   <Input
                     variant="surface"
                     value={value[field]}
+                    disabled={isChecking}
                     onChange={(event) => updateValue(field, event.target.value)}
                   />
                 </label>
@@ -305,6 +307,7 @@ export function PublicationSeoPanel({
                 <Textarea
                   variant="surface"
                   value={value[field]}
+                  disabled={isChecking}
                   onChange={(event) => updateValue(field, event.target.value)}
                   rows={4}
                 />
@@ -317,6 +320,7 @@ export function PublicationSeoPanel({
               <Input
                 variant="surface"
                 value={value.tags}
+                disabled={isChecking}
                 onChange={(event) => updateValue('tags', event.target.value)}
               />
             </label>
@@ -325,7 +329,7 @@ export function PublicationSeoPanel({
               variant="primary"
               size="sm"
               className="w-full justify-center"
-              disabled={saving}
+              disabled={saving || isChecking}
               onClick={async () => {
                 setSaving(true);
                 try {

@@ -28,6 +28,7 @@ import {
   getStrategistCancelPath,
 } from '@/lib/hooks/useStrategistChatPath';
 import {
+  getLatestPersistedStrategistPlan,
   recoverStrategistPlanResult,
   type StrategistPlanResult,
 } from '@/lib/strategist-plan-request';
@@ -60,6 +61,8 @@ export type PreEditorPlan = {
   sources: string[];
   draft: string;
 };
+
+export type QuickDraftMode = 'topic' | 'outline' | 'reference' | 'press_release';
 
 export type ResearchNote = {
   id: string;
@@ -117,6 +120,8 @@ export type ChatMessage = {
     };
     suggestions?: string[];
     sources?: { url: string; domain: string; title?: string; description?: string }[];
+    plan?: PreEditorPlan;
+    sourceRef?: string;
   };
 };
 
@@ -359,8 +364,12 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       if (res.ok) {
         const data = await res.json();
         if (data.session) {
+          const sessionMessages = (data.session.messages || []) as ChatMessage[];
           setCurrentSessionId(sessionId);
-          setMessages(data.session.messages || []);
+          setMessages(sessionMessages);
+          setCurrentPlan(
+            getLatestPersistedStrategistPlan<PreEditorPlan>(sessionMessages)
+          );
         } else {
           toast.error('Failed to load chat session');
         }
@@ -570,7 +579,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
   const savedNoteIds = useMemo(() => new Set(savedNotes.map(n => n.id)), [savedNotes]);
 
-  const [quickDraftMode, setQuickDraftMode] = useState<'topic' | 'outline' | 'reference' | 'press_release' | null>(null);
+  const [quickDraftMode, setQuickDraftMode] = useState<QuickDraftMode | null>(null);
   const [quickDraftTopic, setQuickDraftTopic] = useState('');
   const [quickDraftOutline, setQuickDraftOutline] = useState('');
   const [quickDraftReference, setQuickDraftReference] = useState('');
@@ -698,7 +707,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     toast.success(tReport('deleted'));
   }, [tReport]);
 
-  const openQuickDraft = useCallback((mode: 'topic' | 'outline' | 'reference' | 'press_release') => {
+  const openQuickDraft = useCallback((mode: QuickDraftMode) => {
     setQuickDraftMode(mode);
     setQuickDraftTopic('');
     setQuickDraftOutline('');
@@ -898,7 +907,12 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         role: 'assistant',
         type: 'text',
         content: displayContent,
-        payload: { suggestions: data.suggestions, lifecycle: 'success' }
+        payload: {
+          suggestions: data.suggestions,
+          lifecycle: 'success',
+          plan: data.plan,
+          sourceRef: data.sourceRef ?? data.plan?.sourceRef,
+        }
       } : m));
     };
 
@@ -1468,15 +1482,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
       appendMessage({ role: 'user', type: 'text', content: `Quick draft request (${quickDraftMode.replace('_', ' ')}): ${quickDraftTopic}` });
 
-      appendMessage({
-        role: 'assistant',
-        type: 'text',
-        content: isOutlineMode
-          ? `Here is a structured outline for **${quickDraftTopic}**:\n\n${output}`
-          : `Here is a rough draft for **${quickDraftTopic}**:\n\n${output}`,
-      });
-
-      setCurrentPlan({
+      const completedPlan: PreEditorPlan = {
         sourceRef: completedSourceRef,
         angle: quickDraftTopic,
         audience: '',
@@ -1485,7 +1491,23 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
         seoIntent: '',
         sources: [],
         draft: output,
+      };
+
+      appendMessage({
+        role: 'assistant',
+        type: 'text',
+        content: isOutlineMode
+          ? `Here is a structured outline for **${quickDraftTopic}**:\n\n${output}`
+          : `Here is a rough draft for **${quickDraftTopic}**:\n\n${output}`,
+        payload: {
+          lifecycle: 'success',
+          suggestions: ['Proceed to Editor', 'Save to Notes', 'Revise Blueprint'],
+          plan: completedPlan,
+          sourceRef: completedSourceRef,
+        },
       });
+
+      setCurrentPlan(completedPlan);
 
       closeQuickDraft();
       if (
@@ -1963,6 +1985,7 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
 
     quickDraftMode,
     openQuickDraft,
+    setQuickDraftMode,
     closeQuickDraft,
     quickDraftTopic,
     setQuickDraftTopic,

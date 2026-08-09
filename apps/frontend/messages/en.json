@@ -452,6 +452,27 @@
     "notes": "Notes",
     "deepReport": "Deep Report"
   },
+  "QuickDraft": {
+    "title": "Quick Draft",
+    "description": "Create an outline or rough draft without leaving the Strategist.",
+    "close": "Close Quick Draft",
+    "cancel": "Cancel",
+    "generate": "Generate",
+    "generating": "Generating...",
+    "modeLabel": "Draft type",
+    "topicLabel": "Topic",
+    "topicPlaceholder": "What should this article cover?",
+    "outlineLabel": "Optional outline or key points",
+    "outlinePlaceholder": "Add the structure or points the draft should follow.",
+    "referenceLabel": "Reference material",
+    "referencePlaceholder": "Paste the source material to transform into a draft.",
+    "mode": {
+      "topic": "Draft from topic",
+      "outline": "Outline only",
+      "reference": "Draft from reference",
+      "pressRelease": "Convert press release"
+    }
+  },
   "FeedbackPanel": {
     "allChecksCompleted": "All checks completed",
     "editorDecisionNeeded": "Your decision is needed",

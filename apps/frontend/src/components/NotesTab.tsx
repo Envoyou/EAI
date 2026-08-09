@@ -21,7 +21,7 @@ interface NotesTabProps {
   researchNotes: ResearchNote[];
   onNotesChange: (notes: ResearchNote[]) => void;
   attachments?: Attachment[];
-  onGenerateDraft?: () => void;
+  onGenerateDraft?: (notes: ResearchNote[]) => void;
   isGeneratingDraft?: boolean;
   isWorkspaceAiBusy?: boolean;
   onCancelGenerateDraft?: () => void;
@@ -46,7 +46,7 @@ export default function NotesTab({
       toast.error('Select at least one note to generate');
       return;
     }
-    onGenerateDraft?.();
+    onGenerateDraft?.(notesToGenerate);
   };
 
   if (researchNotes.length === 0) {

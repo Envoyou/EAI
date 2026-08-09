@@ -189,6 +189,7 @@ describe('executeGenerateDraftFromNotes', () => {
         sources: [],
         savedAt: '2026-08-01T00:00:00.000Z',
       }],
+      draft: 'Existing draft.',
       metadata,
       directFetch,
       setDraft: vi.fn(),
@@ -210,5 +211,41 @@ describe('executeGenerateDraftFromNotes', () => {
       sourceRef: 'article-family-1',
     }));
     expect(setMetadata).toHaveBeenCalledTimes(1);
+  });
+
+  it('restores the previous draft when generation is cancelled', async () => {
+    const setDraft = vi.fn();
+    const generateAbortControllerRef = { current: null as AbortController | null };
+    const directFetch = vi.fn().mockImplementation(async () => {
+      generateAbortControllerRef.current?.abort();
+      throw new DOMException('Aborted', 'AbortError');
+    });
+
+    await executeGenerateDraftFromNotes({
+      researchNotes: [{
+        id: 'note-1',
+        content: 'Research material.',
+        sources: [],
+        savedAt: '2026-08-01T00:00:00.000Z',
+      }],
+      draft: 'Existing draft.',
+      metadata: {},
+      directFetch,
+      setDraft,
+      setMetadata: vi.fn(),
+      setIsGeneratingDraftFromNotes: vi.fn(),
+      generateAbortControllerRef,
+      duplicateGuardWarning: 'Related content',
+      suggestedAngleLabel: 'Suggested angle',
+      controlledBlockWarning: 'Possible duplicate',
+      continueAnywayLabel: 'Continue',
+      feedbackQuestion: 'Was this a duplicate?',
+      yesDuplicateLabel: 'Yes',
+      notDuplicateLabel: 'No',
+      feedbackSaved: 'Saved',
+      feedbackFailed: 'Failed',
+    });
+
+    expect(setDraft).toHaveBeenLastCalledWith('Existing draft.');
   });
 });

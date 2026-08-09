@@ -153,6 +153,19 @@ describe('buildEditorHandoff', () => {
       hasSeoPackage: false,
     });
   });
+
+  it('keeps a ready Fast Preview without an SEO package out of Publication', () => {
+    expect(buildEditorHandoff({
+      analysisLogId: 'fast-log',
+      readiness: 'ready',
+      feedback: [],
+      publicationPackageStatus: 'not_generated',
+    })).toMatchObject({
+      destination: 'review',
+      unresolvedFindingCount: 0,
+      hasSeoPackage: false,
+    });
+  });
 });
 
 describe('feedback source URLs', () => {

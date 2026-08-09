@@ -28,6 +28,32 @@ type RecoveryOptions = {
   wait?: (delayMs: number) => Promise<void>;
 };
 
+type PersistedPlanMessage<TPlan> = {
+  role?: string;
+  payload?: {
+    plan?: TPlan;
+    sourceRef?: string;
+  } | null;
+};
+
+export function getLatestPersistedStrategistPlan<TPlan extends object>(
+  messages: PersistedPlanMessage<TPlan>[]
+): TPlan | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    const plan = message?.role === 'assistant' ? message.payload?.plan : undefined;
+    if (plan && typeof plan === 'object' && !Array.isArray(plan)) {
+      return {
+        ...plan,
+        ...(message.payload?.sourceRef
+          ? { sourceRef: message.payload.sourceRef }
+          : {}),
+      };
+    }
+  }
+  return null;
+}
+
 const defaultWait = (delayMs: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, delayMs));
 

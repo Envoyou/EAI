@@ -826,7 +826,7 @@ export default function FinalDraftPanel({
                       variant={canExport ? 'surface' : 'primary'}
                       size="sm"
                       onClick={onPrepareForExport}
-                      disabled={editingDraft || isGeneratingDraft || isSavingFinalDraft || isAiBusy}
+                      disabled={editingDraft || isGeneratingDraft || isSavingFinalDraft || isAiBusy || isBackgroundValidation}
                       aria-label={t('prepareForExport')}
                       icon={PreparePublicationIcon}
                       iconClassName="h-3.5 w-3.5"
@@ -845,7 +845,7 @@ export default function FinalDraftPanel({
                     <ActionButton
                       type="button"
                       onClick={handleExport}
-                      disabled={editingDraft || !canExport || isExporting || isAiBusy}
+                      disabled={editingDraft || !canExport || isExporting || isAiBusy || isBackgroundValidation}
                       variant={canExport && !isExporting ? 'primary' : 'surface'}
                       size="sm"
                       aria-label={exportStatus?.blogEditUrl ? t('updateCmsDraft') : t('exportToCms')}
@@ -950,7 +950,7 @@ export default function FinalDraftPanel({
                               setMenuOpen(false);
                               void onPrepareForExport();
                             }}
-                            disabled={isGeneratingDraft || isSavingFinalDraft || isAiBusy}
+                            disabled={isGeneratingDraft || isSavingFinalDraft || isAiBusy || isBackgroundValidation}
                             variant="muted"
                             className="ui-menu-item justify-start w-full font-normal border-none"
                             icon={PreparePublicationIcon}
