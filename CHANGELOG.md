@@ -10,7 +10,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 - **Article Workflow Management**:
   - Added a shared article workflow snapshot that independently derives workflow, quality, save, and publication states plus the single next action for each current article.
   - Turned Workspace into actionable queues for attention, continuing work, publication readiness, and completed exports; added a separate Content library and a permanent read-only Draft/Review/Publication progress bar.
-  - Added a four-path New Article launchpad for AI, Write/Paste, Blueprint, and Notes.
+  - Added a four-path New Article launchpad: Chat with EAI starts a fresh conversation, Write/Paste enters the canvas, From Notes opens Notes, and From Blueprint opens a tenant-scoped picker containing only sessions with persisted Blueprint plans.
 - **Quick Draft entry point in AI Strategist**:
   - Exposed the existing topic, outline, reference, and press-release drafting modes through a localized Strategist dialog, with streamed progress and actionable results that can continue to Editor or Notes.
 - **Bulk Delete and Date Grouping in Library & History Surfaces**:

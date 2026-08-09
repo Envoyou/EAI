@@ -10,7 +10,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 - **Manajemen Workflow Artikel**:
   - Menambahkan snapshot workflow artikel bersama yang menurunkan state workflow, quality, penyimpanan, publikasi, dan satu aksi berikutnya secara terpisah untuk setiap artikel current.
   - Mengubah Workspace menjadi antrean kerja untuk perhatian, pekerjaan lanjutan, kesiapan publikasi, dan ekspor selesai; menambahkan library Konten terpisah serta progress bar Draft/Review/Publikasi yang read-only.
-  - Menambahkan launchpad Artikel Baru dengan empat jalur: AI, Tulis/Tempel, Blueprint, dan Catatan.
+  - Menambahkan launchpad Artikel Baru dengan empat jalur yang tegas: Chat dengan EAI membuat percakapan baru, Tulis/Tempel masuk ke canvas, Dari Catatan membuka tab Catatan, dan Dari Blueprint membuka pemilih tenant-scoped yang hanya memuat sesi dengan plan Blueprint tersimpan.
 - **Akses Quick Draft di AI Strategist**:
   - Membuka mode draft berbasis topik, outline, referensi, dan siaran pers melalui dialog Strategist yang terlokalisasi, dengan progres streaming dan hasil yang dapat langsung diteruskan ke Editor atau Notes.
 - **Hapus Massal (Bulk Delete) dan Pengelompokan Tanggal di Halaman Library & History**:

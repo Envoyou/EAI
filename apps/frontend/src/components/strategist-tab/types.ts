@@ -3,6 +3,7 @@ import type {
   Attachment,
   ChatSession,
   QuickDraftMode,
+  StrategistSessionListMode,
 } from '@/lib/hooks/useContentStrategist';
 
 export interface StrategistTabProps {
@@ -26,11 +27,14 @@ export interface StrategistTabProps {
   setCurrentSessionId: (v: string | null) => void;
   sessions: ChatSession[];
   isSessionsLoading: boolean;
+  sessionListMode: StrategistSessionListMode;
+  composerFocusRequestId: number;
   selectSession: (id: string) => Promise<void>;
   renameSession: (id: string, title: string) => Promise<void>;
   togglePinSession: (id: string) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
   startNewChat: () => void;
+  showAllSessions: () => void;
   onCancelChat?: () => void;
   quickDraftMode: QuickDraftMode | null;
   openQuickDraft: (mode: QuickDraftMode) => void;

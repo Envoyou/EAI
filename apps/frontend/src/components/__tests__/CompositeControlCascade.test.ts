@@ -50,7 +50,7 @@ describe('composite Button cascade contracts', () => {
     expect(notes).not.toContain('strategist-note-delete-action');
     expect(sessions).toContain('strategist-session-menu-trigger');
     expect(sessions).toContain('<AdaptiveActionMenu');
-    expect(sessions).toContain('aria-label={`Actions for ${s.title}`}');
+    expect(sessions).toContain("aria-label={t('actionsFor', { title: s.title })}");
     expect(strategistStyles).toContain(
       '.strategist-session-menu-trigger.ui-btn-muted'
     );

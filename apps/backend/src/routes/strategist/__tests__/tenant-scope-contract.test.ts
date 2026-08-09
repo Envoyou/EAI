@@ -23,6 +23,8 @@ describe('Strategist tenant scope contract', () => {
       sessions.match(/where: \{ id: sessionId, \.\.\.scope \}/g)
     ).toHaveLength(3);
     expect(sessions).not.toContain('where: { userId }');
+    expect(sessions).toContain("path: ['plan']");
+    expect(sessions).toContain('hasBlueprint: _count.messages > 0');
   });
 
   test('scopes chat sessions and durable request recovery to the active tenant', () => {

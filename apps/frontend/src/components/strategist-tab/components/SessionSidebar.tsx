@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
-import { ChatSession } from '@/lib/hooks/useContentStrategist';
+import { ChatSession, type StrategistSessionListMode } from '@/lib/hooks/useContentStrategist';
 import {
   Plus,
   MessageSquare,
@@ -18,11 +19,15 @@ import {
   MoreActionsIcon,
   PinActionIcon,
 } from '@/components/ui/icons/actions';
+import { BackNavigationIcon } from '@/components/ui/icons/navigation';
+import { WorkspaceLibraryIcon } from '@/components/ui/icons/content';
 
 interface SessionSidebarProps {
   sessions: ChatSession[];
   isSessionsLoading: boolean;
+  mode: StrategistSessionListMode;
   startNewChat: () => void;
+  onShowAllSessions: () => void;
   selectSession: (id: string) => Promise<void>;
   togglePinSession: (id: string) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
@@ -32,14 +37,21 @@ interface SessionSidebarProps {
 export function SessionSidebar({
   sessions,
   isSessionsLoading,
+  mode,
   startNewChat,
+  onShowAllSessions,
   selectSession,
   togglePinSession,
   deleteSession,
   onStartRename,
 }: SessionSidebarProps) {
+  const t = useTranslations('StrategistSessions');
+  const locale = useLocale();
   const [sessionToDelete, setSessionToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const visibleSessions = mode === 'blueprints'
+    ? sessions.filter(session => session.hasBlueprint)
+    : sessions;
 
   const handleConfirmDelete = async () => {
     if (!sessionToDelete) return;
@@ -66,35 +78,46 @@ export function SessionSidebar({
       />
 
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] shrink-0">
-        <div className="font-bold text-xs text-[var(--foreground)]">
-          EAI Research History
+        <div className="flex min-w-0 items-center gap-2">
+          {mode === 'blueprints' && (
+            <Button
+              type="button"
+              onClick={onShowAllSessions}
+              variant="muted"
+              size="icon-xs"
+              aria-label={t('allChats')}
+            >
+              <BackNavigationIcon className="size-3.5" />
+            </Button>
+          )}
+          <div className="truncate font-bold text-xs text-[var(--foreground)]">
+            {t(mode === 'blueprints' ? 'blueprintsTitle' : 'historyTitle')}
+          </div>
         </div>
-        <Button
-          type="button"
-          onClick={startNewChat}
-          variant="primary"
-          size="xs"
-        >
-          <Plus className="w-3 h-3 mr-1" />
-          <span>New Chat</span>
-        </Button>
+        {mode === 'all' && (
+          <Button type="button" onClick={startNewChat} variant="primary" size="xs">
+            <Plus className="w-3 h-3 mr-1" />
+            <span>{t('newChat')}</span>
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-1">
         {isSessionsLoading ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--muted-foreground)]">
             <EAILoaderStatusIcon className="w-5 h-5 text-[var(--primary)] mb-2" />
-            <span className="text-[10px]">Loading history...</span>
+            <span className="text-[10px]">{t('loading')}</span>
           </div>
-        ) : sessions.length === 0 ? (
+        ) : visibleSessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 px-4 border border-dashed border-[var(--border)] rounded-xl bg-[var(--surface-2)] text-center my-4 mx-2">
-            <MessageSquare className="w-8 h-8 text-[var(--muted-foreground)] opacity-40 mb-2.5" />
+            {mode === 'blueprints'
+              ? <WorkspaceLibraryIcon className="w-8 h-8 text-[var(--muted-foreground)] opacity-40 mb-2.5" />
+              : <MessageSquare className="w-8 h-8 text-[var(--muted-foreground)] opacity-40 mb-2.5" />}
             <h3 className="text-xs font-semibold text-[var(--foreground)] mb-1">
-              Start New Chat
+              {t(mode === 'blueprints' ? 'emptyBlueprintTitle' : 'emptyChatTitle')}
             </h3>
             <p className="text-[10px] text-[var(--muted-foreground)] max-w-[200px] mb-3">
-              Ask the AI Strategist for content ideas, SEO outlines, or draft
-              previews.
+              {t(mode === 'blueprints' ? 'emptyBlueprintDescription' : 'emptyChatDescription')}
             </p>
             <Button
               type="button"
@@ -102,12 +125,12 @@ export function SessionSidebar({
               variant="primary"
               size="xs"
             >
-              <span>Start Chat</span>
+              <span>{t('startChat')}</span>
             </Button>
           </div>
         ) : (
           <div className="space-y-1">
-            {sessions.map((s) => (
+            {visibleSessions.map((s) => (
               <div
                 key={s.id}
                 className="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg border border-transparent hover:border-[var(--border)] hover:bg-[var(--surface-3)]/60 transition-all cursor-pointer"
@@ -124,7 +147,7 @@ export function SessionSidebar({
                   </div>
 
                   <span className="text-[9px] text-[var(--muted-foreground)] shrink-0 font-medium ml-1">
-                    {new Date(s.updatedAt).toLocaleDateString('en-US', {
+                    {new Date(s.updatedAt).toLocaleDateString(locale, {
                       month: 'short',
                       day: 'numeric',
                     })}
@@ -136,35 +159,35 @@ export function SessionSidebar({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <AdaptiveActionMenu
-                    title={`Actions for ${s.title}`}
+                    title={t('actionsFor', { title: s.title })}
                     trigger={
                       <ActionButton
                         type="button"
                         variant="muted"
                         size="icon-xs"
                         className="strategist-session-menu-trigger opacity-100 md:opacity-0 md:group-hover:opacity-100 data-[popup-open]:opacity-100"
-                        aria-label={`Actions for ${s.title}`}
+                        aria-label={t('actionsFor', { title: s.title })}
                         icon={MoreActionsIcon}
-                        label={`Actions for ${s.title}`}
+                        label={t('actionsFor', { title: s.title })}
                         labelClassName="sr-only"
                       />
                     }
                     items={[
                       {
                         key: 'pin',
-                        label: s.isPinned ? 'Unpin' : 'Pin',
+                        label: t(s.isPinned ? 'unpin' : 'pin'),
                         icon: PinActionIcon,
                         onSelect: () => togglePinSession(s.id),
                       },
                       {
                         key: 'rename',
-                        label: 'Rename',
+                        label: t('rename'),
                         icon: EditActionIcon,
                         onSelect: () => onStartRename(s.id, s.title),
                       },
                       {
                         key: 'delete',
-                        label: 'Delete',
+                        label: t('delete'),
                         icon: DeleteActionIcon,
                         danger: true,
                         separatorBefore: true,

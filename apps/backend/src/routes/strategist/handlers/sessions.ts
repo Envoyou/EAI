@@ -1,5 +1,6 @@
 import { Router, type Request } from 'express';
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { requireAuth } from '../../../middleware/auth';
 import { resolveInternalOrgId } from '../utils/helpers';
 
@@ -34,10 +35,28 @@ router.get('/sessions', requireAuth, async (req, res) => {
           orderBy: { createdAt: 'desc' },
           select: { content: true },
         },
+        _count: {
+          select: {
+            messages: {
+              where: {
+                role: 'assistant',
+                payload: {
+                  path: ['plan'],
+                  not: Prisma.JsonNull,
+                },
+              },
+            },
+          },
+        },
       },
     });
 
-    res.json({ sessions });
+    res.json({
+      sessions: sessions.map(({ _count, ...session }) => ({
+        ...session,
+        hasBlueprint: _count.messages > 0,
+      })),
+    });
   } catch (error) {
     console.error('Error fetching chat sessions:', error);
     res.status(500).json({ error: 'Failed to fetch sessions' });

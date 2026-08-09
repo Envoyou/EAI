@@ -74,7 +74,8 @@ interface EditorProps {
   isPersonal?: boolean;
   onAddNewMetadataOption?: (type: 'category' | 'articleType', value: string) => void;
   charLimit?: number;
-  onOpenStrategist?: () => void;
+  onStartChat?: () => void;
+  onOpenBlueprints?: () => void;
   onOpenNotes?: () => void;
 }
 
@@ -97,7 +98,8 @@ export default function Editor({
   editorialBrandName = 'the active editorial profile',
   isPersonal = false,
   onAddNewMetadataOption,
-  onOpenStrategist,
+  onStartChat,
+  onOpenBlueprints,
   onOpenNotes,
 }: EditorProps) {
   const t = useTranslations('ArticleEditor');
@@ -665,7 +667,7 @@ export default function Editor({
                 icon={AiGeneratedIcon}
                 title={t('startWithAi')}
                 description={t('startWithAiDescription')}
-                onClick={onOpenStrategist}
+                onClick={onStartChat}
               />
               <LaunchOption
                 icon={FileEdit}
@@ -683,7 +685,7 @@ export default function Editor({
                 icon={WorkspaceLibraryIcon}
                 title={t('fromBlueprint')}
                 description={t('fromBlueprintDescription')}
-                onClick={onOpenStrategist}
+                onClick={onOpenBlueprints}
               />
               <LaunchOption
                 icon={DocumentIcon}

@@ -131,8 +131,11 @@ export interface ChatSession {
   isPinned: boolean;
   createdAt: string;
   updatedAt: string;
+  hasBlueprint?: boolean;
   messages?: ChatMessage[];
 }
+
+export type StrategistSessionListMode = 'all' | 'blueprints';
 
 interface UseContentStrategistOptions {
   onComplete: (
@@ -176,6 +179,8 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
   }, []);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isSessionsLoading, setIsSessionsLoading] = useState(false);
+  const [sessionListMode, setSessionListMode] = useState<StrategistSessionListMode>('all');
+  const [composerFocusRequestId, setComposerFocusRequestId] = useState(0);
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -474,6 +479,8 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
   const startNewChat = useCallback(() => {
     strategistTypewriterRef.current?.clear();
     setCurrentSessionId('new');
+    setSessionListMode('all');
+    setComposerFocusRequestId(current => current + 1);
     setMessages([]);
     setCurrentPlan(null);
     setUploadedAttachment(null);
@@ -484,6 +491,16 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
       sessionStorage.removeItem(`eai_strategist_sources_${documentId}`);
     }
   }, [documentId, setCurrentSessionId, setMessages, setCurrentPlan, setUploadedAttachment, setChatInput]);
+
+  const openBlueprintLibrary = useCallback(() => {
+    setSessionListMode('blueprints');
+    setCurrentSessionId(null);
+  }, [setCurrentSessionId]);
+
+  const showAllSessions = useCallback(() => {
+    setSessionListMode('all');
+    setCurrentSessionId(null);
+  }, [setCurrentSessionId]);
 
 
 
@@ -2028,12 +2045,16 @@ export function useContentStrategist({ onComplete, notes, onNotesChange, documen
     setCurrentSessionId,
     sessions,
     isSessionsLoading,
+    sessionListMode,
+    composerFocusRequestId,
     loadSessions,
     selectSession,
     renameSession,
     togglePinSession,
     deleteSession,
     startNewChat,
+    openBlueprintLibrary,
+    showAllSessions,
     cancelChat,
   };
 }

@@ -45,11 +45,14 @@ export default function StrategistTab({
   setCurrentSessionId,
   sessions,
   isSessionsLoading,
+  sessionListMode,
+  composerFocusRequestId,
   selectSession,
   renameSession,
   togglePinSession,
   deleteSession,
   startNewChat,
+  showAllSessions,
   onCancelChat,
   quickDraftMode,
   openQuickDraft,
@@ -114,7 +117,9 @@ export default function StrategistTab({
         <SessionSidebar
           sessions={sessions}
           isSessionsLoading={isSessionsLoading}
+          mode={sessionListMode}
           startNewChat={startNewChat}
+          onShowAllSessions={showAllSessions}
           selectSession={selectSession}
           togglePinSession={togglePinSession}
           deleteSession={deleteSession}
@@ -249,6 +254,7 @@ export default function StrategistTab({
             triggerFileSelect={triggerFileSelect}
             fileInputRef={fileInputRef}
             handleFileChange={handleFileChange}
+            focusRequestId={composerFocusRequestId}
           />
         </MessageScrollerProvider>
       )}

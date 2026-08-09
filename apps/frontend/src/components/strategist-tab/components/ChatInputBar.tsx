@@ -38,6 +38,7 @@ interface ChatInputBarProps {
   triggerFileSelect: () => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  focusRequestId?: number;
 }
 
 export function ChatInputBar({
@@ -55,6 +56,7 @@ export function ChatInputBar({
   triggerFileSelect,
   fileInputRef,
   handleFileChange,
+  focusRequestId = 0,
 }: ChatInputBarProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -64,6 +66,10 @@ export function ChatInputBar({
     el.style.height = 'auto';
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   }, [chatInput]);
+
+  useEffect(() => {
+    if (focusRequestId > 0) textareaRef.current?.focus();
+  }, [focusRequestId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

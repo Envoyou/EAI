@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FileSearch, MessageCircle, Notebook, MessagesSquare, PanelRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,10 @@ import type { ResearchNote } from '@/lib/hooks/useContentStrategist';
 import type { AnalysisResult, EditorialProcessStage, FindingTarget } from '@eai/shared';
 
 export type RightTab = 'strategist' | 'feedback' | 'notes' | 'deep_report';
+export type StrategistEntryRequest = {
+  id: number;
+  mode: 'new_chat' | 'blueprints';
+};
 
 interface AICopilotPanelProps {
   activeTab?: RightTab;
@@ -56,6 +60,8 @@ interface AICopilotPanelProps {
   onToggleSidebar?: () => void;
   allowedTabs?: RightTab[];
   panelTitle?: string;
+  strategistEntryRequest?: StrategistEntryRequest | null;
+  onStrategistEntryHandled?: (id: number) => void;
 }
 
 export default function AICopilotPanel({
@@ -92,6 +98,8 @@ export default function AICopilotPanel({
   onToggleSidebar,
   allowedTabs,
   panelTitle,
+  strategistEntryRequest,
+  onStrategistEntryHandled,
 }: AICopilotPanelProps) {
   const t = useTranslations('AICopilotPanel');
   const reportT = useTranslations('DeepResearchReport');
@@ -123,6 +131,22 @@ export default function AICopilotPanel({
     onNotesChange,
     documentId: activeHistoryId || 'new',
   });
+  const { startNewChat, openBlueprintLibrary } = strategist;
+
+  useEffect(() => {
+    if (!strategistEntryRequest) return;
+    if (strategistEntryRequest.mode === 'new_chat') {
+      startNewChat();
+    } else {
+      openBlueprintLibrary();
+    }
+    onStrategistEntryHandled?.(strategistEntryRequest.id);
+  }, [
+    strategistEntryRequest,
+    startNewChat,
+    openBlueprintLibrary,
+    onStrategistEntryHandled,
+  ]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -149,11 +173,14 @@ export default function AICopilotPanel({
             setCurrentSessionId={strategist.setCurrentSessionId}
             sessions={strategist.sessions}
             isSessionsLoading={strategist.isSessionsLoading}
+            sessionListMode={strategist.sessionListMode}
+            composerFocusRequestId={strategist.composerFocusRequestId}
             selectSession={strategist.selectSession}
             renameSession={strategist.renameSession}
             togglePinSession={strategist.togglePinSession}
             deleteSession={strategist.deleteSession}
             startNewChat={strategist.startNewChat}
+            showAllSessions={strategist.showAllSessions}
             onCancelChat={strategist.cancelChat}
             quickDraftMode={strategist.quickDraftMode}
             openQuickDraft={strategist.openQuickDraft}

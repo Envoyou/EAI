@@ -251,8 +251,11 @@ In-place Refinement within `/editor` follows a 3-Phase Sequential UX Architectur
 Cloud persistence is represented by an explicit save state rather than a
 `saving` boolean. The header distinguishes local-only, dirty, saving, saved,
 failed, and conflict states, so a failed autosave is never presented as saved.
-The empty editor is a temporary launchpad for AI, Write/Paste, Blueprint, or
-Notes. Clearing the article body requires confirmation, preserves Strategist
+The empty editor is a temporary launchpad with deterministic entry actions:
+Chat with EAI resets to a fresh composer, Write/Paste enters the canvas, Notes
+opens the Notes tab, and Blueprint opens a filtered tenant-scoped session list
+containing persisted plans. Blueprint remains a Chat artifact rather than a
+permanent fourth tool tab. Clearing the article body requires confirmation, preserves Strategist
 and research context, and offers an immediate undo.
 
 The localized `/[locale]/dashboard/content-map` route is a bounded client view

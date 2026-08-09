@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { EAILoaderStatusIcon, WarningStatusIcon } from '@/components/ui/icons/status';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -20,7 +20,7 @@ import {
 
 import ThreeColumnLayout from '@/components/ThreeColumnLayout';
 import EditorCanvas from '@/components/EditorCanvas';
-import AICopilotPanel from '@/components/AICopilotPanel';
+import AICopilotPanel, { type StrategistEntryRequest } from '@/components/AICopilotPanel';
 import { EditorWorkflowPanel } from '@/components/EditorWorkflowPanel';
 import { PublicationSeoPanel } from '@/components/PublicationSeoPanel';
 import { AppSidebarShell, type WorkspacePage } from '@/components/AppSidebarShell';
@@ -150,6 +150,16 @@ export default function EditorialWorkspace({
   const initialContentMapNavigationHandled = useRef(false);
   const currentPage = stage as WorkspacePage;
   const effectiveActiveTab = (stage === 'review' || stage === 'publication') ? 'refined' : activeTab;
+  const strategistEntrySequence = useRef(0);
+  const [strategistEntryRequest, setStrategistEntryRequest] = useState<StrategistEntryRequest | null>(null);
+
+  const openStrategistEntry = (mode: StrategistEntryRequest['mode']) => {
+    strategistEntrySequence.current += 1;
+    setStrategistEntryRequest({ id: strategistEntrySequence.current, mode });
+    setRightPanelTab('strategist');
+    setRightPanelOpen(true);
+    if (isMobile) setMobileViewTab('copilot');
+  };
 
   const isCandidatePending = isCandidatePendingReview(analysis, {
     isStreaming,
@@ -559,11 +569,8 @@ export default function EditorialWorkspace({
       isGeneratingSeo={isGeneratingSeo}
       onAddNewMetadataOption={handleAddNewCategoryOrType}
       onOpenShortcuts={() => setIsShortcutModalOpen(true)}
-      onOpenStrategist={() => {
-        setRightPanelTab('strategist');
-        setRightPanelOpen(true);
-        if (isMobile) setMobileViewTab('copilot');
-      }}
+      onStartChat={() => openStrategistEntry('new_chat')}
+      onOpenBlueprints={() => openStrategistEntry('blueprints')}
       onOpenNotes={() => {
         setRightPanelTab('notes');
         setRightPanelOpen(true);
@@ -626,6 +633,10 @@ export default function EditorialWorkspace({
       allowedTabs={stage === 'review' ? ['feedback'] : ['strategist', 'notes', 'deep_report']}
       panelTitle={stage === 'review' ? tWorkspace('evaluationPanel') : undefined}
       activeHistoryId={activeHistoryId}
+      strategistEntryRequest={strategistEntryRequest}
+      onStrategistEntryHandled={(id) => {
+        setStrategistEntryRequest(current => current?.id === id ? null : current);
+      }}
       onStrategistComplete={(topic, outline, draftVal, notes, wizardAttachments, sourceRef) => {
         setDraft(draftVal || outline || topic);
         if (sourceRef) {

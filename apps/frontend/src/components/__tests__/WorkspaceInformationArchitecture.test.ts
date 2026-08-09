@@ -19,6 +19,9 @@ describe('editorial workspace information architecture', () => {
   const editorStyles = read('../../app/styles/workspace/editor.css');
   const navigation = read('../app-shell/navigation/main-navigation.ts');
   const autosave = read('../../workspace/hooks/useWorkspaceAutosave.ts');
+  const copilot = read('../AICopilotPanel.tsx');
+  const strategist = read('../../lib/hooks/useContentStrategist.ts');
+  const sessionSidebar = read('../strategist-tab/components/SessionSidebar.tsx');
 
   it('uses workspace as the document home and preserves legacy document links', () => {
     expect(workspacePage).toContain('<SavedArticlesLibrary />');
@@ -85,6 +88,12 @@ describe('editorial workspace information architecture', () => {
     expect(editorStyles).toContain('.article-launch-option.ui-btn');
     expect(editorStyles).toContain('justify-content: flex-start');
     expect(editorStyles).toContain('white-space: normal');
+    expect(workspace).toContain("onStartChat={() => openStrategistEntry('new_chat')}");
+    expect(workspace).toContain("onOpenBlueprints={() => openStrategistEntry('blueprints')}");
+    expect(copilot).toContain('startNewChat()');
+    expect(copilot).toContain('openBlueprintLibrary()');
+    expect(strategist).toContain("setSessionListMode('blueprints')");
+    expect(sessionSidebar).toContain('sessions.filter(session => session.hasBlueprint)');
   });
 
   it('does not equate an idle autosave request with a successful save', () => {
