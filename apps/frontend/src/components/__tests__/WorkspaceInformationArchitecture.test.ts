@@ -16,6 +16,7 @@ describe('editorial workspace information architecture', () => {
   const library = read('../SavedArticlesLibrary.tsx');
   const storage = read('../../workspace/hooks/useWorkspaceStorage.ts');
   const editor = read('../Editor.tsx');
+  const editorStyles = read('../../app/styles/workspace/editor.css');
   const navigation = read('../app-shell/navigation/main-navigation.ts');
   const autosave = read('../../workspace/hooks/useWorkspaceAutosave.ts');
 
@@ -80,6 +81,10 @@ describe('editorial workspace information architecture', () => {
     expect(editor).toContain("t('fromNotes')");
     expect(editor).toContain('<ConfirmDestructiveDialog');
     expect(editor).not.toContain("sessionStorage.removeItem('eai_strategist_messages')");
+    expect(editor).toContain('article-launch-option-content');
+    expect(editorStyles).toContain('.article-launch-option.ui-btn');
+    expect(editorStyles).toContain('justify-content: flex-start');
+    expect(editorStyles).toContain('white-space: normal');
   });
 
   it('does not equate an idle autosave request with a successful save', () => {

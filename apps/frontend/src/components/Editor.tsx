@@ -44,9 +44,9 @@ function LaunchOption({
       type="button"
       onClick={onClick}
       variant="surface"
-      className="group/launch min-h-[92px] min-w-0 whitespace-normal rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-4 text-left shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-[var(--primary)]/35 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
+      className="article-launch-option group/launch hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
     >
-      <span className="flex min-w-0 items-start gap-3">
+      <span className="article-launch-option-content flex min-w-0 items-start gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--primary)] transition-colors duration-300 group-hover/launch:border-[var(--primary)]/25 group-hover/launch:bg-[var(--primary)]/10 motion-reduce:transition-none">
           <Icon className="size-4" />
         </span>

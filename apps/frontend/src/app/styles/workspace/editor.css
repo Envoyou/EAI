@@ -18,6 +18,43 @@
   background: color-mix(in srgb, var(--surface-2) 48%, var(--surface-1));
 }
 
+.article-launch-option.ui-btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 92px;
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  background: var(--surface-1);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+  text-align: left;
+  white-space: normal;
+  transition:
+    background 300ms ease-out,
+    border-color 300ms ease-out,
+    box-shadow 300ms ease-out,
+    transform 300ms ease-out;
+}
+
+.article-launch-option.ui-btn:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  background: color-mix(in srgb, var(--surface-2) 88%, var(--primary) 3%);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.article-launch-option-content {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .article-launch-option.ui-btn {
+    transition: none;
+  }
+}
+
 .publication-command-row {
   display: flex;
   align-items: center;
