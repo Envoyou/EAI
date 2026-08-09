@@ -7,6 +7,12 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Editorial Evaluation Dataset (Internal · Owner Only)**:
+  - Added append-only `EditorialEvaluationRun` and `EditorialRevisionEvent` records for input, prompt/config version, provider/model, output, automated review, score, and persisted body revisions.
+  - Captured new Analyze/Refine/manual-draft outputs plus Strategist chat and Blueprint outputs; exact rendered Strategist prompts are retained for forward-captured runs.
+  - Added an explicit non-production historical backfill that labels incomplete reconstructed rows as `backfilled_partial` instead of implying unavailable prompt/model provenance.
+  - Added a platform-wide owner-only dataset API and `/dashboard/editorial-evaluation` explorer with environment/workflow/provenance filters, tenant attribution, revision retention rate, details, and pagination.
+  - Kept production capture disabled unless `EDITORIAL_EVALUATION_CAPTURE=true`, preserving an explicit environment and governance boundary.
 - **Article Workflow Management**:
   - Added a shared article workflow snapshot that independently derives workflow, quality, save, and publication states plus the single next action for each current article.
   - Turned Workspace into actionable queues for attention, continuing work, publication readiness, and completed exports; added a separate Content library and a permanent read-only Draft/Review/Publication progress bar.
@@ -37,6 +43,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - `apps/frontend/src/components/strategist-tab/components/DeleteSessionDialog.tsx`: Strategist session deletion confirmation dialog.
 
 ### Changed
+- **Truthful Validation Overview metrics**:
+  - Clarified that `/dashboard/validation` aggregates `AnalysisLog` records across all tenants and renamed log-count/single-pass/verdict proxies so they are not presented as unique articles, semantic POV matching, or measured human revision rates.
 - **Simplified editorial navigation and transitions**:
   - Reduced global navigation to Workspace, Content, Analytics, and Settings while retaining Editor, Review, and Publication routes as compatible internal workflow surfaces.
   - Removed the duplicate post-Refine modal. The workflow panel now owns one primary handoff: unresolved decisions go to Review and ready articles go to Publication, where missing SEO details are prepared before export.

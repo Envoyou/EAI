@@ -36,6 +36,8 @@ import {
   releaseContentReservation,
   upsertContentArtifact,
 } from '@/lib/content-memory';
+import { PROMPT_VERSION } from '@/lib/prompts';
+import { createEvaluationRunForChatMessage } from '@/lib/editorial-evaluation';
 
 const router = Router();
 
@@ -331,6 +333,9 @@ router.post(
           )
         : { provider: 'gemini' as const, model: null };
       const blueprintModel = blueprintConfig.model || MODEL;
+      const blueprintSystemInstruction = new StrategistBlueprintComposer(
+        profile?.config
+      ).compose('xml');
 
       const strategistPlanSchema = {
         type: 'object',
@@ -399,9 +404,7 @@ router.post(
           gemini.interactions.create({
             model: blueprintModel,
             input: prompt,
-            system_instruction: new StrategistBlueprintComposer(
-              profile?.config
-            ).compose('xml'),
+            system_instruction: blueprintSystemInstruction,
             tools: isGeminiGroundingDisabled()
               ? undefined
               : [{ type: 'google_search' }],
@@ -426,9 +429,7 @@ router.post(
           gemini.interactions.create({
             model: blueprintModel,
             input: prompt,
-            system_instruction: new StrategistBlueprintComposer(
-              profile?.config
-            ).compose('xml'),
+            system_instruction: blueprintSystemInstruction,
             tools: isGeminiGroundingDisabled()
               ? undefined
               : [{ type: 'google_search' }],
@@ -712,6 +713,8 @@ router.post(
         }
 
         if (dbSessionId) {
+          const persistedSessionId = dbSessionId;
+          const ownerUserId = req.auth.userId;
           let displayContent = data.reply || '';
           if (data.plan) {
             const plan = data.plan;
@@ -751,18 +754,18 @@ router.post(
             duplicateGuard: duplicateGuardResult,
           };
 
-          await prisma.$transaction([
-            prisma.chatMessage.create({
+          await prisma.$transaction(async (tx) => {
+            await tx.chatMessage.create({
               data: {
-                sessionId: dbSessionId,
+                sessionId: persistedSessionId,
                 role: 'user',
                 type: 'text',
                 content: recommendation,
               },
-            }),
-            prisma.chatMessage.create({
+            });
+            const assistantMessage = await tx.chatMessage.create({
               data: {
-                sessionId: dbSessionId,
+                sessionId: persistedSessionId,
                 role: 'assistant',
                 type: 'text',
                 content: displayContent,
@@ -777,10 +780,10 @@ router.post(
                     ? { plan: sanitizedData.plan }
                     : {}),
                   sourceRef: requestId,
-                },
+                } as unknown as Prisma.InputJsonValue,
               },
-            }),
-            prisma.strategistPlanRequest.update({
+            });
+            await tx.strategistPlanRequest.update({
               where: { id: requestId },
               data: {
                 sessionId: dbSessionId,
@@ -788,8 +791,26 @@ router.post(
                 response: responsePayload as unknown as Prisma.InputJsonValue,
                 error: null,
               },
-            }),
-          ]);
+            });
+            await createEvaluationRunForChatMessage(tx, {
+              chatMessageId: assistantMessage.id,
+              requestId,
+              organizationId: internalOrgId,
+              userId: ownerUserId,
+              sourceRef: requestId,
+              input: recommendation,
+              output: displayContent,
+              promptVersion: PROMPT_VERSION,
+              renderedPrompt: blueprintSystemInstruction,
+              provider: 'gemini',
+              modelName: blueprintModel,
+              modelParameters: {
+                structuredOutput: true,
+                searchEnabled: !isGeminiGroundingDisabled(),
+                providerInput: prompt,
+              },
+            });
+          });
           planRequestCompleted = true;
 
           if (internalOrgId) {

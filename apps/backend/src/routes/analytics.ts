@@ -5,6 +5,11 @@ import { getWorkspaceState } from '@/lib/user-workspace';
 import { isOwnerUser } from '@eai/shared/server';
 import crypto from 'node:crypto';
 import { Prisma } from '@prisma/client';
+import {
+  backfillEditorialEvaluationRuns,
+  isEditorialEvaluationCaptureEnabled,
+  resolveEvaluationEnvironment,
+} from '@/lib/editorial-evaluation';
 
 type StoredTelemetry = {
   inputTokens?: number;
@@ -687,18 +692,18 @@ router.get('/validation', requireAuth, async (req, res) => {
       },
       validationReport: {
         productUsage: {
-          draftsProcessedMonth: { current: draftsThisMonth, target: 300, label: "Draft processed / month" },
+          draftsProcessedMonth: { current: draftsThisMonth, target: 300, label: "Analysis runs / 30 days" },
           wauInternal: { current: wauInternal, target: 15, label: "WAU internal" },
-          avgArticlesPerUser: { current: isDemo ? Math.max(avgArticlesPerUser, 15) : avgArticlesPerUser, target: 25, label: "Avg. articles per user" },
-          draftPolishedPercentage: { current: isDemo ? Math.max(polishedRatio, 75) : polishedRatio, target: 90, label: "% draft finished/polished" },
+          avgArticlesPerUser: { current: isDemo ? Math.max(avgArticlesPerUser, 15) : avgArticlesPerUser, target: 25, label: "Avg. analysis runs per user" },
+          draftPolishedPercentage: { current: isDemo ? Math.max(polishedRatio, 75) : polishedRatio, target: 90, label: "% runs refined/exported" },
           avgTimeFromRoughToFinal: { current: isDemo ? 12 : avgProcessTimeMinutes, target: 8, label: "Avg. process time (mins)", isDuration: true, coverage: isDemo ? 100 : telemetryCoverage }
         },
         outputQuality: {
           editorAcceptanceRate: { current: totalVerdicts > 0 ? (isDemo ? Math.max(editorAcceptanceRate, 72) : editorAcceptanceRate) : (isDemo ? 72 : 0), target: 85, label: "Final draft ready rate", isPercentage: true },
           seoPackCompletion: { current: logs.length > 0 ? (isDemo ? Math.max(seoPackCompletionRate, 94) : seoPackCompletionRate) : (isDemo ? 94 : 0), target: 98, label: "SEO pack completion", isPercentage: true },
-          finalDraftPovMatch: { current: isDemo ? Math.max(povMatchRate, 78) : povMatchRate, target: 80, label: "AI refinement POV match rate", isPercentage: true },
+          finalDraftPovMatch: { current: isDemo ? Math.max(povMatchRate, 78) : povMatchRate, target: 80, label: "Single-pass export proxy", isPercentage: true },
           directlyPublishable: { current: isDemo ? Math.max(directlyPublishableRate, 68) : directlyPublishableRate, target: 80, label: "CMS directly publishable rate", isPercentage: true },
-          manualRevisionRate: { current: isDemo ? 22 : (totalVerdicts > 0 ? Math.round(((needsReview + blocked) / totalVerdicts) * 100) : 0), target: 10, label: "Needs review / blocked rate", isPercentage: true, isReverse: true },
+          manualRevisionRate: { current: isDemo ? 22 : (totalVerdicts > 0 ? Math.round(((needsReview + blocked) / totalVerdicts) * 100) : 0), target: 10, label: "Needs review / blocked verdict rate", isPercentage: true, isReverse: true },
           errorFallbackRate: { current: isDemo ? 2 : errorFallbackRate, target: 0.5, label: "API retry/fallback output rate", isPercentage: true, isReverse: true, coverage: isDemo ? 100 : telemetryCoverage }
         },
         efficiencyGain: {
@@ -720,6 +725,197 @@ router.get('/validation', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Validation analytics error:', error);
     return res.status(500).json({ error: 'Failed to fetch validation analytics data' });
+  }
+});
+
+// GET /api/analytics/editorial-evaluations
+// Platform-owner dataset. This is intentionally global and never exposed via
+// tenant analytics routes; every row retains its organization and environment.
+router.get('/editorial-evaluations', requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.auth!;
+    if (!isOwnerUser(userId)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const environment = typeof req.query.environment === 'string'
+      ? req.query.environment.trim()
+      : '';
+    const workflow = typeof req.query.workflow === 'string'
+      ? req.query.workflow.trim()
+      : '';
+    const provenance = typeof req.query.provenance === 'string'
+      ? req.query.provenance.trim()
+      : '';
+    const organizationId = typeof req.query.organizationId === 'string'
+      ? req.query.organizationId.trim()
+      : '';
+    const page = Math.max(Number.parseInt(String(req.query.page || '1'), 10) || 1, 1);
+    const pageSize = Math.min(
+      Math.max(Number.parseInt(String(req.query.pageSize || '25'), 10) || 25, 1),
+      100,
+    );
+    const where: Prisma.EditorialEvaluationRunWhereInput = {
+      ...(environment ? { environment } : {}),
+      ...(workflow ? { workflow } : {}),
+      ...(provenance ? { provenance } : {}),
+      ...(organizationId ? { organizationId } : {}),
+    };
+
+    const [runs, total, ready, withHumanRevision, scoreAggregate, environmentGroups] = await Promise.all([
+      prisma.editorialEvaluationRun.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          organization: { select: { id: true, name: true, slug: true } },
+          revisions: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              revisionType: true,
+              beforeText: true,
+              afterText: true,
+              reviewStateBefore: true,
+              reviewStateAfter: true,
+              createdAt: true,
+            },
+          },
+          _count: { select: { revisions: true } },
+        },
+      }),
+      prisma.editorialEvaluationRun.count({ where }),
+      prisma.editorialEvaluationRun.count({ where: { ...where, verdict: 'ready' } }),
+      prisma.editorialEvaluationRun.count({ where: { ...where, revisions: { some: {} } } }),
+      prisma.editorialEvaluationRun.aggregate({ where, _avg: { score: true } }),
+      prisma.editorialEvaluationRun.groupBy({
+        by: ['environment'],
+        _count: { _all: true },
+        orderBy: { environment: 'asc' },
+      }),
+    ]);
+
+    return res.json({
+      scope: 'platform',
+      access: 'owner_only',
+      capture: {
+        enabled: isEditorialEvaluationCaptureEnabled(),
+        environment: resolveEvaluationEnvironment(),
+      },
+      summary: {
+        total,
+        readyRate: total > 0 ? Math.round((ready / total) * 1000) / 10 : 0,
+        humanRevisionRate: total > 0 ? Math.round((withHumanRevision / total) * 1000) / 10 : 0,
+        averageScore: Math.round((scoreAggregate._avg.score ?? 0) * 10) / 10,
+      },
+      environments: environmentGroups.map(group => ({
+        environment: group.environment,
+        count: group._count._all,
+      })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(Math.ceil(total / pageSize), 1),
+      },
+      runs: runs.map(run => {
+        const latestRevision = run.revisions[0];
+        return {
+          id: run.id,
+          analysisLogId: run.analysisLogId,
+          environment: run.environment,
+          provenance: run.provenance,
+          workflow: run.workflow,
+          stage: run.stage,
+          sourceRef: run.sourceRef,
+          organization: run.organization,
+          inputPreview: run.input.slice(0, 280),
+          outputPreview: run.output?.slice(0, 280) ?? null,
+          promptVersion: run.promptVersion,
+          promptConfigurationHash: run.promptConfigurationHash,
+          hasRenderedPrompt: Boolean(run.renderedPrompt),
+          provider: run.provider,
+          modelName: run.modelName,
+          score: run.score,
+          verdict: run.verdict,
+          summary: run.summary,
+          revisionCount: run._count.revisions,
+          latestRevision: latestRevision
+            ? {
+                id: latestRevision.id,
+                revisionType: latestRevision.revisionType,
+                reviewStateBefore: latestRevision.reviewStateBefore,
+                reviewStateAfter: latestRevision.reviewStateAfter,
+                similarityPercentage: calculateWordSimilarity(
+                  latestRevision.beforeText,
+                  latestRevision.afterText,
+                ),
+                createdAt: latestRevision.createdAt,
+              }
+            : null,
+          createdAt: run.createdAt,
+        };
+      }),
+    });
+  } catch (error) {
+    console.error('Editorial evaluation dataset error:', error);
+    return res.status(500).json({ error: 'Failed to fetch editorial evaluation dataset' });
+  }
+});
+
+router.get('/editorial-evaluations/:id', requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.auth!;
+    if (!isOwnerUser(userId)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const id = req.params.id;
+    if (!id) return res.status(400).json({ error: 'Evaluation ID is required' });
+
+    const run = await prisma.editorialEvaluationRun.findUnique({
+      where: { id },
+      include: {
+        organization: { select: { id: true, name: true, slug: true } },
+        revisions: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    if (!run) return res.status(404).json({ error: 'Evaluation run not found' });
+
+    return res.json({
+      ...run,
+      userId: undefined,
+      revisions: run.revisions.map(revision => ({
+        ...revision,
+        actorUserId: undefined,
+        similarityPercentage: calculateWordSimilarity(revision.beforeText, revision.afterText),
+      })),
+    });
+  } catch (error) {
+    console.error('Editorial evaluation detail error:', error);
+    return res.status(500).json({ error: 'Failed to fetch editorial evaluation detail' });
+  }
+});
+
+// Explicit action: never runs by migration and is disabled by default in production.
+router.post('/editorial-evaluations/backfill', requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.auth!;
+    if (!isOwnerUser(userId)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const created = await backfillEditorialEvaluationRuns();
+    return res.json({
+      success: true,
+      created,
+      environment: resolveEvaluationEnvironment(),
+      provenance: 'backfilled_partial',
+    });
+  } catch (error) {
+    console.error('Editorial evaluation backfill error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to backfill evaluation dataset';
+    return res.status(message.includes('disabled') ? 409 : 500).json({ error: message });
   }
 });
 

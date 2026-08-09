@@ -26,7 +26,7 @@ export function DashboardLayoutShell({ children, isSuperAdmin }: { children: Rea
   } = useDashboard();
   const isContentMap = pathname.includes('/dashboard/content-map');
 
-  if (pathname.includes('/dashboard/validation')) {
+  if (pathname.includes('/dashboard/validation') || pathname.includes('/dashboard/editorial-evaluation')) {
     return <>{children}</>;
   }
 

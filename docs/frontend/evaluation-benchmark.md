@@ -2,6 +2,41 @@
 
 Dokumen ini memuat panduan, kriteria pengujian, dan catatan komparasi performa berbagai model bahasa besar (*Large Language Models* / LLM) yang diuji untuk menjalankan mesin evaluasi Envoyou AI Editorial System.
 
+## Editorial Evaluation Dataset
+
+Benchmark prompt baru menggunakan dataset internal di
+`/dashboard/editorial-evaluation`, bukan angka proxy pada Validation Overview.
+Dataset ini hanya dapat diakses platform owner dan tetap menyimpan
+`organizationId` serta environment pada setiap run agar cohort lintas tenant
+tidak kehilangan provenance.
+
+Rantai data forward-captured adalah:
+
+```text
+input -> prompt/version -> provider/model -> output -> automated review/score
+      -> persisted human or system revision events
+```
+
+`EditorialEvaluationRun` adalah snapshot output AI yang immutable.
+`EditorialRevisionEvent` merupakan event append-only untuk perubahan body yang
+tersimpan. Record historis yang direkonstruksi dari `AnalysisLog` atau
+`ChatMessage` diberi provenance `backfilled_partial`: exact rendered prompt,
+model chat lama, dan urutan revisi lama tidak boleh dianggap tersedia.
+
+Capture aktif secara default hanya untuk development, test, staging, dan
+preview. Production membutuhkan `EDITORIAL_EVALUATION_CAPTURE=true` secara
+eksplisit. Tentukan label deploy melalui
+`EDITORIAL_EVALUATION_ENVIRONMENT`; jangan mencampur test/staging dan production
+dalam satu cohort evaluasi.
+
+Backfill dijalankan secara eksplisit dari halaman dataset setelah migrasi.
+Backfill tidak dijalankan otomatis oleh SQL migration agar penerapan schema di
+production tidak menyalin isi artikel tanpa keputusan operasional terpisah.
+
+Data mentah dalam dataset digunakan hanya untuk evaluasi internal. Akses owner
+tidak menggantikan kewajiban redaction PII/secret, batas retensi, audit akses,
+dan consent sebelum capture production diaktifkan.
+
 ---
 
 ## 1. Kriteria Pengujian (Benchmark Criteria)

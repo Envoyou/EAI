@@ -21,6 +21,7 @@ import {
   resolveLifecycleRootArtifactId,
   upsertContentArtifact,
 } from '@/lib/content-memory';
+import { createEvaluationRunForAnalysisLog } from '@/lib/editorial-evaluation';
 
 export type CreateAnalysisLogInput = {
   userId: string;
@@ -142,6 +143,8 @@ export async function createAnalysisLogAndDebitCredit(data: CreateAnalysisLogInp
           costEstimate: Number(costEstimate.toFixed(6)),
         },
       });
+
+      await createEvaluationRunForAnalysisLog(tx, savedLog);
 
       return savedLog;
     });

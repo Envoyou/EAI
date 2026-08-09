@@ -36,12 +36,14 @@ model User {
   duplicateGuardEvents         DuplicateGuardEvent[]         @relation("DuplicateGuardEventActor")
   duplicateGuardFeedback       DuplicateGuardEvent[]         @relation("DuplicateGuardEventFeedbackActor")
   contentIntelligenceDecisions ContentIntelligenceDecision[] @relation("ContentIntelligenceDecisionActor")
+  editorialEvaluationRuns      EditorialEvaluationRun[]      @relation("EditorialEvaluationRunUser")
+  editorialRevisionEvents      EditorialRevisionEvent[]      @relation("EditorialRevisionEventActor")
 
   @@index([organizationId])
 }
 
 model AnalysisLog {
-  id String @id @default(cuid())
+  id        String  @id @default(cuid())
   requestId String?
 
   role     String
@@ -77,7 +79,9 @@ model AnalysisLog {
   editorialProfileVersionNo Int?
   coreGuardrailsVersion     String?
   promptConfigurationHash   String?
+  editorialEvaluationRun    EditorialEvaluationRun?
 
+  @@unique([userId, requestId])
   @@index([createdAt])
   @@index([role])
   @@index([status])
@@ -86,7 +90,6 @@ model AnalysisLog {
   @@index([organizationId, isPinned, createdAt])
   @@index([organizationId, updatedAt])
   @@index([editorialProfileVersionId])
-  @@unique([userId, requestId])
 }
 
 model Organization {
@@ -130,8 +133,77 @@ model Organization {
   contentReservations          ContentReservation[]
   duplicateGuardEvents         DuplicateGuardEvent[]
   contentIntelligenceDecisions ContentIntelligenceDecision[]
+  editorialEvaluationRuns      EditorialEvaluationRun[]
+  editorialRevisionEvents      EditorialRevisionEvent[]
 
   @@index([createdByUserId])
+}
+
+/// Immutable snapshot of an editorial AI output and its evaluation context.
+/// Historical rows reconstructed from AnalysisLog are explicitly marked as
+/// backfilled_partial because their exact rendered prompt is unavailable.
+model EditorialEvaluationRun {
+  id                      String   @id @default(cuid())
+  analysisLogId           String?  @unique
+  chatMessageId           String?  @unique
+  requestId               String?
+  environment             String
+  provenance              String
+  workflow                String
+  stage                   String
+  sourceRef               String?
+  organizationId          String?
+  userId                  String?
+  input                   String   @db.Text
+  inputHash               String
+  promptVersion           String
+  promptConfigurationHash String?
+  renderedPrompt          String?  @db.Text
+  provider                String?
+  modelName               String
+  modelParameters         Json?
+  output                  String?  @db.Text
+  automatedReview         Json?
+  score                   Int?
+  verdict                 String?
+  summary                 String?  @db.Text
+  telemetry               Json?
+  createdAt               DateTime @default(now())
+
+  analysisLog  AnalysisLog?             @relation(fields: [analysisLogId], references: [id], onDelete: Cascade)
+  chatMessage  ChatMessage?             @relation(fields: [chatMessageId], references: [id], onDelete: Cascade)
+  organization Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user         User?                    @relation("EditorialEvaluationRunUser", fields: [userId], references: [id], onDelete: SetNull)
+  revisions    EditorialRevisionEvent[]
+
+  @@index([environment, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([workflow, stage, createdAt])
+  @@index([promptVersion, modelName])
+  @@index([sourceRef])
+}
+
+/// Append-only record of a persisted article-body change after an AI output.
+model EditorialRevisionEvent {
+  id                String   @id @default(cuid())
+  evaluationRunId   String
+  organizationId    String?
+  actorUserId       String?
+  revisionType      String
+  beforeText        String   @db.Text
+  afterText         String   @db.Text
+  changeSet         Json?
+  reviewStateBefore String?
+  reviewStateAfter  String?
+  createdAt         DateTime @default(now())
+
+  evaluationRun EditorialEvaluationRun @relation(fields: [evaluationRunId], references: [id], onDelete: Cascade)
+  organization  Organization?          @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  actor         User?                  @relation("EditorialRevisionEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([evaluationRunId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([revisionType, createdAt])
 }
 
 model OnboardingDraft {
@@ -368,7 +440,8 @@ model ChatMessage {
   payload   Json?
   createdAt DateTime @default(now())
 
-  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session                ChatSession             @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  editorialEvaluationRun EditorialEvaluationRun?
 
   @@index([sessionId])
   @@index([createdAt])

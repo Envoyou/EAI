@@ -55,6 +55,7 @@ import {
   resolveStatusFromSeoFields,
 } from '@/lib/seo-field-state';
 import type { PublicationPackage } from '@eai/shared';
+import { createEvaluationRunForAnalysisLog } from '@/lib/editorial-evaluation';
 
 const router = Router();
 
@@ -317,11 +318,13 @@ const updateAnalysisLogIfRevisionCurrent = async ({
   expectedRevisionId,
   expectedBodyHash,
   data,
+  actorUserId,
 }: {
   id: string;
   expectedRevisionId: string;
   expectedBodyHash: string;
   data: Prisma.AnalysisLogUpdateArgs['data'];
+  actorUserId?: string;
 }): Promise<void> => {
   await runSerializableTransaction(async (tx) => {
     const current = await tx.analysisLog.findUnique({ where: { id } });
@@ -374,6 +377,47 @@ const updateAnalysisLogIfRevisionCurrent = async ({
         }
       : data;
     await tx.analysisLog.update({ where: { id }, data: nextData });
+
+    const nextBody = typeof requestedSystem.polishedDraft === 'string'
+      ? preparePublicationDraft(requestedSystem.polishedDraft)
+      : currentBody;
+    if (nextBody !== currentBody) {
+      const evaluationRun = await tx.editorialEvaluationRun.findUnique({
+        where: { analysisLogId: id },
+        select: { id: true },
+      });
+      if (evaluationRun) {
+        const changeSet = requestedSystem.lastDraftChangeSet;
+        const changeSetRecord = changeSet
+          && typeof changeSet === 'object'
+          && !Array.isArray(changeSet)
+            ? changeSet as Record<string, unknown>
+            : {};
+        await tx.editorialRevisionEvent.create({
+          data: {
+            evaluationRunId: evaluationRun.id,
+            organizationId: current.organizationId,
+            actorUserId,
+            revisionType: typeof changeSetRecord.origin === 'string'
+              ? changeSetRecord.origin
+              : 'editorial_update',
+            beforeText: currentBody,
+            afterText: nextBody,
+            changeSet: Object.keys(changeSetRecord).length > 0
+              ? changeSetRecord as Prisma.InputJsonValue
+              : undefined,
+            reviewStateBefore: typeof currentSystem.readiness === 'string'
+              ? currentSystem.readiness
+              : current.verdict,
+            reviewStateAfter: typeof requestedSystem.readiness === 'string'
+              ? requestedSystem.readiness
+              : typeof data.verdict === 'string'
+                ? data.verdict
+                : current.verdict,
+          },
+        });
+      }
+    }
   });
 };
 
@@ -393,18 +437,22 @@ router.post('/', requireAuth, async (req, res) => {
 
     const { content, metadata } = req.body;
 
-    const log = await prisma.analysisLog.create({
-      data: {
-        role: 'editor',
-        content: content || '',
-        metadata: (metadata || {}) as Prisma.InputJsonValue,
-        promptVersion: 'n/a',
-        modelName: 'n/a',
-        status: 'success',
-        verdict: 'draft',
-        userId,
-        organizationId: workspace.organizationId,
-      },
+    const log = await runSerializableTransaction(async (tx) => {
+      const savedLog = await tx.analysisLog.create({
+        data: {
+          role: 'editor',
+          content: content || '',
+          metadata: (metadata || {}) as Prisma.InputJsonValue,
+          promptVersion: 'n/a',
+          modelName: 'n/a',
+          status: 'success',
+          verdict: 'draft',
+          userId,
+          organizationId: workspace.organizationId,
+        },
+      });
+      await createEvaluationRunForAnalysisLog(tx, savedLog);
+      return savedLog;
     });
     await upsertContentArtifact({
       organizationId: workspace.organizationId,
@@ -979,6 +1027,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         id,
         expectedRevisionId: currentDraftRevision.revisionId,
         expectedBodyHash: currentDraftRevision.bodyHash,
+        actorUserId: userId,
         data: {
           ...(invalidatesPublicationReview
             ? {

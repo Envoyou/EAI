@@ -228,6 +228,13 @@ export default function ValidationDashboardPage() {
           </Button>
 
           <Link
+            href="/dashboard/editorial-evaluation"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-sm"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Evaluation Dataset</span>
+          </Link>
+          <Link
             href="/settings/billing"
             className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--surface-2)] rounded-full text-xs font-semibold transition-all shadow-sm"
           >
@@ -278,9 +285,9 @@ export default function ValidationDashboardPage() {
       <div className="settings-page-content scroll-y-auto">
         <div className="settings-page-intro">
           <span>Validation Report</span>
-          <h2>Investor-grade metrics &amp; validation KPIs</h2>
+          <h2>Platform validation metrics</h2>
           <p>
-            Review the EAI platform efficiency gains, usage validation, cost metrics, and commercial readiness levels.
+            Global AnalysisLog aggregates across all tenants. These operational proxies are separate from the row-level Editorial Evaluation Dataset.
           </p>
         </div>
 

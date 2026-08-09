@@ -25,4 +25,5 @@ export {
   Building2 as OrganizationNavigationIcon,
   CreditCard as BillingNavigationIcon,
   FileText as DocumentNavigationIcon,
+  Database as EvaluationDatasetNavigationIcon,
 } from 'lucide-react';

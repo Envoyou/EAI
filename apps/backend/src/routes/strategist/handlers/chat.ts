@@ -58,6 +58,8 @@ import { resolveActiveAiFunctionConfig } from '@/lib/ai-provider-resolver';
 import { getProvider } from '@/lib/ai/providers/registry';
 import { resolveModel } from '@/lib/ai/model-router';
 import { parseJsonResponse } from '@eai/shared';
+import { PROMPT_VERSION } from '@/lib/prompts';
+import { createEvaluationRunForChatMessage } from '@/lib/editorial-evaluation';
 
 const router = Router();
 
@@ -1052,20 +1054,20 @@ router.post(
             text: outputToSend,
             sources: uniqueSourcesData,
           });
-          await prisma.$transaction([
-            prisma.chatSession.update({
+          await prisma.$transaction(async (tx) => {
+            await tx.chatSession.update({
               where: { id: dbSessionId },
               data: { updatedAt: new Date() },
-            }),
-            prisma.chatMessage.create({
+            });
+            await tx.chatMessage.create({
               data: {
                 sessionId: dbSessionId,
                 role: 'user',
                 type: 'text',
                 content: chatInput,
               },
-            }),
-            prisma.chatMessage.create({
+            });
+            const assistantMessage = await tx.chatMessage.create({
               data: {
                 sessionId: dbSessionId,
                 role: 'assistant',
@@ -1078,8 +1080,8 @@ router.post(
                       ) as Prisma.InputJsonValue
                     : undefined,
               },
-            }),
-            prisma.strategistChatRequest.update({
+            });
+            await tx.strategistChatRequest.update({
               where: { id: requestId },
               data: {
                 sessionId: dbSessionId,
@@ -1088,8 +1090,26 @@ router.post(
                 errorCode: null,
                 errorMessage: null,
               },
-            }),
-          ]);
+            });
+            await createEvaluationRunForChatMessage(tx, {
+              chatMessageId: assistantMessage.id,
+              requestId,
+              organizationId: resolvedOrgId,
+              userId: req.auth?.userId ?? null,
+              input: chatInput,
+              output: outputToSend,
+              promptVersion: PROMPT_VERSION,
+              renderedPrompt: finalFastModeInstruction,
+              provider: fastChatProvider,
+              modelName: fastChatModel,
+              modelParameters: {
+                maxOutputTokens: FAST_MODE_MAX_OUTPUT_TOKENS,
+                temperature: 0.35,
+                searchEnabled: effectiveSearchEnabled,
+                providerInput: contextPrompt,
+              },
+            });
+          });
           chatRequestCompleted = true;
         }
 

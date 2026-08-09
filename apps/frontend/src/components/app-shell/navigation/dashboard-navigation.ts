@@ -6,6 +6,7 @@ import {
   UserDirectoryNavigationIcon as ProductivityIcon,
   WorkspaceNavigationIcon as ContentMapIcon,
   FeatureFlagsNavigationIcon as ValidationIcon,
+  EvaluationDatasetNavigationIcon as EvaluationIcon,
 } from '@/components/ui/icons/navigation';
 
 export const DASHBOARD_SECTIONS: NavigationItem[] = [
@@ -18,4 +19,5 @@ export const DASHBOARD_SECTIONS: NavigationItem[] = [
 
 export const DASHBOARD_SUPERADMIN_SECTIONS: NavigationItem[] = [
   { id: 'validation', href: '/dashboard/validation', labelKey: 'validation', icon: ValidationIcon, match: 'exact', requireSuperAdmin: true },
+  { id: 'editorial-evaluation', href: '/dashboard/editorial-evaluation', labelKey: 'editorialEvaluation', icon: EvaluationIcon, match: 'exact', requireSuperAdmin: true },
 ];
