@@ -22,6 +22,8 @@ export type WorkspaceConfig = {
   organization: {
     name: string;
     clerkOrganizationId: string | null;
+    editorialEvaluationConsent: boolean;
+    editorialEvaluationConsentUpdatedAt: string | null;
   };
   editorial: {
     brandName: string;
@@ -47,6 +49,7 @@ type SettingsContextValue = {
   updateTheme: (themeMode: ThemeMode) => void;
   saveSettings: () => void;
   resetSettings: () => void;
+  updateWorkspaceOrganization: (patch: Partial<WorkspaceConfig['organization']>) => void;
 };
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -146,6 +149,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setSettings(DEFAULT_APP_SETTINGS);
   };
 
+  const updateWorkspaceOrganization = useCallback(
+    (patch: Partial<WorkspaceConfig['organization']>) => {
+      setWorkspace(current => current
+        ? { ...current, organization: { ...current.organization, ...patch } }
+        : current);
+    },
+    [],
+  );
+
   return (
     <SettingsContext.Provider
       value={{
@@ -159,6 +171,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         updateTheme,
         saveSettings,
         resetSettings,
+        updateWorkspaceOrganization,
       }}
     >
       {children}

@@ -34,6 +34,7 @@ type EvaluationRun = {
   verdict: string | null;
   summary: string | null;
   revisionCount: number;
+  transitionTypes: string[];
   latestRevision: {
     revisionType: string;
     similarityPercentage: number;
@@ -55,6 +56,7 @@ type DatasetResponse = {
     averageScore: number;
   };
   environments: Array<{ environment: string; count: number }>;
+  transitions: Array<{ type: string; count: number }>;
   pagination: { page: number; pageSize: number; total: number; totalPages: number };
   runs: EvaluationRun[];
 };
@@ -83,6 +85,14 @@ type EvaluationDetail = {
   provider: string | null;
   modelName: string;
   revisions: RevisionDetail[];
+  incomingTransitions: Array<{
+    id: string;
+    transitionType: string;
+    provenance: string;
+    inputSnapshot: unknown;
+    outputSnapshot: unknown;
+    deterministicSignals: unknown;
+  }>;
 };
 
 const FILTER_ALL = '__all__';
@@ -99,6 +109,7 @@ export default function EditorialEvaluationPage() {
   const [provenance, setProvenance] = useState(FILTER_ALL);
   const [page, setPage] = useState(1);
   const [backfilling, setBackfilling] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<EvaluationDetail | null>(null);
@@ -179,6 +190,41 @@ export default function EditorialEvaluationPage() {
     }
   };
 
+  const exportDataset = async () => {
+    setExporting(true);
+    setNotice(null);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (environment !== FILTER_ALL) params.set('environment', environment);
+      if (workflow !== FILTER_ALL) params.set('workflow', workflow);
+      if (provenance !== FILTER_ALL) params.set('provenance', provenance);
+      const query = params.size > 0 ? `?${params.toString()}` : '';
+      const response = await fetchWithTimeout(
+        `/api/analytics/editorial-evaluations/export${query}`,
+        { timeoutMs: 120_000 },
+      );
+      if (!response.ok) throw new Error(t('exportError'));
+      const blob = await response.blob();
+      const disposition = response.headers.get('content-disposition') ?? '';
+      const filename = disposition.match(/filename="([^"]+)"/u)?.[1]
+        ?? 'editorial-evaluation.jsonl';
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setNotice(t('exportComplete'));
+    } catch (exportError) {
+      setError(exportError instanceof Error ? exportError.message : t('exportError'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const changeFilter = (setter: (value: string) => void, value: string | null) => {
     if (!value) return;
     setLoading(true);
@@ -197,6 +243,8 @@ export default function EditorialEvaluationPage() {
     dateStyle: 'medium',
     timeStyle: 'short',
   });
+  const transitionCount = (type: string) =>
+    data?.transitions.find(item => item.type === type)?.count ?? 0;
 
   return (
     <WorkspacePageShell
@@ -204,15 +252,26 @@ export default function EditorialEvaluationPage() {
       description={t('scope')}
       currentPage="dashboard"
       actions={
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => void backfill()}
-          disabled={backfilling || !data?.capture.enabled}
-        >
-          {backfilling ? t('backfilling') : t('backfill')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={() => void exportDataset()}
+            disabled={exporting || loading || !data}
+          >
+            {exporting ? t('exporting') : t('export')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void backfill()}
+            disabled={backfilling || !data?.capture.enabled}
+          >
+            {backfilling ? t('backfilling') : t('backfill')}
+          </Button>
+        </div>
       }
       sidebar={
         <>
@@ -271,6 +330,26 @@ export default function EditorialEvaluationPage() {
               ))}
             </div>
 
+            <section className="mb-5">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                {t('transitionCoverage')}
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                {[
+                  ['chat_to_blueprint', t('chatToBlueprint')],
+                  ['blueprint_to_raw_draft', t('blueprintToRaw')],
+                  ['raw_to_polished', t('rawToPolished')],
+                  ['feedback_to_polished', t('feedbackToPolished')],
+                  ['polished_to_manual_final', t('polishedToManual')],
+                ].map(([type, label]) => (
+                  <div key={type} className="surface-card p-3">
+                    <div className="text-xs font-semibold">{label}</div>
+                    <div className="mt-1 text-xl font-bold">{transitionCount(type)}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
             <div className="mb-5 grid gap-3 sm:grid-cols-3">
               <Select value={environment} onValueChange={value => changeFilter(setEnvironment, value)}>
                 <SelectTrigger variant="surface"><SelectValue /></SelectTrigger>
@@ -287,7 +366,7 @@ export default function EditorialEvaluationPage() {
                 <SelectTrigger variant="surface"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={FILTER_ALL}>{t('allWorkflows')}</SelectItem>
-                  {['analyze', 'refine', 'manual_draft'].map(value => (
+                  {['chat', 'analyze', 'refine', 'manual_draft'].map(value => (
                     <SelectItem key={value} value={value}>{value}</SelectItem>
                   ))}
                 </SelectContent>
@@ -326,7 +405,7 @@ export default function EditorialEvaluationPage() {
                     <tbody className="divide-y divide-[var(--border)]">
                       {data.runs.map(run => (
                         <tr key={run.id} className="align-top">
-                          <td className="px-4 py-3"><div className="font-semibold">{run.workflow}</div><div className="text-[var(--muted-foreground)]">{run.stage} · {run.environment}</div></td>
+                          <td className="px-4 py-3"><div className="font-semibold">{run.workflow}</div><div className="text-[var(--muted-foreground)]">{run.stage} · {run.environment}</div>{run.transitionTypes.length > 0 && <div className="mt-1 max-w-52 text-[10px] text-[var(--primary)]">{run.transitionTypes.join(' · ')}</div>}</td>
                           <td className="px-4 py-3"><div>{run.promptVersion}</div><Badge variant={run.provenance === 'captured' ? 'primary' : 'muted'} size="xs">{run.provenance === 'captured' ? t('captured') : t('partial')}</Badge></td>
                           <td className="px-4 py-3"><div>{run.provider || '—'}</div><div className="max-w-48 truncate text-[var(--muted-foreground)]">{run.modelName}</div></td>
                           <td className="px-4 py-3"><div>{run.organization?.name || '—'}</div><div className="text-[var(--muted-foreground)]">{run.organization?.slug || '—'}</div></td>
@@ -368,6 +447,7 @@ export default function EditorialEvaluationPage() {
               <section><h3 className="mb-2 text-sm font-semibold">{t('prompt')}</h3>{detail.renderedPrompt ? <pre className="whitespace-pre-wrap break-words rounded-xl bg-[var(--surface-2)] p-4 text-xs">{detail.renderedPrompt}</pre> : <p className="text-xs text-[var(--muted-foreground)]">{t('promptUnavailable')}</p>}</section>
               <section><h3 className="mb-2 text-sm font-semibold">{t('requestConfiguration')}</h3><pre className="whitespace-pre-wrap break-words rounded-xl bg-[var(--surface-2)] p-4 text-xs">{JSON.stringify(detail.modelParameters, null, 2)}</pre></section>
               <section><h3 className="mb-2 text-sm font-semibold">{t('review')}</h3><pre className="whitespace-pre-wrap break-words rounded-xl bg-[var(--surface-2)] p-4 text-xs">{JSON.stringify(detail.automatedReview, null, 2)}</pre></section>
+              <section><h3 className="mb-2 text-sm font-semibold">{t('transitions')}</h3>{detail.incomingTransitions.length === 0 ? <p className="text-xs text-[var(--muted-foreground)]">{t('noTransition')}</p> : detail.incomingTransitions.map(transition => <div key={transition.id} className="mb-3 rounded-xl border border-[var(--border)] p-4"><div className="mb-2 text-xs font-semibold">{transition.transitionType} · {transition.provenance}</div><pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words bg-[var(--surface-2)] p-3 text-xs">{JSON.stringify({ input: transition.inputSnapshot, output: transition.outputSnapshot, signals: transition.deterministicSignals }, null, 2)}</pre></div>)}</section>
               <section><h3 className="mb-2 text-sm font-semibold">{t('revisions')}</h3>{detail.revisions.length === 0 ? <p className="text-xs text-[var(--muted-foreground)]">{t('noRevision')}</p> : detail.revisions.map(revision => <div key={revision.id} className="mb-3 rounded-xl border border-[var(--border)] p-4"><div className="mb-2 text-xs font-semibold">{revision.revisionType} · {t('similarity')}: {revision.similarityPercentage}%</div><pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words bg-[var(--surface-2)] p-3 text-xs">{revision.afterText}</pre></div>)}</section>
             </div>
           )}

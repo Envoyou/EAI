@@ -36,6 +36,7 @@ export type CreateAnalysisLogInput = {
   verdict: string;
   summary: string;
   feedback: unknown;
+  inputFeedback?: unknown;
   flags: unknown;
   status: Prisma.AnalysisLogUncheckedCreateInput['status'];
   editorStatus: string;
@@ -144,7 +145,10 @@ export async function createAnalysisLogAndDebitCredit(data: CreateAnalysisLogInp
         },
       });
 
-      await createEvaluationRunForAnalysisLog(tx, savedLog);
+      await createEvaluationRunForAnalysisLog(tx, savedLog, 'captured', {
+        inputFeedback: data.inputFeedback,
+        outputFeedback: data.feedback,
+      });
 
       return savedLog;
     });

@@ -38,6 +38,7 @@ model User {
   contentIntelligenceDecisions ContentIntelligenceDecision[] @relation("ContentIntelligenceDecisionActor")
   editorialEvaluationRuns      EditorialEvaluationRun[]      @relation("EditorialEvaluationRunUser")
   editorialRevisionEvents      EditorialRevisionEvent[]      @relation("EditorialRevisionEventActor")
+  editorialEvaluationConsents  Organization[]                 @relation("EditorialEvaluationConsentActor")
 
   @@index([organizationId])
 }
@@ -114,6 +115,10 @@ model Organization {
   primaryGoal            String?
   /// Timestamp when the workspace onboarding flow was completed or skipped
   onboardingCompletedAt  DateTime?
+  /// Explicit tenant opt-in for internal prompt/output evaluation collection and export.
+  editorialEvaluationConsent Boolean  @default(false)
+  editorialEvaluationConsentUpdatedAt DateTime?
+  editorialEvaluationConsentByUserId String?
   activatedAt            DateTime?
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
@@ -135,8 +140,11 @@ model Organization {
   contentIntelligenceDecisions ContentIntelligenceDecision[]
   editorialEvaluationRuns      EditorialEvaluationRun[]
   editorialRevisionEvents      EditorialRevisionEvent[]
+  editorialEvaluationTransitions EditorialEvaluationTransition[]
+  editorialEvaluationConsentBy User? @relation("EditorialEvaluationConsentActor", fields: [editorialEvaluationConsentByUserId], references: [id], onDelete: SetNull)
 
   @@index([createdByUserId])
+  @@index([editorialEvaluationConsent])
 }
 
 /// Immutable snapshot of an editorial AI output and its evaluation context.
@@ -175,12 +183,43 @@ model EditorialEvaluationRun {
   organization Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   user         User?                    @relation("EditorialEvaluationRunUser", fields: [userId], references: [id], onDelete: SetNull)
   revisions    EditorialRevisionEvent[]
+  incomingTransitions EditorialEvaluationTransition[] @relation("EditorialEvaluationTransitionOutput")
+  outgoingTransitions EditorialEvaluationTransition[] @relation("EditorialEvaluationTransitionInput")
 
   @@index([environment, createdAt])
   @@index([organizationId, createdAt])
   @@index([workflow, stage, createdAt])
   @@index([promptVersion, modelName])
   @@index([sourceRef])
+}
+
+/// Explicit input-to-output link used to evaluate each editorial workflow stage.
+/// transitionKey makes forward capture and historical reconstruction idempotent.
+model EditorialEvaluationTransition {
+  id                   String   @id @default(cuid())
+  transitionKey        String   @unique
+  transitionType       String
+  organizationId       String?
+  sourceRef            String?
+  inputRunId           String?
+  outputRunId          String?
+  provenance           String
+  inputSnapshot        Json
+  outputSnapshot       Json
+  contextSnapshot      Json?
+  deterministicSignals Json?
+  evaluationResult     Json?
+  createdAt            DateTime @default(now())
+
+  organization Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  inputRun     EditorialEvaluationRun?   @relation("EditorialEvaluationTransitionInput", fields: [inputRunId], references: [id], onDelete: SetNull)
+  outputRun    EditorialEvaluationRun?   @relation("EditorialEvaluationTransitionOutput", fields: [outputRunId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([transitionType, createdAt])
+  @@index([sourceRef])
+  @@index([inputRunId])
+  @@index([outputRunId])
 }
 
 /// Append-only record of a persisted article-body change after an AI output.

@@ -444,6 +444,7 @@ Apply the requested structural or editorial correction materially. Do not return
         verdict: refineQualityGate.readiness,
         summary: refineQualityGate.summary,
         feedback: refineQualityGate.feedback,
+        inputFeedback: normalizedPreviousFeedback,
         flags: refineQualityGate.flags,
         status: 'success',
         editorStatus: 'refined',

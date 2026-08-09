@@ -13,6 +13,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Added an explicit non-production historical backfill that labels incomplete reconstructed rows as `backfilled_partial` instead of implying unavailable prompt/model provenance.
   - Added a platform-wide owner-only dataset API and `/dashboard/editorial-evaluation` explorer with environment/workflow/provenance filters, tenant attribution, revision retention rate, details, and pagination.
   - Kept production capture disabled unless `EDITORIAL_EVALUATION_CAPTURE=true`, preserving an explicit environment and governance boundary.
+  - Added idempotent transition records for Chat → Blueprint, Blueprint → Raw Draft, Raw Draft → Polished Draft, Feedback → Polished Draft, and Polished Draft → Manual Final, including deterministic body/source/heading change signals.
+  - Extended human revision capture to publication metadata edits and exposed transition coverage plus snapshots in the owner explorer.
+  - Added an owner-only, filter-aware streaming JSONL export containing complete evaluation runs, reviews, revisions, and canonical output transitions while omitting user and revision-actor identifiers.
+  - Made evaluation capture, historical backfill, platform-owner visibility, detail access, and JSONL export conditional on explicit tenant opt-in. Workspace admins can confirm or revoke consent in Settings, with timestamped actor attribution and an atomic audit event; the default is off.
 - **Article Workflow Management**:
   - Added a shared article workflow snapshot that independently derives workflow, quality, save, and publication states plus the single next action for each current article.
   - Turned Workspace into actionable queues for attention, continuing work, publication readiness, and completed exports; added a separate Content library and a permanent read-only Draft/Review/Publication progress bar.

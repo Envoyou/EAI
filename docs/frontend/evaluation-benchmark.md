@@ -19,7 +19,22 @@ input -> prompt/version -> provider/model -> output -> automated review/score
 
 `EditorialEvaluationRun` adalah snapshot output AI yang immutable.
 `EditorialRevisionEvent` merupakan event append-only untuk perubahan body yang
-tersimpan. Record historis yang direkonstruksi dari `AnalysisLog` atau
+tersimpan. `EditorialEvaluationTransition` menghubungkan lima pasangan evaluasi:
+
+```text
+Chat -> Blueprint
+Blueprint -> Raw Draft
+Raw Draft -> Polished Draft
+Feedback -> Polished Draft
+Polished Draft -> Manual Final
+```
+
+Setiap transisi menyimpan snapshot input/output dan provenance. Perubahan draft
+juga memiliki sinyal deterministik jumlah kata, opening, heading, serta sumber
+yang ditambah/dihapus. Hasil evaluator manusia atau LLM-as-judge berikutnya
+dapat ditulis ke `evaluationResult` tanpa mengubah snapshot sumber.
+
+Record historis yang direkonstruksi dari `AnalysisLog` atau
 `ChatMessage` diberi provenance `backfilled_partial`: exact rendered prompt,
 model chat lama, dan urutan revisi lama tidak boleh dianggap tersedia.
 
@@ -29,9 +44,29 @@ eksplisit. Tentukan label deploy melalui
 `EDITORIAL_EVALUATION_ENVIRONMENT`; jangan mencampur test/staging dan production
 dalam satu cohort evaluasi.
 
+Selain gate environment tersebut, setiap organisasi wajib memberikan opt-in
+eksplisit melalui **Settings → Workspace → Privasi data dan evaluasi AI**.
+Default database adalah `false`. Tanpa consent, output baru tidak dicapture,
+backfill melewati tenant tersebut, dan run yang telah tersimpan tidak dapat
+dilihat melalui daftar, detail, atau export dataset. Pencabutan consent tidak
+menghapus artikel operasional maupun snapshot lama secara otomatis; snapshot
+lama tetap tersimpan untuk audit/retensi tetapi dikeluarkan dari penggunaan
+dataset. Mengaktifkan kembali consent dapat membuat snapshot lama kembali
+terlihat dan memungkinkan backfill data historis yang memenuhi syarat.
+
+Hanya admin workspace aktif yang dapat mengubah consent. Keputusan menyimpan
+timestamp, user actor, dan `AuditLog` atomik agar perubahan izin dapat diaudit.
+
 Backfill dijalankan secara eksplisit dari halaman dataset setelah migrasi.
 Backfill tidak dijalankan otomatis oleh SQL migration agar penerapan schema di
 production tidak menyalin isi artikel tanpa keputusan operasional terpisah.
+
+Tombol **Ekspor JSONL** pada halaman dataset mengikuti filter environment,
+workflow, dan provenance yang sedang aktif. Baris pertama adalah manifest
+schema dan filter; setiap baris berikutnya adalah satu `evaluation_run` lengkap
+dengan review, revision events, dan transition yang output-nya dimiliki run
+tersebut. Export tidak menyertakan `userId` atau `actorUserId`, tetapi tetap
+memuat tenant attribution karena dataset hanya tersedia untuk platform owner.
 
 Data mentah dalam dataset digunakan hanya untuk evaluasi internal. Akses owner
 tidak menggantikan kewajiban redaction PII/secret, batas retensi, audit akses,

@@ -455,6 +455,7 @@ export async function handleAnalyze(ctx: AnalyzeContext): Promise<void> {
         feedback: isPolishMode
           ? (finalQualityGate?.feedback ?? validatedData.feedback)
           : validatedData.feedback,
+        inputFeedback: isPolishMode ? validatedData.feedback : undefined,
         flags: isPolishMode
           ? (finalQualityGate?.flags ?? validatedData.flags)
           : validatedData.flags,

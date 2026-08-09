@@ -7,6 +7,12 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ## [Unreleased]
 
 ### Added
+- **Dataset Evaluasi Editorial (Internal · Khusus Owner)**:
+  - Menambahkan relasi transisi idempoten untuk Chat → Blueprint, Blueprint → Draft Mentah, Draft Mentah → Draft Polish, Feedback → Draft Polish, dan Draft Polish → Final Manual.
+  - Menyimpan snapshot input/output, provenance, hubungan run, serta sinyal deterministik perubahan jumlah kata, opening, heading, dan sumber tanpa model tambahan.
+  - Memperluas capture revisi manusia ke body dan metadata publikasi serta menampilkan cakupan lima transisi pada explorer owner.
+  - Menambahkan ekspor JSONL streaming khusus owner yang mengikuti filter aktif, memuat run, review, revisi, dan transisi lengkap, serta tidak menyertakan identitas user maupun actor revisi.
+  - Menjadikan capture, backfill historis, visibilitas owner, akses detail, dan ekspor JSONL bergantung pada opt-in eksplisit tenant. Admin workspace dapat mengaktifkan atau mencabut izin melalui konfirmasi di Settings; keputusan mencatat waktu, actor, dan audit event, dengan default nonaktif.
 - **Manajemen Workflow Artikel**:
   - Menambahkan snapshot workflow artikel bersama yang menurunkan state workflow, quality, penyimpanan, publikasi, dan satu aksi berikutnya secara terpisah untuk setiap artikel current.
   - Mengubah Workspace menjadi antrean kerja untuk perhatian, pekerjaan lanjutan, kesiapan publikasi, dan ekspor selesai; menambahkan library Konten terpisah serta progress bar Draft/Review/Publikasi yang read-only.

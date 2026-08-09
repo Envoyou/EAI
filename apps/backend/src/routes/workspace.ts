@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { requireAuth } from '@/middleware/auth';
 import { prisma } from '@/lib/db';
 import { DEFAULT_ARTICLE_TYPES } from '@eai/shared/server';
@@ -6,6 +7,9 @@ import { resolveEditorialProfileForUser, createEditorialProfileVersion } from '@
 import { getWorkspaceState } from '@/lib/user-workspace';
 
 const router = Router();
+const EditorialEvaluationConsentSchema = z.object({
+  enabled: z.boolean(),
+});
 
 // GET /api/workspace/state
 router.get('/state', requireAuth, async (req, res) => {
@@ -71,6 +75,73 @@ router.get('/config', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('[WORKSPACE_CONFIG_GET]', error);
     return res.status(500).json({ error: 'Active editorial profile could not be resolved.' });
+  }
+});
+
+// PUT /api/workspace/editorial-evaluation-consent
+router.put('/editorial-evaluation-consent', requireAuth, async (req, res) => {
+  try {
+    const { userId, orgId, orgSlug, orgRole } = req.auth!;
+    const workspace = await getWorkspaceState(userId, {
+      clerkOrganizationId: orgId,
+      clerkOrganizationSlug: orgSlug,
+      clerkOrganizationRole: orgRole,
+    });
+    if (!workspace?.organizationId || !workspace.organization || workspace.needsOnboarding) {
+      return res.status(409).json({ error: 'Active organization workspace required' });
+    }
+    if (!workspace.isAdmin) {
+      return res.status(403).json({
+        error: 'Only workspace administrators can change evaluation data consent.',
+      });
+    }
+    const parsed = EditorialEvaluationConsentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'A boolean enabled value is required.' });
+    }
+
+    const previous = workspace.organization.editorialEvaluationConsent;
+    const changedAt = new Date();
+    const organization = await prisma.$transaction(async tx => {
+      const updated = await tx.organization.update({
+        where: { id: workspace.organizationId! },
+        data: {
+          editorialEvaluationConsent: parsed.data.enabled,
+          editorialEvaluationConsentUpdatedAt: changedAt,
+          editorialEvaluationConsentByUserId: userId,
+        },
+        select: {
+          id: true,
+          editorialEvaluationConsent: true,
+          editorialEvaluationConsentUpdatedAt: true,
+        },
+      });
+      if (previous !== parsed.data.enabled) {
+        await tx.auditLog.create({
+          data: {
+            action: 'workspace.editorial_evaluation_consent.update',
+            actorId: userId,
+            actorEmail: workspace.email || 'unknown',
+            targetId: workspace.organizationId,
+            targetType: 'Organization',
+            description: parsed.data.enabled
+              ? 'Workspace opted in to the internal editorial evaluation dataset.'
+              : 'Workspace opted out of the internal editorial evaluation dataset.',
+            details: {
+              previous,
+              enabled: parsed.data.enabled,
+              changedAt: changedAt.toISOString(),
+            },
+          },
+        });
+      }
+      return updated;
+    });
+
+    return res.json({ success: true, organization });
+  } catch (error) {
+    console.error('[EDITORIAL_EVALUATION_CONSENT_PUT]', error);
+    return res.status(500).json({ error: 'Failed to update evaluation data consent.' });
   }
 });
 

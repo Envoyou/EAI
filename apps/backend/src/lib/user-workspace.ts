@@ -218,6 +218,8 @@ export const getWorkspaceState = async (
           domain: true,
           npwp: true,
           billingAddress: true,
+          editorialEvaluationConsent: true,
+          editorialEvaluationConsentUpdatedAt: true,
           isActive: true,
           onboardingStatus: true,
           profiles: {
@@ -249,6 +251,8 @@ export const getWorkspaceState = async (
           domain: true,
           npwp: true,
           billingAddress: true,
+          editorialEvaluationConsent: true,
+          editorialEvaluationConsentUpdatedAt: true,
           isActive: true,
           onboardingStatus: true,
           profiles: {

@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import {
   backfillEditorialEvaluationRuns,
+  backfillEditorialEvaluationTransitions,
   isEditorialEvaluationCaptureEnabled,
   resolveEvaluationEnvironment,
 } from '@/lib/editorial-evaluation';
@@ -756,13 +757,14 @@ router.get('/editorial-evaluations', requireAuth, async (req, res) => {
       100,
     );
     const where: Prisma.EditorialEvaluationRunWhereInput = {
+      organization: { editorialEvaluationConsent: true },
       ...(environment ? { environment } : {}),
       ...(workflow ? { workflow } : {}),
       ...(provenance ? { provenance } : {}),
       ...(organizationId ? { organizationId } : {}),
     };
 
-    const [runs, total, ready, withHumanRevision, scoreAggregate, environmentGroups] = await Promise.all([
+    const [runs, total, ready, withHumanRevision, scoreAggregate, environmentGroups, transitionGroups] = await Promise.all([
       prisma.editorialEvaluationRun.findMany({
         where,
         orderBy: { createdAt: 'desc' },
@@ -784,6 +786,8 @@ router.get('/editorial-evaluations', requireAuth, async (req, res) => {
             },
           },
           _count: { select: { revisions: true } },
+          incomingTransitions: { select: { transitionType: true } },
+          outgoingTransitions: { select: { transitionType: true } },
         },
       }),
       prisma.editorialEvaluationRun.count({ where }),
@@ -794,6 +798,12 @@ router.get('/editorial-evaluations', requireAuth, async (req, res) => {
         by: ['environment'],
         _count: { _all: true },
         orderBy: { environment: 'asc' },
+      }),
+      prisma.editorialEvaluationTransition.groupBy({
+        by: ['transitionType'],
+        where: { outputRun: { is: where } },
+        _count: { _all: true },
+        orderBy: { transitionType: 'asc' },
       }),
     ]);
 
@@ -812,6 +822,10 @@ router.get('/editorial-evaluations', requireAuth, async (req, res) => {
       },
       environments: environmentGroups.map(group => ({
         environment: group.environment,
+        count: group._count._all,
+      })),
+      transitions: transitionGroups.map(group => ({
+        type: group.transitionType,
         count: group._count._all,
       })),
       pagination: {
@@ -842,6 +856,10 @@ router.get('/editorial-evaluations', requireAuth, async (req, res) => {
           verdict: run.verdict,
           summary: run.summary,
           revisionCount: run._count.revisions,
+          transitionTypes: [...new Set([
+            ...run.incomingTransitions.map(item => item.transitionType),
+            ...run.outgoingTransitions.map(item => item.transitionType),
+          ])],
           latestRevision: latestRevision
             ? {
                 id: latestRevision.id,
@@ -865,6 +883,122 @@ router.get('/editorial-evaluations', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/analytics/editorial-evaluations/export
+// Streams one manifest followed by one complete evaluation run per JSONL line.
+// Each transition is exported exactly once through its output run.
+router.get('/editorial-evaluations/export', requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.auth!;
+    if (!isOwnerUser(userId)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const environment = typeof req.query.environment === 'string'
+      ? req.query.environment.trim()
+      : '';
+    const workflow = typeof req.query.workflow === 'string'
+      ? req.query.workflow.trim()
+      : '';
+    const provenance = typeof req.query.provenance === 'string'
+      ? req.query.provenance.trim()
+      : '';
+    const organizationId = typeof req.query.organizationId === 'string'
+      ? req.query.organizationId.trim()
+      : '';
+    const where: Prisma.EditorialEvaluationRunWhereInput = {
+      organization: { editorialEvaluationConsent: true },
+      ...(environment ? { environment } : {}),
+      ...(workflow ? { workflow } : {}),
+      ...(provenance ? { provenance } : {}),
+      ...(organizationId ? { organizationId } : {}),
+    };
+    const exportedAt = new Date();
+    const filename = `editorial-evaluation-${exportedAt.toISOString().slice(0, 10)}.jsonl`;
+
+    res.status(200);
+    res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    res.write(`${JSON.stringify({
+      recordType: 'manifest',
+      schemaVersion: '1.0',
+      scope: 'platform',
+      access: 'owner_only',
+      exportedAt: exportedAt.toISOString(),
+      filters: {
+        environment: environment || null,
+        workflow: workflow || null,
+        provenance: provenance || null,
+        organizationId: organizationId || null,
+      },
+    })}\n`);
+
+    let cursor: string | undefined;
+    let closed = false;
+    res.once('close', () => { closed = true; });
+    do {
+      const runs = await prisma.editorialEvaluationRun.findMany({
+        where,
+        orderBy: { id: 'asc' },
+        take: 100,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        include: {
+          organization: { select: { id: true, name: true, slug: true } },
+          revisions: { orderBy: { createdAt: 'asc' } },
+          incomingTransitions: { orderBy: { createdAt: 'asc' } },
+        },
+      });
+
+      for (const run of runs) {
+        if (closed || res.destroyed) break;
+        const record = {
+          recordType: 'evaluation_run',
+          schemaVersion: '1.0',
+          ...run,
+          userId: undefined,
+          revisions: run.revisions.map(revision => ({
+            ...revision,
+            actorUserId: undefined,
+            similarityPercentage: calculateWordSimilarity(
+              revision.beforeText,
+              revision.afterText,
+            ),
+          })),
+          transitions: run.incomingTransitions,
+          incomingTransitions: undefined,
+        };
+        const canContinue = res.write(`${JSON.stringify(record)}\n`);
+        if (!canContinue && !res.destroyed) {
+          await new Promise<void>(resolve => {
+            const finish = () => {
+              res.off('drain', finish);
+              res.off('close', finish);
+              resolve();
+            };
+            res.once('drain', finish);
+            res.once('close', finish);
+          });
+        }
+      }
+
+      cursor = runs.at(-1)?.id;
+      if (runs.length < 100 || closed || res.destroyed) break;
+    } while (cursor);
+
+    if (!res.destroyed) res.end();
+    return;
+  } catch (error) {
+    console.error('Editorial evaluation export error:', error);
+    if (res.headersSent) {
+      if (!res.destroyed) res.end();
+      return;
+    }
+    return res.status(500).json({ error: 'Failed to export editorial evaluation dataset' });
+  }
+});
+
 router.get('/editorial-evaluations/:id', requireAuth, async (req, res) => {
   try {
     const { userId } = req.auth!;
@@ -874,11 +1008,16 @@ router.get('/editorial-evaluations/:id', requireAuth, async (req, res) => {
     const id = req.params.id;
     if (!id) return res.status(400).json({ error: 'Evaluation ID is required' });
 
-    const run = await prisma.editorialEvaluationRun.findUnique({
-      where: { id },
+    const run = await prisma.editorialEvaluationRun.findFirst({
+      where: {
+        id,
+        organization: { editorialEvaluationConsent: true },
+      },
       include: {
         organization: { select: { id: true, name: true, slug: true } },
         revisions: { orderBy: { createdAt: 'asc' } },
+        incomingTransitions: { orderBy: { createdAt: 'asc' } },
+        outgoingTransitions: { orderBy: { createdAt: 'asc' } },
       },
     });
     if (!run) return res.status(404).json({ error: 'Evaluation run not found' });
@@ -905,10 +1044,13 @@ router.post('/editorial-evaluations/backfill', requireAuth, async (req, res) => 
     if (!isOwnerUser(userId)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    const created = await backfillEditorialEvaluationRuns();
+    const runsCreated = await backfillEditorialEvaluationRuns();
+    const transitionsCreated = await backfillEditorialEvaluationTransitions();
     return res.json({
       success: true,
-      created,
+      created: runsCreated,
+      runsCreated,
+      transitionsCreated,
       environment: resolveEvaluationEnvironment(),
       provenance: 'backfilled_partial',
     });

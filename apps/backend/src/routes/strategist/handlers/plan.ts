@@ -809,6 +809,28 @@ router.post(
                 searchEnabled: !isGeminiGroundingDisabled(),
                 providerInput: prompt,
               },
+              transition: {
+                type: 'chat_to_blueprint',
+                inputSnapshot: {
+                  strategistMessages: Array.isArray(history)
+                    ? history.slice(-12).map((message: { role: string; content: string }) => ({
+                        role: message.role,
+                        content: message.content,
+                      }))
+                    : [],
+                  recommendation,
+                },
+                outputSnapshot: {
+                  blueprint: sanitizedData.plan ?? null,
+                  suggestions: Array.isArray(sanitizedData.suggestions)
+                    ? sanitizedData.suggestions
+                    : [],
+                  sources: formattedSources ?? [],
+                },
+                contextSnapshot: {
+                  duplicateGuard: duplicateGuardResult,
+                },
+              },
             });
           });
           planRequestCompleted = true;

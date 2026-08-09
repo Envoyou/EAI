@@ -55,7 +55,10 @@ import {
   resolveStatusFromSeoFields,
 } from '@/lib/seo-field-state';
 import type { PublicationPackage } from '@eai/shared';
-import { createEvaluationRunForAnalysisLog } from '@/lib/editorial-evaluation';
+import {
+  createEvaluationRunForAnalysisLog,
+  createManualFinalTransition,
+} from '@/lib/editorial-evaluation';
 
 const router = Router();
 
@@ -319,12 +322,14 @@ const updateAnalysisLogIfRevisionCurrent = async ({
   expectedBodyHash,
   data,
   actorUserId,
+  revisionType,
 }: {
   id: string;
   expectedRevisionId: string;
   expectedBodyHash: string;
   data: Prisma.AnalysisLogUpdateArgs['data'];
   actorUserId?: string;
+  revisionType?: string;
 }): Promise<void> => {
   await runSerializableTransaction(async (tx) => {
     const current = await tx.analysisLog.findUnique({ where: { id } });
@@ -381,9 +386,17 @@ const updateAnalysisLogIfRevisionCurrent = async ({
     const nextBody = typeof requestedSystem.polishedDraft === 'string'
       ? preparePublicationDraft(requestedSystem.polishedDraft)
       : currentBody;
-    if (nextBody !== currentBody) {
-      const evaluationRun = await tx.editorialEvaluationRun.findUnique({
-        where: { analysisLogId: id },
+    const currentPublicationMetadata = metadata.generatedMetadata ?? null;
+    const nextPublicationMetadata = requestedMetadata?.generatedMetadata
+      ?? currentPublicationMetadata;
+    const publicationMetadataChanged = JSON.stringify(currentPublicationMetadata)
+      !== JSON.stringify(nextPublicationMetadata);
+    if (nextBody !== currentBody || publicationMetadataChanged) {
+      const evaluationRun = await tx.editorialEvaluationRun.findFirst({
+        where: {
+          analysisLogId: id,
+          organization: { editorialEvaluationConsent: true },
+        },
         select: { id: true },
       });
       if (evaluationRun) {
@@ -393,14 +406,16 @@ const updateAnalysisLogIfRevisionCurrent = async ({
           && !Array.isArray(changeSet)
             ? changeSet as Record<string, unknown>
             : {};
-        await tx.editorialRevisionEvent.create({
+        const revisionEvent = await tx.editorialRevisionEvent.create({
           data: {
             evaluationRunId: evaluationRun.id,
             organizationId: current.organizationId,
             actorUserId,
-            revisionType: typeof changeSetRecord.origin === 'string'
+            revisionType: revisionType ?? (typeof changeSetRecord.origin === 'string'
               ? changeSetRecord.origin
-              : 'editorial_update',
+              : publicationMetadataChanged
+                ? 'manual_metadata_edit'
+                : 'editorial_update'),
             beforeText: currentBody,
             afterText: nextBody,
             changeSet: Object.keys(changeSetRecord).length > 0
@@ -416,6 +431,22 @@ const updateAnalysisLogIfRevisionCurrent = async ({
                 : current.verdict,
           },
         });
+        if (actorUserId) {
+          await createManualFinalTransition(tx, {
+            revisionEventId: revisionEvent.id,
+            evaluationRunId: evaluationRun.id,
+            organizationId: current.organizationId,
+            sourceRef: typeof metadata.sourceRef === 'string' ? metadata.sourceRef : null,
+            beforeText: currentBody,
+            afterText: nextBody,
+            changeSet: {
+              ...changeSetRecord,
+              publicationMetadataChanged,
+            },
+            publicationMetadataBefore: currentPublicationMetadata,
+            publicationMetadataAfter: nextPublicationMetadata,
+          });
+        }
       }
     }
   });
@@ -1028,6 +1059,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         expectedRevisionId: currentDraftRevision.revisionId,
         expectedBodyHash: currentDraftRevision.bodyHash,
         actorUserId: userId,
+        revisionType: 'manual_body_edit',
         data: {
           ...(invalidatesPublicationReview
             ? {
@@ -1211,6 +1243,48 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
             },
           });
 
+          const evaluationRun = await tx.editorialEvaluationRun.findFirst({
+            where: {
+              analysisLogId: id,
+              organization: { editorialEvaluationConsent: true },
+            },
+            select: { id: true },
+          });
+          if (evaluationRun) {
+            const changeSet = {
+              origin: 'manual_publication_finding_fix',
+              targetField: metadataFinding.targetField,
+              feedbackId: metadataFinding.feedbackId,
+              publicationMetadataChanged: true,
+            };
+            const revisionEvent = await tx.editorialRevisionEvent.create({
+              data: {
+                evaluationRunId: evaluationRun.id,
+                organizationId: current.organizationId,
+                actorUserId: userId,
+                revisionType: 'manual_publication_finding_fix',
+                beforeText: currentBody,
+                afterText: currentBody,
+                changeSet,
+                reviewStateBefore: previousReadiness,
+                reviewStateAfter: applied.readiness,
+              },
+            });
+            await createManualFinalTransition(tx, {
+              revisionEventId: revisionEvent.id,
+              evaluationRunId: evaluationRun.id,
+              organizationId: current.organizationId,
+              sourceRef: typeof currentMetadata.sourceRef === 'string'
+                ? currentMetadata.sourceRef
+                : null,
+              beforeText: currentBody,
+              afterText: currentBody,
+              changeSet,
+              publicationMetadataBefore: storedPublicationPackage.data,
+              publicationMetadataAfter: validatedPackage.data,
+            });
+          }
+
           return {
             feedback: applied.feedback,
             flags: nextFlags,
@@ -1244,6 +1318,8 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
         id,
         expectedRevisionId: currentDraftRevision.revisionId,
         expectedBodyHash: currentDraftRevision.bodyHash,
+        actorUserId: userId,
+        revisionType: 'manual_publication_metadata_edit',
         data: {
           metadata: {
             ...metadata,
@@ -1432,6 +1508,8 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
       id,
       expectedRevisionId: currentDraftRevision.revisionId,
       expectedBodyHash: currentDraftRevision.bodyHash,
+      actorUserId: userId,
+      revisionType: 'manual_feedback_resolution',
       data: {
         feedback: identifiedResolvedFeedback as unknown as Prisma.InputJsonValue,
         flags: (readiness === 'ready' ? [] : resolution.data.flags ?? []) as Prisma.InputJsonValue,
