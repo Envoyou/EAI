@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.22.0] - 2026-08-09
+
 ### Added
 - **Dataset Evaluasi Editorial (Internal · Khusus Owner)**:
   - Menambahkan relasi transisi idempoten untuk Chat → Blueprint, Blueprint → Draft Mentah, Draft Mentah → Draft Polish, Feedback → Draft Polish, dan Draft Polish → Final Manual.

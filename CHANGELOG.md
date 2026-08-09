@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.22.0] - 2026-08-09
+
 ### Added
 - **Editorial Evaluation Dataset (Internal · Owner Only)**:
   - Added append-only `EditorialEvaluationRun` and `EditorialRevisionEvent` records for input, prompt/config version, provider/model, output, automated review, score, and persisted body revisions.
