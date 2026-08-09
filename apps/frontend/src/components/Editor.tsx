@@ -25,6 +25,41 @@ import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import { ConfirmDestructiveDialog } from '@/components/ui/ConfirmDestructiveDialog';
+import { AiGeneratedIcon } from '@/components/ui/icons/ai';
+import { DocumentIcon, WorkspaceLibraryIcon } from '@/components/ui/icons/content';
+
+function LaunchOption({
+  title,
+  description,
+  icon: Icon,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  icon: typeof FileEdit;
+  onClick?: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      onClick={onClick}
+      variant="surface"
+      className="group/launch min-h-[92px] min-w-0 whitespace-normal rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-4 text-left shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-[var(--primary)]/35 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
+    >
+      <span className="flex min-w-0 items-start gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--primary)] transition-colors duration-300 group-hover/launch:border-[var(--primary)]/25 group-hover/launch:bg-[var(--primary)]/10 motion-reduce:transition-none">
+          <Icon className="size-4" />
+        </span>
+        <span className="min-w-0 whitespace-normal">
+          <span className="block text-sm font-semibold leading-5 text-[var(--foreground)]">{title}</span>
+          <span className="mt-1 block whitespace-normal break-words text-xs font-normal leading-[1.45] text-[var(--muted-foreground)]">
+            {description}
+          </span>
+        </span>
+      </span>
+    </Button>
+  );
+}
 
 interface EditorProps {
   value: string;
@@ -615,22 +650,27 @@ export default function Editor({
 
         {/* Textarea, Welcome Card, or AI Drafting Form based on state */}
         {(!value && !isWritingManually) && !isLoading ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto select-none animate-fade-in my-auto">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] text-[var(--primary)]">
+          <div className="mx-auto my-auto flex w-full max-w-2xl flex-1 select-none flex-col items-center justify-center px-4 py-8 text-center animate-fade-in sm:px-6">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--primary)] shadow-sm">
               <EAILogo className="size-5" />
             </div>
-            <h3 className="text-lg font-semibold tracking-tight mb-2 text-[var(--foreground)]">
+            <h3 className="mb-2 text-xl font-semibold tracking-tight text-[var(--foreground)]">
               {t('launchpadTitle')}
             </h3>
-            <p className="text-sm text-[var(--muted-foreground)] mb-6 leading-relaxed text-pretty">
+            <p className="mb-7 max-w-lg text-pretty text-sm leading-6 text-[var(--muted-foreground)]">
               {t('launchpadDescription')}
             </p>
-            <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
-              <Button type="button" onClick={onOpenStrategist} variant="surface" className="h-auto items-start justify-start rounded-xl p-3 text-left">
-                <span><span className="block text-sm font-semibold">{t('startWithAi')}</span><span className="mt-0.5 block text-xs font-normal text-[var(--muted-foreground)]">{t('startWithAiDescription')}</span></span>
-              </Button>
-              <Button
-                type="button"
+            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+              <LaunchOption
+                icon={AiGeneratedIcon}
+                title={t('startWithAi')}
+                description={t('startWithAiDescription')}
+                onClick={onOpenStrategist}
+              />
+              <LaunchOption
+                icon={FileEdit}
+                title={t('writeOrPaste')}
+                description={t('writeOrPasteDescription')}
                 onClick={() => {
                   setIsWritingManually(true);
                   onChange("");
@@ -638,17 +678,19 @@ export default function Editor({
                     if (textareaRef.current) textareaRef.current.focus();
                   }, 50);
                 }}
-                variant="surface"
-                className="h-auto items-start justify-start rounded-xl p-3 text-left"
-              >
-                <span><span className="block text-sm font-semibold">{t('writeOrPaste')}</span><span className="mt-0.5 block text-xs font-normal text-[var(--muted-foreground)]">{t('writeOrPasteDescription')}</span></span>
-              </Button>
-              <Button type="button" onClick={onOpenStrategist} variant="surface" className="h-auto items-start justify-start rounded-xl p-3 text-left">
-                <span><span className="block text-sm font-semibold">{t('fromBlueprint')}</span><span className="mt-0.5 block text-xs font-normal text-[var(--muted-foreground)]">{t('fromBlueprintDescription')}</span></span>
-              </Button>
-              <Button type="button" onClick={onOpenNotes} variant="surface" className="h-auto items-start justify-start rounded-xl p-3 text-left">
-                <span><span className="block text-sm font-semibold">{t('fromNotes')}</span><span className="mt-0.5 block text-xs font-normal text-[var(--muted-foreground)]">{t('fromNotesDescription')}</span></span>
-              </Button>
+              />
+              <LaunchOption
+                icon={WorkspaceLibraryIcon}
+                title={t('fromBlueprint')}
+                description={t('fromBlueprintDescription')}
+                onClick={onOpenStrategist}
+              />
+              <LaunchOption
+                icon={DocumentIcon}
+                title={t('fromNotes')}
+                description={t('fromNotesDescription')}
+                onClick={onOpenNotes}
+              />
             </div>
           </div>
         ) : (
