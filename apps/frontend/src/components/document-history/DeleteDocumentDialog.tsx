@@ -8,6 +8,9 @@ export interface DeleteDocumentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pending?: boolean;
+  title?: string;
+  description?: string;
+  confirmLabel?: string;
   onConfirm: () => void | Promise<void>;
 }
 
@@ -15,6 +18,9 @@ export function DeleteDocumentDialog({
   open,
   onOpenChange,
   pending = false,
+  title,
+  description,
+  confirmLabel,
   onConfirm,
 }: DeleteDocumentDialogProps) {
   const t = useTranslations('DocumentHistory');
@@ -23,9 +29,9 @@ export function DeleteDocumentDialog({
     <ConfirmDestructiveDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={t('deleteTitle')}
-      description={t('deleteDescription')}
-      confirmLabel={t('delete')}
+      title={title ?? t('deleteTitle')}
+      description={description ?? t('deleteDescription')}
+      confirmLabel={confirmLabel ?? t('delete')}
       cancelLabel={t('cancel')}
       pending={pending}
       onConfirm={onConfirm}

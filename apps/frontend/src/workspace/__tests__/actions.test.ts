@@ -183,7 +183,12 @@ describe('executeGenerateDraftFromNotes', () => {
     );
 
     await executeGenerateDraftFromNotes({
-      researchNotes: [{ content: 'Research material.' }],
+      researchNotes: [{
+        id: 'note-1',
+        content: 'Research material.',
+        sources: [],
+        savedAt: '2026-08-01T00:00:00.000Z',
+      }],
       metadata,
       directFetch,
       setDraft: vi.fn(),

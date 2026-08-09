@@ -9,9 +9,9 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 ### Added
 - **Hapus Massal (Bulk Delete) dan Pengelompokan Tanggal di Halaman Library & History**:
   - Menambahkan *checkbox* dan bar aksi hapus massal pada komponen `SavedArticlesLibrary` dan `DocumentHistoryPanel`.
-  - Menambahkan *endpoint* backend `POST /api/history/bulk-delete` untuk penghapusan dokumen secara aman dan massal.
-  - Mengubah *layout* `SavedArticlesLibrary` menjadi rentang penuh (*full-width*) dan tidak lagi menggunakan sistem *grid*.
-  - Mengimplementasikan pengelompokan otomatis berdasarkan tanggal untuk artikel-artikel tersimpan dengan pemisah (*separator*) yang dapat dilipat (*collapsible*). Secara default, hanya kelompok tanggal terbaru yang terbuka. Setiap pemisah kini menampilkan jumlah item dan waktu edit terakhir pada kelompok hari tersebut.
+  - Menambahkan *endpoint* `POST /api/history/bulk-delete` yang bounded dan tenant-scoped. Penghapusan family membaca `sourceRef` dari metadata tersimpan, menghapus revisi dalam transaksi serializable, serta menandai artifact kanonis Content Memory sebagai deleted agar Content Map tidak menyimpan sumber yatim.
+  - Mengubah `SavedArticlesLibrary` menjadi surface rentang penuh dengan grid kartu responsif.
+  - Menambahkan timestamp server-authoritative `AnalysisLog.updatedAt` melalui migrasi `20260809170000_add_analysis_log_updated_at`. Artikel dikelompokkan menurut tanggal edit sebenarnya; kelompok diurutkan dari terbaru dan hanya kelompok terbaru yang terbuka secara default.
 - **Kartu Keputusan Editorial Interaktif In-Canvas pada Canvas Editor (`/editor`)**:
   - Menyematkan tombol aksi langsung (🚀 *Gunakan Proposal*, 🛡️ *Pertahankan Teks*, 🔗 *Tambah Sumber Manual*, 🪄 *Usulan Perbaikan AI*, 🗑️ *Hapus Detail*) pada setiap kartu keputusan temuan langsung di canvas tengah halaman `/editor`.
   - Menambahkan banner tombol aksi batch `⚡ Terima Semua Perbaikan` untuk mempercepat persetujuan temuan editorial tanpa perlu berpindah halaman.
@@ -32,6 +32,10 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - `apps/frontend/src/components/InPlaceRefineFeedbackModal.tsx`: Modal pilihan handoff pasca-perbaikan (*"Buka Review/Publikasi"* vs *"Tetap di Editor"*).
 
 ### Changed
+- **Aksi library artikel dan routing workflow yang aman**:
+  - Membatasi Pilih Semua dan bulk delete pada hasil filter yang sedang terlihat, membersihkan selection lama ketika pencarian atau filter tahap berubah, serta mencegah artikel tersembunyi ikut terhapus.
+  - Mengarahkan kartu draft ke Editor, kartu review/blocked yang belum selesai ke Review, dan kartu ready ke Publikasi sesuai label aksi serta ownership workspace.
+  - Menambahkan kontrol kelompok tanggal yang dapat digunakan dengan keyboard, label aksesibel untuk checkbox/tombol hapus, konfirmasi destruktif bentuk jamak, dan pending-state guard untuk mencegah submit hapus berulang.
 - **Alur Perbaikan Refine Interaktif & Arsitektur UX 3-Fase Berurutan**:
   - Pengguna yang mengeklik **Refine Draft** di halaman `/editor` tidak lagi dipaksa mengalami perpindahan halaman (*route jump*). Canvas tengah di `/editor` menampilkan *loading overlay* (*"EAI is Analyzing & Refining..."*) di atas draf awal tanpa mengganggu alur penulisan.
   - Memisahkan fase evaluasi temuan dari modal pop-up handoff. Jika perbaikan menghasilkan temuan persetujuan editorial (seperti `Source Fidelity` atau `Unsupported Entity Detail`), kartu keputusan akan langsung ditampilkan **di canvas tengah halaman Editor** tanpa modal pop-up yang menghalangi (*modal blocking*).

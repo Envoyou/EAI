@@ -9,11 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EAILoaderStatusIcon } from '@/components/ui/icons/status';
 import { AddDocumentActionIcon, SearchActionIcon } from '@/components/ui/icons/actions';
-import { ChevronRight, ChevronDown } from 'lucide-react';
 import { WorkspaceLibraryIcon } from '@/components/ui/icons/content';
 import { ForwardNavigationIcon } from '@/components/ui/icons/navigation';
 import {
   getCurrentArticleHistoryItems,
+  getHistoryItemUpdatedAt,
   getHistoryItemPresentation,
   type HistoryItem,
   type HistoryStage,
@@ -33,12 +33,12 @@ const stageBadge: Record<HistoryStage, BadgeVariant> = {
   ready: 'success',
 };
 
-const destinationFor = (presentation: HistoryItemPresentation, id: string) => {
+export const destinationFor = (presentation: HistoryItemPresentation, id: string) => {
   const query = `?history=${encodeURIComponent(id)}`;
-  if (presentation.stage === 'ready') {
-    return presentation.hasPublicationMetadata ? `/publication${query}` : `/review${query}`;
+  if (presentation.stage === 'ready') return `/publication${query}`;
+  if (presentation.stage === 'review' || presentation.stage === 'blocked') {
+    return `/review${query}`;
   }
-  // Draft, review (needs_review), blocked -> all go to editor
   return `/editor${query}`;
 };
 
@@ -56,6 +56,7 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -119,11 +120,11 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
     }> = [];
 
     filtered.forEach(itemInfo => {
-      // Group by createdAt, but use updatedAt for latest edit
-      const dateStr = formatter.format(new Date(itemInfo.item.createdAt));
+      const updatedAt = getHistoryItemUpdatedAt(itemInfo.item);
+      const dateStr = formatter.format(new Date(updatedAt));
       const group = result.find(g => g.dateStr === dateStr);
-      const updatedAtMs = new Date(itemInfo.item.createdAt).getTime();
-      
+      const updatedAtMs = new Date(updatedAt).getTime();
+
       if (group) {
         group.items.push(itemInfo);
         if (updatedAtMs > group.latestUpdate) {
@@ -134,11 +135,8 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
       }
     });
 
-    return result;
+    return result.sort((left, right) => right.latestUpdate - left.latestUpdate);
   }, [filtered, locale]);
-
-
-
   const toggleGroup = (dateStr: string) => {
     setCollapsedGroups(prev => ({ ...prev, [dateStr]: !prev[dateStr] }));
   };
@@ -165,12 +163,25 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
       const allIds = filtered.map(f => f.item.id);
       setSelectedIds(new Set(allIds));
     } else {
-      setSelectedIds(new Set());
+      const visibleIds = new Set(filtered.map(({ item }) => item.id));
+      setSelectedIds(previous => new Set(
+        [...previous].filter(id => !visibleIds.has(id))
+      ));
     }
   };
 
+  const visibleSelectedIds = useMemo(
+    () => filtered
+      .map(({ item }) => item.id)
+      .filter(id => selectedIds.has(id)),
+    [filtered, selectedIds]
+  );
+
+  const clearSelectionForViewChange = () => setSelectedIds(new Set());
+
   const handleSingleDelete = async () => {
     if (!itemToDelete) return;
+    setIsDeleting(true);
     try {
       const response = await fetchWithTimeout('/api/history/bulk-delete', {
         method: 'POST',
@@ -178,7 +189,7 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
         body: JSON.stringify({ ids: [itemToDelete], deleteFamily: true }),
       });
       if (!response.ok) throw new Error('Failed to delete');
-      
+
       const itemData = items.find(i => i.id === itemToDelete);
       const familyKey = itemData?.metadata?.sourceRef?.trim() || itemToDelete;
 
@@ -190,23 +201,26 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
       toast.success(tHistory('deleteSuccess'));
     } catch {
       toast.error(tHistory('deleteFailed'));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return;
+    if (visibleSelectedIds.length === 0) return;
+    setIsDeleting(true);
     try {
       const response = await fetchWithTimeout('/api/history/bulk-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: Array.from(selectedIds), deleteFamily: true }),
+        body: JSON.stringify({ ids: visibleSelectedIds, deleteFamily: true }),
       });
       if (!response.ok) throw new Error('Failed to bulk delete');
-      
+
       const familyKeys = items
-        .filter(item => selectedIds.has(item.id))
+        .filter(item => visibleSelectedIds.includes(item.id))
         .map(item => item.metadata?.sourceRef?.trim() || item.id);
-        
+
       setItems(prev => prev.filter(item => {
         const iKey = item.metadata?.sourceRef?.trim() || item.id;
         return !familyKeys.includes(iKey);
@@ -216,6 +230,8 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
       toast.success(tHistory('deleteSuccess'));
     } catch {
       toast.error(tHistory('deleteFailed'));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -253,7 +269,10 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
             <SearchActionIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
             <Input
               value={query}
-              onChange={event => setQuery(event.target.value)}
+              onChange={event => {
+                setQuery(event.target.value);
+                clearSelectionForViewChange();
+              }}
               placeholder={t('searchPlaceholder')}
               aria-label={t('searchLabel')}
               className="pl-9"
@@ -263,7 +282,7 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
             <div className="flex shrink-0 items-center gap-2">
               <Checkbox
                 id="select-all"
-                checked={selectedIds.size === filtered.length}
+                checked={filtered.every(({ item }) => selectedIds.has(item.id))}
                 onCheckedChange={handleSelectAll}
               />
               <label htmlFor="select-all" className="cursor-pointer text-sm font-medium text-[var(--muted-foreground)]">
@@ -279,7 +298,10 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
               type="button"
               variant={filter === key ? 'surface' : 'muted'}
               size="xs"
-              onClick={() => setFilter(key)}
+              onClick={() => {
+                setFilter(key);
+                clearSelectionForViewChange();
+              }}
               aria-pressed={filter === key}
               className="shrink-0"
             >
@@ -305,12 +327,18 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
 
             return (
               <div key={group.dateStr} className="flex flex-col gap-3">
-                <div 
-                  className="flex items-center gap-3 cursor-pointer group/separator"
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="group/separator flex h-auto w-full items-center gap-3 rounded-none p-0 text-left hover:bg-transparent"
                   onClick={() => toggleGroup(group.dateStr)}
+                  aria-expanded={!isCollapsed}
+                  aria-label={t('toggleDateGroup', { date: group.dateStr })}
                 >
                   <div className="flex items-center gap-1.5 shrink-0 text-sm font-semibold text-[var(--foreground)]">
-                    {isCollapsed ? <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" /> : <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)]" />}
+                    <ForwardNavigationIcon
+                      className={`h-4 w-4 text-[var(--muted-foreground)] transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                    />
                     {group.dateStr}
                   </div>
                   <div className="h-px bg-[var(--border)] flex-1 transition-colors group-hover/separator:bg-[var(--primary)]/30" />
@@ -319,7 +347,7 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
                     <span>&middot;</span>
                     <span>{t('lastEdit', { time: formattedTime })}</span>
                   </div>
-                </div>
+                </Button>
 
                 {!isCollapsed && (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -342,6 +370,7 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
                               <Checkbox
                                 checked={selectedIds.has(item.id)}
                                 onCheckedChange={(checked) => toggleSelection(item.id, checked === true)}
+                                aria-label={t('selectArticle', { title: presentation.title })}
                               />
                               <Badge variant={stageBadge[presentation.stage]} size="xs">{t(`stage.${presentation.stage}`)}</Badge>
                             </div>
@@ -353,8 +382,9 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6 text-[var(--muted-foreground)] hover:text-red-500"
+                                className="h-6 w-6 text-[var(--muted-foreground)] hover:text-[var(--error)]"
                                 onClick={(e) => { e.stopPropagation(); setItemToDelete(item.id); }}
+                                aria-label={t('deleteArticle', { title: presentation.title })}
                               >
                                 <DeleteActionIcon className="h-3.5 w-3.5" />
                               </Button>
@@ -385,9 +415,9 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
         </div>
       )}
 
-      {selectedIds.size > 0 && (
+      {visibleSelectedIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-full border border-[var(--border)] bg-[var(--background)] px-5 py-3 shadow-xl">
-          <span className="text-sm font-medium">{tHistory('itemsSelected', { count: selectedIds.size })}</span>
+          <span className="text-sm font-medium">{tHistory('itemsSelected', { count: visibleSelectedIds.length })}</span>
           <Button
             type="button"
             variant="destructive"
@@ -411,11 +441,15 @@ export function SavedArticlesLibrary({ scope = 'all' }: { scope?: 'all' | 'revie
       <DeleteDocumentDialog
         open={Boolean(itemToDelete)}
         onOpenChange={(open) => { if (!open) setItemToDelete(null); }}
+        pending={isDeleting}
         onConfirm={handleSingleDelete}
       />
       <DeleteDocumentDialog
         open={bulkDeleteConfirmOpen}
         onOpenChange={setBulkDeleteConfirmOpen}
+        pending={isDeleting}
+        title={tHistory('bulkDeleteTitle', { count: visibleSelectedIds.length })}
+        description={tHistory('bulkDeleteDescription', { count: visibleSelectedIds.length })}
         onConfirm={handleBulkDelete}
       />
     </div>

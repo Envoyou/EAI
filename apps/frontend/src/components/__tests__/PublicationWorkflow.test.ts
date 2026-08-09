@@ -234,7 +234,7 @@ describe('revision-safe publication workflow', () => {
     const finalDraft = readFrontendSource('components/FinalDraftPanel.tsx');
 
     expect(shell).toContain('if (isAiBusy)');
-    expect(shell).toContain("isAiBusy ? 'Cancel current AI request'");
+    expect(shell).toContain("isAiBusy\n                        ? tWorkspace('cancelAiAction')");
     expect(workspace).toContain('analyzeAbortControllerRef.current');
     expect(workspace).toContain('generateAbortControllerRef.current');
     expect(analyze).toContain('const previousAnalysis = analysis');

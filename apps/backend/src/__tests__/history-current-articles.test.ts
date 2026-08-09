@@ -14,5 +14,7 @@ describe('current article history projection', () => {
     expect(historyRoute).toContain('ranked."revisionRank" = 1');
     expect(historyRoute).toContain('log."organizationId" = ${organizationId}');
     expect(historyRoute).toContain('ranked."feedback"');
+    expect(historyRoute).toContain('log."updatedAt"');
+    expect(historyRoute).toContain('ORDER BY log."updatedAt" DESC');
   });
 });

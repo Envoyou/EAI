@@ -230,7 +230,10 @@
     "stage": { "draft": "Draft", "review": "Review", "blocked": "Diblokir", "ready": "Siap" },
     "open": { "draft": "Lanjutkan penyuntingan", "review": "Buka review", "blocked": "Selesaikan temuan", "ready": "Buka publikasi" },
     "itemsCount": "{count, plural, other {{count} item}}",
-    "lastEdit": "Terakhir diedit {time}"
+    "lastEdit": "Terakhir diedit {time}",
+    "toggleDateGroup": "Buka atau tutup artikel yang diperbarui pada {date}",
+    "selectArticle": "Pilih {title}",
+    "deleteArticle": "Hapus {title}"
   },
   "ReviewWorkspace": {
     "complete": "Review editorial selesai",
@@ -295,9 +298,12 @@
     "pinFailed": "Sematan artikel tidak dapat diperbarui.",
     "deleteTitle": "Hapus artikel ini?",
     "deleteDescription": "Tindakan ini tidak dapat dibatalkan.",
-    "bulkDeleteTitle": "Hapus {count} artikel?",
     "bulkDelete": "Hapus terpilih",
     "itemsSelected": "{count} terpilih",
+    "bulkDeleteTitle": "Hapus {count} artikel terpilih?",
+    "bulkDeleteDescription": "Tindakan ini menghapus permanen seluruh revisi tersimpan dalam keluarga artikel yang dipilih dan tidak dapat dibatalkan.",
+    "bulkDeleteRevisionDescription": "Tindakan ini menghapus permanen revisi tersimpan yang dipilih dan tidak dapat dibatalkan.",
+    "selectArticle": "Pilih {title}",
     "cancel": "Batal",
     "deleting": "Menghapus…",
     "searchLabel": "Cari artikel tersimpan",

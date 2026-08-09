@@ -267,6 +267,11 @@ Prompts are constructed dynamically as Abstract Syntax Trees (AST) using nodes l
     internal `organizationId` at query time.
   * Search documents are derived data. Content artifacts and expiring topic
     reservations remain the authoritative registry.
+  * History deletion must resolve article families from tenant-scoped persisted
+    `AnalysisLog.metadata.sourceRef` and run log deletion plus
+    `ContentArtifact.status = DELETED` synchronization atomically. Never query
+    invented top-level AnalysisLog family fields or leave a Content Map source
+    pointing at a deleted history record.
   * Semantic vectors use pgvector `vector(768)` and the configured
     `CONTENT_MEMORY_EMBEDDING_MODEL`. Writes must invalidate stale embedding
     metadata and enqueue bounded background indexing; provider/queue failures

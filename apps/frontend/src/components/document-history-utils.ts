@@ -1,6 +1,7 @@
 export interface HistoryItem {
   id: string;
   createdAt: string;
+  updatedAt?: string;
   role: string;
   verdict?: string;
   summary?: string;
@@ -58,18 +59,26 @@ const isUnresolvedFinding = (item: NonNullable<HistoryItem['feedback']>[number])
 export const getArticleFamilyKey = (item: HistoryItem) =>
   item.metadata?.sourceRef?.trim() || item.id;
 
+export const getHistoryItemUpdatedAt = (item: HistoryItem) =>
+  item.updatedAt?.trim() || item.createdAt;
+
 export const getCurrentArticleHistoryItems = (items: HistoryItem[]) => {
   const currentByFamily = new Map<string, HistoryItem>();
   for (const item of items) {
     const familyKey = getArticleFamilyKey(item);
     const current = currentByFamily.get(familyKey);
-    if (!current || new Date(item.createdAt).getTime() > new Date(current.createdAt).getTime()) {
+    if (
+      !current
+      || new Date(getHistoryItemUpdatedAt(item)).getTime()
+        > new Date(getHistoryItemUpdatedAt(current)).getTime()
+    ) {
       currentByFamily.set(familyKey, item);
     }
   }
   return [...currentByFamily.values()].sort((left, right) => {
     if (left.isPinned !== right.isPinned) return left.isPinned ? -1 : 1;
-    return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+    return new Date(getHistoryItemUpdatedAt(right)).getTime()
+      - new Date(getHistoryItemUpdatedAt(left)).getTime();
   });
 };
 

@@ -29,6 +29,17 @@ describe('editorial workspace information architecture', () => {
     expect(publicationPage).toContain('stage="publication"');
     expect(library).toContain("fetchWithTimeout('/api/history?limit=100&view=current')");
     expect(library).toContain('presentation.unresolvedFindingCount === 0');
+    expect(library).toContain("presentation.stage === 'ready') return `/publication");
+    expect(library).toContain("presentation.stage === 'review' || presentation.stage === 'blocked'");
+    expect(library).toContain('return `/review${query}`');
+  });
+
+  it('keeps destructive library selection visible and accessible', () => {
+    expect(library).toContain('visibleSelectedIds');
+    expect(library).toContain('ids: visibleSelectedIds');
+    expect(library).toContain("aria-label={t('selectArticle'");
+    expect(library).toContain('aria-expanded={!isCollapsed}');
+    expect(library).toContain('pending={isDeleting}');
   });
 
   it('keeps history out of the editor and scopes contextual tools by stage', () => {

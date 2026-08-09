@@ -15,6 +15,7 @@ import {
   readQualityResolutions,
 } from '@/lib/quality-resolution-ledger';
 import {
+  ContentArtifactStatus,
   ContentArtifactStage,
   ContentArtifactType,
   ContentSourceType,
@@ -144,6 +145,21 @@ const HistoryItemPatchSchema = z.object({
   'A title or pin state is required'
 );
 
+const BulkDeleteHistorySchema = z.object({
+  ids: z.array(z.string().trim().min(1).max(100)).min(1).max(100),
+  deleteFamily: z.boolean().default(false),
+});
+
+const readHistorySourceRef = (metadata: unknown): string | null => {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return null;
+  }
+  const sourceRef = (metadata as Record<string, unknown>).sourceRef;
+  return typeof sourceRef === 'string' && sourceRef.trim()
+    ? sourceRef.trim()
+    : null;
+};
+
 const canAccessLog = (
   log: { organizationId: string | null; userId: string | null },
   workspaceOrganizationId: string | null | undefined,
@@ -154,6 +170,7 @@ const canAccessLog = (
 type CurrentArticleHistoryRow = {
   id: string;
   createdAt: Date;
+  updatedAt: Date;
   role: string;
   metadata: unknown;
   score: number | null;
@@ -189,6 +206,7 @@ const listCurrentArticleHistory = async ({
       SELECT
         log."id",
         log."createdAt",
+        log."updatedAt",
         log."role",
         log."metadata",
         log."score",
@@ -198,7 +216,7 @@ const listCurrentArticleHistory = async ({
         log."isPinned",
         ROW_NUMBER() OVER (
           PARTITION BY COALESCE(NULLIF(log."metadata"->>'sourceRef', ''), log."id")
-          ORDER BY log."createdAt" DESC, log."id" DESC
+          ORDER BY log."updatedAt" DESC, log."createdAt" DESC, log."id" DESC
         ) AS "revisionRank"
       FROM "AnalysisLog" AS log
       WHERE log."status" = 'success'
@@ -207,6 +225,7 @@ const listCurrentArticleHistory = async ({
     SELECT
       ranked."id",
       ranked."createdAt",
+      ranked."updatedAt",
       ranked."role",
       ranked."metadata",
       ranked."score",
@@ -216,7 +235,7 @@ const listCurrentArticleHistory = async ({
       ranked."isPinned"
     FROM ranked
     WHERE ${Prisma.join(currentPredicates, ' AND ')}
-    ORDER BY ranked."isPinned" DESC, ranked."createdAt" DESC
+    ORDER BY ranked."isPinned" DESC, ranked."updatedAt" DESC, ranked."createdAt" DESC
     LIMIT ${limit + 1}
   `);
 };
@@ -404,6 +423,7 @@ router.get('/', requireAuth, async (req, res) => {
       select: {
         id: true,
         createdAt: true,
+        updatedAt: true,
         role: true,
         metadata: true,
         score: true,
@@ -489,48 +509,71 @@ router.post('/bulk-delete', requireAuth, async (req, res) => {
       clerkOrganizationSlug: orgSlug,
       clerkOrganizationRole: orgRole,
     });
-    
+
     if (!workspace || workspace.needsOnboarding || !workspace.organizationId) {
       return res.status(409).json({ error: 'Workspace onboarding required' });
     }
+    const organizationId = workspace.organizationId;
 
-    const { ids, deleteFamily } = req.body;
-    if (!Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ error: 'No IDs provided' });
+    const validation = BulkDeleteHistorySchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: 'Invalid bulk delete request',
+        details: validation.error.format(),
+      });
     }
+    const ids = [...new Set(validation.data.ids)];
+    const { deleteFamily } = validation.data;
 
     const logs = await prisma.analysisLog.findMany({
-      where: { id: { in: ids } },
-      select: { id: true, sourceRef: true, organizationId: true, userId: true, isGuestLog: true }
+      where: {
+        id: { in: ids },
+        organizationId,
+      },
+      select: { id: true, metadata: true },
     });
 
-    for (const log of logs) {
-      if (!canAccessLog(log, workspace.organizationId, userId)) {
-        return res.status(403).json({ error: 'Unauthorized' });
-      }
+    if (logs.length !== ids.length) {
+      return res.status(404).json({ error: 'One or more history items were not found' });
     }
 
-    if (deleteFamily) {
-      const familyKeys = logs.map(l => l.sourceRef?.trim() || l.id);
-      await prisma.analysisLog.deleteMany({
-        where: {
-          OR: [
-            { sourceRef: { in: familyKeys } },
-            { id: { in: familyKeys } }
-          ],
-          organizationId: workspace.organizationId
-        }
-      });
-    } else {
-      await prisma.analysisLog.deleteMany({
-        where: {
-          id: { in: ids },
-          organizationId: workspace.organizationId
-        }
-      });
-    }
+    const familyKeys = logs.map((log) => readHistorySourceRef(log.metadata) ?? log.id);
+    const result = await runSerializableTransaction(async (tx) => {
+      const rowsToDelete = deleteFamily
+        ? await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+            SELECT log."id"
+            FROM "AnalysisLog" AS log
+            WHERE log."organizationId" = ${organizationId}
+              AND COALESCE(NULLIF(log."metadata"->>'sourceRef', ''), log."id")
+                IN (${Prisma.join(familyKeys)})
+          `)
+        : logs.map(({ id }) => ({ id }));
+      const deletionIds = rowsToDelete.map(({ id }) => id);
+      const artifactSourceIds = [...new Set(
+        deleteFamily ? [...familyKeys, ...deletionIds] : deletionIds
+      )];
 
-    return res.json({ success: true, deletedCount: ids.length });
+      const artifactUpdate = await tx.contentArtifact.updateMany({
+        where: {
+          organizationId,
+          sourceId: { in: artifactSourceIds },
+        },
+        data: { status: ContentArtifactStatus.DELETED },
+      });
+      const deletedLogs = await tx.analysisLog.deleteMany({
+        where: {
+          id: { in: deletionIds },
+          organizationId,
+        },
+      });
+
+      return {
+        deletedCount: deletedLogs.count,
+        deletedArtifactCount: artifactUpdate.count,
+      };
+    });
+
+    return res.json({ success: true, ...result });
   } catch (error) {
     console.error('[HISTORY_BULK_DELETE]', error);
     return res.status(500).json({ error: 'Failed to delete history' });
@@ -550,6 +593,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
     if (!workspace || workspace.needsOnboarding || !workspace.organizationId) {
       return res.status(409).json({ error: 'Workspace onboarding required' });
     }
+    const organizationId = workspace.organizationId;
 
     const { id } = req.params;
     if (!id) {
@@ -568,8 +612,17 @@ router.delete('/:id', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    await prisma.analysisLog.delete({
-      where: { id },
+    await runSerializableTransaction(async (tx) => {
+      await tx.contentArtifact.updateMany({
+        where: {
+          organizationId,
+          sourceId: id,
+        },
+        data: { status: ContentArtifactStatus.DELETED },
+      });
+      await tx.analysisLog.delete({
+        where: { id },
+      });
     });
 
     return res.json({ success: true });
@@ -903,6 +956,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
     }
 
     if (resolution.data.action === 'apply_publication_metadata_finding') {
+      const metadataFinding = resolution.data;
       let appliedResult;
       try {
         appliedResult = await runSerializableTransaction(async (tx) => {
@@ -954,10 +1008,10 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
           const applied = applyPublicationMetadataFinding({
             feedback: storedFeedback,
             publicationPackage: storedPublicationPackage.data,
-            feedbackId: resolution.data.feedbackId,
-            targetField: resolution.data.targetField,
-            targetText: resolution.data.targetText,
-            replacementText: resolution.data.replacementText,
+            feedbackId: metadataFinding.feedbackId,
+            targetField: metadataFinding.targetField,
+            targetText: metadataFinding.targetText,
+            replacementText: metadataFinding.replacementText,
             previousReadiness,
           });
           const validatedPackage = PublicationPackageUpdateSchema.safeParse(
@@ -973,7 +1027,7 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
           const baseSeoFieldStates = Object.keys(storedSeoFieldStates).length > 0
             ? storedSeoFieldStates
             : createValidSeoFieldStates(transactionRevision);
-          const appliedSeoField = PublicationTargetToSeoField[resolution.data.targetField];
+          const appliedSeoField = PublicationTargetToSeoField[metadataFinding.targetField];
           const seoFieldStates = markSeoFieldsValid(
             baseSeoFieldStates,
             [appliedSeoField],

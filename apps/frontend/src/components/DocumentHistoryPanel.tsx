@@ -25,6 +25,7 @@ import {
   PinActionIcon,
 } from '@/components/ui/icons/actions';
 import {
+  getHistoryItemUpdatedAt,
   getHistoryItemPresentation,
   type HistoryItem,
   type HistoryStage,
@@ -64,7 +65,8 @@ const PAGE_SIZE = 20;
 const sortHistoryItems = (items: HistoryItem[]) =>
   [...items].sort((a, b) => {
     if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return new Date(getHistoryItemUpdatedAt(b)).getTime()
+      - new Date(getHistoryItemUpdatedAt(a)).getTime();
   });
 
 export default function DocumentHistoryPanel({
@@ -128,7 +130,10 @@ export default function DocumentHistoryPanel({
         const data = Array.isArray(result) ? result : result.data || [];
         const newNextCursor = result.nextCursor || null;
         if (append) setHistory(prev => sortHistoryItems([...prev, ...data]));
-        else setHistory(sortHistoryItems(data));
+        else {
+          setHistory(sortHistoryItems(data));
+          setSelectedIds(new Set());
+        }
         setNextCursor(newNextCursor);
       } else {
         setError(t('fetchFailed'));
@@ -191,7 +196,7 @@ export default function DocumentHistoryPanel({
         body: JSON.stringify({ ids: Array.from(selectedIds), deleteFamily: false }),
       });
       if (!response.ok) throw new Error('Failed to bulk delete');
-      
+
       setHistory(prev => prev.filter(item => !selectedIds.has(item.id)));
       if (activeId && selectedIds.has(activeId)) {
         onNew();
@@ -348,6 +353,7 @@ export default function DocumentHistoryPanel({
             <Checkbox
               checked={selectedIds.has(item.id)}
               onCheckedChange={(checked) => toggleSelection(item.id, checked === true)}
+              aria-label={t('selectArticle', { title: presentation.title })}
             />
           </div>
           <div className="min-w-0 flex-1 pr-7">
@@ -502,6 +508,8 @@ export default function DocumentHistoryPanel({
         open={bulkDeleteConfirmOpen}
         onOpenChange={setBulkDeleteConfirmOpen}
         pending={isDeleting}
+        title={t('bulkDeleteTitle', { count: selectedIds.size })}
+        description={t('bulkDeleteRevisionDescription', { count: selectedIds.size })}
         onConfirm={handleBulkDelete}
       />
 
@@ -532,7 +540,10 @@ export default function DocumentHistoryPanel({
       {/* Search Input / Collapsed Icon */}
       <DocumentHistorySearch
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={(nextQuery) => {
+          setSearchQuery(nextQuery);
+          setSelectedIds(new Set());
+        }}
         sidebarOpen={sidebarOpen}
         onExpandAndFocus={handleExpandAndFocusSearch}
         inputRef={searchInputRef}
@@ -547,7 +558,10 @@ export default function DocumentHistoryPanel({
             <Button
               type="button"
               key={f.key}
-              onClick={() => setActiveFilter(f.key)}
+              onClick={() => {
+                setActiveFilter(f.key);
+                setSelectedIds(new Set());
+              }}
               variant="muted"
               className={`sidebar-filter-pill min-w-0 flex-1 px-1.5 py-1 text-[10px] rounded-full border-none h-auto${
                 activeFilter === f.key ? ' active' : ''

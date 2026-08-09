@@ -9,9 +9,9 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 ### Added
 - **Bulk Delete and Date Grouping in Library & History Surfaces**:
   - Added checkboxes and bulk deletion action bars to both `SavedArticlesLibrary` and `DocumentHistoryPanel`.
-  - Added a backend `POST /api/history/bulk-delete` endpoint for safe, batched document removal.
-  - Revamped `SavedArticlesLibrary` layout to be full-width rather than grid-based.
-  - Implemented automatic date-based grouping for saved articles with collapsible separators. By default, only the most recent date group is expanded. Separators now summarize the item count and the latest edit time for their respective dates.
+  - Added a bounded, tenant-scoped backend `POST /api/history/bulk-delete` endpoint. Family removal resolves `sourceRef` from persisted metadata, deletes revisions in a serializable transaction, and marks matching canonical Content Memory artifacts as deleted so Content Map cannot retain orphaned sources.
+  - Revamped `SavedArticlesLibrary` as a full-width surface with a responsive card grid.
+  - Added server-authoritative `AnalysisLog.updatedAt` tracking through migration `20260809170000_add_analysis_log_updated_at`. Saved articles are grouped by their actual latest edit date; groups are ordered newest-first and only the newest group starts expanded.
 - **In-Canvas Interactive Editorial Decision Cards on Editor Canvas (`/editor`)**:
   - Embedded direct action buttons (🚀 *Use Proposal*, 🛡️ *Keep Current Text*, 🔗 *Add Manual Source*, 🪄 *Suggest AI Fix*, 🗑️ *Remove Detail*) directly inside each decision card on the `/editor` center canvas.
   - Added a batch `⚡ Accept All Fixes` action banner for fast 1-click feedback approval without page navigation.
@@ -32,6 +32,10 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - `apps/frontend/src/components/InPlaceRefineFeedbackModal.tsx`: Dedicated post-refinement completion dialog (*"Open Review/Publication"* vs *"Stay in Editor"*).
 
 ### Changed
+- **Safe article-library actions and workflow routing**:
+  - Limited Select All and bulk deletion to the currently visible filtered result set, clearing stale selections when search or stage filters change and preventing hidden articles from being deleted accidentally.
+  - Routed draft cards to Editor, unresolved review/blocked cards to Review, and ready cards to Publication, matching their visible action labels and workspace ownership.
+  - Added keyboard-operable date group controls, accessible checkbox/delete labels, plural destructive confirmations, and pending-state guards against duplicate delete submissions.
 - **Interactive In-Place Refinement & 3-Phase Sequential UX Architecture**:
   - Running **Refine Draft** within `/editor` no longer forces an unprompted route change. The center canvas displays an inline loading overlay (*"EAI is Analyzing & Refining..."*) directly over the active draft.
   - Separated the feedback review phase from the completion handoff dialog. When refinement produces findings requiring editorial approval (e.g. `Source Fidelity` or `Unsupported Entity Detail`), decision cards render unobstructedly **on the center editor canvas** without premature modal pop-up interference.

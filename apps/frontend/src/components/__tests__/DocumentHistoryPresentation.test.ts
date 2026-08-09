@@ -74,6 +74,27 @@ describe('getHistoryItemPresentation', () => {
     expect(current[0]?.verdict).toBe('ready');
   });
 
+  it('uses the server update timestamp for the current family snapshot', () => {
+    const current = getCurrentArticleHistoryItems([
+      {
+        ...baseItem,
+        id: 'created-later',
+        createdAt: '2026-08-02T10:00:00.000Z',
+        updatedAt: '2026-08-02T10:00:00.000Z',
+        metadata: { sourceRef: 'article-family-updated' },
+      },
+      {
+        ...baseItem,
+        id: 'edited-later',
+        createdAt: '2026-08-01T10:00:00.000Z',
+        updatedAt: '2026-08-03T10:00:00.000Z',
+        metadata: { sourceRef: 'article-family-updated' },
+      },
+    ]);
+
+    expect(current[0]?.id).toBe('edited-later');
+  });
+
   it('counts only findings unresolved on the current snapshot', () => {
     const result = getHistoryItemPresentation({
       ...baseItem,

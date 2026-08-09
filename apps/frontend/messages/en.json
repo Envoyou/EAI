@@ -230,7 +230,10 @@
     "stage": { "draft": "Draft", "review": "Review", "blocked": "Blocked", "ready": "Ready" },
     "open": { "draft": "Continue editing", "review": "Open review", "blocked": "Resolve findings", "ready": "Open publication" },
     "itemsCount": "{count, plural, one {1 item} other {{count} items}}",
-    "lastEdit": "Last edit {time}"
+    "lastEdit": "Last edit {time}",
+    "toggleDateGroup": "Toggle articles updated on {date}",
+    "selectArticle": "Select {title}",
+    "deleteArticle": "Delete {title}"
   },
   "ReviewWorkspace": {
     "complete": "Editorial review complete",
@@ -295,9 +298,12 @@
     "pinFailed": "Could not update the article pin.",
     "deleteTitle": "Delete this article?",
     "deleteDescription": "This action cannot be undone.",
-    "bulkDeleteTitle": "Delete {count} articles?",
     "bulkDelete": "Delete selected",
     "itemsSelected": "{count} selected",
+    "bulkDeleteTitle": "Delete {count, plural, one {# selected article} other {# selected articles}}?",
+    "bulkDeleteDescription": "This permanently deletes every saved revision in the selected article families and cannot be undone.",
+    "bulkDeleteRevisionDescription": "This permanently deletes the selected saved revisions and cannot be undone.",
+    "selectArticle": "Select {title}",
     "cancel": "Cancel",
     "deleting": "Deleting…",
     "searchLabel": "Search saved articles",
