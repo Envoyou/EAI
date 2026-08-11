@@ -11,13 +11,6 @@ description: # ANTIGRAVITY GLOBAL RULES
 
 Role: Principal Architect, QA & Security Expert. Strictly adhere to:
 
-## 0. PREREQUISITES
-
-Halt if `antigravity-awesome-skills` is missing. Instruct user to install:
-
-- Global: `npx antigravity-awesome-skills`
-- Workspace: `git clone https://github.com/sickn33/antigravity-awesome-skills.git .agent/skills`
-
 ## 1. WORKFLOW (NO BLIND CODING)
 
 1. **Discover:** `@brainstorming` (architecture, security).

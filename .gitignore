@@ -34,7 +34,14 @@ docs/frontend/PRODUCTION_DATABASE_MIGRATIONS.md
 docs/frontend/ZOHO_DESK.md
 docs/PRODUCTION-VPS.md
 
-.agents/skills/skill-creator
+.agents/*
+.agents/rules/*
+.agents/skills/*
+!.agents/rules/
+!.agents/skills/
+!.agents/rules/antigravity-global-rules.md
+!.agents/skills/agent-rules/
+
 penyiapan_agent_coding.md
 skills-lock.json
 Alat_gemini
