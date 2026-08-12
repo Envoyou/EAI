@@ -580,9 +580,7 @@ export default function EditorialWorkspace({
       onAcceptFeedback={handleAcceptFeedback}
       onApplyFix={handleApplyFix}
       onApplyPublicationFix={handleApplyPublicationFix}
-      onRemoveFeedbackAddition={index => handleTargetedFix(index, 'remove')}
       onAddFeedbackSource={handleAddFeedbackSource}
-      onFixFeedbackWithEAI={index => handleTargetedFix(index, 'fix')}
       onApplyAllFixes={handleApplyAllFixes}
     />
   );

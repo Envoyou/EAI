@@ -6,6 +6,13 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Diubah
+- **Capability Review Kanonis dan Ketersediaan Draft Kandidat**:
+  - Menambahkan satu projection capability bersama untuk perbaikan mekanis, proposal siap-terapkan, keputusan sumber, dan keputusan editorial manual; Review kini hanya merender projection tersebut dan tidak lagi menebak aksi dari finding mentah.
+  - Membatasi bulk Apply pada capability yang benar-benar executable, menghapus rewrite AI generik dari keputusan source-fidelity, dan mencegah finding berisiko tinggi memakai Keep kecuali capability mengizinkannya secara eksplisit.
+  - Memperbaiki missing sentence whitespace yang tidak ambigu sebelum Review serta mendeduplikasi representasi berulang dari keputusan yang sama.
+  - Memisahkan ketersediaan body kandidat dari kesiapan publikasi sehingga kandidat unresolved tetap terlihat dan dapat diedit manual, sementara seluruh guard readiness, metadata, dan saved-body untuk ekspor CMS tetap dipertahankan.
+
 ## [3.22.0] - 2026-08-09
 
 ### Added

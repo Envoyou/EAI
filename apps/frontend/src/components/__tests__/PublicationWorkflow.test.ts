@@ -227,6 +227,22 @@ describe('revision-safe publication workflow', () => {
     expect(feedbackCard).not.toContain("onCopy(item.suggestion!");
   });
 
+  it('renders review actions only from canonical capabilities and separates candidate availability', () => {
+    const canvas = readFrontendSource('components/EditorCanvas.tsx');
+    const panel = readFrontendSource('components/FinalDraftPanel.tsx');
+    const capability = readFrontendSource('workspace/review-capability.ts');
+
+    expect(canvas).toContain('buildReviewDecisionQueue');
+    expect(canvas).toContain('capability.autoApplicable');
+    expect(canvas).toContain('autoApplicableCount > 0');
+    expect(canvas).not.toContain("onFixFeedbackWithEAI(index)");
+    expect(capability).toContain('projectReviewCapability');
+    expect(panel).toContain('hasCandidateDraft');
+    expect(panel).toContain('isPublicationReady');
+    expect(panel).toContain('reviewMode && onSaveFinalDraft');
+    expect(panel).toContain('!hasCandidateDraft');
+  });
+
   it('keeps cancellation available for the complete AI lifecycle and blocks overlapping actions', () => {
     const shell = readFrontendSource('components/EditorialWorkspace.tsx');
     const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');

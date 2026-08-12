@@ -740,6 +740,7 @@
     "saveSource": "Save Source",
     "proceedToPublication": "Proceed to Publication",
     "proposalLabel": "Proposal",
+    "affectedTextLabel": "Affected text",
     "emptyStateRefine": "Run \"Refine Draft\" to generate the Refined Draft.",
     "candidateEditorOpened": "Candidate editor opened. You can now edit the refined draft."
   },

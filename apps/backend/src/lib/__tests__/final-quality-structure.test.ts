@@ -19,6 +19,46 @@ describe('Final Quality Deterministic Structure Checks', () => {
     );
     expect(result.flags).toContain('Missing Sentence Whitespace');
     expect(result.readiness).toBe('needs_review');
+    expect(result.feedback).toHaveLength(1);
+    expect(result.feedback[0]).toMatchObject({
+      ruleId: 'cms.missing_sentence_whitespace',
+      operation: 'replace',
+      targetText: 's.Th',
+      replacementText: 's. Th',
+    });
+  });
+
+  it('replaces duplicate model spacing findings with one deterministic finding', () => {
+    const text = 'The conclusion ends.The next paragraph begins.';
+    const result = applyDeterministicQualityChecks(
+      {
+        readiness: 'needs_review',
+        summary: '',
+        changes: [],
+        feedback: [
+          {
+            category: 'CMS Formatting',
+            status: 'warning',
+            message: 'Missing whitespace between two sentences creates concatenated text.',
+            suggestion: 'Add the missing space.',
+            operation: 'manual',
+          },
+          {
+            category: 'CMS Formatting',
+            status: 'warning',
+            message: 'Target text contains concatenated sentences without punctuation space.',
+            suggestion: 'Separate the sentences.',
+            operation: 'manual',
+          },
+        ],
+        flags: [],
+      },
+      text,
+      ''
+    );
+
+    expect(result.feedback).toHaveLength(1);
+    expect(result.feedback[0]?.ruleId).toBe('cms.missing_sentence_whitespace');
   });
 
   it('flags article prose added after the references section', () => {

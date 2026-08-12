@@ -46,6 +46,31 @@ export function stripLeadingExcerpt(text: string): string {
   return text;
 }
 
+/** Repairs unambiguous sentence boundaries without changing editorial meaning. */
+export function repairMissingSentenceWhitespace(text: string): string {
+  const protectedPattern = /https?:\/\/[^\s)>\]}]+|`[^`\n]+`/giu;
+  const repairSegment = (value: string, followsProtectedText = false) => {
+    const withBoundaryRepair = followsProtectedText
+      ? value.replace(/^([.!?])([A-Z][a-z])/u, '$1 $2')
+      : value;
+    return withBoundaryRepair.replace(
+      /([a-z0-9)"'\]])([.!?])([A-Z][a-z])/g,
+      '$1$2 $3'
+    );
+  };
+  let cursor = 0;
+  let repaired = '';
+
+  for (const match of text.matchAll(protectedPattern)) {
+    const index = match.index ?? 0;
+    repaired += repairSegment(text.slice(cursor, index), cursor > 0);
+    repaired += match[0];
+    cursor = index + match[0].length;
+  }
+
+  return repaired + repairSegment(text.slice(cursor), cursor > 0);
+}
+
 /** Promotes orphaned/deep Markdown headings without touching fenced code. */
 export function normalizeMarkdownHeadingHierarchy(text: string): string {
   if (!text) return text;

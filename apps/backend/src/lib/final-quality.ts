@@ -1,5 +1,6 @@
 import {
   buildShortSlugSuggestion,
+  deduplicateReviewFindings,
   hasIncompleteMetadataEnding,
   type FinalQualityGateOutput,
 } from '@eai/shared';
@@ -792,6 +793,10 @@ export const applyDeterministicQualityChecks = (
 ): FinalQualityGateOutput => {
   const isEn = options.language === 'en';
   let feedback = result.feedback.filter((item) => item.status !== 'pass');
+  const isMissingWhitespaceFinding = (item: QualityFeedbackItem) =>
+    /missing whitespace|punctuation space|concatenated sentences|kehilangan spasi|kalimat tersambung/iu
+      .test(`${item.category} ${item.message} ${item.suggestion ?? ''}`);
+  feedback = feedback.filter((item) => !isMissingWhitespaceFinding(item));
   const trustedInternalUrls = (options.trustedInternalUrls ?? [])
     .map((url) => url.replace(/[.,;:!?]+$/, ''));
   const trustedFeedbackUrls = [
@@ -1066,8 +1071,10 @@ export const applyDeterministicQualityChecks = (
       suggestion: isEn
         ? 'Insert whitespace between the adjacent sentences.'
         : 'Tambahkan spasi di antara dua kalimat yang tersambung.',
-      operation: 'manual',
+      ruleId: 'cms.missing_sentence_whitespace',
+      operation: 'replace',
       targetText: missingBoundaries[0],
+      replacementText: missingBoundaries[0].replace(/([.!?])(?=[A-Z])/u, '$1 '),
     });
     flags.push('Missing Sentence Whitespace');
   }
@@ -1276,7 +1283,7 @@ export const applyDeterministicQualityChecks = (
     flags = flags.filter((flag) => flag !== 'Source Fidelity Review');
   }
 
-  const finalFeedback = uniqueFeedback(feedback)
+  const finalFeedback = deduplicateReviewFindings(uniqueFeedback(feedback))
     .sort((first, second) => getFeedbackPriority(second) - getFeedbackPriority(first))
     .slice(0, 12);
   const finalFlags = Array.from(new Set(flags)).slice(0, 3);

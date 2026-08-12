@@ -53,6 +53,38 @@ export type FindingTarget =
   | 'publication.metaDescription'
   | 'publication.coverImageAlt'
   | 'publication.tags';
+export type ReviewPatchOperation = 'replace' | 'insert_before' | 'insert_after';
+export type ReviewCapability =
+  | {
+      kind: 'mechanical_fix';
+      autoApplicable: true;
+      target: string;
+      replacement: string;
+      operation: ReviewPatchOperation;
+      targetField: 'body';
+    }
+  | {
+      kind: 'prepared_proposal';
+      autoApplicable: true;
+      target: string;
+      replacement: string;
+      operation: ReviewPatchOperation;
+      targetField: FindingTarget;
+    }
+  | {
+      kind: 'source_decision';
+      autoApplicable: false;
+      allowAddSource: true;
+      allowKeep: boolean;
+      target: string;
+    }
+  | {
+      kind: 'manual_editorial_decision';
+      autoApplicable: false;
+      allowKeep: boolean;
+      allowEdit: true;
+      target: string;
+    };
 export type EditorialProcessStage =
   | 'reviewing'
   | 'rewriting'

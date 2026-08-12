@@ -740,6 +740,7 @@
     "saveSource": "Simpan Sumber",
     "proceedToPublication": "Lanjutkan ke Publikasi",
     "proposalLabel": "Usulan",
+    "affectedTextLabel": "Teks terdampak",
     "emptyStateRefine": "Jalankan \"Perhalus Draf\" untuk menghasilkan draf yang telah disempurnakan.",
     "candidateEditorOpened": "Candidate editor terbuka. Anda sekarang dapat mengedit draf hasil refinement."
   },

@@ -225,6 +225,13 @@ and change-scope derivation remain backend-owned metadata and are not inferred
 from rendered editor positions.
 
 Quality Gate cards use the backend-issued `feedbackId` as their UI identity.
+Their available controls come only from the shared `ReviewCapability`
+projection. `EditorCanvas` does not inspect raw finding fields to invent Apply,
+Keep, source, or rewrite actions. Candidate-body availability and publication
+readiness are independent state: an unresolved candidate can be rendered and
+edited in the explicitly opened Candidate Draft view, while export remains
+guarded by ready state, current complete metadata, and exact saved-body
+equality.
 The older category/message/target/index key remains only as a compatibility
 fallback for saved feedback created before persistent editorial identities.
 Client code may transport these identifiers but must not mint them or treat

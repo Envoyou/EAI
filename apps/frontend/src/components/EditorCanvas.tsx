@@ -9,13 +9,18 @@ import PanelTabBar from '@/components/PanelTabBar';
 import StatusBar from '@/components/StatusBar';
 import { Button } from '@/components/ui/button';
 import { EAILoaderStatusIcon, WarningStatusIcon, CompleteStatusIcon, QualityPassedStatusIcon } from '@/components/ui/icons/status';
-import { EditActionIcon, AddActionIcon, DeleteActionIcon } from '@/components/ui/icons/actions';
+import { EditActionIcon, AddActionIcon } from '@/components/ui/icons/actions';
 import { ApplyAiSuggestionIcon } from '@/components/ui/icons/ai';
 import { DocumentIcon } from '@/components/ui/icons/content';
 import { ReviewArticlePanel } from '@/components/ReviewArticlePanel';
 import { useTranslations } from 'next-intl';
 import type { PanelTab } from '@/components/PanelTabBar';
 import type { AnalysisResult, ArticleMetadata, EditorialProcessStage, FindingTarget } from '@eai/shared';
+import {
+  applyProjectedReviewCapability,
+  buildReviewDecisionQueue,
+  countAutoApplicableReviewDecisions,
+} from '@/workspace/review-capability';
 
 export interface EditorialOptions {
   brandName: string;
@@ -92,9 +97,7 @@ interface EditorCanvasProps {
     replacementText: string,
     index: number
   ) => Promise<boolean>;
-  onRemoveFeedbackAddition?: (index: number) => Promise<void>;
   onAddFeedbackSource?: (index: number, url: string) => Promise<boolean>;
-  onFixFeedbackWithEAI?: (index: number) => Promise<void>;
   onApplyAllFixes?: () => Promise<void>;
 }
 
@@ -153,9 +156,7 @@ export default function EditorCanvas({
   onAcceptFeedback,
   onApplyFix,
   onApplyPublicationFix,
-  onRemoveFeedbackAddition,
   onAddFeedbackSource,
-  onFixFeedbackWithEAI,
   onApplyAllFixes,
 }: EditorCanvasProps) {
   const router = useRouter();
@@ -169,9 +170,11 @@ export default function EditorCanvas({
   const decisionFeedback = (analysis.feedback ?? []).filter(
     (item) => item.status !== 'pass'
   );
-  const unresolvedFeedback = decisionFeedback.filter(
-    (item) => item.status !== 'pass' && !item.isApplied && !item.isAccepted && !item.isVerified
-  );
+  const reviewDecisions = buildReviewDecisionQueue(analysis.feedback ?? []);
+  const autoApplicableCount = countAutoApplicableReviewDecisions(reviewDecisions);
+  const resolvedDecisionCount = decisionFeedback.filter(
+    (item) => item.isApplied || item.isAccepted || item.isVerified
+  ).length;
 
   const candidateReviewKey = analysis.draftRevision?.bodyHash
     ?? analysis.draftRevision?.revisionId
@@ -312,7 +315,7 @@ export default function EditorCanvas({
                         sourceDraft={sourceDraft}
                         researchNotes={metadata?.researchNotes}
                         findingCount={decisionFeedback.length}
-                        readinessScore={analysis.readiness === 'ready' ? 100 : Math.round(((decisionFeedback.length - unresolvedFeedback.length) / (decisionFeedback.length || 1)) * 100)}
+                        readinessScore={analysis.readiness === 'ready' ? 100 : Math.round(((decisionFeedback.length - reviewDecisions.length) / (decisionFeedback.length || 1)) * 100)}
                         analysisLogId={analysis.analysisLogId}
                         onOpenPublication={() => router.push(`/publication${analysis.analysisLogId ? `?history=${encodeURIComponent(analysis.analysisLogId)}` : ''}`)}
                       />
@@ -341,19 +344,19 @@ export default function EditorCanvas({
                             {t('title')}
                           </h2>
                           <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-[var(--muted-foreground)]">
-                            {unresolvedFeedback.length > 0
-                              ? t('description', { count: unresolvedFeedback.length })
+                            {reviewDecisions.length > 0
+                              ? t('description', { count: reviewDecisions.length })
                               : t('validatingDescription')}
                           </p>
                         </div>
 
                         <div className="min-h-0 flex-1 overflow-y-auto p-5">
-                          {unresolvedFeedback.length > 0 ? (
+                          {reviewDecisions.length > 0 ? (
                             <div className="mx-auto max-w-2xl space-y-4">
-                              {onApplyAllFixes && (
+                              {onApplyAllFixes && autoApplicableCount > 0 && (
                                 <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-[var(--primary)]/10 border border-[var(--primary)]/20 shadow-xs">
                                   <span className="text-xs font-semibold text-[var(--foreground)]">
-                                    {t('description', { count: unresolvedFeedback.length })}
+                                    {t('description', { count: reviewDecisions.length })}
                                   </span>
                                   <Button
                                     type="button"
@@ -362,12 +365,11 @@ export default function EditorCanvas({
                                     onClick={onApplyAllFixes}
                                   >
                                     <ApplyAiSuggestionIcon className="h-3.5 w-3.5 mr-1" />
-                                    {t('acceptAllFixes', { count: unresolvedFeedback.length })}
+                                    {t('acceptAllFixes', { count: autoApplicableCount })}
                                   </Button>
                                 </div>
                               )}
-                              {unresolvedFeedback.map((item) => {
-                                const index = (analysis.feedback ?? []).indexOf(item);
+                              {reviewDecisions.map(({ item, index, capability }) => {
                                 const isExecuting = executingCanvasFix === index;
                                 const isSourceInputActive = activeCanvasSourceInput === index;
 
@@ -402,10 +404,16 @@ export default function EditorCanvas({
                                         <p className="mt-1 text-xs leading-relaxed text-[var(--muted-foreground)]">
                                           {item.message}
                                         </p>
-                                        {item.replacementText && (
+                                        <div className="mt-2 rounded-lg bg-[var(--surface-2)] p-2 text-xs font-mono text-[var(--foreground)]">
+                                          <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-wider block mb-0.5">
+                                            {capability.autoApplicable ? t('proposalLabel') : t('affectedTextLabel')}
+                                          </span>
+                                          {capability.target}
+                                        </div>
+                                        {capability.autoApplicable && (
                                           <div className="mt-2 rounded-lg bg-[var(--surface-2)] p-2 text-xs font-mono text-[var(--foreground)]">
                                             <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-wider block mb-0.5">{t('proposalLabel')}</span>
-                                            {item.replacementText}
+                                            {capability.replacement}
                                           </div>
                                         )}
                                       </div>
@@ -413,7 +421,7 @@ export default function EditorCanvas({
 
                                     {/* Embedded Action Buttons */}
                                     <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[var(--border)]/60">
-                                      {item.targetField === 'publication.slug' || item.targetField === 'publication.metaTitle' ? (
+                                      {capability.autoApplicable ? (
                                         <>
                                           <Button
                                             type="button"
@@ -421,130 +429,41 @@ export default function EditorCanvas({
                                             size="sm"
                                             disabled={isExecuting}
                                             onClick={() => handleAction(async () => {
-                                              if (onApplyPublicationFix) {
-                                                await onApplyPublicationFix(
-                                                  (item.targetField || 'publication.slug') as FindingTarget,
-                                                  item.targetText || '',
-                                                  item.replacementText || '',
-                                                  index
-                                                );
-                                              } else if (onAcceptFeedback) {
-                                                await onAcceptFeedback(index);
-                                              }
-                                            })}
-                                          >
-                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : (
-                                              <>
-                                                <ApplyAiSuggestionIcon className="h-3.5 w-3.5 mr-1" />
-                                                {t('applyProposal')}
-                                              </>
-                                            )}
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={isExecuting}
-                                            onClick={() => handleAction(async () => {
-                                              if (onAcceptFeedback) await onAcceptFeedback(index);
-                                            })}
-                                          >
-                                            <QualityPassedStatusIcon className="h-3.5 w-3.5 mr-1" />
-                                            {t('keepCurrentValue')}
-                                          </Button>
-                                        </>
-                                      ) : item.replacementText || item.operation === 'replace' ? (
-                                        <>
-                                          <Button
-                                            type="button"
-                                            variant="primary"
-                                            size="sm"
-                                            disabled={isExecuting}
-                                            onClick={() => handleAction(async () => {
-                                              if (onApplyFix) {
-                                                await onApplyFix(
-                                                  item.targetText || '',
-                                                  item.replacementText || '',
-                                                  item.operation || 'replace',
-                                                  index
-                                                );
-                                              } else if (onAcceptFeedback) {
-                                                await onAcceptFeedback(index);
-                                              }
+                                              await applyProjectedReviewCapability({
+                                                capability,
+                                                index,
+                                                onApplyFix,
+                                                onApplyPublicationFix,
+                                              });
                                             })}
                                           >
                                             {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : (
                                               <>
                                                 <CompleteStatusIcon className="h-3.5 w-3.5 mr-1" />
-                                                {t('acceptChanges')}
+                                                {capability.targetField === 'body'
+                                                  ? t('acceptChanges')
+                                                  : t('applyProposal')}
                                               </>
                                             )}
                                           </Button>
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={isExecuting}
-                                            onClick={() => handleAction(async () => {
-                                              if (onAcceptFeedback) await onAcceptFeedback(index);
-                                            })}
-                                          >
-                                            <QualityPassedStatusIcon className="h-3.5 w-3.5 mr-1" />
-                                            {t('keepCurrentText')}
-                                          </Button>
-                                        </>
-                                      ) : item.operation === 'insert_before' || item.operation === 'insert_after' ? (
-                                        <>
-                                          <Button
-                                            type="button"
-                                            variant="danger"
-                                            size="sm"
-                                            disabled={isExecuting}
-                                            onClick={() => handleAction(async () => {
-                                              if (onRemoveFeedbackAddition) await onRemoveFeedbackAddition(index);
-                                            })}
-                                          >
-                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : (
-                                              <>
-                                                <DeleteActionIcon className="h-3.5 w-3.5 mr-1" />
-                                                {t('removeDetail')}
-                                              </>
-                                            )}
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={isExecuting}
-                                            onClick={() => handleAction(async () => {
-                                              if (onAcceptFeedback) await onAcceptFeedback(index);
-                                            })}
-                                          >
-                                            <QualityPassedStatusIcon className="h-3.5 w-3.5 mr-1" />
-                                            {t('keepCurrentText')}
-                                          </Button>
-                                        </>
-                                      ) : (
-                                        <>
-                                          {onFixFeedbackWithEAI && (
+                                          {capability.kind === 'prepared_proposal' && onAcceptFeedback && (
                                             <Button
                                               type="button"
-                                              variant="accent"
+                                              variant="outline"
                                               size="sm"
                                               disabled={isExecuting}
-                                              onClick={() => handleAction(async () => {
-                                                await onFixFeedbackWithEAI(index);
-                                              })}
+                                              onClick={() => handleAction(async () => onAcceptFeedback(index))}
                                             >
-                                              {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : (
-                                                <>
-                                                  <ApplyAiSuggestionIcon className="h-3.5 w-3.5 mr-1" />
-                                                  {t('fixWithAi')}
-                                                </>
-                                              )}
+                                              <QualityPassedStatusIcon className="h-3.5 w-3.5 mr-1" />
+                                              {capability.targetField === 'body'
+                                                ? t('keepCurrentText')
+                                                : t('keepCurrentValue')}
                                             </Button>
                                           )}
-                                          {onAddFeedbackSource && (
+                                        </>
+                                      ) : capability.kind === 'source_decision' ? (
+                                        <>
+                                          {capability.allowAddSource && onAddFeedbackSource && (
                                             <Button
                                               type="button"
                                               variant="surface"
@@ -559,22 +478,43 @@ export default function EditorCanvas({
                                               {t('addManualSource')}
                                             </Button>
                                           )}
+                                          {capability.allowKeep && onAcceptFeedback && (
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              size="sm"
+                                              disabled={isExecuting}
+                                              onClick={() => handleAction(async () => onAcceptFeedback(index))}
+                                            >
+                                              <QualityPassedStatusIcon className="h-3.5 w-3.5 mr-1" />
+                                              {t('keepCurrentText')}
+                                            </Button>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <>
                                           <Button
                                             type="button"
                                             variant="primary"
                                             size="sm"
                                             disabled={isExecuting}
-                                            onClick={() => handleAction(async () => {
-                                              if (onAcceptFeedback) await onAcceptFeedback(index);
-                                            })}
+                                            onClick={() => setCandidateEditorKey(candidateReviewKey)}
                                           >
-                                            {isExecuting ? <EAILoaderStatusIcon className="h-3.5 w-3.5" /> : (
-                                              <>
-                                                <QualityPassedStatusIcon className="h-3.5 w-3.5 mr-1" />
-                                                {t('keepCurrentText')}
-                                              </>
-                                            )}
+                                            <EditActionIcon className="h-3.5 w-3.5" />
+                                            {t('editCandidate')}
                                           </Button>
+                                          {capability.allowKeep && onAcceptFeedback && (
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              size="sm"
+                                              disabled={isExecuting}
+                                              onClick={() => handleAction(async () => onAcceptFeedback(index))}
+                                            >
+                                              <QualityPassedStatusIcon className="h-3.5 w-3.5 mr-1" />
+                                              {t('keepCurrentText')}
+                                            </Button>
+                                          )}
                                         </>
                                       )}
                                     </div>
@@ -618,8 +558,8 @@ export default function EditorCanvas({
                               <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                                 <p className="text-xs text-[var(--muted-foreground)]">
                                   {t('progress', {
-                                    completed: decisionFeedback.length - unresolvedFeedback.length,
-                                    total: decisionFeedback.length,
+                                    completed: resolvedDecisionCount,
+                                    total: resolvedDecisionCount + reviewDecisions.length,
                                   })}
                                 </p>
                                 <Button

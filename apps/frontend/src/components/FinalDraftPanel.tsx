@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { buildParagraphDiff } from '@eai/shared';
 import { ArticleMetadata, EditorialProcessStage, FeedbackItem, PublicationPackageStatus, RevisionValidationState, SeoFieldStates, SeoReviewState } from '@eai/shared';
 import { derivePublicationUxState } from '@/workspace/publication-ux-state';
+import { deriveCandidateDraftAvailability } from '@/workspace/candidate-draft-state';
 import EditorialProgress from '@/components/EditorialProgress';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -582,11 +583,15 @@ export default function FinalDraftPanel({
   };
 
   const hasUnsavedDraftEdits = editingDraft && draftEditValue !== polishedDraft;
+  const { hasCandidateDraft, isPublicationReady } = deriveCandidateDraftAvailability(
+    polishedDraft,
+    ready ? 'ready' : 'needs_review'
+  );
 
   const canExport =
     !isDemoMode &&
     cmsConnected &&
-    ready &&
+    isPublicationReady &&
     !exportBlocked &&
     analysisLogId &&
     sourceRef &&
@@ -806,6 +811,18 @@ export default function FinalDraftPanel({
               </div>
 
               <div className="final-draft-actions flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+            {reviewMode && onSaveFinalDraft && (
+              <ActionButton
+                type="button"
+                onClick={startDraftEditing}
+                disabled={editingDraft || isGeneratingDraft || isAiBusy}
+                variant="primary"
+                size="sm"
+                icon={EditActionIcon}
+                iconClassName="h-3.5 w-3.5"
+                label={t('editDraft')}
+              />
+            )}
             {publicationDetailsReady && !cmsConnected && onOpenCmsSettings ? (
               <ActionButton
                 type="button"
@@ -906,8 +923,7 @@ export default function FinalDraftPanel({
                 initialFocus={false}
                 aria-label={t('moreActions')}
               >
-                    {!reviewMode && (
-                      <>
+                    <>
                         <div className="ui-menu-label">{t('documentActions')}</div>
                         <Button
                           type="button"
@@ -938,8 +954,7 @@ export default function FinalDraftPanel({
                           </Button>
                         )}
                         <div className="ui-menu-divider" />
-                      </>
-                    )}
+                    </>
                     {(onReanalyze || onQualityCheck || onRegenerateSeo || (canExport && onPrepareForExport)) && (
                       <>
                         <div className="ui-menu-label">{t('workflowActions')}</div>
@@ -1230,7 +1245,7 @@ export default function FinalDraftPanel({
       </div>
 
       {/* ── Content ── */}
-      {!ready ? (
+      {!hasCandidateDraft ? (
         isGeneratingDraft ? loadingPanel : (
           <div className="flex flex-1 items-center justify-center p-8 text-center">
             <div>
@@ -1250,7 +1265,7 @@ export default function FinalDraftPanel({
               refining={isRefining}
               includeSeoStage={includeSeoStage}
             />
-          )}
+        )}
           <div className="document-tabs flex shrink-0 border-t border-[var(--border)] bg-transparent">
             {tabs.map(tab => {
               const active = displayTab === tab.key;

@@ -1,4 +1,9 @@
-import type { FeedbackItem } from './types/index';
+import type {
+  FeedbackItem,
+  FindingTarget,
+  ReviewCapability,
+  ReviewPatchOperation,
+} from './types/index';
 
 export interface ApplyOperationResult {
   nextText: string;
@@ -136,16 +141,155 @@ export const replaceFirstTargetMatch = (
 };
 
 export const canAutoApplyFeedback = (item: FeedbackItem) => {
+  const capability = projectReviewCapability(item);
+  return Boolean(
+    capability?.autoApplicable
+    && capability.targetField === 'body'
+  );
+};
+
+const MECHANICAL_FINDING_PATTERN =
+  /cms formatting|whitespace|punctuation|concatenated|spacing|formatting|format|spasi|tanda baca|kalimat tersambung/iu;
+
+const SOURCE_DECISION_PATTERN =
+  /source|citation|factual|verification|internal link|claim|evidence|attribution|unsupported|accuracy|provenance|sumber|sitasi|verifikasi|fakta|klaim|bukti|atribusi|akurasi|provenans/iu;
+
+const isPatchOperation = (
+  operation: FeedbackItem['operation']
+): operation is ReviewPatchOperation =>
+  operation === 'replace'
+  || operation === 'insert_before'
+  || operation === 'insert_after';
+
+const isPublicationTarget = (
+  targetField: FeedbackItem['targetField']
+): targetField is Exclude<FindingTarget, 'body'> =>
+  Boolean(targetField?.startsWith('publication.'));
+
+/**
+ * Canonical projection from a raw quality finding to the actions Review may
+ * render. UI consumers must not infer actions directly from FeedbackItem.
+ */
+export const projectReviewCapability = (
+  item: FeedbackItem
+): ReviewCapability | null => {
   if (
     item.status === 'pass'
-    || (item.targetField !== undefined && item.targetField !== 'body')
     || item.isApplied
     || item.isAccepted
     || item.isVerified
-  ) return false;
-  if (!item.operation || item.operation === 'manual') return false;
-  if (!item.targetText || !item.replacementText) return false;
-  return true;
+  ) return null;
+
+  const target = item.targetText?.trim();
+  const replacement = item.replacementText?.trim();
+  const combined = [item.category, item.message, item.reason, item.ruleId]
+    .filter(Boolean)
+    .join(' ');
+  const sourceSensitive = Boolean(item.verificationStatus)
+    || SOURCE_DECISION_PATTERN.test(combined);
+
+  if (sourceSensitive) {
+    return {
+      kind: 'source_decision',
+      autoApplicable: false,
+      allowAddSource: true,
+      allowKeep:
+        item.status === 'warning'
+        && item.verificationStatus === 'needs_citation'
+        && Boolean(target)
+        && !replacement,
+      target: target || item.message,
+    };
+  }
+
+  if (isPublicationTarget(item.targetField) && target && replacement) {
+    return {
+      kind: 'prepared_proposal',
+      autoApplicable: true,
+      target,
+      replacement,
+      operation: 'replace',
+      targetField: item.targetField,
+    };
+  }
+
+  if (
+    (!item.targetField || item.targetField === 'body')
+    && target
+    && replacement
+    && isPatchOperation(item.operation)
+  ) {
+    const mechanical = MECHANICAL_FINDING_PATTERN.test(combined);
+    return {
+      kind: mechanical ? 'mechanical_fix' : 'prepared_proposal',
+      autoApplicable: true,
+      target,
+      replacement,
+      operation: item.operation,
+      targetField: 'body',
+    };
+  }
+
+  return {
+    kind: 'manual_editorial_decision',
+    autoApplicable: false,
+    allowKeep: item.status === 'warning' && !replacement,
+    allowEdit: true,
+    target: target || item.message,
+  };
+};
+
+const normalizeFindingKeyPart = (value: string | undefined) =>
+  (value ?? '')
+    .normalize('NFKC')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .toLocaleLowerCase();
+
+const getReviewFindingKey = (item: FeedbackItem) => {
+  const target = normalizeFindingKeyPart(item.targetText);
+  if (item.ruleId) {
+    return `rule:${item.ruleId}:${target || normalizeFindingKeyPart(item.message)}`;
+  }
+
+  const combined = `${item.category} ${item.message} ${item.suggestion ?? ''}`;
+  if (/missing whitespace|punctuation space|concatenated sentences|kehilangan spasi|kalimat tersambung/iu.test(combined)) {
+    return `mechanical:missing_sentence_whitespace:${target || 'unscoped'}`;
+  }
+
+  if (target) return `target:${normalizeFindingKeyPart(item.category)}:${target}`;
+  return `message:${normalizeFindingKeyPart(item.category)}:${normalizeFindingKeyPart(item.message)}`;
+};
+
+const getFindingInformationScore = (item: FeedbackItem) =>
+  (item.status === 'fail' ? 20 : item.status === 'warning' ? 10 : 0)
+  + (item.targetText?.trim() ? 4 : 0)
+  + (item.replacementText?.trim() ? 2 : 0)
+  + (item.ruleId ? 1 : 0);
+
+/** Collapses repeated representations of the same review decision. */
+export const deduplicateReviewFindings = <T extends FeedbackItem>(
+  feedback: T[]
+): T[] => {
+  const order: string[] = [];
+  const findings = new Map<string, T>();
+
+  feedback.forEach((item) => {
+    const key = getReviewFindingKey(item);
+    const existing = findings.get(key);
+    if (!existing) {
+      order.push(key);
+      findings.set(key, item);
+      return;
+    }
+    if (getFindingInformationScore(item) > getFindingInformationScore(existing)) {
+      findings.set(key, item);
+    }
+  });
+
+  return order
+    .map((key) => findings.get(key))
+    .filter((item): item is T => Boolean(item));
 };
 
 const LOW_INFORMATION_SLUG_WORDS = [

@@ -32,6 +32,19 @@ describe('publication title contract', () => {
       .toBe('Opening paragraph.');
   });
 
+  test('publication preparation repairs missing sentence whitespace deterministically', () => {
+    expect(preparePublicationDraft('First sentence ends.Second sentence starts.'))
+      .toBe('First sentence ends. Second sentence starts.');
+  });
+
+  test('sentence whitespace repair preserves URLs and inline code', () => {
+    expect(preparePublicationDraft(
+      'See https://example.com/Release.Notes and `config.ReleaseMode`.Next sentence.'
+    )).toBe(
+      'See https://example.com/Release.Notes and `config.ReleaseMode`. Next sentence.'
+    );
+  });
+
   test('publication preparation promotes orphaned H3 headings without touching Mermaid', () => {
     expect(preparePublicationDraft([
       'Opening paragraph.',

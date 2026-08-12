@@ -8,7 +8,12 @@ import type { ArticleMetadata, PublicationPackage, PublicationPackageStatus, Res
 import type { FinalQualityGateOutput } from '@eai/shared';
 import type { AiTelemetrySnapshot } from '@/lib/ai-telemetry';
 import type { EditorialAuditContext } from '@eai/shared/server';
-import { normalizeMarkdownHeadingHierarchy, stripLeadingExcerpt, stripLeadingH1 } from '@/lib/text-utils';
+import {
+  normalizeMarkdownHeadingHierarchy,
+  repairMissingSentenceWhitespace,
+  stripLeadingExcerpt,
+  stripLeadingH1,
+} from '@/lib/text-utils';
 import { stripVerificationMarkers } from '@/lib/final-quality';
 import { stripGeneratedVerificationNotes } from './verification';
 import { cleanupRewriteArtifacts, removeEmptyHeadings } from './markdown';
@@ -164,11 +169,13 @@ export const selectRelevantPublishedPosts = (
 // ── Draft preparation ─────────────────────────────────────────────────────────
 
 export const preparePublicationDraft = (text: string): string =>
-  normalizeMarkdownHeadingHierarchy(
-    removeEmptyHeadings(
-      cleanupRewriteArtifacts(
-        stripVerificationMarkers(
-          stripLeadingExcerpt(stripGeneratedVerificationNotes(stripLeadingH1(text).body))
+  repairMissingSentenceWhitespace(
+    normalizeMarkdownHeadingHierarchy(
+      removeEmptyHeadings(
+        cleanupRewriteArtifacts(
+          stripVerificationMarkers(
+            stripLeadingExcerpt(stripGeneratedVerificationNotes(stripLeadingH1(text).body))
+          )
         )
       )
     )

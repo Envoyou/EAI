@@ -355,6 +355,21 @@ Migrasi staging yang masih harus diterapkan ke production dicatat di
 
 ## Editorial Preview Actionability Contract
 
+`ReviewCapability` in `@eai/shared` is the canonical action projection. The
+backend and frontend project raw findings into exactly one of mechanical fix,
+prepared proposal, source decision, or manual editorial decision. Review
+surfaces render that discriminated union and must not infer capability from
+the independent presence of `targetText`, `replacementText`, category, or
+operation. Bulk Apply counts only capabilities whose `autoApplicable` value is
+true. Source decisions never receive generic rewrite; high-risk findings may
+be kept only when their capability explicitly permits it.
+
+Unambiguous missing sentence whitespace is repaired deterministically while
+preparing/remediating the publication body. The corresponding validator rule
+remains as a structured prepared patch for legacy or independently supplied
+unprepared drafts, and repeated model/deterministic representations are
+collapsed into one review decision.
+
 Final Quality Gate feedback is not complete when it only describes a problem.
 Every remaining `warning` or `fail` must include a concrete `suggestion`.
 Structural findings should additionally carry a short exact `targetText` when
@@ -394,8 +409,9 @@ editorial decision. Persistence protects recovery across refreshes and devices,
 but it does not promote that revision to the user-facing Final Draft surface.
 
 - unresolved `warning` or `fail` items render in Draft Review;
-- the candidate body remains hidden unless the editor explicitly opens the
-  Candidate Draft manual-edit view;
+- candidate availability is derived from the body independently of publication
+  readiness; the body remains hidden behind the explicit Candidate Draft view,
+  where it is rendered and may be edited even while readiness is not `ready`;
 - feedback actions describe editorial outcomes rather than backend mechanisms;
 - every body or source decision is saved and validated automatically; and
 - Final Draft is presented only when the current saved revision is `ready`.

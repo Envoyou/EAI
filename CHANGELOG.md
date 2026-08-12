@@ -6,6 +6,13 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Changed
+- **Canonical Review Capability and Candidate Draft Availability**:
+  - Added one shared discriminated capability projection for mechanical fixes, prepared proposals, source decisions, and manual editorial decisions; Review now renders that projection instead of inferring actions from raw findings.
+  - Limited bulk Apply to executable capabilities, removed generic AI rewrite from source-fidelity decisions, and kept high-risk findings outside the Keep path unless the capability explicitly permits it.
+  - Repaired unambiguous missing sentence whitespace before Review and deduplicated repeated representations of the same decision.
+  - Separated candidate-body availability from publication readiness so unresolved candidates remain visible and manually editable while CMS export keeps all existing readiness, metadata, and saved-body guards.
+
 ## [3.22.0] - 2026-08-09
 
 ### Added

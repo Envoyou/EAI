@@ -14,6 +14,17 @@ const notes: ResearchNote[] = [{
 }];
 
 describe('automatic remediation', () => {
+  it('repairs mechanical sentence spacing before findings reach Review', () => {
+    const result = applyAutomaticDeterministicRemediations({
+      draft: 'The first sentence ends.The second sentence starts.',
+      feedback: [],
+      researchNotes: [],
+    });
+
+    expect(result.draft).toBe('The first sentence ends. The second sentence starts.');
+    expect(result.appliedCount).toBe(1);
+  });
+
   it('removes duplicate empty headings and unsupported parenthetical details', () => {
     const draft = [
       '## Automation',

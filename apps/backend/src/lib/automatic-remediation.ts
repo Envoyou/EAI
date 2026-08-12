@@ -1,6 +1,11 @@
 import type { FeedbackItem, ResearchNote } from '@eai/shared';
-import { applyFeedbackOperation, replaceFirstTargetMatch } from '@eai/shared';
+import {
+  applyFeedbackOperation,
+  projectReviewCapability,
+  replaceFirstTargetMatch,
+} from '@eai/shared';
 import { buildDeterministicSourceNeutralization } from '@/lib/ai/targeted-fix-stage';
+import { repairMissingSentenceWhitespace } from '@/lib/text-utils';
 
 const normalizeUrl = (value: string | undefined): string | null => {
   if (!value) return null;
@@ -87,8 +92,11 @@ export const applyAutomaticDeterministicRemediations = ({
   appliedCount: number;
   trustedSourceUrls: string[];
 } => {
-  let nextDraft = removeAdjacentDuplicateHeadings(draft);
+  let nextDraft = repairMissingSentenceWhitespace(draft);
   let appliedCount = nextDraft === draft ? 0 : 1;
+  const headingsNormalized = removeAdjacentDuplicateHeadings(nextDraft);
+  if (headingsNormalized !== nextDraft) appliedCount += 1;
+  nextDraft = headingsNormalized;
   const allowedSourceUrls = new Set(
     researchNotes
       .flatMap((note) => note.sources)
@@ -100,12 +108,11 @@ export const applyAutomaticDeterministicRemediations = ({
   feedback.forEach((item) => {
     const targetText = item.targetText?.trim();
     if (!targetText) return;
+    const capability = projectReviewCapability(item);
 
     if (
-      !item.verificationStatus
-      && item.operation
-      && item.operation !== 'manual'
-      && item.replacementText?.trim()
+      capability?.autoApplicable
+      && capability.targetField === 'body'
     ) {
       const applied = applyFeedbackOperation(nextDraft, item);
       if (applied.success && applied.nextText !== nextDraft) {
