@@ -184,4 +184,67 @@ The second section has meaningful content.
     expect(result.feedback[0]).toMatchObject({ operation: 'manual' });
     expect(result.feedback[0]?.replacementText).toBeUndefined();
   });
+
+  it('resolves a unique quoted paragraph anchor when model target text is descriptive', () => {
+    const draft = 'Editors retain authority over factual accuracy and editorial integrity. Content refinement then starts from a different premise.';
+    const result = applyDeterministicQualityChecks(
+      {
+        readiness: 'needs_review',
+        summary: '',
+        changes: [],
+        feedback: [{
+          category: 'Structure',
+          status: 'warning',
+          message: 'A missing paragraph break concatenates the conclusion of human-controlled drafting with the introduction to content refinement.',
+          suggestion: "Insert a double line break after 'editorial integrity.' to separate the two distinct analytical concepts.",
+          targetText: 'A missing paragraph break concatenates the conclusion of human-controlled drafting with the introduction to content refinement.',
+          operation: 'manual',
+        }],
+        flags: [],
+      },
+      draft,
+      draft
+    );
+
+    expect(result.feedback[0]).toMatchObject({
+      ruleId: 'structure.missing_paragraph_boundary',
+      operation: 'replace',
+      targetText: 'editorial integrity. Content',
+      replacementText: 'editorial integrity.\n\nContent',
+    });
+
+    const remediated = applyAutomaticDeterministicRemediations({
+      draft,
+      feedback: result.feedback,
+      researchNotes: [],
+    });
+    expect(remediated.draft).toBe(
+      'Editors retain authority over factual accuracy and editorial integrity.\n\nContent refinement then starts from a different premise.'
+    );
+  });
+
+  it('keeps quoted paragraph anchors manual when the location is not unique', () => {
+    const draft = 'First section ends with editorial integrity. Content continues. Another section ends with editorial integrity. Content resumes.';
+    const result = applyDeterministicQualityChecks(
+      {
+        readiness: 'needs_review',
+        summary: '',
+        changes: [],
+        feedback: [{
+          category: 'Structure',
+          status: 'warning',
+          message: 'A paragraph break is missing.',
+          suggestion: "Insert a double line break after 'editorial integrity.'.",
+          targetText: 'A paragraph break is missing.',
+          operation: 'manual',
+        }],
+        flags: [],
+      },
+      draft,
+      draft
+    );
+
+    expect(result.feedback[0]).toMatchObject({ operation: 'manual' });
+    expect(result.feedback[0]?.replacementText).toBeUndefined();
+  });
 });

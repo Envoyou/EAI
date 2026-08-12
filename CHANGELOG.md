@@ -16,6 +16,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Prevented deterministic Source Fidelity checks from treating numbers used only inside clearly labeled hypothetical examples as article facts, while retaining findings when the same signal is asserted factually elsewhere.
   - Classified common technical vocabulary such as URL, URI, CMS, SEO, HTTP, HTML, JSON, and XML as generic terms rather than unsupported identity entities.
   - Converted safe, unique two-sentence paragraph-boundary findings into executable replacement patches so Refine can apply and revalidate them before Review.
+  - Recovered deterministic paragraph-boundary patches when a model returns descriptive `targetText` but names one unique exact article anchor in its instruction; ambiguous or already-separated anchors remain manual.
   - Normalized a closed bold Markdown sentence immediately followed by prose into separate paragraphs before Quality Gate, with a whitespace-only invariant and fenced-code protection; the shared capability contract classifies any legacy prepared finding as a mechanical fix without a Keep action.
   - Added a primary Continue to Publication handoff directly on a ready Final Draft. Review completion no longer leaves navigation available only in the right panel or redirects editors to CMS settings; CMS connection, publication preparation, and export remain owned by the Publication stage.
   - Renamed the ready status-bar badge from ambiguous Ready for review to Ready to export, localized as Siap diekspor in Indonesian.

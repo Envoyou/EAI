@@ -796,6 +796,32 @@ const getFeedbackPriority = (item: QualityFeedbackItem) => {
 const PARAGRAPH_BOUNDARY_FINDING_PATTERN =
   /paragraph (?:break|boundary)|separate (?:the )?paragraph|split (?:this|the) paragraph|pemisah paragraf|batas paragraf|paragraf baru|pisahkan (?:bagian ini menjadi )?paragraf/iu;
 
+const resolveQuotedParagraphBoundary = (
+  item: QualityFeedbackItem,
+  finalDraft: string
+): { targetText: string; replacementText: string } | null => {
+  const instruction = [item.suggestion, item.reason, item.message]
+    .filter(Boolean)
+    .join(' ');
+  const quotedAnchor = /(?:after|setelah)\s+["'“‘]([^"'“”‘’\n]{4,180}?[.!?])["'”’]/iu
+    .exec(instruction)?.[1]?.trim();
+  if (!quotedAnchor || finalDraft.split(quotedAnchor).length !== 2) return null;
+
+  const anchorIndex = finalDraft.indexOf(quotedAnchor);
+  const followingText = finalDraft.slice(anchorIndex + quotedAnchor.length);
+  if (/^\s*\n\s*\n/u.test(followingText)) return null;
+
+  const adjacentProse = /^([ \t]*)(\p{Lu}[\p{L}\p{N}'’_-]*)/u.exec(followingText);
+  if (!adjacentProse?.[2]) return null;
+
+  const targetText = `${quotedAnchor}${adjacentProse[1]}${adjacentProse[2]}`;
+  if (finalDraft.split(targetText).length !== 2) return null;
+  const replacementText = `${quotedAnchor}\n\n${adjacentProse[2]}`;
+  return targetText.replace(/\s+/gu, '') === replacementText.replace(/\s+/gu, '')
+    ? { targetText, replacementText }
+    : null;
+};
+
 const projectDeterministicParagraphBoundary = (
   item: QualityFeedbackItem,
   finalDraft: string
@@ -809,9 +835,20 @@ const projectDeterministicParagraphBoundary = (
     || !PARAGRAPH_BOUNDARY_FINDING_PATTERN.test(
       [item.message, item.suggestion, item.reason].filter(Boolean).join(' ')
     )
-    || finalDraft.split(target).length !== 2
     || /\n/u.test(target)
   ) return item;
+
+  if (finalDraft.split(target).length !== 2) {
+    const anchoredPatch = resolveQuotedParagraphBoundary(item, finalDraft);
+    if (!anchoredPatch) return item;
+    return {
+      ...item,
+      ruleId: item.ruleId ?? 'structure.missing_paragraph_boundary',
+      operation: 'replace',
+      targetField: 'body',
+      ...anchoredPatch,
+    };
+  }
 
   const sentenceBoundaries = Array.from(
     target.matchAll(/([.!?]["'”’)*_\]]*)[ \t]*(?=[A-Z])/gu)

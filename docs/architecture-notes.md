@@ -382,6 +382,13 @@ unique, contains exactly two sentences, and has no existing line boundary.
 Refine applies that patch and runs Quality Gate again. Ambiguous multi-sentence
 or non-unique targets remain manual editorial decisions.
 
+If a provider incorrectly returns descriptive `targetText`, the backend may
+recover the patch from an explicit quoted `after`/`setelah` anchor in the
+finding instruction. Recovery requires one exact anchor occurrence followed
+immediately by capitalized prose, rejects an existing paragraph boundary, and
+must preserve every non-whitespace character. The patch targets only the
+anchor and adjacent first word; non-unique anchors remain manual.
+
 Draft preparation also recognizes the stricter malformed Markdown boundary
 `closed bold sentence + no whitespace + next prose sentence`. It inserts two
 newlines before Quality Gate only when the delimiter is demonstrably closing,
