@@ -13,6 +13,9 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Repaired unambiguous missing sentence whitespace before Review and deduplicated repeated representations of the same decision.
   - Separated candidate-body availability from publication readiness so unresolved candidates remain visible and manually editable while CMS export keeps all existing readiness, metadata, and saved-body guards.
   - Made manual review editing open directly in the inline editor, retain the active finding context, and select and scroll to the affected passage so editors do not have to search long articles manually.
+  - Prevented deterministic Source Fidelity checks from treating numbers used only inside clearly labeled hypothetical examples as article facts, while retaining findings when the same signal is asserted factually elsewhere.
+  - Classified common technical vocabulary such as URL, URI, CMS, SEO, HTTP, HTML, JSON, and XML as generic terms rather than unsupported identity entities.
+  - Converted safe, unique two-sentence paragraph-boundary findings into executable replacement patches so Refine can apply and revalidate them before Review.
 
 ## [3.22.0] - 2026-08-09
 

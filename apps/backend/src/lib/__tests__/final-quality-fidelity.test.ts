@@ -51,6 +51,91 @@ describe('Final Quality Deterministic Fidelity Checks', () => {
     expect(signals.novelEntities).not.toContain('UNDP');
   });
 
+  it('does not treat a clearly hypothetical percentage as an article fact', () => {
+    const finalDraft = [
+      'Consider a hypothetical scenario where an unverified claim is introduced.',
+      'For example, if a draft includes a statement such as "AI search reduced publisher traffic by 40%", a passive tool merely flags the sentence.',
+    ].join(' ');
+
+    const signals = detectSourceFidelitySignals('', finalDraft, { trustedEntities: ['EAI'] });
+
+    expect(signals.novelNumbers).not.toContain('40%');
+
+    const checked = applyDeterministicQualityChecks(
+      {
+        readiness: 'blocked',
+        summary: '',
+        changes: [],
+        feedback: [{
+          category: 'Source Fidelity',
+          status: 'fail',
+          verificationStatus: 'needs_citation',
+          message: 'The final draft adds numbers not found in the source draft: "40%".',
+          suggestion: 'Verify or remove the number.',
+          targetText: finalDraft,
+          operation: 'manual',
+        }],
+        flags: [],
+      },
+      finalDraft,
+      '',
+      { trustedEntities: ['EAI'] }
+    );
+    expect(checked.feedback).toEqual([]);
+    expect(checked.readiness).toBe('ready');
+  });
+
+  it('still flags a percentage asserted as a real result', () => {
+    const finalDraft = 'AI search reduced publisher traffic by 40% according to the latest results.';
+
+    const signals = detectSourceFidelitySignals('', finalDraft, { trustedEntities: ['EAI'] });
+
+    expect(signals.novelNumbers).toContain('40%');
+  });
+
+  it('does not let a nearby hypothetical example hide a separate factual assertion', () => {
+    const finalDraft = [
+      'For example, if a draft contains a hypothetical claim that traffic fell by 40%, the editor should inspect it.',
+      'This discussion then continues with enough neutral context to separate the example from the reported outcome.',
+      'The organization reported that conversion increased by 40% after deployment.',
+    ].join(' ');
+
+    const signals = detectSourceFidelitySignals('', finalDraft);
+
+    expect(signals.novelNumbers).toContain('40%');
+  });
+
+  it('does not classify generic URL terminology as an identity entity', () => {
+    const finalDraft = 'EAI postpones metadata generation such as SEO titles, descriptions, and URL slugs.';
+
+    const signals = detectSourceFidelitySignals('', finalDraft);
+
+    expect(signals.novelEntities).not.toContain('URL');
+    expect(signals.novelEntities).not.toContain('SEO');
+
+    const checked = applyDeterministicQualityChecks(
+      {
+        readiness: 'needs_review',
+        summary: '',
+        changes: [],
+        feedback: [{
+          category: 'Source Fidelity',
+          status: 'warning',
+          verificationStatus: 'needs_citation',
+          message: 'The final draft adds entities or identity attributes not found in the source draft: "URL".',
+          suggestion: 'Verify this identity attribute.',
+          targetText: finalDraft,
+          operation: 'manual',
+        }],
+        flags: [],
+      },
+      finalDraft,
+      '',
+      { trustedEntities: ['EAI'] }
+    );
+    expect(checked.feedback).toEqual([]);
+  });
+
   it('accepts an internal URL supplied to the rewrite stage', () => {
     const trustedInternalUrls = [
       'https://blog.envoyou.com/posts/lean-resilient-global-supply-chain-volatility',

@@ -111,6 +111,7 @@ const GENERIC_PROPER_NAMES = new Set([
   'Bahasa Indonesia',
   'CEO',
   'CFO',
+  'CMS',
   'COO',
   'CTO',
   'CTR',
@@ -122,16 +123,24 @@ const GENERIC_PROPER_NAMES = new Set([
   'Gen Z',
   'HR',
   'HRD',
+  'HTML',
+  'HTTP',
+  'HTTPS',
   'IT',
   'API',
+  'JSON',
   'KPI',
   'LLM',
   'Markdown GFM',
   'PDB',
   'SDG',
   'SDGs',
+  'SEO',
   'UI',
+  'URI',
+  'URL',
   'UX',
+  'XML',
 ]);
 
 export interface SourceFidelityOptions {
@@ -519,6 +528,27 @@ const uniqueNovelValues = (
     });
 };
 
+const ILLUSTRATIVE_CLAIM_CONTEXT_PATTERNS = [
+  /\b(?:hypothetical|fictional|imaginary|illustrative)\b.{0,180}\b(?:claim|statement|scenario|example)\b/isu,
+  /\b(?:for example|for instance)\b.{0,140}\bif\b.{0,160}\b(?:claim|statement|draft|article|scenario)\b/isu,
+  /\b(?:consider|imagine|suppose)\b.{0,180}\b(?:claim|statement|scenario|example)\b/isu,
+  /\b(?:contoh hipotetis|skenario hipotetis|contoh ilustratif|pernyataan contoh)\b/isu,
+  /\b(?:misalkan|andaikan|bayangkan)\b.{0,180}\b(?:klaim|pernyataan|skenario|contoh|draf|artikel)\b/isu,
+  /\b(?:sebagai contoh|misalnya)\b.{0,140}\bjika\b.{0,160}\b(?:klaim|pernyataan|draf|artikel|skenario)\b/isu,
+];
+
+const isClearlyIllustrativeSignal = (signal: string, text: string): boolean => {
+  const normalizedSignal = normalizeComparableText(signal);
+  const contexts = text
+    .split(/(?<=[.!?])(?:\s+|\n+)/u)
+    .map((sentence) => sentence.replace(/\s+/gu, ' ').trim())
+    .filter((sentence) => normalizeComparableText(sentence).includes(normalizedSignal));
+
+  return contexts.length > 0 && contexts.every((context) =>
+    ILLUSTRATIVE_CLAIM_CONTEXT_PATTERNS.some((pattern) => pattern.test(context))
+  );
+};
+
 const isAcronymExplainedBySource = (acronym: string, sourceText: string) => {
   if (!/^[A-Z][A-Z0-9-]{2,}$/.test(acronym)) return false;
   const letters = acronym.replace(/[^A-Z]/g, '');
@@ -689,7 +719,9 @@ export const detectSourceFidelitySignals = (
     sourceNumbers,
     new Set(),
     normalizeNumericSignal
-  ).filter((value) => !isStandardAspectRatio(value, finalDraft));
+  )
+    .filter((value) => !isStandardAspectRatio(value, finalDraft))
+    .filter((value) => !isClearlyIllustrativeSignal(value, finalDraft));
   const rawNovelEntities = uniqueNovelValues(finalEntities, sourceEntities, trustedEntities)
     .filter((entity) => !isAcronymExplainedBySource(entity, originalDraft))
     .filter((entity) => !isQuarterOrDateLabel(entity));
@@ -699,6 +731,33 @@ export const detectSourceFidelitySignals = (
     novelUrls: uniqueNovelValues(finalUrls, sourceUrls, trustedUrls, normalizeUrl),
     novelEntities: filterByAllowlist(rawNovelEntities, entityAllowlistSet, finalDraft, normalizeComparableText),
   };
+};
+
+const isContextuallyBenignSourceFidelityFinding = (
+  item: QualityFeedbackItem,
+  finalDraft: string
+): boolean => {
+  if (
+    item.category.toLocaleLowerCase() !== 'source fidelity'
+    || (item.verificationStatus && item.verificationStatus !== 'needs_citation')
+  ) return false;
+
+  const findingText = [item.message, item.suggestion, item.targetText]
+    .filter(Boolean)
+    .join(' ');
+  const numericSignals = collectNumericSignals(findingText);
+  if (
+    numericSignals.length > 0
+    && numericSignals.every((signal) => isClearlyIllustrativeSignal(signal, finalDraft))
+  ) return true;
+
+  const quotedSignals = Array.from(
+    findingText.matchAll(/["“]([^"”\n]{1,80})["”]/gu),
+    (match) => match[1]?.trim()
+  ).filter((value): value is string => Boolean(value));
+  return quotedSignals.length > 0
+    && /entit|identity|identitas|attribute|atribut/iu.test(findingText)
+    && quotedSignals.every((signal) => GENERIC_PROPER_NAMES.has(signal.toLocaleUpperCase()));
 };
 
 const formatSignalList = (signals: string[], limit = 3) =>
@@ -732,6 +791,47 @@ const getFeedbackPriority = (item: QualityFeedbackItem) => {
   const sourceVerificationPenalty = item.category.toLowerCase() === 'source verification' ? -4 : 0;
   const targetScore = item.targetText?.trim() ? 2 : 0;
   return statusScore + verificationScore + sourceVerificationPenalty + targetScore;
+};
+
+const PARAGRAPH_BOUNDARY_FINDING_PATTERN =
+  /paragraph (?:break|boundary)|separate (?:the )?paragraph|split (?:this|the) paragraph|pemisah paragraf|batas paragraf|paragraf baru|pisahkan (?:bagian ini menjadi )?paragraf/iu;
+
+const projectDeterministicParagraphBoundary = (
+  item: QualityFeedbackItem,
+  finalDraft: string
+): QualityFeedbackItem => {
+  const target = item.targetText?.trim();
+  if (
+    !target
+    || item.replacementText?.trim()
+    || (item.targetField && item.targetField !== 'body')
+    || !/structure|format|struktur/iu.test(item.category)
+    || !PARAGRAPH_BOUNDARY_FINDING_PATTERN.test(
+      [item.message, item.suggestion, item.reason].filter(Boolean).join(' ')
+    )
+    || finalDraft.split(target).length !== 2
+    || /\n/u.test(target)
+  ) return item;
+
+  const sentenceBoundaries = Array.from(
+    target.matchAll(/([.!?]["'”’)*_\]]*)[ \t]+(?=[A-Z])/gu)
+  );
+  if (sentenceBoundaries.length !== 1) return item;
+
+  const boundary = sentenceBoundaries[0];
+  if (boundary.index === undefined || !boundary[0]) return item;
+  const splitAt = boundary.index + boundary[1].length;
+  const replacementText = `${target.slice(0, splitAt).trimEnd()}\n\n${target.slice(splitAt).trimStart()}`;
+  if (replacementText === target) return item;
+
+  return {
+    ...item,
+    ruleId: item.ruleId ?? 'structure.missing_paragraph_boundary',
+    operation: 'replace',
+    targetField: 'body',
+    targetText: target,
+    replacementText,
+  };
 };
 
 const shouldMergeTargetDuplicate = (first: QualityFeedbackItem, second: QualityFeedbackItem) => {
@@ -796,7 +896,15 @@ export const applyDeterministicQualityChecks = (
   const isMissingWhitespaceFinding = (item: QualityFeedbackItem) =>
     /missing whitespace|punctuation space|concatenated sentences|kehilangan spasi|kalimat tersambung/iu
       .test(`${item.category} ${item.message} ${item.suggestion ?? ''}`);
-  feedback = feedback.filter((item) => !isMissingWhitespaceFinding(item));
+  feedback = feedback.filter((item) =>
+    !isMissingWhitespaceFinding(item)
+    || PARAGRAPH_BOUNDARY_FINDING_PATTERN.test(
+      [item.message, item.suggestion, item.reason].filter(Boolean).join(' ')
+    )
+  );
+  feedback = feedback.map((item) =>
+    projectDeterministicParagraphBoundary(item, finalDraft)
+  );
   const trustedInternalUrls = (options.trustedInternalUrls ?? [])
     .map((url) => url.replace(/[.,;:!?]+$/, ''));
   const trustedFeedbackUrls = [
@@ -1158,6 +1266,9 @@ export const applyDeterministicQualityChecks = (
   }
 
   const sourceFidelitySignals = detectSourceFidelitySignals(originalDraft, finalDraft, options);
+  feedback = feedback.filter((item) =>
+    !isContextuallyBenignSourceFidelityFinding(item, finalDraft)
+  );
   const hasSourceFidelitySignals =
     sourceFidelitySignals.novelNumbers.length > 0
     || sourceFidelitySignals.novelEntities.length > 0

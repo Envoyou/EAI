@@ -5,6 +5,7 @@ import {
   detectContentAfterReferences,
   detectMissingSentenceBoundaries,
 } from '../final-quality';
+import { applyAutomaticDeterministicRemediations } from '../automatic-remediation';
 
 describe('Final Quality Deterministic Structure Checks', () => {
   it('detects missing whitespace between sentences', () => {
@@ -118,5 +119,69 @@ The second section has meaningful content.
 `;
 
     expect(detectAdjacentDuplicateHeadings(text)).toEqual([]);
+  });
+
+  it('projects an unambiguous paragraph-boundary finding as an executable patch', () => {
+    const target = 'Editors maintain control over the narrative and protect brand integrity. Editorial systems then move from raw generation to structured refinement.';
+    const result = applyDeterministicQualityChecks(
+      {
+        readiness: 'needs_review',
+        summary: '',
+        changes: [],
+        feedback: [{
+          category: 'Structure',
+          status: 'warning',
+          message: 'The section conclusion introduces the next topic without a paragraph break.',
+          suggestion: 'Separate the paragraph by adding a paragraph break between the two sentences.',
+          targetText: target,
+          operation: 'manual',
+        }],
+        flags: [],
+      },
+      target,
+      target
+    );
+
+    expect(result.feedback[0]).toMatchObject({
+      ruleId: 'structure.missing_paragraph_boundary',
+      operation: 'replace',
+      targetText: target,
+      replacementText: 'Editors maintain control over the narrative and protect brand integrity.\n\nEditorial systems then move from raw generation to structured refinement.',
+    });
+
+    const remediated = applyAutomaticDeterministicRemediations({
+      draft: target,
+      feedback: result.feedback,
+      researchNotes: [],
+    });
+    expect(remediated.draft).toBe(
+      'Editors maintain control over the narrative and protect brand integrity.\n\nEditorial systems then move from raw generation to structured refinement.'
+    );
+    expect(remediated.appliedCount).toBe(1);
+  });
+
+  it('keeps ambiguous multi-sentence paragraph findings manual', () => {
+    const target = 'First sentence closes a section. Second sentence adds context. Third sentence introduces another topic.';
+    const result = applyDeterministicQualityChecks(
+      {
+        readiness: 'needs_review',
+        summary: '',
+        changes: [],
+        feedback: [{
+          category: 'Structure',
+          status: 'warning',
+          message: 'This passage may need a paragraph break.',
+          suggestion: 'Separate the paragraph at the appropriate editorial boundary.',
+          targetText: target,
+          operation: 'manual',
+        }],
+        flags: [],
+      },
+      target,
+      target
+    );
+
+    expect(result.feedback[0]).toMatchObject({ operation: 'manual' });
+    expect(result.feedback[0]?.replacementText).toBeUndefined();
   });
 });

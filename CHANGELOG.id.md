@@ -13,6 +13,9 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Memperbaiki missing sentence whitespace yang tidak ambigu sebelum Review serta mendeduplikasi representasi berulang dari keputusan yang sama.
   - Memisahkan ketersediaan body kandidat dari kesiapan publikasi sehingga kandidat unresolved tetap terlihat dan dapat diedit manual, sementara seluruh guard readiness, metadata, dan saved-body untuk ekspor CMS tetap dipertahankan.
   - Membuat aksi edit tinjauan manual langsung membuka inline editor, mempertahankan konteks temuan aktif, serta memilih dan menggulir ke bagian teks terdampak agar editor tidak perlu mencarinya sendiri di artikel panjang.
+  - Mencegah pemeriksaan Source Fidelity deterministik menganggap angka yang hanya digunakan dalam contoh hipotetis berlabel jelas sebagai fakta artikel, sambil tetap mempertahankan finding bila sinyal yang sama dinyatakan sebagai fakta di bagian lain.
+  - Mengklasifikasikan istilah teknis umum seperti URL, URI, CMS, SEO, HTTP, HTML, JSON, dan XML sebagai terminologi generik, bukan entitas identitas tanpa dukungan.
+  - Mengubah finding batas paragraf dua kalimat yang aman dan unik menjadi replacement patch executable agar Refine dapat menerapkan dan memvalidasinya ulang sebelum Review.
 
 ## [3.22.0] - 2026-08-09
 

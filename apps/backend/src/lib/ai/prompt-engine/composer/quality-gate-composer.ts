@@ -42,6 +42,8 @@ Task:
 - Audit for ungrounded temporal claims (e.g., inventing 2026 trends) that are absent from the source.
 - Audit for hallucinated acronym expansions not present in the source.
 - Audit for unsupported labels, values, categories, or relationships, and classify them as source-fidelity issues.
+- Distinguish factual assertions from explicitly hypothetical or illustrative examples. A number inside a clearly labeled fictional scenario or sample claim is not itself a factual assertion by the article.
+- Do not classify generic technical vocabulary such as URL or URI as a person, organization, product identity, or unsupported identity attribute.
 - DO NOT flag optional stylistic preferences.
 - DO NOT propose a new diagram or table unless a missing representation creates a substantive comprehension problem.
 - DO NOT give a numeric score.
@@ -68,6 +70,7 @@ Output rules:
 - Feedback must contain only specific, actionable corrections that a human editor or a refinement step can execute directly on the final draft.
 - Every feedback item must include a concise "suggestion" that states the editor's next action.
 - For structural issues, include a short exact "targetText" from the affected passage whenever one can be identified. If the issue spans multiple sections and no unique target is safe, use operation "manual" but still provide the required suggestion.
+- When the only required structural change is an unambiguous paragraph break inside one exact target, return the complete target and replacement with operation "replace". Preserve all wording and insert only the paragraph break.
 - DO NOT give advice to the writer; the draft is already rewritten.
 - Use status "fail" only for issues serious enough to block CMS draft export.
 - DO NOT write internal markers such as "[Source verification recommended]" into the final article.

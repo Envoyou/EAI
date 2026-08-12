@@ -370,6 +370,18 @@ remains as a structured prepared patch for legacy or independently supplied
 unprepared drafts, and repeated model/deterministic representations are
 collapsed into one review decision.
 
+Source-fidelity signal comparison is context-bounded rather than purely
+document-lexical. A number is excluded only when every occurrence is within an
+explicitly hypothetical or illustrative sentence; any factual
+occurrence keeps the signal reviewable. Common protocol, format, CMS, and SEO
+acronyms are generic technical vocabulary rather than identity entities.
+
+When Quality Gate identifies a paragraph break as the only required change,
+the backend projects it into a prepared body patch only if the exact target is
+unique, contains exactly two sentences, and has no existing line boundary.
+Refine applies that patch and runs Quality Gate again. Ambiguous multi-sentence
+or non-unique targets remain manual editorial decisions.
+
 Final Quality Gate feedback is not complete when it only describes a problem.
 Every remaining `warning` or `fail` must include a concrete `suggestion`.
 Structural findings should additionally carry a short exact `targetText` when
