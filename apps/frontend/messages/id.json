@@ -572,6 +572,7 @@
     "finalStageDescription": "Draft Anda sudah tersimpan. Siapkan untuk publikasi, atau gunakan Alat draft untuk tinjauan editorial lain.",
     "finishLater": "Selesaikan nanti",
     "connectCms": "Hubungkan CMS",
+    "continueToPublication": "Lanjut ke Publikasi",
     "documentActions": "Dokumen",
     "copyDraft": "Salin draft final",
     "exportToCms": "Ekspor ke CMS",
@@ -714,6 +715,7 @@
   "DraftReview": {
     "tabLabel": "Tinjauan Draft",
     "statusFinal": "Draft Final",
+    "readyToExport": "Siap diekspor",
     "eyebrow": "Tinjauan draft",
     "title": "Artikel hampir selesai",
     "description": "Tinjau {count} keputusan editorial sebelum EAI menyiapkan Draft Final.",

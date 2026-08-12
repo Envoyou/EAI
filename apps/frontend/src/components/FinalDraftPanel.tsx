@@ -31,6 +31,7 @@ import {
   PreparePublicationIcon,
   PublishActionIcon,
 } from '@/components/ui/icons/actions';
+import { ForwardNavigationIcon } from '@/components/ui/icons/navigation';
 import { useTranslations } from 'next-intl';
 import { InlineFinalDraftEditor } from '@/components/final-draft/InlineFinalDraftEditor';
 
@@ -78,6 +79,7 @@ interface FinalDraftPanelProps {
   onQualityCheck?: () => Promise<unknown>;
   onRegenerateSeo?: () => Promise<void>;
   onPrepareForExport?: () => Promise<void>;
+  onOpenPublication?: () => void;
   onFinishLater?: () => void;
   onOpenCmsSettings?: () => void;
   isSavingFinalDraft?: boolean;
@@ -225,6 +227,7 @@ export default function FinalDraftPanel({
   onQualityCheck,
   onRegenerateSeo,
   onPrepareForExport,
+  onOpenPublication,
   onFinishLater,
   onOpenCmsSettings,
   isSavingFinalDraft = false,
@@ -834,7 +837,18 @@ export default function FinalDraftPanel({
                 label={t('editDraft')}
               />
             )}
-            {publicationDetailsReady && !cmsConnected && onOpenCmsSettings ? (
+            {ready && onOpenPublication ? (
+              <ActionButton
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={onOpenPublication}
+                disabled={editingDraft || isGeneratingDraft || isSavingFinalDraft || isBackgroundValidation}
+                icon={ForwardNavigationIcon}
+                iconClassName="h-3.5 w-3.5"
+                label={t('continueToPublication')}
+              />
+            ) : publicationDetailsReady && !cmsConnected && onOpenCmsSettings ? (
               <ActionButton
                 type="button"
                 variant="primary"

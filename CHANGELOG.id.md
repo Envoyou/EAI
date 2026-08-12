@@ -17,6 +17,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Mengklasifikasikan istilah teknis umum seperti URL, URI, CMS, SEO, HTTP, HTML, JSON, dan XML sebagai terminologi generik, bukan entitas identitas tanpa dukungan.
   - Mengubah finding batas paragraf dua kalimat yang aman dan unik menjadi replacement patch executable agar Refine dapat menerapkan dan memvalidasinya ulang sebelum Review.
   - Menormalisasi kalimat Markdown bold yang sudah ditutup tetapi langsung disambung prose menjadi paragraf terpisah sebelum Quality Gate, dengan invariant perubahan whitespace-only dan perlindungan fenced code; kontrak capability bersama mengklasifikasikan finding legacy yang sudah memiliki patch sebagai mechanical fix tanpa aksi Keep.
+  - Menambahkan handoff utama Lanjut ke Publikasi langsung pada Draft Final yang sudah ready. Selesainya Review tidak lagi menyisakan navigasi hanya di panel kanan atau mengarahkan editor ke pengaturan CMS; koneksi CMS, persiapan publikasi, dan ekspor tetap menjadi tanggung jawab tahap Publikasi.
+  - Mengganti badge status Ready for review yang ambigu menjadi Ready to export, dengan terjemahan Indonesia Siap diekspor.
 
 ## [3.22.0] - 2026-08-09
 

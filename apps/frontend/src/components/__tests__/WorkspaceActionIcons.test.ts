@@ -33,6 +33,7 @@ describe('workspace semantic action icons', () => {
     expect(actionButton).toContain("icon: SemanticIconToken");
     expect(actionButton).toContain("disabled={disabled || loading}");
     expect(workspace.match(/<ActionButton\b/g)).toHaveLength(3);
-    expect(finalDraft.match(/<ActionButton\b/g)).toHaveLength(7);
+    expect(finalDraft.match(/<ActionButton\b/g)).toHaveLength(8);
+    expect(finalDraft).toContain('icon={ForwardNavigationIcon}');
   });
 });

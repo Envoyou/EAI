@@ -390,6 +390,15 @@ removing whitespace makes the before/after strings identical. The capability
 fallback classifies a prepared paragraph-boundary patch as `mechanical_fix`,
 so historical or independently supplied findings cannot expose Keep.
 
+A ready result in the Editor owns one explicit center-canvas handoff to
+Publication. That navigation cannot depend on the optional right context panel
+and remains available while the completion handoff protects the draft from
+additional mutations. CMS connection and Prepare actions are not Editor-stage
+substitutes for this transition: they appear only after navigation to
+Publication. Entering Publication does not weaken export readiness; CMS
+connection, current complete metadata, and exact persisted-body equality remain
+independent export requirements.
+
 Final Quality Gate feedback is not complete when it only describes a problem.
 Every remaining `warning` or `fail` must include a concrete `suggestion`.
 Structural findings should additionally carry a short exact `targetText` when

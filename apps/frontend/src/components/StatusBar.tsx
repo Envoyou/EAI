@@ -103,7 +103,7 @@ export default function StatusBar({
           aria-label={`Editorial readiness: ${readiness.replace('_', ' ')}`}
         >
           <ReadinessIcon readiness={readiness} />
-          {readiness === 'ready' ? 'Ready for review' : readiness === 'needs_review' ? 'Needs review' : 'Blocked'}
+          {readiness === 'ready' ? t('readyToExport') : readiness === 'needs_review' ? 'Needs review' : 'Blocked'}
         </Badge>
       )}
 

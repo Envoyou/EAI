@@ -675,14 +675,23 @@ export default function EditorCanvas({
                       onSaveFinalDraft={onSaveFinalDraft}
                       onQualityCheck={onQualityCheck}
                       onRegenerateSeo={onRegenerateSeo}
-                      onPrepareForExport={isCandidatePendingReview ? undefined : onPrepareForExport}
+                      onPrepareForExport={
+                        workspaceStage === 'publication' && !isCandidatePendingReview
+                          ? onPrepareForExport
+                          : undefined
+                      }
+                      onOpenPublication={
+                        workspaceStage === 'editor' && analysis.readiness === 'ready'
+                          ? () => router.push(`/publication${analysis.analysisLogId ? `?history=${encodeURIComponent(analysis.analysisLogId)}` : ''}`)
+                          : undefined
+                      }
                       onFinishLater={
                         !isCandidatePendingReview && !isDemoMode && analysis.analysisLogId
                           ? () => router.push('/workspace')
                           : undefined
                       }
                       onOpenCmsSettings={
-                        !isCandidatePendingReview && !isDemoMode
+                        workspaceStage === 'publication' && !isCandidatePendingReview && !isDemoMode
                           ? () => router.push('/settings/publication/identity')
                           : undefined
                       }

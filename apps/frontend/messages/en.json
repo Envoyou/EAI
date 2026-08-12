@@ -572,6 +572,7 @@
     "finalStageDescription": "Your draft is saved. Prepare it for publication, or use Draft tools for another editorial pass.",
     "finishLater": "Finish later",
     "connectCms": "Connect CMS",
+    "continueToPublication": "Continue to Publication",
     "documentActions": "Document",
     "copyDraft": "Copy final draft",
     "exportToCms": "Export to CMS",
@@ -714,6 +715,7 @@
   "DraftReview": {
     "tabLabel": "Draft Review",
     "statusFinal": "Final Draft",
+    "readyToExport": "Ready to export",
     "eyebrow": "Draft review",
     "title": "The article is almost ready",
     "description": "Review {count, plural, one {# editorial decision} other {# editorial decisions}} before EAI prepares the Final Draft.",

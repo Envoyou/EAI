@@ -8,6 +8,7 @@ const readFrontendSource = (path: string) =>
 describe('revision-safe publication workflow', () => {
   it('offers draft editing, quality-only checks, and independent SEO regeneration', () => {
     const panel = readFrontendSource('components/FinalDraftPanel.tsx');
+    const canvas = readFrontendSource('components/EditorCanvas.tsx');
     const seoPanel = readFrontendSource('components/PublicationSeoPanel.tsx');
     const inlineEditor = readFrontendSource(
       'components/final-draft/InlineFinalDraftEditor.tsx'
@@ -42,6 +43,22 @@ describe('revision-safe publication workflow', () => {
     expect(panel).toContain('publication-command-row');
     expect(panel).toContain("t('readyToPublishTitle')");
     expect(panel).toContain("t('finishLater')");
+    expect(panel).toContain("t('continueToPublication')");
+    expect(panel.indexOf('ready && onOpenPublication')).toBeLessThan(
+      panel.indexOf('publicationDetailsReady && !cmsConnected')
+    );
+    const publicationHandoffBranch = panel.slice(
+      panel.indexOf('ready && onOpenPublication'),
+      panel.indexOf('publicationDetailsReady && !cmsConnected')
+    );
+    expect(publicationHandoffBranch).not.toContain('isAiBusy');
+    expect(canvas).toContain("workspaceStage === 'editor' && analysis.readiness === 'ready'");
+    expect(canvas).toContain("router.push(`/publication");
+    expect(canvas).toContain("workspaceStage === 'publication' && !isCandidatePendingReview");
+    expect(canvas).toContain("workspaceStage === 'publication' && !isCandidatePendingReview\n                          ? onPrepareForExport");
+    const statusBar = readFrontendSource('components/StatusBar.tsx');
+    expect(statusBar).toContain("t('readyToExport')");
+    expect(statusBar).not.toContain('Ready for review');
     expect(panel).toContain("t('documentActions')");
   });
 
