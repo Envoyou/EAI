@@ -6,6 +6,8 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+## [3.23.0] - 2026-08-13
+
 ### Changed
 - **Canonical Review Capability and Candidate Draft Availability**:
   - Added one shared discriminated capability projection for mechanical fixes, prepared proposals, source decisions, and manual editorial decisions; Review now renders that projection instead of inferring actions from raw findings.

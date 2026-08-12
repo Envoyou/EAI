@@ -6,6 +6,8 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [3.23.0] - 2026-08-13
+
 ### Diubah
 - **Capability Review Kanonis dan Ketersediaan Draft Kandidat**:
   - Menambahkan satu projection capability bersama untuk perbaikan mekanis, proposal siap-terapkan, keputusan sumber, dan keputusan editorial manual; Review kini hanya merender projection tersebut dan tidak lagi menebak aksi dari finding mentah.
