@@ -382,6 +382,14 @@ unique, contains exactly two sentences, and has no existing line boundary.
 Refine applies that patch and runs Quality Gate again. Ambiguous multi-sentence
 or non-unique targets remain manual editorial decisions.
 
+Draft preparation also recognizes the stricter malformed Markdown boundary
+`closed bold sentence + no whitespace + next prose sentence`. It inserts two
+newlines before Quality Gate only when the delimiter is demonstrably closing,
+the following token begins normal prose, fenced code is not involved, and
+removing whitespace makes the before/after strings identical. The capability
+fallback classifies a prepared paragraph-boundary patch as `mechanical_fix`,
+so historical or independently supplied findings cannot expose Keep.
+
 Final Quality Gate feedback is not complete when it only describes a problem.
 Every remaining `warning` or `fail` must include a concrete `suggestion`.
 Structural findings should additionally carry a short exact `targetText` when

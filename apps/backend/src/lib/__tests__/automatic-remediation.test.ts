@@ -25,6 +25,20 @@ describe('automatic remediation', () => {
     expect(result.appliedCount).toBe(1);
   });
 
+  it('repairs a missing paragraph boundary after closed bold prose', () => {
+    const draft = '**AI proposes, the editor decides.**Refinement operates on a fundamentally different premise.';
+    const result = applyAutomaticDeterministicRemediations({
+      draft,
+      feedback: [],
+      researchNotes: [],
+    });
+
+    expect(result.draft).toBe(
+      '**AI proposes, the editor decides.**\n\nRefinement operates on a fundamentally different premise.'
+    );
+    expect(result.appliedCount).toBe(1);
+  });
+
   it('removes duplicate empty headings and unsupported parenthetical details', () => {
     const draft = [
       '## Automation',

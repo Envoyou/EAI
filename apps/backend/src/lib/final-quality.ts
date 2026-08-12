@@ -814,7 +814,7 @@ const projectDeterministicParagraphBoundary = (
   ) return item;
 
   const sentenceBoundaries = Array.from(
-    target.matchAll(/([.!?]["'”’)*_\]]*)[ \t]+(?=[A-Z])/gu)
+    target.matchAll(/([.!?]["'”’)*_\]]*)[ \t]*(?=[A-Z])/gu)
   );
   if (sentenceBoundaries.length !== 1) return item;
 

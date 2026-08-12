@@ -48,15 +48,29 @@ export function stripLeadingExcerpt(text: string): string {
 
 /** Repairs unambiguous sentence boundaries without changing editorial meaning. */
 export function repairMissingSentenceWhitespace(text: string): string {
-  const protectedPattern = /https?:\/\/[^\s)>\]}]+|`[^`\n]+`/giu;
+  const protectedPattern = /```[\s\S]*?```|https?:\/\/[^\s)>\]}]+|`[^`\n]+`/giu;
   const repairSegment = (value: string, followsProtectedText = false) => {
+    const withMarkdownParagraphRepair = value.replace(
+      /([.!?]["'”’)]?\*\*)(?=\p{Lu}\p{Ll})/gu,
+      (boundary, _capturedBoundary, offset: number, fullText: string) => {
+        const openingDelimiterCount = fullText
+          .slice(0, offset)
+          .match(/\*\*/gu)?.length ?? 0;
+        return openingDelimiterCount % 2 === 1
+          ? `${boundary}\n\n`
+          : boundary;
+      }
+    );
     const withBoundaryRepair = followsProtectedText
-      ? value.replace(/^([.!?])([A-Z][a-z])/u, '$1 $2')
-      : value;
-    return withBoundaryRepair.replace(
+      ? withMarkdownParagraphRepair.replace(/^([.!?])([A-Z][a-z])/u, '$1 $2')
+      : withMarkdownParagraphRepair;
+    const repaired = withBoundaryRepair.replace(
       /([a-z0-9)"'\]])([.!?])([A-Z][a-z])/g,
       '$1$2 $3'
     );
+    return value.replace(/\s+/gu, '') === repaired.replace(/\s+/gu, '')
+      ? repaired
+      : value;
   };
   let cursor = 0;
   let repaired = '';

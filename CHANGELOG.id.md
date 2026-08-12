@@ -16,6 +16,7 @@ Format berkas ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/
   - Mencegah pemeriksaan Source Fidelity deterministik menganggap angka yang hanya digunakan dalam contoh hipotetis berlabel jelas sebagai fakta artikel, sambil tetap mempertahankan finding bila sinyal yang sama dinyatakan sebagai fakta di bagian lain.
   - Mengklasifikasikan istilah teknis umum seperti URL, URI, CMS, SEO, HTTP, HTML, JSON, dan XML sebagai terminologi generik, bukan entitas identitas tanpa dukungan.
   - Mengubah finding batas paragraf dua kalimat yang aman dan unik menjadi replacement patch executable agar Refine dapat menerapkan dan memvalidasinya ulang sebelum Review.
+  - Menormalisasi kalimat Markdown bold yang sudah ditutup tetapi langsung disambung prose menjadi paragraf terpisah sebelum Quality Gate, dengan invariant perubahan whitespace-only dan perlindungan fenced code; kontrak capability bersama mengklasifikasikan finding legacy yang sudah memiliki patch sebagai mechanical fix tanpa aksi Keep.
 
 ## [3.22.0] - 2026-08-09
 

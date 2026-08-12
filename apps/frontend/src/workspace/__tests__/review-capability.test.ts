@@ -63,6 +63,23 @@ describe('canonical review capability workflow', () => {
     );
   });
 
+  it('projects an exact missing paragraph boundary as a mechanical fix', () => {
+    const [decision] = buildReviewDecisionQueue([{
+      category: 'Structure',
+      status: 'warning',
+      message: 'Missing paragraph break after the closing bold principle.',
+      suggestion: 'Insert the missing paragraph break.',
+      targetText: '**AI proposes, the editor decides.**Refinement operates differently.',
+      replacementText: '**AI proposes, the editor decides.**\n\nRefinement operates differently.',
+      operation: 'replace',
+    }]);
+
+    expect(decision!.capability).toMatchObject({
+      kind: 'mechanical_fix',
+      autoApplicable: true,
+    });
+  });
+
   it('changes the draft when the bulk action applies executable capabilities', () => {
     const sourceSensitivePatch: FeedbackItem = {
       category: 'Source Fidelity',

@@ -149,7 +149,7 @@ export const canAutoApplyFeedback = (item: FeedbackItem) => {
 };
 
 const MECHANICAL_FINDING_PATTERN =
-  /cms formatting|whitespace|punctuation|concatenated|spacing|formatting|format|spasi|tanda baca|kalimat tersambung/iu;
+  /cms formatting|whitespace|punctuation|concatenated|spacing|formatting|format|paragraph (?:break|boundary)|spasi|tanda baca|kalimat tersambung|pemisah paragraf|batas paragraf/iu;
 
 const SOURCE_DECISION_PATTERN =
   /source|citation|factual|verification|internal link|claim|evidence|attribution|unsupported|accuracy|provenance|sumber|sitasi|verifikasi|fakta|klaim|bukti|atribusi|akurasi|provenans/iu;
