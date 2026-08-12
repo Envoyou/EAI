@@ -172,6 +172,18 @@ export default function EditorCanvas({
   );
   const reviewDecisions = buildReviewDecisionQueue(analysis.feedback ?? []);
   const autoApplicableCount = countAutoApplicableReviewDecisions(reviewDecisions);
+  const firstBodyDecision = reviewDecisions.find(
+    ({ capability }) => capability.kind === 'source_decision'
+      || capability.targetField === 'body'
+  );
+  const firstPublicationDecision = reviewDecisions.find(
+    ({ capability }) => capability.kind === 'manual_editorial_decision'
+      && capability.targetField !== 'body'
+  );
+  const hasNonPublicationReviewDecision = reviewDecisions.some(
+    ({ capability }) => capability.kind === 'source_decision'
+      || capability.targetField === 'body'
+  );
   const resolvedDecisionCount = decisionFeedback.filter(
     (item) => item.isApplied || item.isAccepted || item.isVerified
   ).length;
@@ -194,6 +206,23 @@ export default function EditorCanvas({
   const openFeedbackDecision = (index?: number) => {
     if (typeof index === 'number') onActiveFeedbackChange(index);
     onOpenFeedbackSidebar();
+  };
+
+  const openPublicationMetadata = (targetField: FindingTarget) => {
+    const seoFieldByTarget: Partial<Record<FindingTarget, string>> = {
+      'publication.title': 'title',
+      'publication.slug': 'slug',
+      'publication.excerpt': 'excerpt',
+      'publication.metaTitle': 'metaTitle',
+      'publication.metaDescription': 'metaDescription',
+      'publication.coverImageAlt': 'coverImageAltText',
+      'publication.tags': 'tags',
+    };
+    const params = new URLSearchParams();
+    if (analysis.analysisLogId) params.set('history', analysis.analysisLogId);
+    const seoField = seoFieldByTarget[targetField];
+    if (seoField) params.set('seoField', seoField);
+    router.push(`/publication${params.size > 0 ? `?${params.toString()}` : ''}`);
   };
 
   return (
@@ -319,7 +348,7 @@ export default function EditorCanvas({
                         analysisLogId={analysis.analysisLogId}
                         onOpenPublication={() => router.push(`/publication${analysis.analysisLogId ? `?history=${encodeURIComponent(analysis.analysisLogId)}` : ''}`)}
                       />
-                    ) : workspaceStage === 'publication' && isCandidatePendingReview ? (
+                    ) : workspaceStage === 'publication' && isCandidatePendingReview && hasNonPublicationReviewDecision ? (
                       <div className="ui-state-card mx-auto flex max-w-xl flex-col items-center justify-center p-8 text-center">
                         <WarningStatusIcon className="mb-3 h-6 w-6 text-[var(--warning)]" />
                         <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('publicationBlockedTitle')}</h2>
@@ -334,7 +363,9 @@ export default function EditorCanvas({
                           {t('returnToEditor', { defaultValue: 'Return to Editor' })}
                         </Button>
                       </div>
-                    ) : isCandidatePendingReview && !showCandidateEditor ? (
+                    ) : isCandidatePendingReview
+                      && !showCandidateEditor
+                      && workspaceStage !== 'publication' ? (
                       <div className="ui-panel flex h-full min-h-0 flex-col overflow-hidden">
                         <div className="ui-panel-header px-5 py-4">
                           <p className="text-[11px] font-medium text-[var(--muted-foreground)]">
@@ -528,13 +559,17 @@ export default function EditorCanvas({
                                             variant="primary"
                                             size="sm"
                                             disabled={isExecuting}
-                                            onClick={() => {
-                                              onActiveFeedbackChange(index);
-                                              setCandidateEditorKey(candidateReviewKey);
-                                            }}
+                                            onClick={() => capability.targetField === 'body'
+                                              ? (() => {
+                                                  onActiveFeedbackChange(index);
+                                                  setCandidateEditorKey(candidateReviewKey);
+                                                })()
+                                              : openPublicationMetadata(capability.targetField)}
                                           >
                                             <EditActionIcon className="h-3.5 w-3.5" />
-                                            {t('editCandidate')}
+                                            {capability.targetField === 'body'
+                                              ? t('editCandidate')
+                                              : t('editSeoPack')}
                                           </Button>
                                           {capability.allowKeep && onAcceptFeedback && (
                                             <Button
@@ -600,13 +635,18 @@ export default function EditorCanvas({
                                   variant="muted"
                                   size="sm"
                                   onClick={() => {
-                                    const firstDecision = reviewDecisions[0];
-                                    if (firstDecision) onActiveFeedbackChange(firstDecision.index);
-                                    setCandidateEditorKey(candidateReviewKey);
+                                    if (firstBodyDecision) {
+                                      onActiveFeedbackChange(firstBodyDecision.index);
+                                      setCandidateEditorKey(candidateReviewKey);
+                                    } else if (
+                                      firstPublicationDecision?.capability.kind === 'manual_editorial_decision'
+                                    ) {
+                                      openPublicationMetadata(firstPublicationDecision.capability.targetField);
+                                    }
                                   }}
                                 >
                                   <EditActionIcon className="h-3.5 w-3.5" />
-                                  {t('editCandidate')}
+                                  {firstBodyDecision ? t('editCandidate') : t('editSeoPack')}
                                 </Button>
                               </div>
                             </div>

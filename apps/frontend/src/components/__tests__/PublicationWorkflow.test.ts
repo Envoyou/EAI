@@ -261,7 +261,18 @@ describe('revision-safe publication workflow', () => {
     expect(panel).toContain('startEditing && onSaveFinalDraft');
     expect(panel).toContain('focusText={editorFocusText}');
     expect(canvas).toContain("t('editAffectedText')");
-    expect(canvas).toContain('onActiveFeedbackChange(firstDecision.index)');
+    expect(canvas).toContain('onActiveFeedbackChange(firstBodyDecision.index)');
+    expect(canvas).toContain("t('editSeoPack')");
+    expect(canvas).toContain("params.set('seoField', seoField)");
+    expect(canvas).toContain('isCandidatePendingReview && hasNonPublicationReviewDecision');
+    expect(canvas).toContain("&& workspaceStage !== 'publication'");
+
+    const seoPanel = readFrontendSource('components/PublicationSeoPanel.tsx');
+    expect(seoPanel).toContain('initialEditField');
+    expect(seoPanel).toContain('field?.focus()');
+
+    const workspace = readFrontendSource('workspace/useEditorialWorkspace.ts');
+    expect(workspace).toContain('await runAutomaticPublicationValidation(automaticValidation)');
   });
 
   it('keeps cancellation available for the complete AI lifecycle and blocks overlapping actions', () => {

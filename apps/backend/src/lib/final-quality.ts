@@ -793,6 +793,40 @@ const getFeedbackPriority = (item: QualityFeedbackItem) => {
   return statusScore + verificationScore + sourceVerificationPenalty + targetScore;
 };
 
+const PUBLICATION_FINDING_TARGETS = [
+  { pattern: /meta description|deskripsi meta/iu, targetField: 'publication.metaDescription' as const, packageField: 'metaDescription' as const },
+  { pattern: /meta title|judul meta/iu, targetField: 'publication.metaTitle' as const, packageField: 'metaTitle' as const },
+  { pattern: /cover(?: image)? alt|alt text|teks alt/iu, targetField: 'publication.coverImageAlt' as const, packageField: 'coverImageAltText' as const },
+  { pattern: /\bslug\b/iu, targetField: 'publication.slug' as const, packageField: 'slug' as const },
+  { pattern: /\bexcerpt\b|ringkasan cms/iu, targetField: 'publication.excerpt' as const, packageField: 'excerpt' as const },
+  { pattern: /\btags?\b|\btag\b/iu, targetField: 'publication.tags' as const, packageField: 'tags' as const },
+  { pattern: /publication title|cms title|judul publikasi|judul cms/iu, targetField: 'publication.title' as const, packageField: 'title' as const },
+];
+
+const projectPublicationFindingTarget = (
+  item: QualityFeedbackItem,
+  publicationMode: SourceFidelityOptions['publicationMode'],
+  publicationPackage?: PublicationPackage
+): QualityFeedbackItem | null => {
+  if (item.targetField?.startsWith('publication.')) return item;
+  const description = [item.category, item.message, item.suggestion, item.reason]
+    .filter(Boolean)
+    .join(' ');
+  const inferred = PUBLICATION_FINDING_TARGETS.find(({ pattern }) => pattern.test(description));
+  if (!inferred) return item;
+  if (publicationMode !== 'publish_ready') return null;
+
+  const currentValue = publicationPackage?.[inferred.packageField];
+  return {
+    ...item,
+    operation: 'manual',
+    targetField: inferred.targetField,
+    targetText: Array.isArray(currentValue)
+      ? currentValue.join(', ')
+      : currentValue?.trim() || item.targetText,
+  };
+};
+
 const PARAGRAPH_BOUNDARY_FINDING_PATTERN =
   /paragraph (?:break|boundary)|separate (?:the )?paragraph|split (?:this|the) paragraph|pemisah paragraf|batas paragraf|paragraf baru|pisahkan (?:bagian ini menjadi )?paragraf/iu;
 
@@ -929,7 +963,14 @@ export const applyDeterministicQualityChecks = (
   options: SourceFidelityOptions = {}
 ): FinalQualityGateOutput => {
   const isEn = options.language === 'en';
-  let feedback = result.feedback.filter((item) => item.status !== 'pass');
+  let feedback = result.feedback
+    .filter((item) => item.status !== 'pass')
+    .map((item) => projectPublicationFindingTarget(
+      item,
+      options.publicationMode,
+      options.publicationPackage
+    ))
+    .filter((item): item is QualityFeedbackItem => Boolean(item));
   const isMissingWhitespaceFinding = (item: QualityFeedbackItem) =>
     /missing whitespace|punctuation space|concatenated sentences|kehilangan spasi|kalimat tersambung/iu
       .test(`${item.category} ${item.message} ${item.suggestion ?? ''}`);

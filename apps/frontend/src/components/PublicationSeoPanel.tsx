@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Copy, Check } from 'lucide-react';
@@ -27,6 +27,14 @@ import { derivePublicationUxState } from '@/workspace/publication-ux-state';
 import { getProtectedSeoReviewFields } from '@/workspace/seo-field-state';
 
 type SeoPackage = Partial<PublicationPackage>;
+export type PublicationSeoField =
+  | 'title'
+  | 'slug'
+  | 'excerpt'
+  | 'metaTitle'
+  | 'metaDescription'
+  | 'coverImageAltText'
+  | 'tags';
 
 interface PublicationSeoPanelProps {
   metadata?: SeoPackage;
@@ -37,6 +45,7 @@ interface PublicationSeoPanelProps {
   seoReviewState?: SeoReviewState;
   seoFieldStates?: SeoFieldStates;
   isChecking?: boolean;
+  initialEditField?: PublicationSeoField;
 }
 
 const toEditValue = (metadata?: SeoPackage) => ({
@@ -58,6 +67,7 @@ export function PublicationSeoPanel({
   seoReviewState,
   seoFieldStates,
   isChecking = false,
+  initialEditField,
 }: PublicationSeoPanelProps) {
   const t = useTranslations('FinalDraftPanel');
   const [editing, setEditing] = useState(false);
@@ -65,6 +75,9 @@ export function PublicationSeoPanel({
   const [confirming, setConfirming] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [value, setValue] = useState(() => toEditValue(metadata));
+  const initialEditHandledRef = useRef(false);
+  const initialInputFieldRef = useRef<HTMLInputElement | null>(null);
+  const initialTextareaFieldRef = useRef<HTMLTextAreaElement | null>(null);
   const protectedFields = getProtectedSeoReviewFields(seoFieldStates);
   const uxState = derivePublicationUxState({
     isChecking,
@@ -73,6 +86,22 @@ export function PublicationSeoPanel({
     publicationPackageStatus,
     seoFieldStates,
   });
+
+  useEffect(() => {
+    if (!metadata || !initialEditField || initialEditHandledRef.current) return;
+    initialEditHandledRef.current = true;
+    setValue(toEditValue(metadata));
+    setEditing(true);
+  }, [initialEditField, metadata]);
+
+  useEffect(() => {
+    if (!editing || !initialEditField) return;
+    const field = initialEditField === 'excerpt' || initialEditField === 'metaDescription'
+      ? initialTextareaFieldRef.current
+      : initialInputFieldRef.current;
+    field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    field?.focus();
+  }, [editing, initialEditField]);
 
   const rows = metadata
     ? [
@@ -291,6 +320,7 @@ export function PublicationSeoPanel({
                     {t(`seoField.${field}`)}
                   </span>
                   <Input
+                    ref={initialEditField === field ? initialInputFieldRef : undefined}
                     variant="surface"
                     value={value[field]}
                     disabled={isChecking}
@@ -305,6 +335,7 @@ export function PublicationSeoPanel({
                   {t(`seoField.${field}`)}
                 </span>
                 <Textarea
+                  ref={initialEditField === field ? initialTextareaFieldRef : undefined}
                   variant="surface"
                   value={value[field]}
                   disabled={isChecking}
@@ -318,6 +349,7 @@ export function PublicationSeoPanel({
                 {t('seoField.tags')}
               </span>
               <Input
+                ref={initialEditField === 'tags' ? initialInputFieldRef : undefined}
                 variant="surface"
                 value={value.tags}
                 disabled={isChecking}

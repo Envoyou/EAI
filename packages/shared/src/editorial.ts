@@ -166,6 +166,20 @@ const isPublicationTarget = (
 ): targetField is Exclude<FindingTarget, 'body'> =>
   Boolean(targetField?.startsWith('publication.'));
 
+const inferPublicationTarget = (item: FeedbackItem): Exclude<FindingTarget, 'body'> | null => {
+  const description = [item.category, item.message, item.suggestion, item.reason]
+    .filter(Boolean)
+    .join(' ');
+  if (/meta description|deskripsi meta/iu.test(description)) return 'publication.metaDescription';
+  if (/meta title|judul meta/iu.test(description)) return 'publication.metaTitle';
+  if (/cover(?: image)? alt|alt text|teks alt/iu.test(description)) return 'publication.coverImageAlt';
+  if (/\bslug\b/iu.test(description)) return 'publication.slug';
+  if (/\bexcerpt\b|ringkasan cms/iu.test(description)) return 'publication.excerpt';
+  if (/\btags?\b|\btag\b/iu.test(description)) return 'publication.tags';
+  if (/publication title|cms title|judul publikasi|judul cms/iu.test(description)) return 'publication.title';
+  return null;
+};
+
 /**
  * Canonical projection from a raw quality finding to the actions Review may
  * render. UI consumers must not infer actions directly from FeedbackItem.
@@ -187,6 +201,9 @@ export const projectReviewCapability = (
     .join(' ');
   const sourceSensitive = Boolean(item.verificationStatus)
     || SOURCE_DECISION_PATTERN.test(combined);
+  const publicationTarget = isPublicationTarget(item.targetField)
+    ? item.targetField
+    : inferPublicationTarget(item);
 
   if (sourceSensitive) {
     return {
@@ -203,14 +220,14 @@ export const projectReviewCapability = (
     };
   }
 
-  if (isPublicationTarget(item.targetField) && target && replacement) {
+  if (publicationTarget && target && replacement) {
     return {
       kind: 'prepared_proposal',
       autoApplicable: true,
       target,
       replacement,
       operation: 'replace',
-      targetField: item.targetField,
+      targetField: publicationTarget,
     };
   }
 
@@ -237,6 +254,7 @@ export const projectReviewCapability = (
     allowKeep: item.status === 'warning' && !replacement,
     allowEdit: true,
     target: target || item.message,
+    targetField: publicationTarget ?? 'body',
   };
 };
 

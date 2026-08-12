@@ -722,6 +722,7 @@
     "reviewDecision": "Tinjau keputusan",
     "progress": "{completed} dari {total} keputusan selesai",
     "editCandidate": "Edit draft kandidat secara manual",
+    "editSeoPack": "Edit SEO Pack",
     "editAffectedText": "Edit teks terdampak",
     "candidateNotice": "Ini adalah draft kandidat. Artikel baru menjadi Draft Final setelah keputusan yang tersisa dan validasi selesai.",
     "backToQueue": "Kembali ke antrean tinjauan",

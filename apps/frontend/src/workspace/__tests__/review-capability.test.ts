@@ -143,6 +143,21 @@ describe('canonical review capability workflow', () => {
     });
   });
 
+  it('preserves a manual publication target instead of falling back to body editing', () => {
+    const [decision] = buildReviewDecisionQueue([{
+      category: 'SEO',
+      status: 'warning',
+      message: 'The meta description needs an editorial correction.',
+      targetText: 'Current meta description.',
+      operation: 'manual',
+    }]);
+
+    expect(decision!.capability).toMatchObject({
+      kind: 'manual_editorial_decision',
+      targetField: 'publication.metaDescription',
+    });
+  });
+
   it('collapses duplicate findings into one editorial decision', () => {
     const decisions = buildReviewDecisionQueue([
       {

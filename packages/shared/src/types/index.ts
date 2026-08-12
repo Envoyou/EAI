@@ -85,6 +85,7 @@ export type ReviewCapability =
       allowKeep: boolean;
       allowEdit: true;
       target: string;
+      targetField: FindingTarget;
     };
 export type EditorialProcessStage =
   | 'reviewing'

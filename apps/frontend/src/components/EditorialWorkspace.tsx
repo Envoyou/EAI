@@ -22,7 +22,7 @@ import ThreeColumnLayout from '@/components/ThreeColumnLayout';
 import EditorCanvas from '@/components/EditorCanvas';
 import AICopilotPanel, { type StrategistEntryRequest } from '@/components/AICopilotPanel';
 import { EditorWorkflowPanel } from '@/components/EditorWorkflowPanel';
-import { PublicationSeoPanel } from '@/components/PublicationSeoPanel';
+import { PublicationSeoPanel, type PublicationSeoField } from '@/components/PublicationSeoPanel';
 import { AppSidebarShell, type WorkspacePage } from '@/components/AppSidebarShell';
 import ShortcutsModal from '@/components/ShortcutsModal';
 import { EAILogo } from '@/components/EAILogo';
@@ -47,6 +47,7 @@ export default function EditorialWorkspace({
   initialHistoryId,
   initialTitle,
   initialBrief,
+  initialPublicationField,
 }: {
   mode: 'demo' | 'workspace';
   stage?: 'editor' | 'review' | 'publication';
@@ -54,6 +55,7 @@ export default function EditorialWorkspace({
   initialHistoryId?: string;
   initialTitle?: string;
   initialBrief?: string;
+  initialPublicationField?: PublicationSeoField;
 }) {
   const router = useRouter();
   const tWorkspace = useTranslations('WorkspaceShell');
@@ -597,6 +599,7 @@ export default function EditorialWorkspace({
           seoReviewState={analysis.seoReviewState}
           seoFieldStates={analysis.seoFieldStates}
           isChecking={isCheckingQuality && !isAiBusy}
+          initialEditField={initialPublicationField}
         />
       );
     }

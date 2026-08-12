@@ -406,6 +406,15 @@ Publication. Entering Publication does not weaken export readiness; CMS
 connection, current complete metadata, and exact persisted-body equality remain
 independent export requirements.
 
+Publication metadata never falls back to candidate-body editing. Provider
+findings that explicitly name a metadata field are projected to the canonical
+`publication.*` target and ignored in content-only Fast mode. Refine retries a
+publication-only failure by regenerating the SEO package. If the bounded retry
+still leaves a genuine decision, Review links to Publication with the relevant
+SEO Pack field already in edit focus. Publication may expose that metadata
+editor while readiness remains unresolved, but Prepare and Export stay blocked;
+saving the metadata automatically runs publication validation again.
+
 Final Quality Gate feedback is not complete when it only describes a problem.
 Every remaining `warning` or `fail` must include a concrete `suggestion`.
 Structural findings should additionally carry a short exact `targetText` when

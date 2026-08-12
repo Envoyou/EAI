@@ -929,6 +929,7 @@ export function useEditorialWorkspace({
     const logId = analysis.analysisLogId || activeHistoryId;
     cancelBackgroundValidation();
     if (!logId || hasBlockingWorkspaceOperation()) return false;
+    let automaticValidation: AutomaticValidationContext | null = null;
     workspaceMutationRef.current = true;
     try {
       const response = await fetchWithTimeout(`/api/history/${logId}/resolve`, {
@@ -943,22 +944,37 @@ export function useEditorialWorkspace({
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Failed to save SEO metadata.');
+      const persistedDraftRevision = result.draftRevision ?? analysis.draftRevision;
+      const persistedSeoFieldStates = parseSeoFieldStates(result.seoFieldStates);
       setAnalysis(prev => ({
         ...prev,
         generatedMetadata: result.generatedMetadata,
         publicationPackageStatus: 'current',
         seoReviewState: 'valid',
-        seoFieldStates: parseSeoFieldStates(result.seoFieldStates),
-        draftRevision: result.draftRevision ?? prev.draftRevision,
+        seoFieldStates: persistedSeoFieldStates,
+        draftRevision: persistedDraftRevision ?? prev.draftRevision,
       }));
+      automaticValidation = {
+        readiness: analysis.readiness ?? 'needs_review',
+        publicationPackageStatus: 'current',
+        qualityGateState: 'stale',
+        seoReviewState: 'valid',
+        seoFieldStates: persistedSeoFieldStates,
+        draftRevision: persistedDraftRevision,
+        polishedDraft: analysis.polishedDraft || '',
+      };
       toast.success('SEO metadata saved for the current final draft.');
-      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save SEO metadata.');
       return false;
     } finally {
       workspaceMutationRef.current = false;
     }
+
+    if (automaticValidation) {
+      await runAutomaticPublicationValidation(automaticValidation);
+    }
+    return true;
   };
 
   const handleApplyPublicationFix = async (

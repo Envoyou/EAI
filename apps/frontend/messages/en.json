@@ -722,6 +722,7 @@
     "reviewDecision": "Review decision",
     "progress": "{completed} of {total} decisions completed",
     "editCandidate": "Edit candidate manually",
+    "editSeoPack": "Edit SEO Pack",
     "editAffectedText": "Edit affected text",
     "candidateNotice": "This is a candidate draft. It will become the Final Draft only after the remaining decisions and validation are complete.",
     "backToQueue": "Back to review queue",

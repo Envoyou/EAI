@@ -128,6 +128,66 @@ describe('publication title contract', () => {
     expect(result.feedback[0]?.targetField).toBe('publication.metaDescription');
   });
 
+  test('recovers a provider SEO finding as a publication metadata target', () => {
+    const metaDescription = 'The article explains a controlled workflow that remains publication-ready.';
+    const result = applyDeterministicQualityChecks(
+      {
+        ...missingH1Result(),
+        readiness: 'needs_review',
+        feedback: [{
+          category: 'SEO',
+          status: 'warning',
+          message: "The meta description is incomplete and cuts off at 'publication-ready'.",
+          suggestion: 'Complete the meta description with a closing noun.',
+          targetText: 'The meta description is incomplete.',
+          operation: 'manual',
+        }],
+        flags: [],
+      },
+      'Article body.',
+      'Article body.',
+      {
+        publicationMode: 'publish_ready',
+        publicationPackage: {
+          title: 'Controlled Editorial Workflow',
+          slug: 'controlled-editorial-workflow',
+          excerpt: 'A complete excerpt describing the controlled editorial workflow.',
+          metaTitle: 'Controlled Editorial Workflow for Publishing Teams',
+          metaDescription,
+          tags: ['Editorial', 'Workflow', 'Publishing'],
+        },
+      }
+    );
+
+    expect(result.feedback[0]).toMatchObject({
+      targetField: 'publication.metaDescription',
+      targetText: metaDescription,
+      operation: 'manual',
+    });
+  });
+
+  test('discards provider publication metadata findings in content-only fast mode', () => {
+    const result = applyDeterministicQualityChecks(
+      {
+        ...missingH1Result(),
+        readiness: 'needs_review',
+        feedback: [{
+          category: 'SEO',
+          status: 'warning',
+          message: 'The meta description needs revision.',
+          suggestion: 'Rewrite the meta description.',
+          operation: 'manual',
+        }],
+        flags: [],
+      },
+      'Article body.',
+      'Article body.',
+      { publicationMode: 'fast' }
+    );
+
+    expect(result.feedback).toEqual([]);
+  });
+
   test('audits the Blog Admin publication recommendations deterministically', () => {
     const result = applyDeterministicQualityChecks(
       { ...missingH1Result(), readiness: 'ready', feedback: [], flags: [] },
