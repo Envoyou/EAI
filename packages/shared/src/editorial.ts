@@ -198,6 +198,7 @@ export const projectReviewCapability = (
         && item.verificationStatus === 'needs_citation'
         && Boolean(target)
         && !replacement,
+      allowEdit: true,
       target: target || item.message,
     };
   }

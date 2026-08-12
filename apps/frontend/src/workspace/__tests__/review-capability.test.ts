@@ -98,6 +98,7 @@ describe('canonical review capability workflow', () => {
       autoApplicable: false,
       allowAddSource: true,
       allowKeep: false,
+      allowEdit: true,
     });
     expect(await applyProjectedReviewCapability({
       capability: decision!.capability,

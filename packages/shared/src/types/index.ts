@@ -76,6 +76,7 @@ export type ReviewCapability =
       autoApplicable: false;
       allowAddSource: true;
       allowKeep: boolean;
+      allowEdit: true;
       target: string;
     }
   | {

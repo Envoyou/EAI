@@ -12,6 +12,7 @@ The format of this file is based on [Keep a Changelog](https://keepachangelog.co
   - Limited bulk Apply to executable capabilities, removed generic AI rewrite from source-fidelity decisions, and kept high-risk findings outside the Keep path unless the capability explicitly permits it.
   - Repaired unambiguous missing sentence whitespace before Review and deduplicated repeated representations of the same decision.
   - Separated candidate-body availability from publication readiness so unresolved candidates remain visible and manually editable while CMS export keeps all existing readiness, metadata, and saved-body guards.
+  - Made manual review editing open directly in the inline editor, retain the active finding context, and select and scroll to the affected passage so editors do not have to search long articles manually.
 
 ## [3.22.0] - 2026-08-09
 

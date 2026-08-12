@@ -90,6 +90,8 @@ interface FinalDraftPanelProps {
   feedback?: FeedbackItem[];
   isDemoMode?: boolean;
   reviewMode?: boolean;
+  startEditing?: boolean;
+  editorFocusText?: string;
 }
 
 function highlightChildren(
@@ -234,6 +236,8 @@ export default function FinalDraftPanel({
   feedback = [],
   isDemoMode = false,
   reviewMode = false,
+  startEditing = false,
+  editorFocusText,
 }: FinalDraftPanelProps) {
   const t = useTranslations('FinalDraftPanel');
   const [activeTab, setActiveTab] = useState<TabType>('preview');
@@ -242,7 +246,9 @@ export default function FinalDraftPanel({
   const [refineInstruction, setRefineInstruction] = useState('');
   const [showRefineBox, setShowRefineBox] = useState(false);
   const [showStats, setShowStats] = useState(true);
-  const [editingDraft, setEditingDraft] = useState(false);
+  const [editingDraft, setEditingDraft] = useState(
+    Boolean(startEditing && onSaveFinalDraft && polishedDraft.trim())
+  );
   const [draftEditValue, setDraftEditValue] = useState(polishedDraft);
   const isGeneratingDraft = Boolean(isStreaming || isRefining);
   const isBackgroundValidation = Boolean(
@@ -583,6 +589,9 @@ export default function FinalDraftPanel({
   };
 
   const hasUnsavedDraftEdits = editingDraft && draftEditValue !== polishedDraft;
+  const focusedFeedback = activeFeedbackIndex === null
+    ? undefined
+    : feedback[activeFeedbackIndex];
   const { hasCandidateDraft, isPublicationReady } = deriveCandidateDraftAvailability(
     polishedDraft,
     ready ? 'ready' : 'needs_review'
@@ -763,10 +772,12 @@ export default function FinalDraftPanel({
                 <Pencil className="h-4 w-4 shrink-0 text-[var(--primary)]" />
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-[var(--foreground)]">
-                    {t('editingInline')}
+                    {focusedFeedback
+                      ? t('editingFinding', { category: focusedFeedback.category })
+                      : t('editingInline')}
                   </p>
                   <p className="text-[11px] text-[var(--muted-foreground)]">
-                    {t('saveInvalidatesReview')}
+                    {focusedFeedback?.message || t('saveInvalidatesReview')}
                   </p>
                 </div>
               </div>
@@ -1302,6 +1313,7 @@ export default function FinalDraftPanel({
                         onChange={setDraftEditValue}
                         disabled={isSavingFinalDraft}
                         ariaLabel={t('inlineEditorLabel')}
+                        focusText={editorFocusText}
                       />
                     </div>
                   ) : (

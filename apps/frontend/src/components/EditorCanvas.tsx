@@ -410,6 +410,23 @@ export default function EditorCanvas({
                                           </span>
                                           {capability.target}
                                         </div>
+                                        {item.reason && (
+                                          <div className="mt-2 text-xs leading-relaxed text-[var(--muted-foreground)]">
+                                            <span className="font-semibold text-[var(--foreground)]">{t('whyFlaggedLabel')}: </span>
+                                            {item.reason}
+                                          </div>
+                                        )}
+                                        {item.suggestion && (
+                                          <div className="mt-2 text-xs leading-relaxed text-[var(--muted-foreground)]">
+                                            <span className="font-semibold text-[var(--foreground)]">{t('recommendedActionLabel')}: </span>
+                                            {item.suggestion}
+                                          </div>
+                                        )}
+                                        {item.targetText && !capability.autoApplicable && (
+                                          <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted-foreground)]">
+                                            {t('editFocusHint')}
+                                          </p>
+                                        )}
                                         {capability.autoApplicable && (
                                           <div className="mt-2 rounded-lg bg-[var(--surface-2)] p-2 text-xs font-mono text-[var(--foreground)]">
                                             <span className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-wider block mb-0.5">{t('proposalLabel')}</span>
@@ -463,6 +480,19 @@ export default function EditorCanvas({
                                         </>
                                       ) : capability.kind === 'source_decision' ? (
                                         <>
+                                          <Button
+                                            type="button"
+                                            variant="primary"
+                                            size="sm"
+                                            disabled={isExecuting}
+                                            onClick={() => {
+                                              onActiveFeedbackChange(index);
+                                              setCandidateEditorKey(candidateReviewKey);
+                                            }}
+                                          >
+                                            <EditActionIcon className="h-3.5 w-3.5" />
+                                            {t('editAffectedText')}
+                                          </Button>
                                           {capability.allowAddSource && onAddFeedbackSource && (
                                             <Button
                                               type="button"
@@ -498,7 +528,10 @@ export default function EditorCanvas({
                                             variant="primary"
                                             size="sm"
                                             disabled={isExecuting}
-                                            onClick={() => setCandidateEditorKey(candidateReviewKey)}
+                                            onClick={() => {
+                                              onActiveFeedbackChange(index);
+                                              setCandidateEditorKey(candidateReviewKey);
+                                            }}
                                           >
                                             <EditActionIcon className="h-3.5 w-3.5" />
                                             {t('editCandidate')}
@@ -566,7 +599,11 @@ export default function EditorCanvas({
                                   type="button"
                                   variant="muted"
                                   size="sm"
-                                  onClick={() => setCandidateEditorKey(candidateReviewKey)}
+                                  onClick={() => {
+                                    const firstDecision = reviewDecisions[0];
+                                    if (firstDecision) onActiveFeedbackChange(firstDecision.index);
+                                    setCandidateEditorKey(candidateReviewKey);
+                                  }}
                                 >
                                   <EditActionIcon className="h-3.5 w-3.5" />
                                   {t('editCandidate')}
@@ -659,6 +696,10 @@ export default function EditorCanvas({
                       feedback={analysis.feedback || []}
                       isDemoMode={isDemoMode}
                       reviewMode={isCandidatePendingReview}
+                      startEditing={showCandidateEditor}
+                      editorFocusText={
+                        analysis.feedback?.[activeFeedbackIndex ?? -1]?.targetText
+                      }
                     />
                       </div>
                     </div>

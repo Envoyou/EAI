@@ -8,12 +8,14 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TableRow from '@tiptap/extension-table-row';
 import { Markdown } from 'tiptap-markdown';
+import { findEditorFocusRange } from './editor-focus';
 
 interface InlineFinalDraftEditorProps {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
   ariaLabel: string;
+  focusText?: string;
 }
 
 type MarkdownStorage = {
@@ -30,6 +32,7 @@ export function InlineFinalDraftEditor({
   onChange,
   disabled = false,
   ariaLabel,
+  focusText,
 }: InlineFinalDraftEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -74,6 +77,33 @@ export function InlineFinalDraftEditor({
       editor.commands.setContent(value, { emitUpdate: false });
     }
   }, [editor, value]);
+
+  useEffect(() => {
+    if (!editor || disabled || !focusText?.trim()) return;
+
+    let selection: { from: number; to: number } | null = null;
+    editor.state.doc.descendants((node, position) => {
+      if (selection || !node.isTextblock) return !selection;
+      const range = findEditorFocusRange(node.textContent, focusText);
+      if (!range) return true;
+      selection = {
+        from: position + 1 + range.from,
+        to: position + 1 + range.to,
+      };
+      return false;
+    });
+
+    if (!selection) return;
+    const targetSelection = selection;
+    requestAnimationFrame(() => {
+      editor
+        .chain()
+        .focus()
+        .setTextSelection(targetSelection)
+        .scrollIntoView()
+        .run();
+    });
+  }, [disabled, editor, focusText]);
 
   return <EditorContent editor={editor} />;
 }

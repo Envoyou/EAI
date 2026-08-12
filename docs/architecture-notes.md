@@ -375,6 +375,12 @@ Every remaining `warning` or `fail` must include a concrete `suggestion`.
 Structural findings should additionally carry a short exact `targetText` when
 the affected passage can be identified safely.
 
+Manual review actions preserve that context across the transition into the
+candidate editor. The selected finding remains visible in the edit command
+row, and an available `targetText` is resolved against editor text, selected,
+focused, and scrolled into view. Opening manual edit must enter edit mode
+directly; a read-only preview is not a valid manual-edit destination.
+
 The frontend selects the narrowest safe action:
 
 - complete target/replacement operations expose direct Accept change and apply

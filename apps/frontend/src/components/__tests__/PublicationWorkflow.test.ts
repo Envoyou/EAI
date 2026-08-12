@@ -241,6 +241,10 @@ describe('revision-safe publication workflow', () => {
     expect(panel).toContain('isPublicationReady');
     expect(panel).toContain('reviewMode && onSaveFinalDraft');
     expect(panel).toContain('!hasCandidateDraft');
+    expect(panel).toContain('startEditing && onSaveFinalDraft');
+    expect(panel).toContain('focusText={editorFocusText}');
+    expect(canvas).toContain("t('editAffectedText')");
+    expect(canvas).toContain('onActiveFeedbackChange(firstDecision.index)');
   });
 
   it('keeps cancellation available for the complete AI lifecycle and blocks overlapping actions', () => {
